@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
   "http://www.w3.org/TR/html4/loose.dtd">
 
-<!-- $Id: ReleaseNotes.html 5750 2008-08-07 14:31:05Z kimmov $ -->
+<!-- $Id: ReleaseNotes.html 6302 2009-01-07 21:23:10Z kimmov $ -->
 
 <html>
 <head>
@@ -51,224 +51,183 @@
 </head>
 <body>
 
-<h2>WinMerge 2.8.6 Release Notes</h2>
+<h2>WinMerge 2.10 Release Notes</h2>
 <ul>
   <li><a href="#about">About This Release</a></li>
-  <li><a href="#new286">What Is New in 2.8.6?</a></li>
-  <li><a href="#new284">What Is New in 2.8.4?</a></li>
-  <li><a href="#new282">What Is New in 2.8.2?</a></li>
-  <li><a href="#new280">What Is New in 2.8.0?</a></li>
-  <li><a href="#new28RC">What Is New in 2.8 RC?</a></li>
-  <li><a href="#new276">What Is New in 2.7.6?</a></li>
-  <li><a href="#new274">What Is New in 2.7.4?</a></li>
-  <li><a href="#new272">What Is New in 2.7.2?</a></li>
+  <li><a href="#new2104">What Is New in 2.10.4?</a></li>
+  <li><a href="#new2102">What Is New in 2.10.2?</a></li>
+  <li><a href="#new210">What Is New in 2.10?</a></li>
+  <li><a href="#new210RC">What Is New in 2.10 RC?</a></li>
+  <li><a href="#new2910">What Is New in 2.9.10 Beta?</a></li>
   <li><a href="#issues">Known Issues</a></li>
 </ul>
-<p>August 2008</p>
+<p>January 2009</p>
 
 <h3><a name="about">About This Release</a></h3>
 
-<p>
-This is a new WinMerge stable release which is recommended and replaces earlier
-2.6.x versions.
-</p>
-
-<p>
-Compared to the 2.6.x releases, there are many improvements beneficial to the
-usage of WinMerge. Some areas of improvement include: Improved UTF-8 file
-detection and opening of binary files. Another significant improvement is the
-new localization system.  This simplifies the translation process of WinMerge.
+<p class="note">
+This is a 2.10 stable release. This release replaces earlier stable releases
+as a recommended release.
 </p>
 
 <p>
 Please submit bug reports to our <a href=
 "https://sourceforge.net/tracker/?group_id=13216&amp;atid=113216">bug-tracker</a>.
+</p>
 
-<h3><a name="new286">What Is New in 2.8.6?</a></h3>
+<h3><a name="#new2104">What Is New in 2.10.4?</a></h3>
 <p>
 For a complete changelog history, see the <code><a href="ChangeLog.txt">ChangeLog.txt</a></code>
 file located in the <code>Docs</code> folder under the WinMerge program folder.
 </p>
 
-<h4>Changes</h4>
+<p>
+WinMerge 2.10.2 is a bug fix update for the previous 2.10. releases. There are
+no new features or other significant changes.</p>
+
+<h4>Bugs fixed</h4>
 <ul>
-  <li>Fix for moving protected (read-only) items in folder compare</li>
-  <li>Fix external editor command line switches</li>
-  <li>Fix wrong text in copy confirmation dialog</li>
-  <li>New Slovenian translation</li>
-  <li>Chinese Traditional translation update</li>
+  <li>Move confirmation dialog sometimes had wrong paths</li>
+  <li>Translated readme.txt was not installed for some translations</li>
+  <li>Could not give paths to WinMerge from Cygwin console</li>
+  <li>File compare method "Modified Date and Size" ignored file size</li>
 </ul>
 
-<h3><a name="new284">What Is New in 2.8.4?</a></h3>
-
-<h4>Changes</h4>
+<h4>Translation updates</h4>
 <ul>
-  <li>Fix a crash when one path given from command line</li>
-  <li>Fix a crash when starting second instance with single-instance enabled</li>
-  <li>Brazilian translation update</li>
+  <li>Dutch</li>
+  <li>Swedish</li>
 </ul>
 
-<h3><a name="new282">What Is New in 2.8.2?</a></h3>
 
-<h4>Changes</h4>
+<h3><a name="new2102">What Is New in 2.10.2?</a></h3>
+<p>
+WinMerge 2.10.2 is a bug fix update for the 2.10.0 release. There are no new
+features or other significant changes. Most notable fixes are the fixes for
+the installer.
+</p>
+
+<h4>Bugs fixed</h4>
 <ul>
-  <li>Make 'Yes' the default button in copy confirmation dialog</li>
-  <li>Command line parsing fixes</li>
-  <li>Fix showing differences in the end of the line</li>
-  <li>Manual and documentation updates</li>
+  <li>Installer problems (not setting TortoiseSVN integration, missing
+    icons)</li>
+  <li>Case-sensitive regular expression search in editor did not work</li>
+  <li>Giving path to file and folder to command line did not work
+   (e.g <code>WinMergeU folder/file.txt folder2</code> - did not open
+   <code>file.txt</code> from <code>folder2</code>)
+  </li>
+  <li>If a message was shown during the file loading the location pane did not
+   show any differences</li>
+  <li>Fix manual URL in Readme.txt</li>
 </ul>
 
 <h4>Translations</h4>
 <p>
-Several translations were updated and three new translations were added:
+New translation for Galician was added. Two translations were updated:
 </p>
 <ul>
-  <li>Greek</li>
-  <li>Romanian</li>
+  <li>Czech</li>
   <li>Ukrainian</li>
 </ul>
 
-<h3><a name="new280">What Is New in 2.8.0?</a></h3>
+
+<h3><a name="new210">What Is New in 2.10?</a></h3>
+<p>
+WinMerge 2.10 does not have many new features. Instead many existing features
+are improved and optimized. And some long-standing problems are fixed.
+</p>
+
+<p>2.10 stable release has only couple of changes after release candidate.
+Those changes are couple of bug fixes and manual improvements. See the 2.10 RC
+and beta release changes below for more complete change list in this release.
+</p>
+
+<h3><a name="new210RC">What Is New in 2.10 RC?</a></h3>
+<h4>Improved user manual</h4>
+<p>
+The user manual has been improved a lot. The content has been practically
+rewritten. There are more screenshots which visualize the features. There are
+more index terms and internal linking.
+</p>
+
+<h4>Improved Command Line handling</h4>
+<p>
+Command Line handling was rewritten and several bugs were fixed in the process.
+WinMerge had several long-standing bugs to handle certain kinds of paths and
+their combinations. This new implementation fixes these problems.
+</p>
+
+<h4>Bugs fixed:</h4>
+<ul>
+  <li>Crash when generating a folder comparison report</li>
+  <li>ClearCase checkout/commit dialog translation did not work</li>
+</ul>
+
+<h4>Translation updates</h4>
+<ul>
+  <li>Brazilian</li>
+  <li>German</li>
+  <li>Greek</li>
+  <li>Japanese</li>
+  <li>Russian</li>
+  <li>Swedish</li>
+</ul>
+
+<h3><a name="new2910">What Is New in 2.9.10 Beta?</a></h3>
+
+<h4>Regular expressions</h4>
+<p>
+Regular expression library (PCRE, <a href="http://www.pcre.org/">http://www.pcre.org/</a>)
+is updated to the latest version (7.7). That will fix some problems present in
+older version used in WinMerge 2.8.x. PCRE is now used also in WinMerge's
+editor component. So Find- and Replace- features have now a lot improved regular
+expression support.
+</p>
+
+<h4>Installing for all users</h4>
+<p>
+Installer will now install WinMerge to all users. Previously the installer
+always installed just for the current user which causes problems in many
+environments. Now the Shell Integration is correctly enabled for all users
+after installing.
+</p>
+
+<h4>Focus losing bug has been fixed</h4>
+<p>
+WinMerge lost focus after doing folder compare operations (copy, delete, etc).
+This annoying bug has now been fixed.
+</p>
+
+<h4>Plugins disabled by default</h4>
+<p>
+Plugins are now disabled by default. One must enable plugins from new Plugins-
+dialog (Plugins/List... from the main menu). This was done because some plugins
+can cause unexpected behavior and compare results when they are run by default.
+</p>
+
+<h4>Unlimited undo</h4>
+<p>
+Undo limitation is now removed. Although the limit was high, merging large files
+with lots of differences could hit that limit. If all differences were copied
+in such files that "copy all" operation could not be undo anymore.
+</p>
 
 <h4>Changes</h4>
 <ul>
-  <li>Installer and splash screen graphics updates</li>
-  <li>Manual and documentation updates</li>
-  <li>Translation updates</li>
+  <li>Add ShellExtension menu for drive letters (root folders)</li>
+  <li>Fix location pane flickering, optimize location pane</li>
+  <li>Refresh compare after changing filter</li>
+  <li>Add -u commandline parameter as alternative to -ub</li>
+  <li>Open conflict files by drag&amp;dropping file to main window</li>
+  <li>Fix: the external editor command line switches didn't work</li>
+  <li>Fix: only Courier font had boldfacing enabled in the editor</li>
+  <li>Manual improvements</li>
 </ul>
 
-<h3><a name="new28RC">What Is New in 2.8 RC?</a></h3>
-
-<h4>Detect UTF-8 Files Without BOM Bytes</h4>
-<p>
-Until now, WinMerge could not detect UTF-8 files without a BOM (Byte-order) marker. 
-Opening such files with WinMerge caused segments of the file(s) to render improperly 
-on the screen. UTF-8 files without BOM bytes are now properly detected and displayed.
-</p>
-
-<h4>Open Binary Files</h4>
-<p>
-WinMerge could not display files it detected as binary in previous versions. 
-WinMerge did however compare the files and returned the results as either 
-"binary files are identical" or "binary files are different." Starting with this 
-release, WinMerge now shows <b>all</b> files in the file compare, including binary files. 
-Bytes that have no visual representation (character) are displayed with its byte value.
-</p>
-
-<p>
-<b>NOTE:</b> WinMerge is not a binary file editor. Do not damage your binary
-files!
-</p>
-
-<h4>Resolve Conflict Files</h4>
-<p>
-The oldest <i>open</i> feature request has finally been implented! WinMerge can now open 
-"conflict files" that several version control systems (CVS, Subversion, etc.) output. 
-A conflict file is seperated into two files?"theirs" and "mine." These files are then 
-displayed for typical file compare and merging.
-</p>
-
-<h4>Other Changes</h4>
+<h4>Translation updates</h4>
 <ul>
-  <li>Syntax highlighting for PowerShell and PO(T) files.</li>
-  <li>Zooming in file compare.</li>
-  <li>Create a <i>pair folder</i> for a <i>unique folder</i> so browsing into that folder 
-    is possible.</li>
-  <li>Option to select a folder for temporary files.</li>
-  <li>Show the file's encoding type in the file compare status bar.</li>
-  <li>Option to preserve a file's modification date in file compare.</li>
-</ul>
-
-<h4>Important Bugs Fixed</h4>
-<ul>
-  <li>Right mouse button did not move the cursor to the new position in file compare</li>
-  <li>Merge/Delete would delete files from folders marked as read-only.</li>
-  <li>Potential lockup in folder compare.</li>
-  <li>Line filter did not filter non-ascii lines correctly.</li>
-  <li>Did not switch back to content compare once switched to quick compare in
-    folder compare.</li>
-  <li>Quick compare did not ignore EOL differences.</li>
-</ul>
-
-
-<h3><a name="new276">What Is New in 2.7.6?</a></h3>
-
-<h4>New Localization System</h4>
-<p>
-The most significant change in this release is the new localization system. This new 
-system is based on the widely used PO files.  PO files are text files that have both 
-the original (English) text and the translated text together.  Since PO files are text 
-files, they are simple and intuitive to edit. WinMerge no longer uses DLL resources for 
-translations and therefore, no compiling will ever be required. One can now edit the PO 
-files on-the-fly, re-start WinMerge, and the changes will be reflected immediately.
-</p>
-
-<p>
-See WinMerge web site for more information about translations:
-<a href="http://winmerge.org/translations/">http://winmerge.org/translations/</a>
-
-<p>
-In conclusion: PO files have replaced LANG files in Languages-subfolder.
-</p>
-
-<h4>Translations</h4>
-<p>
-Several translations were again updated. We expect things to improve with
-translation statuses, as the new system is so much easier to use.
-</p>
-
-<p>
-New Croatian and Portuguese translations were added.
-</p>
-
-<h4>Other Changes</h4>
-<ul>
-  <li>HTML reports from file compare</li>
-  <li>Improved printing</li>
-  <li>New dialog for selecting folder compare columns</li>
-  <li>New icon for Shell Integration</li>
-</ul>
-
-<h4>Important Bugs Fixed</h4>
-<ul>
-  <li>Rename in folder compare misbehaved when renaming an item that only existed on 
-    one side.</li>
-  <li>"Do not merge" ignored differences when multiple differences are selected</li>
-  <li>VCS system integration tried to check out the wrong file, this caused a variety 
-    of side-effects.</li>
-  <li>Backup file was created from the wrong file in folder compare operations</li>
-</ul>
-
-<h3><a name="new274">What Is New in 2.7.4?</a></h3>
-<ul>
-  <li>New confirmation dialog for copying items in folder compare.</li>
-  <li>Improved line filter -dialog.</li>
-  <li>Printing improvements.</li>
-  <li>Allow user to select syntax highlighting to use for a file.</li>
-  <li>Tabbed multi-window interface.</li>
-  <li>Alternative big toolba.r</li>
-  <li>Recent project files in File-menu.</li>
-</ul>
-
-<h4>Important Bugs Fixed</h4>
-<ul>
-  <li>Crash when comparing empty folders.</li>
-  <li>Pressing ESC-key when renaming a file caused a crash.</li>
-</ul>
-
-<h3><a name="new272">What Is New in 2.7.2?</a></h3>
-<ul>
-  <li>New XML (expat+scew) and regular expression (PCRE) libraries used.</li>
-  <li>Try to match files inside differences.</li>
-  <li>Optimized folder compare.</li>
-  <li>New options for creating backup files.</li>
-</ul>
-
-<h4>Important Bugs Fixed</h4>
-<ul>
-  <li>Crash occures when file modification time was missing.</li>
-  <li>Dialogs could be hidden behind other windows.</li>
-  <li>Many word-wrap related fixes.</li>
+  <li>New Slovenian translation</li>
+  <li>Chinese Traditional updated</li>
 </ul>
 
 <h3><a name="issues">Known Issues</a></h3>
@@ -332,3 +291,5 @@ New Croatian and Portuguese translations were added.
 </ul>
 </body>
 </html>
+
+ 	  	 

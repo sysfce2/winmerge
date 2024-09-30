@@ -15,6 +15,7 @@
   define ('WINMERGE_2_2', '2.2');
   define ('WINMERGE_2_4', '2.4');
   define ('WINMERGE_2_6', '2.6');
+  define ('WINMERGE_2_8', '2.8');
   define ('TAB_DOWNLOADS', 'downloads');
   define ('TAB_SUPPORT', 'support');
   define ('TAB_TRANSLATIONS', 'translations');
@@ -34,23 +35,23 @@
      * Constructor
      */
     function Page() {
-      $this->_title = 'WinMerge 2.6';
+      $this->_title = 'WinMerge 2.8';
       $this->_charset = 'ISO-8859-1';
       $this->_description = 'WinMerge HomePage: Visual text file comparison and merging (Open Source software).';
       $this->_keywords = 'WinMerge, free, download, Beyond Compare, Scooter Software, DLSuperC, DLSubCF, Component Software Diff, Viff, TreeDiff, FileSync, WMatch, Quick Spot, NTDMatch, windiff, WDIFF, FolderMatch, Merge 99, Merge99, PMdiff, PMDiff, PMDIFF, pmdiff, visual, visually, file, folder, directory, synchronization, comparison, graphical, document, text, compare, diff, difference, revision, Araxis, compare folders, compare files, synchronize folders, merge files, merge folders, Y2K, Year 2000, Year 2K, side-by-side, VFC, GFC, gdiff, CSDiff, OS2GFC, vdiff, ediff, fc';
       $this->_rssfeeds = array();
-      $this->_tab = WINMERGE_2_6;
+      $this->_tab = WINMERGE_2_8;
       /* _Stable Release */
       $this->_stablerelease = new Release;
-      $this->_stablerelease->setVersionNumber('2.6.14');
-      $this->_stablerelease->setDate('2008-01-17');
-      $this->_stablerelease->addDownload('setup.exe', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.6.14-Setup.exe', 3036206);
-      $this->_stablerelease->addDownload('exe.zip', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.6.14-exe.zip', 5439408);
-      $this->_stablerelease->addDownload('exe.7z', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.6.14-exe.7z', 1768345);
-      $this->_stablerelease->addDownload('rt.zip', 'http://downloads.sourceforge.net/winmerge/Runtimes-2.6.14.zip', 1287952);
-      $this->_stablerelease->addDownload('rt.7z', 'http://downloads.sourceforge.net/winmerge/Runtimes-2.6.14.7z', 753483);
-      $this->_stablerelease->addDownload('src.zip', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.6.14-src.zip', 5318782);
-      $this->_stablerelease->addDownload('src.7z', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.6.14-src.7z', 2929765);
+      $this->_stablerelease->setVersionNumber('2.8.4');
+      $this->_stablerelease->setDate('2008-06-17');
+      $this->_stablerelease->addDownload('setup.exe', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.8.4-Setup.exe', 3034028);
+      $this->_stablerelease->addDownload('exe.zip', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.8.4-exe.zip', 3321093);
+      $this->_stablerelease->addDownload('exe.7z', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.8.4-exe.7z', 1808742);
+      $this->_stablerelease->addDownload('rt.zip', 'http://downloads.sourceforge.net/winmerge/Runtimes-2.8.4.zip', 1287510);
+      $this->_stablerelease->addDownload('rt.7z', 'http://downloads.sourceforge.net/winmerge/Runtimes-2.8.4.7z', 753831);
+      $this->_stablerelease->addDownload('src.zip', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.8.4-src.zip', 8571235);
+      $this->_stablerelease->addDownload('src.7z', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.8.4-src.7z', 4359449);
     }
 
     /**
@@ -137,6 +138,7 @@
         case WINMERGE_2_0: //if WinMerge 2.0 ...
         case WINMERGE_2_2: //if WinMerge 2.2 ...
         case WINMERGE_2_4: //if WinMerge 2.4 ...
+        case WINMERGE_2_6: //if WinMerge 2.6 ...
           $temp .= "<p class=\"important\">This is an old version of WinMerge, for the latest version go to the <a href=\"/index.php\">main site</a>.</p>\n";
           break;
       }
@@ -187,11 +189,14 @@
       else { //if NOT "Home" ...
         $temp .= "  <li><a href=\"/index.php\">Home</a></li>\n";
       }
+      if ($this->_tab == WINMERGE_2_8) { //if WinMerge 2.8 ...
+        $temp .= "  <li><a href=\"/2.8/index.php\" id=\"current\">WinMerge&nbsp;2.8</a></li>\n";
+      }
+      else { //if NOT WinMerge 2.8 ...
+        $temp .= "  <li><a href=\"/2.8/index.php\">WinMerge&nbsp;2.8</a></li>\n";
+      }
       if ($this->_tab == WINMERGE_2_6) { //if WinMerge 2.6 ...
         $temp .= "  <li><a href=\"/2.6/index.php\" id=\"current\">WinMerge&nbsp;2.6</a></li>\n";
-      }
-      else { //if NOT WinMerge 2.6 ...
-        $temp .= "  <li><a href=\"/2.6/index.php\">WinMerge&nbsp;2.6</a></li>\n";
       }
       if ($this->_tab == WINMERGE_2_4) { //if WinMerge 2.4 ...
         $temp .= "  <li><a href=\"/2.4/index.php\" id=\"current\">WinMerge&nbsp;2.4</a></li>\n";
@@ -274,6 +279,15 @@
           $temp .= "  <li><a href=\"/2.6/manual/Faq.html\" title=\"Frequently asked questions\">FAQ</a></li>\n";
           $temp .= "</ul>\n";
           break;
+        case WINMERGE_2_8: //if WinMerge 2.8 ...
+          $temp .= "<ul id=\"subtabs\">\n";
+          $temp .= "  <li><a href=\"/2.8/manual/index.html\" title=\"Manual\">Manual</a></li>\n";
+          $temp .= "  <li><a href=\"/2.8/screenshots.php\" title=\"Screenshots\">Screenshots</a></li>\n";
+          $temp .= "  <li><a href=\"/2.8/releasenotes.php\" title=\"Release Notes\">Release Notes</a> (<a href=\"/2.8/releasenotes.php#issues\" title=\"Known Issues\">Known Issues</a>)</li>\n";
+          $temp .= "  <li><a href=\"/2.8/changelog.php\" title=\"Change Log\">Change Log</a></li>\n";
+          $temp .= "  <li><a href=\"/2.8/manual/Faq.html\" title=\"Frequently asked questions\">FAQ</a></li>\n";
+          $temp .= "</ul>\n";
+          break;
         case TAB_SUPPORT: //if "Support" ...
           $temp .= "<ul id=\"subtabs\">\n";
           $temp .= "  <li><a href=\"/support/mailing-lists.php\" title=\"Mailing Lists\">Mailing&nbsp;Lists</a></li>\n";
@@ -287,8 +301,8 @@
         case TAB_TRANSLATIONS: //if "Translations" ...
           $temp .= "<ul id=\"subtabs\">\n";
           $temp .= "  <li><a href=\"/translations/index.php\" title=\"Index\">Index</a></li>\n";
-          $temp .= "  <li><a href=\"http://winmerge.org/Wiki/Translations\" title=\"Translations Status (Branch)\">Status (Branch)</a></li>\n";
-          //$temp .= "  <li><a href=\"/translations/status_branch.php\" title=\"Translations Status (Branch)\">Status (Branch)</a></li>\n";
+          $temp .= "  <li><a href=\"/translations/instructions.php\" title=\"Translations instructions\">Instructions</a></li>\n";
+          $temp .= "  <li><a href=\"/translations/status_branch.php\" title=\"Translations Status (Branch)\">Status (Branch)</a></li>\n";
           $temp .= "  <li><a href=\"/translations/status_trunk.php\" title=\"Translations Status (Trunk)\">Status (Trunk)</a></li>\n";
           $temp .= "</ul>\n";
           break;
@@ -446,7 +460,39 @@
     }
     
     /**
-     * convert a changelog file into html code
+     * get the content (between <body> and </body>) from a HTML file
+     */
+    function getContentFromHtmlFile($filename, $patterns = '', $replacements = '') {
+      $html = "";
+      if (file_exists($filename) == true) { //if the file exists...
+        $lines = file($filename);
+        $linescount = sizeof($lines);
+        
+        $insidebody = false;
+        for ($i = 0; $i < $linescount; $i++) { //for all lines...
+          $line = $lines[$i];
+          
+          if ($insidebody == false) { //if OUTSIDE <body>...
+            if (preg_match('#\<body#si', $line)) {
+              $insidebody = true;
+            }
+          }
+          else { //if INSIDE <body>...
+            if (preg_match('#\</body>#si', $line)) {
+              break;
+            }
+            if (($patterns != '') && ($replacements != '')) { //if text should be replaced...
+              $line = preg_replace($patterns, $replacements, $line);
+            }
+            $html .= $line;
+          }
+        }
+      }
+      return $html;
+    }
+    
+    /**
+     * convert a (old) changelog file into html code
      */
     function convertChanges2Html($filename) {
       $html = "<pre>\n";
@@ -468,6 +514,31 @@
       }
       $html .= "</pre>\n";
       
+      return $html;
+    }
+    
+    /**
+     * convert a (new) changelog file into html code
+     */
+    function convertChangeLog2Html($filename) {
+      $html = "";
+      if (file_exists($filename) == true) { //if the file exists...
+        $html .= "<pre>\n";
+        
+        $lines = file($filename);
+        $linescount = sizeof($lines);
+        
+        for ($i = 0; $i < $linescount; $i++) { //for all lines...
+          $line = $lines[$i];
+          
+          $line = preg_replace('#(WinMerge [0-9]\.[0-9].*-.*\))#si', '<h3>\\1</h3>', $line);
+          $line = preg_replace('#r([0-9]+)#si', '<a href="http://winmerge.svn.sourceforge.net/viewvc/winmerge?view=rev&amp;revision=\\1" target="_blank">r\\1</a>', $line);
+          $line = preg_replace('#\#([0-9]+)#si', '<a href="http://sourceforge.net/support/tracker.php?aid=\\1" target="_blank">#\\1</a>', $line);
+          
+          $html .= $line;
+        }
+        $html .= "</pre>\n";
+      }
       return $html;
     }
   }

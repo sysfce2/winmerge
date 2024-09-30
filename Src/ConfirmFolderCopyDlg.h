@@ -20,12 +20,12 @@
  * @brief Declaration file for ConfirmFolderCopyDlg dialog
  */
 // ID line follows -- this is updated by SVN
-// $Id: ConfirmFolderCopyDlg.h 4629 2007-10-16 09:29:43Z kimmov $
+// $Id: ConfirmFolderCopyDlg.h 5711 2008-07-31 19:35:03Z kimmov $
 
-#ifndef CMoveConstraint_h
+#ifndef _CONFIRM_FOLDER_COPY_DLG_H_
+#define _CONFIRM_FOLDER_COPY_DLG_H_
+
 #include "CMoveConstraint.h"
-#endif
-
 
 /**
  * @brief Dialog for item copy confirmation.
@@ -53,9 +53,12 @@ public:
 	CString m_fromPath;
 	CString m_toText;
 	CString m_toPath;
+	CString m_caption;
 	afx_msg void OnBnClickedNo();
 	afx_msg void OnBnClickedYes();
 
 private:
 	prdlg::CMoveConstraint m_constraint; //*< Resizes dialog controls when dialog resized */
 };
+
+#endif // _CONFIRM_FOLDER_COPY_DLG_H_

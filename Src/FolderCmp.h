@@ -4,7 +4,7 @@
  * @brief Declaration file for FolderCmp
  */
 // ID line follows -- this is updated by SVN
-// $Id: FolderCmp.h 4619 2007-10-14 08:50:20Z jtuc $
+// $Id: FolderCmp.h 5442 2008-06-06 05:20:49Z kimmov $
 
 #ifndef _FOLDERCMP_H_
 #define _FOLDERCMP_H_
@@ -13,13 +13,9 @@
 #include "DiffUtils.h"
 #include "ByteCompare.h"
 
-//using namespace CompareEngines;
-
 class CDiffContext;
-class IAbortable;
 class PackingInfo;
 class PrediffingInfo;
-//class CompareEngines::DiffUtils;
 
 /**
  * @brief Holds plugin-related paths and information.
@@ -49,8 +45,7 @@ public:
 	~FolderCmp();
 	bool RunPlugins(CDiffContext * pCtxt, PluginsContext * plugCtxt, CString &errStr);
 	void CleanupAfterPlugins(PluginsContext *plugCtxt);
-	int prepAndCompareTwoFiles(CDiffContext * pCtxt, DIFFITEM &di);
-	int byte_compare_files(BOOL bStopAfterFirstDiff, const IAbortable * piAbortable);
+	UINT prepAndCompareTwoFiles(CDiffContext * pCtxt, DIFFITEM &di);
 
 	int m_ndiffs;
 	int m_ntrivialdiffs;

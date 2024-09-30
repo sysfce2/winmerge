@@ -21,12 +21,13 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: AboutDlg.h 3123 2006-03-03 16:27:13Z kimmov $
+// $Id: AboutDlg.h 5546 2008-06-30 02:16:38Z marcelgosselin $
 
 #ifndef _ABOUTDLG_H_
 #define _ABOUTDLG_H_
 
 #include "statlink.h"
+#include "resource.h" // IDD_ABOUTBOX
 
 /** 
  * @brief About-dialog class.

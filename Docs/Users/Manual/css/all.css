@@ -6,16 +6,12 @@ body {
 
 body,th,td {
   font-family: Verdana,Helvetica,Arial,sans-serif;
-  font-size: 80%;
+  font-size: 80%; 
 }
 
 pre,code,tt {
   font-family: "Courier New",Courier,monospace;
   font-size: 100%;
-}
-
-ul {
-  list-style-type: square;
 }
 
 /* Default link style */
@@ -27,18 +23,80 @@ a:active { color:#003399; text-decoration:none; }
 
 a[name]:hover { color:black; text-decoration:none; }
 
-div.navheader,
-div.navfooter {
+/* Nav headers and footers */
+div.navheader, div.navfooter {
   background: #FFCC00;
   border-top: 1px solid black;
   border-bottom: 1px solid black;
+  padding: 1px 0 1px 0; 
 }
 
-div.article,
-div.sect1,
-div.appendix,
-div.index {
-  padding: 5px;
+div.navheader {
+  height: 50px;
+  background-image: url("../images/head.gif"); 
+  background-repeat: no-repeat;
+  background-position: center top;
+}
+
+div.navheader table {
+  height: 50px;
+}
+
+div.navheader * * * th { 
+  display:none;
+}
+
+div.navheader a, div.navheader a:visited, div.navfooter a, div.navfooter a:visited  { 
+  display: inline-block; 
+  padding: 2px 4px 2px 4px; 
+  text-decoration: none;
+  color: #ffdd700;
+  background-color: #F0E68C;
+  border: 1px solid #004080;
+}
+
+div.navheader a:hover, div.navfooter a:hover {
+  color: #000;
+  background: #fff;
+}
+
+/* Main topic divs  */
+div.book,div.article,div.appendix,div.index {
+  margin: 0 10px 10px 10px;
+}
+
+div.section {
+  margin: 0 10px 0 20px;
+}
+
+hr {
+  border: 0;
+  height: 1px;
+  color: #707070;
+  background-color: #707070;
+}
+
+/* Manual title */
+h1 {
+  font-size: 200%;
+  letter-spacing: 0.05em;
+}
+
+/* Topic titles */
+h2 {
+  font-size: 180%;
+}
+
+/* Section titles */
+div.section h2 {
+  font-size: 140%;
+}
+
+div.section h3 {
+  font-size: 120%;
+}
+div.section h4 {
+  font-size: 110%;
 }
 
 #ads {
@@ -58,23 +116,23 @@ div.index {
 
 .caution {
   background-color: #FFDDAA;
-  border: 1px solid olive;
+  border: 1px solid #FF9966;
 }
 .important {
   background-color: #FFFFDD;
-  border: 1px solid olive;
+  border: 1px solid #FFFF66;
 }
 .note {
   background-color: #DDDDFF;
-  border: 1px solid blue;
+  border: 1px solid #6666FF;
 }
 .tip {
   background-color: #DDFFDD;
-  border: 1px solid green;
+  border: 1px solid #66FF66;
 }
 .warning {
   background-color: #FFDDDD;
-  border: 1px solid red;
+  border: 1px solid #FF6666;
 }
 
 /* Examples */
@@ -100,18 +158,21 @@ div.index {
   font-style: italic;
 }
 
+.guibutton, .keycap {
+  font-weight: bold;
+}
 /* FAQ */
 .question {
   font-weight: bold;
 }
 
 /* tables */
-.table table {
+.table table, .informaltable table {
   border-collapse: collapse;
   border: 1px solid black;
 }
 
-.table th {
+.table th, .informaltable th {
   padding: 2px;
   text-align: left;
   color: white;
@@ -119,7 +180,7 @@ div.index {
   border: 1px solid black;
 }
 
-.table td {
+.table td, .informaltable td {
   padding: 2px;
   border: 1px solid black;
 }
@@ -149,17 +210,21 @@ div.index {
   font-size: 100%;
 }
 
-/* table of contents */
+/* Table of contents */
 .toc dt {
-  margin-top: 1em;
+  line-height: 1.75em;
+  font-weight: bold;
 }
 .toc dd dl dt {
-  margin-top: 0;
+  line-height: 1.25em;
+  font-weight: normal;
 }
 
-.toc .sect1,
-.toc .appendix,
-.toc .index {
-  font-size: 120%;
-  font-weight: bold;
+/* TOC title */
+div.toc p{
+  font-size: 150%;
+}
+
+div.toc a:visited, div.toc a:link {
+  text-decoration: none;
 }

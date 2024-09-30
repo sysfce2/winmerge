@@ -1,6 +1,6 @@
 //Microsoft Developer Studio generated resource script.
 //
-// $Id: Merge.rc 5330 2008-04-26 09:10:53Z kimmov $
+// $Id: Merge.rc 5769 2008-08-08 22:12:16Z gerundt $
 
 #include "resource.h"
 
@@ -147,6 +147,8 @@ BEGIN
     END
     POPUP "&Plugins"
     BEGIN
+        MENUITEM "&List...",                    ID_PLUGINS_LIST
+        MENUITEM SEPARATOR
         MENUITEM "&Manual Unpacking",           ID_UNPACK_MANUAL
         MENUITEM "&Automatic Unpacking",        ID_UNPACK_AUTO
         MENUITEM SEPARATOR
@@ -190,6 +192,7 @@ BEGIN
     BEGIN
         MENUITEM "&New\tCtrl+N",                ID_FILE_NEW
         MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
+        MENUITEM "Op&en Conflict File...",      ID_FILE_OPENCONFLICT
         MENUITEM SEPARATOR
         MENUITEM "Open Pro&ject...\tCtrl+J",     ID_FILE_OPENPROJECT
         MENUITEM "Sa&ve Project...",             ID_FILE_SAVEPROJECT
@@ -261,6 +264,8 @@ BEGIN
     END
     POPUP "&Plugins"
     BEGIN
+        MENUITEM "&List...",                    ID_PLUGINS_LIST
+        MENUITEM SEPARATOR
         MENUITEM "&Manual Unpacking",           ID_UNPACK_MANUAL
         MENUITEM "&Automatic Unpacking",        ID_UNPACK_AUTO
         MENUITEM SEPARATOR
@@ -304,6 +309,7 @@ BEGIN
     BEGIN
         MENUITEM "&New\tCtrl+N",                ID_FILE_NEW
         MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
+        MENUITEM "Op&en Conflict File...",      ID_FILE_OPENCONFLICT
         MENUITEM SEPARATOR
         MENUITEM "Open Pro&ject...\tCtrl+J",     ID_FILE_OPENPROJECT
         MENUITEM "Sa&ve Project...",             ID_FILE_SAVEPROJECT
@@ -441,6 +447,8 @@ BEGIN
     END
     POPUP "&Plugins"
     BEGIN
+        MENUITEM "&List...",                    ID_PLUGINS_LIST
+        MENUITEM SEPARATOR
         MENUITEM "&Manual Unpacking",           ID_UNPACK_MANUAL
         MENUITEM "&Automatic Unpacking",        ID_UNPACK_AUTO
         MENUITEM SEPARATOR
@@ -1644,6 +1652,20 @@ BEGIN
     PUSHBUTTON      "No",IDNO,228,79,50,14
 END
 
+IDD_PLUGINS_LIST DIALOGEX 0, 0, 370, 211
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION |
+    WS_SYSMENU
+CAPTION "Plugins"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    CONTROL         "&Enable plugins",IDC_PLUGINS_ENABLE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,7,266,10
+    CONTROL         "",IDC_PLUGINSLIST_LIST,"SysListView32",LVS_REPORT |
+                    LVS_ALIGNLEFT | LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,
+                    7,22,356,155
+    DEFPUSHBUTTON   "OK",IDOK,254,190,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,313,190,50,14
+END
 
 #ifndef _MAC
 /////////////////////////////////////////////////////////////////////////////
@@ -1652,8 +1674,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,8,6,0
- PRODUCTVERSION 2,8,6,0
+ FILEVERSION 2,10,4,0
+ PRODUCTVERSION 2,10,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x9L
@@ -1671,13 +1693,13 @@ BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "http://winmerge.org\0"
             VALUE "FileDescription", "WinMerge Application\0"
-            VALUE "FileVersion", "2.8.6"
+            VALUE "FileVersion", "2.10.4"
             VALUE "InternalName", "WinMerge\0"
             VALUE "LegalCopyright", "(c) 1996-2008 Dean P. Grimm / Thingamahoochie Software\0"
             VALUE "OriginalFilename", "WinMerge.EXE\0"
             VALUE "PrivateBuild", ""
             VALUE "ProductName", "WinMerge\0"
-            VALUE "ProductVersion", "2.8.6"
+            VALUE "ProductVersion", "2.10.4"
         END
     END
     BLOCK "VarFileInfo"
@@ -2009,6 +2031,12 @@ BEGIN
     IDS_FILTERLINE_REGEXP   "Regular expression"
 END
 
+// GENERAL FILTER STRINGS
+STRINGTABLE 
+BEGIN
+    IDS_FILTERCHANGED       "Filters were updated. Do you want to refresh all open folder compares?\n\nIf you do not want to refresh all compares now you can select No and refresh compares later."
+END
+
 // VERSION CONTROL OPTIONS
 STRINGTABLE
 BEGIN
@@ -2040,6 +2068,8 @@ BEGIN
     IDS_STATUS_DELETEFILES  "Deleting files..."
     IDS_STATUS_MOVEFILES    "Moving files..."
     IDS_STATUS_CREATEREPORT "Creating the report..."
+    IDS_STATUS_UNDO         "Undoing the last operation..."
+    IDS_STATUS_REDO         "Redoing the previous operation..."
 END
 
 // STATUS BAR : OTHER PANES (MOSTLY FOR EDITOR)
@@ -2185,6 +2215,10 @@ BEGIN
     IDS_CONFIRM_SINGLE_COPY "Are you sure you want to copy:"
     IDS_CONFIRM_MULTIPLE_COPY "Are you sure you want to copy %d items:"
     IDS_DIRCMP_NOTSYNC      "Operation aborted!\n\nFolder contents at disks has changed, path\n%1\nwas not found.\n\nPlease refresh the compare."
+    IDS_CONFIRM_SINGLE_MOVE "Are you sure you want to move:"
+    IDS_CONFIRM_MULTIPLE_MOVE "Are you sure you want to move %d items:"
+    IDS_CONFIRM_COPY_CAPTION "Confirm Copy"
+    IDS_CONFIRM_MOVE_CAPTION "Confirm Move"
 END
 
 // DIRECTORY DIFFING : OPEN FILE
@@ -2577,6 +2611,16 @@ BEGIN
     IDS_SUFFIX_PETA         " PB"
 END
 
+STRINGTABLE
+BEGIN
+    IDS_PLUGINSLIST_NAME    "Name"
+    IDS_PLUGINSLIST_TYPE    "Type"
+    IDS_PLUGINSLIST_DESC    "Description"
+    IDS_PLUGINS_TYPE_UNPACKER "Unpacker"
+    IDS_PLUGINS_TYPE_PREDIFFER "Prediffer"
+    IDS_PLUGINS_TYPE_EDITSCRIPT "Editor script"
+END
+
 // MENU STRINGS
 // FILE MENU
 STRINGTABLE
@@ -2585,8 +2629,8 @@ BEGIN
     ID_FILE_SAVE_RIGHT      "Save the right file"
     ID_FILE_SAVEAS_LEFT     "Save the left file with name..."
     ID_FILE_SAVEAS_RIGHT    "Save the right file with name..."
-    ID_FILE_LEFT_READONLY   "Change left file/dir read-only status"
-    ID_FILE_RIGHT_READONLY  "Change right file/dir read-only status"
+    ID_FILE_LEFT_READONLY   "Change left side file/folder read-only status"
+    ID_FILE_RIGHT_READONLY  "Change right side file/folder read-only status"
     ID_EOL_TO_DOS           "Convert EOL to Windows mode"
     ID_EOL_TO_UNIX          "Convert EOL to Unix mode"
     ID_EOL_TO_MAC           "Convert EOL to Mac mode"
@@ -2671,6 +2715,7 @@ END
 // PLUGINS MENU
 STRINGTABLE
 BEGIN
+    ID_PLUGINS_LIST         "Shows a list of available plugins"
     ID_UNPACK_MANUAL        "The user selects the unpacker (no unpacking when comparing dir)"
     ID_UNPACK_AUTO          "The adapted unpacker is applied to both files (one file only needs the extension)"
     ID_POPUP_OPEN_WITH_UNPACKER "Select an unpacker to edit this file"
@@ -2740,7 +2785,7 @@ END
 // COLOR SCHEMES
 STRINGTABLE
 BEGIN
-    IDS_COLORSCHEME_PLAIN           "None"
+    IDS_COLORSCHEME_PLAIN           "No Highlighting"
     IDS_COLORSCHEME_ASP             "ASP"
     IDS_COLORSCHEME_BASIC           "Basic"
     IDS_COLORSCHEME_BATCH           "Batch"

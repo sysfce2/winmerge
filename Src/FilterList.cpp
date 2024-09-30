@@ -4,13 +4,19 @@
  * @brief Implementation file for FilterList.
  */
 // ID line follows -- this is updated by SVN
-// $Id: FilterList.cpp 5538 2008-06-28 11:15:12Z sdottaka $
+// $Id: FilterList.cpp 5553 2008-07-03 19:05:36Z kimmov $
 
 #include "stdafx.h"
 #include <vector>
 #include "FilterList.h"
 #include "pcre.h"
 #include "unicoder.h"
+
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
+#endif
 
 /** 
  * @brief Constructor.
@@ -121,7 +127,7 @@ bool FilterList::Match(const char *string, int codepage/*=CP_UTF8*/)
 		pcre_extra * extra = item.pRegExpExtra;
 		int result;
 		if (codepage != CP_UTF8)
-			result = pcre_exec(regexp, extra, (const char *)buf.ptr, buf.used,
+			result = pcre_exec(regexp, extra, (const char *)buf.ptr, buf.size,
 				0, 0, ovector, 30);
 		else
 			result = pcre_exec(regexp, extra, string, stringlen,

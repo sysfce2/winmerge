@@ -25,7 +25,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirDoc.cpp 5454 2008-06-09 22:13:20Z kimmov $
+// $Id: DirDoc.cpp 5647 2008-07-21 09:41:45Z kimmov $
 //
 
 #include "stdafx.h"
@@ -343,6 +343,7 @@ void CDirDoc::Rescan()
 	m_pCtxt->m_bIgnoreSmallTimeDiff = GetOptionsMgr()->GetBool(OPT_IGNORE_SMALL_FILETIME);
 	m_pCtxt->m_bStopAfterFirstDiff = GetOptionsMgr()->GetBool(OPT_CMP_STOP_AFTER_FIRST);
 	m_pCtxt->m_nQuickCompareLimit = GetOptionsMgr()->GetInt(OPT_CMP_QUICK_LIMIT);
+	m_pCtxt->m_bPluginsEnabled = GetOptionsMgr()->GetBool(OPT_PLUGINS_ENABLED);
 	m_pCtxt->m_pCompareStats = m_pCompareStats;
 
 	// Set total items count since we don't collect items
@@ -362,15 +363,13 @@ void CDirDoc::Rescan()
 	// Show active filter name in statusbar
 	pf->SetFilterStatusDisplay(theApp.m_globalFileFilter.GetFilterNameOrMask());
 
-	// Empty display before new compare
-	m_pDirView->DeleteAllDisplayItems();
-
 	// Folder names to compare are in the compare context
 	m_diffThread.SetContext(m_pCtxt);
 	m_diffThread.SetHwnd(m_pDirView->GetSafeHwnd());
 	m_diffThread.SetMessageIDs(MSG_UI_UPDATE);
 	m_diffThread.SetCompareSelected(!!m_bMarkedRescan);
-	m_diffThread.CompareDirectories(m_bRecursive);
+	m_diffThread.CompareDirectories(m_pCtxt->GetNormalizedLeft(),
+			m_pCtxt->GetNormalizedRight(), m_bRecursive);
 	m_bMarkedRescan = FALSE;
 }
 

@@ -20,7 +20,7 @@
  * @brief Implementation of FileFilters -dialog
  */
 // ID line follows -- this is updated by SVN
-// $Id: FileFiltersDlg.cpp 5349 2008-05-19 20:24:12Z gerundt $
+// $Id: FileFiltersDlg.cpp 5193 2008-03-26 22:27:38Z gerundt $
 
 #include "stdafx.h"
 #include "UnicodeString.h"

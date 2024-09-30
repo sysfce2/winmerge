@@ -3,26 +3,20 @@
  *
  * @brief Declaration file for CLanguageSelect dialog.
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: LanguageSelect.h 4727 2007-11-10 08:59:34Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: LanguageSelect.h 5488 2008-06-16 17:40:20Z kimmov $
 
 #if !defined(AFX_LANGUAGESELECT_H__4395A84F_E8DF_11D1_BBCB_00A024706EDC__INCLUDED_)
 #define AFX_LANGUAGESELECT_H__4395A84F_E8DF_11D1_BBCB_00A024706EDC__INCLUDED_
 
 #include "LogFile.h"
-
-#ifndef CMoveConstraint_h
 #include "CMoveConstraint.h"
-#endif
 
 #include <vector>
 #include <string>
 
 /////////////////////////////////////////////////////////////////////////////
 // CLanguageSelect dialog
-
-#define LANGUAGE_SECTION  _T("Locale")
-#define COUNTRY_ENTRY     _T("LanguageId")
 
 /**
  * @brief Dialog for selecting GUI language.

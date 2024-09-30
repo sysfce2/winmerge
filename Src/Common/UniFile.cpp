@@ -8,7 +8,7 @@
  *  @brief Implementation of Unicode enabled file classes (Memory-mapped reader class, and Stdio replacement class)
  */
 // ID line follows -- this is updated by SVN
-// $Id: UniFile.cpp 4968 2008-01-27 22:15:16Z kimmov $
+// $Id: UniFile.cpp 5543 2008-06-29 21:30:09Z kimmov $
 
 /* The MIT License
 Copyright (c) 2003 Perry Rapp
@@ -19,6 +19,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "stdafx.h"
 #include <sys/stat.h>
+#include "UnicodeString.h"
 #include "UniFile.h"
 #include "unicoder.h"
 #include "codepage.h"
@@ -30,6 +31,46 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 static char THIS_FILE[] = __FILE__;
 #endif
 
+/**
+ * @brief The constructor.
+ */
+UniFile::UniError::UniError()
+{
+	 ClearError();
+}
+
+/**
+ * @brief Check if there is error.
+ * @return true if there is an error.
+ */
+bool UniFile::UniError::HasError() const
+{
+	return !apiname.empty() || !desc.empty();
+}
+
+/**
+ * @brief Clears the existing error.
+ */
+void UniFile::UniError::ClearError()
+{
+	apiname.clear();
+	syserrnum = ERROR_SUCCESS;
+	desc.clear();
+}
+
+/**
+ * @brief Get the error string.
+ * @return Error string.
+ */
+String UniFile::UniError::GetError()
+{
+	String sError;
+	if (apiname.empty())
+		sError = desc;
+	else
+		sError = GetSysError(syserrnum);
+	return sError;
+}
 
 /////////////
 // UniLocalFile
@@ -54,6 +95,8 @@ void UniLocalFile::Clear()
 	m_codepage = getDefaultCodepage();
 	m_txtstats.clear();
 	m_bom = false;
+	m_bUnicodingChecked = false;
+	m_bUnicode = false;
 }
 
 /**
@@ -98,6 +141,20 @@ bool UniLocalFile::DoGetFileStatus()
 		LastError(_T("_tstati64"), 0);
 		return false;
 	}
+}
+
+/**
+ * @brief Checks if the file is an unicode file.
+ * This function Checks if the file is recognized unicode file. This detection
+ * includes reading possible BOM bytes and trying to detect UTF-8 files
+ * without BOM bytes.
+ * @return true if file is an unicode file, false otherwise.
+ */
+bool UniLocalFile::IsUnicode()
+{
+	if (!m_bUnicodingChecked)
+		m_bUnicode = ReadBom();
+	return m_bUnicode;
 }
 
 /** @brief Record an API call failure */
@@ -304,6 +361,7 @@ bool UniMemFile::ReadBom()
 
 	m_bom = bom;
 	m_current = m_data;
+	m_bUnicodingChecked = true;
 	return unicode;
 }
 
@@ -908,8 +966,8 @@ BOOL UniStdioFile::WriteString(const CString & line)
 	int srcbytes = line.GetLength() * sizeof(TCHAR);
 	bool lossy = ucr::convert(unicoding1, codepage1, src, srcbytes, (ucr::UNICODESET)m_unicoding, m_codepage, buff);
 	// TODO: What to do about lossy conversion ?
-	unsigned int wbytes = fwrite(buff->ptr, 1, buff->used, m_fp);
-	if (wbytes != buff->used)
+	unsigned int wbytes = fwrite(buff->ptr, 1, buff->size, m_fp);
+	if (wbytes != buff->size)
 		return FALSE;
 	return TRUE;
 }

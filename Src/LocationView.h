@@ -6,6 +6,10 @@
  */
 //
 //////////////////////////////////////////////////////////////////////
+
+// ID line follows -- this is updated by SVN
+// $Id: LocationView.h 6050 2008-10-29 20:07:21Z kimmov $
+
 #ifndef __LOCATIONVIEW_H__
 #define __LOCATIONVIEW_H__
 
@@ -31,8 +35,33 @@ struct MovedLine
 
 typedef CList<MovedLine, MovedLine&> MOVEDLINE_LIST;
 
+/**
+ * @brief A struct mapping difference lines to pixels in location pane.
+ * This structure maps one difference's line numbers to pixel locations in
+ * the location pane. The line numbers are "fixed" i.e. they are converted to
+ * word-wrapped absolute line numbers if needed.
+ */
+struct DiffBlock
+{
+	unsigned top_line; /**< First line of the difference. */
+	unsigned bottom_line; /**< Last line of the difference. */
+	unsigned top_coord; /**< X-coord of diff block begin. */
+	unsigned bottom_coord; /**< X-coord of diff block end. */
+	unsigned diff_index; /**< Index of difference in the original diff list. */
+};
+
+typedef CList<DiffBlock, DiffBlock&> DIFFBLOCK_LIST;
+
+
 /** 
  * @brief Class showing map of files.
+ * The location is a view showing two vertical bars. Each bar depicts one file
+ * in the file compare. The bars show a scaled view of the files. The
+ * difference areas are drawn with the same colors than in actual file compare.
+ * Also visible area of files is drawn as "shaded".
+ *
+ * These visualizations allow user to easily see a overall picture of the files
+ * in comparison. Using mouse it allows easy and fast moving in files.
  */
 class CLocationView : public CView
 {
@@ -43,6 +72,7 @@ public:
 	void SetConnectMovedBlocks(int displayMovedBlocks);
 	void UpdateVisiblePos(int nTopLine = -1, int nBottomLine = -1);
 	void SetFrameHwnd(HWND hwndFrame);
+	void ForceRecalculate();
 
 protected:
 
@@ -54,9 +84,8 @@ protected:
 	virtual void OnDraw(CDC* pDC);
 	//}}AFX_VIRTUAL
 
-	CMergeDoc* GetDocument();
-
 protected:
+	CMergeDoc* GetDocument();
 	void DrawRect(CDC* pDC, const CRect& r, COLORREF cr, BOOL bSelected = FALSE);
 	BOOL GotoLocation(const CPoint& point, BOOL bRealLine = TRUE);
 	int GetLineFromYPos(int nYCoord, int bar, BOOL bRealLine = TRUE);
@@ -64,23 +93,26 @@ protected:
 	void DrawVisibleAreaRect(CDC* pDC, int nTopLine = -1, int nBottomLine = -1);
 	void DrawConnectLines(CDC* pDC);
 	void DrawDiffMarker(CDC* pDC, int yCoord);
+	void CalculateBars();
+	void CalculateBlocks();
+	void DrawBackground(CDC* pDC);
 
 private:
 	CMergeEditView* m_view[MERGE_VIEW_COUNT]; //*< Table for view pointers */
 	int m_displayMovedBlocks; //*< Setting for displaying moved blocks */
 	double m_pixInLines; //*< How many pixels is one line in bars */
-	UINT m_nLeftBarLeft; //*< Left edge of left-side bar */
-	UINT m_nLeftBarRight; //*< Right edge of left-side bar */
-	UINT m_nRightBarLeft; //*< Left edge of right-side bar */
-	UINT m_nRightBarRight; //*< Right edge of right-side bar */
+	double m_lineInPix; //*< How many lines is one pixel?
+	CRect m_leftBar; //*< Left-side file's bar.
+	CRect m_rightBar; //*< Right-side file's bar.
 	int m_visibleTop; //*< Top visible line for visible area indicator */
 	int m_visibleBottom; //*< Bottom visible line for visible area indicator */
 	MOVEDLINE_LIST m_movedLines; //*< List of moved block connecting lines */
-	bool m_bIgnoreTrivials; //*< Whether to paint trivial blocks */
 	HWND m_hwndFrame; //*< Frame window handle */
-	UINT m_nPrevPaneWidth; //*< Previous pane width, used to track width changes */
 	CBitmap *m_pSavedBackgroundBitmap; //*< Saved background */
 	bool m_bDrawn; //*< Is already drawn in location pane? */
+	DIFFBLOCK_LIST m_diffBlocks; //*< List of pre-calculated diff blocks.
+	BOOL m_bRecalculateBlocks; //*< Recalculate diff blocks in next repaint.
+	CSize m_currentSize; //*< Current size of the panel.
 
 	// Generated message map functions
 protected:

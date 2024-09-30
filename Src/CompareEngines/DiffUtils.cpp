@@ -4,7 +4,7 @@
  * @brief Implementation file for FolderCmp
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffUtils.cpp 5027 2008-02-11 21:17:11Z sdottaka $
+// $Id: DiffUtils.cpp 5575 2008-07-07 12:52:18Z kimmov $
 
 
 #include "stdafx.h"
@@ -111,7 +111,7 @@ int DiffUtils::diffutils_compare_files()
 	{
 		return DIFFCODE::FILE | DIFFCODE::TEXT | DIFFCODE::CMPERR;
 	}
-	int code = DIFFCODE::FILE | DIFFCODE::TEXT | DIFFCODE::SAME;
+	UINT code = DIFFCODE::FILE | DIFFCODE::TEXT | DIFFCODE::SAME;
 
 	// make sure to start counting diffs at 0
 	// (usually it is -1 at this point, for unknown)
@@ -133,7 +133,7 @@ int DiffUtils::diffutils_compare_files()
 			making them a hunk, and remember the rest for next iteration.  */
 			next = end->link;
 			end->link = 0;
-#ifdef DEBUG
+#ifdef _DEBUG
 			debug_script(thisob);
 #endif
 

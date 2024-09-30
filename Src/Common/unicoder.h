@@ -7,21 +7,24 @@
  *  @brief  Declaration of utility unicode conversion routines
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: unicoder.h 4959 2008-01-26 00:05:00Z kimmov $
+// $Id: unicoder.h 5542 2008-06-29 18:10:35Z kimmov $
 
 #ifndef unicoder_h_included
 #define unicoder_h_included
 
 namespace ucr {
 
+/**
+ * @brief A simple buffer struct.
+ */
 struct buffer {
-	unsigned char * ptr;
-	unsigned int size;
-	unsigned int used;
+	unsigned char * ptr; /**< Pointer to a buffer. */
+	unsigned int capacity; /**< Buffer's size in bytes. */
+	unsigned int size; /**< Size of the data in the buffer, <= capacity. */
 
-	buffer(unsigned int needed);
+	buffer(unsigned int initialSize);
 	~buffer();
-	void resize(unsigned int needed);
+	void resize(unsigned int newSize);
 };
 
 /** @brief Known Unicode encodings. */

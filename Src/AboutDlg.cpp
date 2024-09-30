@@ -21,18 +21,16 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: AboutDlg.cpp 4719 2007-11-07 06:11:38Z kimmov $
+// $Id: AboutDlg.cpp 5470 2008-06-12 13:05:09Z kimmov $
 
 #include "stdafx.h"
+#include "Constants.h"
 #include "Merge.h"
 #include "AboutDlg.h"
 #include "version.h"
 #include "paths.h"
 #include "coretools.h"
 
-
-/** URL for hyperlink in About-dialog. */
-static const TCHAR WinMergeURL[] = _T("http://winmerge.org");
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
 	//{{AFX_MSG_MAP(CAboutDlg)
@@ -103,7 +101,7 @@ void CAboutDlg::OnBnClickedOpenContributors()
 {
 	String defPath = GetModulePath();
 	// Don't add quotation marks yet, CFile doesn't like them
-	String docPath = defPath + _T("\\contributors.txt");
+	String docPath = defPath + ContributorsPath;
 	HINSTANCE ret = 0;
 	
 	if (paths_DoesPathExist(docPath.c_str()) == IS_EXISTING_FILE)

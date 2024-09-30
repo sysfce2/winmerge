@@ -79,8 +79,6 @@ static char THIS_FILE[] = __FILE__;
 #define     CHAR_ALIGN                  16
 #define     ALIGN_BUF_SIZE(size)        ((size) / CHAR_ALIGN) * CHAR_ALIGN + CHAR_ALIGN;
 
-#define     UNDO_BUF_SIZE               1024
-
 const TCHAR crlf[] = _T ("\r\n");
 
 #ifdef _DEBUG
@@ -183,7 +181,7 @@ CCrystalTextBuffer::CCrystalTextBuffer ()
   m_bInit = FALSE;
   m_bReadOnly = FALSE;
   m_bModified = FALSE;
-  m_nCRLFMode = 0;
+  m_nCRLFMode = CRLF_STYLE_DOS;
   m_bCreateBackupFile = FALSE;
   m_nUndoPosition = 0;
   m_bInsertTabs = TRUE;
@@ -387,7 +385,7 @@ FreeAll ()
 }
 
 BOOL CCrystalTextBuffer::
-InitNew (int nCrlfStyle /*= CRLF_STYLE_DOS*/ )
+InitNew (CRLFSTYLE nCrlfStyle /*= CRLF_STYLE_DOS*/ )
 {
   ASSERT (!m_bInit);
   ASSERT (m_aLines.GetSize () == 0);
@@ -401,7 +399,6 @@ InitNew (int nCrlfStyle /*= CRLF_STYLE_DOS*/ )
   m_nTabSize = 4;
   m_nSyncPosition = m_nUndoPosition = 0;
   m_bUndoGroup = m_bUndoBeginGroup = FALSE;
-  m_nUndoBufSize = UNDO_BUF_SIZE;
   ASSERT (m_aUndoBuf.GetSize () == 0);
   UpdateViews (NULL, NULL, UPDATE_RESET);
   //BEGIN SW
@@ -718,7 +715,7 @@ BOOL CCrystalTextBuffer::SaveToFile(LPCTSTR pszFileName,
 }
 #endif // #if 0 savetofile
 
-int CCrystalTextBuffer::
+CRLFSTYLE CCrystalTextBuffer::
 GetCRLFMode ()
 {
   return m_nCRLFMode;
@@ -727,7 +724,7 @@ GetCRLFMode ()
 // Default EOL to use if editor has to manufacture one
 // (this occurs with ghost lines)
 void CCrystalTextBuffer::
-SetCRLFMode (int nCRLFMode)
+SetCRLFMode (CRLFSTYLE nCRLFMode)
 {
   if (nCRLFMode==CRLF_STYLE_AUTOMATIC)
     nCRLFMode = CRLF_STYLE_DOS;
@@ -967,7 +964,7 @@ SetLineFlag (int nLine, DWORD dwFlag, BOOL bSet, BOOL bRemoveFromPreviousLine /*
  */
 void CCrystalTextBuffer::GetTextWithoutEmptys(int nStartLine, int nStartChar, 
                  int nEndLine, int nEndChar, 
-                 CString &text, int nCrlfStyle /* CRLF_STYLE_AUTOMATIC */)
+                 CString &text, CRLFSTYLE nCrlfStyle /* CRLF_STYLE_AUTOMATIC */)
 {
   LPCTSTR sEol = GetStringEol (nCrlfStyle);
   GetText(nStartLine, nStartChar, nEndLine, nEndChar, text, sEol);
@@ -1576,45 +1573,6 @@ AddUndoRecord (BOOL bInsert, const CPoint & ptStartPos, const CPoint & ptEndPos,
       m_aUndoBuf.SetSize (m_nUndoPosition);
     }
 
-  //  If undo buffer size is close to critical, remove the oldest records
-  ASSERT (m_aUndoBuf.GetSize () <= m_nUndoBufSize);
-  nBufSize = (int) m_aUndoBuf.GetSize ();
-  if (nBufSize >= m_nUndoBufSize)
-    {
-      int nIndex = 0;
-      for (;;)
-        {
-          nIndex++;
-          if (nIndex == nBufSize || (m_aUndoBuf[nIndex].m_dwFlags & UNDO_BEGINGROUP) != 0)
-            break;
-        }
-      m_aUndoBuf.RemoveAt (0, nIndex);
-
-//<jtuc 2003-06-28>
-//- Keep m_nSyncPosition in sync.
-//- Ensure first undo record is flagged UNDO_BEGINGROUP since part of the code
-//  relies on this condition.
-      if (m_nSyncPosition >= 0)
-        {
-          m_nSyncPosition -= nIndex;		// за c'est bien...mais non, test inutile ? Ou Apres !
-        }
-      if (nIndex < nBufSize)
-        {
-          // Not really necessary as long as groups are discarded as a whole.
-          // Just in case some day the loop above should be changed to limit
-          // the number of discarded undo records to some reasonable value...
-          m_aUndoBuf[0].m_dwFlags |= UNDO_BEGINGROUP;		// за c'est sale
-        }
-      else
-        {
-          // No undo records left - begin a new group:
-          m_bUndoBeginGroup = TRUE;
-        }
-//</jtuc>
-
-    }
-  ASSERT (m_aUndoBuf.GetSize () < m_nUndoBufSize);
-
   //  Add new record
   SUndoRecord ur;
   ur.m_dwFlags = bInsert ? UNDO_INSERT : 0;
@@ -1632,10 +1590,9 @@ AddUndoRecord (BOOL bInsert, const CPoint & ptStartPos, const CPoint & ptEndPos,
   m_aUndoBuf.Add (ur);
   m_nUndoPosition = (int) m_aUndoBuf.GetSize ();
 
-  ASSERT (m_aUndoBuf.GetSize () <= m_nUndoBufSize);
 }
 
-LPCTSTR CCrystalTextBuffer::GetStringEol(int nCRLFMode)
+LPCTSTR CCrystalTextBuffer::GetStringEol(CRLFSTYLE nCRLFMode)
 {
   switch(nCRLFMode)
   {

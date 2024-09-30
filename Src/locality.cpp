@@ -3,8 +3,8 @@
  *
  * @brief Implementation of helper functions involving locale
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: locality.cpp 4776 2007-11-20 17:06:03Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: locality.cpp 5919 2008-09-07 16:06:38Z sdottaka $
 
 #include "StdAfx.h"
 #include "locality.h"
@@ -121,7 +121,9 @@ String GetLocaleStr(LPCTSTR str, int decimalDigits)
 }
 
 /**
- * @brief Return time displayed appropriately, as string
+ * @brief Convert unix time to string to show in the GUI.
+ * @param [in] tim Time in seconds since 1.1.1970.
+ * @return Time as a string, proper to show in the GUI.
  */
 String TimeString(const __int64 * tim)
 {
@@ -141,11 +143,13 @@ String TimeString(const __int64 * tim)
 		return String();
 	if (odt.GetStatus() == COleDateTime::invalid)
 		return theApp.LoadString(AFX_IDS_INVALID_DATETIME);
-	COleVariant var;
-	// Don't need to trap error. Should not fail due to type mismatch
-	AfxCheckError(VarBstrFromDate(odt.m_dt, LANG_USER_DEFAULT, 0, &V_BSTR(&var)));
-	var.vt = VT_BSTR;
-	return OLE2CT(V_BSTR(&var));
+	SYSTEMTIME sysTime;
+	odt.GetAsSystemTime(sysTime);
+	TCHAR buff[128];
+	int len = GetDateFormat(LOCALE_USER_DEFAULT, LOCALE_NOUSEROVERRIDE, &sysTime, NULL, buff, countof(buff));
+	buff[len - 1] = ' ';
+	GetTimeFormat(LOCALE_USER_DEFAULT, LOCALE_NOUSEROVERRIDE, &sysTime, NULL, buff + len, countof(buff) - len - 1);
+	return buff;
 }
 
 }; // namespace locality

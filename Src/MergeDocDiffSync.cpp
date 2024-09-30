@@ -5,10 +5,10 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: MergeDocDiffSync.cpp 4387 2007-07-26 08:05:42Z kimmov $
+// $Id: MergeDocDiffSync.cpp 5459 2008-06-10 16:49:30Z kimmov $
 
 #include "stdafx.h"
-
+#include <vector>
 #include "MergeDoc.h"
 
 #include "Merge.h"
@@ -20,6 +20,8 @@
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
+
+using namespace std;
 
 /**
  * @brief Divide diff blocks to match lines in diff blocks.
@@ -158,17 +160,23 @@ int CMergeDoc::GetMatchCost(const CString &sLine0, const CString &sLine1)
 	int breakType = GetBreakType(); // whitespace only or include punctuation
 	bool byteColoring = GetByteColoringOption();
 
-	wdiffarray worddiffs;
-	sd_ComputeWordDiffs(sLine0, sLine1, casitive, xwhite, breakType, byteColoring, &worddiffs);
+	vector<wdiff*> worddiffs;
+	sd_ComputeWordDiffs((LPCTSTR)sLine0, (LPCTSTR)sLine1, casitive, xwhite, breakType, byteColoring, &worddiffs);
 
 	int nDiffLenSum = 0, nDiffLen0, nDiffLen1;
 	int i;
-	int nCount = worddiffs.GetSize();
+	int nCount = worddiffs.size();
 	for (i = 0; i < nCount; i++)
 	{
-		nDiffLen0 = worddiffs[i].end[0] - worddiffs[i].start[0] + 1;
-		nDiffLen1 = worddiffs[i].end[1] - worddiffs[i].start[1] + 1;
+		nDiffLen0 = worddiffs[i]->end[0] - worddiffs[i]->start[0] + 1;
+		nDiffLen1 = worddiffs[i]->end[1] - worddiffs[i]->start[1] + 1;
 		nDiffLenSum += (nDiffLen0 > nDiffLen1) ? nDiffLen0 : nDiffLen1;
+	}
+
+	while (!worddiffs.empty())
+	{
+		delete worddiffs.back();
+		worddiffs.pop_back();
 	}
 
 	return nDiffLenSum;

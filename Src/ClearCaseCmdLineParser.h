@@ -29,8 +29,8 @@
  *
  */
 
-// RCS ID line follows -- this is updated by CVS
-// $Id: ClearCaseCmdLineParser.h 4619 2007-10-14 08:50:20Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: ClearCaseCmdLineParser.h 5297 2008-04-14 20:39:12Z kimmov $
 
 #include "CmdLineParser.h"
 #include "UnicodeString.h"
@@ -40,33 +40,23 @@
  *
  * This parser is able to parse ClearCase external tools' command line, both
  * compare and merge.
- *
  */
 class ClearCaseCmdLineParser : public CmdLineParser
 {
 public:
-
-	/** @brief ClearCaseCmdLineParser's constructor.
-	 *
-	 * @param [in] szFileName Executable file name. Required in order to
-	 *	know which external tool was executed.
-	 *
-	 */
-	ClearCaseCmdLineParser(MergeCmdLineInfo& CmdLineInfo, const TCHAR *szFileName);
-
+	ClearCaseCmdLineParser(MergeCmdLineInfo& CmdLineInfo, const TCHAR *szExeName);
 	virtual ~ClearCaseCmdLineParser() { }
 
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
 
 private:
-
-	bool m_bDesc;
+	bool m_bDesc;     /**< File's description text given? */
 	bool m_bBaseFile; /**< Files' common ancestor. Used till we'll have a 3-ways merge. */
-	bool m_bOutFile;
+	bool m_bOutFile;  /**< Out file given? */
 
-	String m_sBaseFile;
-	String m_sBaseDesc;
-	String m_sOutFile;
+	String m_sBaseFile;  /**< Base file path. */
+	String m_sBaseDesc;  /**< Base file description. */
+	String m_sOutFile;   /**< Out file path. */
 };
 
 #endif // _CLEAR_CASE_CMD_LINE_PARSER_INCLUDED_

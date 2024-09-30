@@ -24,7 +24,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: ChildFrm.h 4617 2007-10-14 08:25:48Z jtuc $
+// $Id: ChildFrm.h 5446 2008-06-07 12:14:19Z jtuc $
 
 #if !defined(AFX_CHILDFRM_H__BBCD4F8E_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_CHILDFRM_H__BBCD4F8E_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -82,13 +82,13 @@ protected:
 	private:
 		CChildFrame * m_pFrame;
 		int m_base; /**< 0 for left, 1 for right */
-		CString m_sLine;
+		String m_sLine;
 		int m_nColumn; /**< Current column, tab-expanded */
 		int m_nColumns; /**< Amount of columns, tab-expanded */
 		int m_nChar; /**< Current char */
 		int m_nChars; /**< Amount of chars in line */
-		CString m_sEol;
-		CString m_sEolDisplay;
+		String m_sEol;
+		String m_sEolDisplay;
 	};
 	friend class MergeStatus; // MergeStatus accesses status bar
 	MergeStatus m_leftStatus;
@@ -128,7 +128,7 @@ private:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnClose();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnIdleUpdateCmdUI();
 	afx_msg LRESULT OnStorePaneSizes(WPARAM wParam, LPARAM lParam);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()

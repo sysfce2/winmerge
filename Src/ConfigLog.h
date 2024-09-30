@@ -20,7 +20,7 @@
  * @brief Declaration file ConfigLog class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ConfigLog.h 4033 2007-01-11 13:51:19Z galh $
+// $Id: ConfigLog.h 5647 2008-07-21 09:41:45Z kimmov $
 
 #ifndef _CONFIGLOG_H_
 #define _CONFIGLOG_H_
@@ -67,6 +67,7 @@ struct MISCSETTINGS
 	BOOL bSyntaxHighlight;
 	BOOL bInsertTabs;
 	INT  nTabSize;
+	BOOL bPluginsEnabled;
 };
 
 /** 

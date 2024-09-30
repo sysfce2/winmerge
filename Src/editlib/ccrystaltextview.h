@@ -29,7 +29,7 @@
  * @brief Declaration file for CCrystalTextView
  */
 // ID line follows -- this is updated by SVN
-// $Id: ccrystaltextview.h 4983 2008-01-31 21:08:06Z jtuc $
+// $Id: ccrystaltextview.h 5514 2008-06-24 08:47:25Z kimmov $
 
 #if !defined(AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_)
 #define AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_
@@ -38,7 +38,6 @@
 #pragma once
 #endif // _MSC_VER >= 1000
 
-#include "cregexp.h"
 #include "crystalparser.h"
 
 ////////////////////////////////////////////////////////////////////////////
@@ -669,7 +668,7 @@ public :
     // Attributes
 public :
     int GetCRLFMode ();
-    void SetCRLFMode (int nCRLFMode);
+    void SetCRLFMode (enum CRLFSTYLE nCRLFMode);
     BOOL GetViewTabs ();
     void SetViewTabs (BOOL bViewTabs);
     void SetViewEols (BOOL bViewEols, BOOL bDistinguishEols);
@@ -707,8 +706,6 @@ public :
     static HINSTANCE s_hResourceInst;
 
     int m_nLastFindWhatLen;
-    RxNode *m_rxnode;
-    RxMatchRes m_rxmatch;
     LPTSTR m_pszMatched;
     static LOGFONT m_LogFont;
 

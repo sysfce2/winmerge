@@ -92,7 +92,7 @@ DATE:		BY:					DESCRIPTION:
 */
 
 // ID line follows -- this is updated by SVN
-// $Id: 7zCommon.cpp 5367 2008-05-25 18:37:56Z jtuc $
+// $Id: 7zCommon.cpp 5363 2008-05-24 09:18:17Z jtuc $
 
 #include "stdafx.h"
 #include "OptionsDef.h"

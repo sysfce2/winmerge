@@ -3,45 +3,43 @@
  *
  * @brief Declaration of CGhostTextBuffer (subclasses CCrystalTextBuffer to handle ghost lines)
  */
+// ID line follows -- this is updated by SVN
+// $Id: GhostTextBuffer.h 5514 2008-06-24 08:47:25Z kimmov $
 
 #ifndef __GHOSTTEXTBUFFER_H__
 #define __GHOSTTEXTBUFFER_H__
-
 
 #include "ccrystaltextbuffer.h"
 
 
 /////////////////////////////////////////////////////////////////////////////
 
-/** 
-We use the current ccrystalEditor flags 
-
-This flag must be cleared and set in GhostTextBuffer.cpp 
-and MergeDoc.cpp (Rescan) only.
-
-GetLineColors (in MergeEditView) reads it to choose the line color.
-*/
-
+/**
+ * We use the current ccrystalEditor flags 
+ *
+ * This flag must be cleared and set in GhostTextBuffer.cpp 
+ * and MergeDoc.cpp (Rescan) only.
+ *
+ * GetLineColors (in MergeEditView) reads it to choose the line color.
+ */
 enum GHOST_LINEFLAGS
 {
-	LF_GHOST = 0x00400000L,
+	LF_GHOST = 0x00400000L, /**< Ghost line. */
 };
-
-
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CCrystalTextBuffer command target
 
 /**
-Features offered with this class : 
-<ul>
-	<li> apparent/real line conversion 
-	<li> insertText/deleteText working with ghost lines 
-	<li> AddUndoRecord/Undo/Redo working with ghost lines 
-	<li> insertGhostLine function 
-</ul>
-*/
+ * @brief A class handling ghost lines.
+ * Features offered with this class : 
+ * <ul>
+ *  <li> apparent/real line conversion 
+ *  <li> insertText/deleteText working with ghost lines 
+ *  <li> AddUndoRecord/Undo/Redo working with ghost lines 
+ *  <li> insertGhostLine function 
+ * </ul>
+ */
 class EDITPADC_CLASS CGhostTextBuffer : public CCrystalTextBuffer
 {
 public:
@@ -58,7 +56,7 @@ protected :
 		DWORD m_dwFlags;
 		DWORD m_dwRevisionNumber;
 
-		int FullLength() const { return m_nLength+m_nEolChars; }
+		int FullLength() const { return m_nLength + m_nEolChars; }
 		int Length() const { return m_nLength; }
 
 		SLineInfo ()
@@ -103,7 +101,7 @@ protected :
 		// and (apparentLine - ComputeApparentLine(previousRealLine))
 
 		CPoint m_redo_ptStartPos, m_redo_ptEndPos;  // Block of text participating
-		int    m_redo_ptStartPos_nGhost, m_redo_ptEndPos_nGhost;
+		int m_redo_ptStartPos_nGhost, m_redo_ptEndPos_nGhost;
 
 		int m_nRealLinesCreated;         //  number of lines created during insertion 
 		                                 //  (= total of real lines after - total before)
@@ -231,14 +229,16 @@ private:
 public :
 	// Construction/destruction code
 	CGhostTextBuffer ();
-	virtual BOOL InitNew (int nCrlfStyle = CRLF_STYLE_DOS);
+	virtual BOOL InitNew (CRLFSTYLE nCrlfStyle = CRLF_STYLE_DOS);
 
 	/** 
 	This should work in base code as ghost lines are real empty lines
 	but maybe it doesn't (if there is an assert to check there is an EOL,
 	or if it adds the default EOL)
 	*/
-	virtual void GetTextWithoutEmptys (int nStartLine, int nStartChar, int nEndLine, int nEndChar, CString &text, int nCrlfStyle =CRLF_STYLE_AUTOMATIC );
+	virtual void GetTextWithoutEmptys (int nStartLine, int nStartChar,
+			int nEndLine, int nEndChar, CString &text,
+			CRLFSTYLE nCrlfStyle =CRLF_STYLE_AUTOMATIC);
 
 
 	// Text modification functions

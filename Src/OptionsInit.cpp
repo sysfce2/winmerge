@@ -3,8 +3,8 @@
  *
  * @brief Options initialisation.
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: OptionsInit.cpp 5042 2008-02-14 17:09:58Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: OptionsInit.cpp 6035 2008-10-23 22:13:48Z sdottaka $
 
 #include "stdafx.h"
 #include <mlang.h>
@@ -13,6 +13,14 @@
 #include "OptionsDef.h"
 #include "OptionsMgr.h"
 #include "DiffWrapper.h" // CMP_CONTENT
+
+// Functions to copy values set by installer from HKLM to HKCU.
+static void CopyHKLMValues();
+static bool OpenHKLM(HKEY *key, LPCTSTR relpath = NULL);
+static bool OpenHKCU(HKEY *key, LPCTSTR relpath = NULL);
+static bool IsFirstRun(HKEY key);
+static void CopyFromLMtoCU(HKEY lmKey, HKEY cuKey, LPCTSTR valname);
+static void ResetFirstRun(HKEY key);
 
 /**
  * @brief Initialise options and set default values.
@@ -23,7 +31,13 @@
  */
 void CMergeApp::OptionsInit()
 {
+	// Copy some values from HKLM to HKCU
+	CopyHKLMValues();
+
 	m_pOptions->SetRegRootKey(_T("Thingamahoochie\\WinMerge\\"));
+
+	// Default language to English unless installer set it otherwise
+	m_pOptions->InitOption(OPT_SELECTED_LANGUAGE, 0x409);
 
 	// Initialise options (name, default value)
 	m_pOptions->InitOption(OPT_SHOW_UNIQUE_LEFT, true);
@@ -141,6 +155,8 @@ void CMergeApp::OptionsInit()
 	m_pOptions->InitOption(OPT_ARCHIVE_ENABLE, 1); // Enable by default
 	m_pOptions->InitOption(OPT_ARCHIVE_PROBETYPE, false);
 
+	m_pOptions->InitOption(OPT_PLUGINS_ENABLED, false);
+
 	m_pOptions->InitOption(OPT_FONT_FILECMP_USECUSTOM, false);
 	m_pOptions->InitOption(OPT_FONT_DIRCMP_USECUSTOM, false);
 
@@ -173,6 +189,9 @@ void CMergeApp::OptionsInit()
 	SetFontDefaults();
 }
 
+/**
+ * @brief Set default font values.
+ */
 void CMergeApp::SetFontDefaults()
 {
 	USES_CONVERSION;
@@ -197,4 +216,111 @@ void CMergeApp::SetFontDefaults()
 
 	m_pOptions->InitOption(OPT_FONT_DIRCMP_CHARSET, (int) cpi.bGDICharset);
 	m_pOptions->InitOption(OPT_FONT_DIRCMP_FACENAME, W2T(cpi.wszFixedWidthFont));
+}
+
+/**
+ * @brief Copy some HKLM values to HKCU.
+ * The installer sets HKLM values for "all users". This function copies
+ * few of those values for "user" values. E.g. enabling ShellExtension
+ * initially for user is done by this function.
+ */
+static void CopyHKLMValues()
+{
+	HKEY LMKey;
+	HKEY CUKey;
+	if (OpenHKLM(&LMKey))
+	{
+		if (OpenHKCU(&CUKey))
+		{
+			CopyFromLMtoCU(LMKey, CUKey, _T("ContextMenuEnabled"));
+			CopyFromLMtoCU(LMKey, CUKey, _T("Executable"));
+			RegCloseKey(CUKey);
+		}
+		RegCloseKey(LMKey);
+	}
+	if (OpenHKLM(&LMKey, _T("Locale")))
+	{
+		if (OpenHKCU(&CUKey, _T("Locale")))
+		{
+			CopyFromLMtoCU(LMKey, CUKey, _T("LanguageId"));
+			RegCloseKey(CUKey);
+		}
+		RegCloseKey(LMKey);
+	}
+}
+
+/**
+ * @brief Open HKLM registry key.
+ * @param [out] key Pointer to open HKLM key.
+ * @param [in] relative registry path to open.
+ * @return true if opening succeeded.
+ */
+static bool OpenHKLM(HKEY *key, LPCTSTR relpath)
+{
+	TCHAR valuename[256] = _T("Software\\Thingamahoochie\\WinMerge\\");
+	if (relpath)
+		lstrcat(valuename, relpath);
+	LONG retval = RegOpenKeyEx(HKEY_LOCAL_MACHINE,
+			valuename, 0, KEY_READ, key);
+	if (retval == ERROR_SUCCESS)
+	{
+		return true;
+	}
+	return false;
+}
+
+/**
+ * @brief Open HKCU registry key.
+ * Opens the HKCU key for WinMerge. If the key does not exist, creates one.
+ * @param [out] key Pointer to open HKCU key.
+ * @param [in] relative registry path to open.
+ * @return true if opening succeeded.
+ */
+static bool OpenHKCU(HKEY *key, LPCTSTR relpath)
+{
+	TCHAR valuename[256] = _T("Software\\Thingamahoochie\\WinMerge\\");
+	if (relpath)
+		lstrcat(valuename, relpath);
+	LONG retval = RegOpenKeyEx(HKEY_CURRENT_USER,
+			valuename, 0, KEY_ALL_ACCESS, key);
+	if (retval == ERROR_SUCCESS)
+	{
+		return true;
+	}
+	else if (retval == ERROR_FILE_NOT_FOUND)
+	{
+		retval = RegCreateKeyEx(HKEY_CURRENT_USER,
+			valuename, 0, NULL, 0, KEY_ALL_ACCESS, NULL, key, NULL);
+		if (retval == ERROR_SUCCESS)
+			return true;
+	}
+	return false;
+}
+
+/**
+ * @brief Copy value from HKLM to HKCU.
+ * @param [in] lmKey HKLM key from where to copy.
+ * @param [in] cuKey HKCU key to where to copy.
+ * @param [in] valname Name of the value to copy.
+ */
+static void CopyFromLMtoCU(HKEY lmKey, HKEY cuKey, LPCTSTR valname)
+{
+	DWORD len = 0;
+	LONG retval = RegQueryValueEx(cuKey, valname, 0, NULL, NULL, &len);
+	if (retval == ERROR_FILE_NOT_FOUND)
+	{
+		retval = RegQueryValueEx(lmKey, valname, 0, NULL, NULL, &len);
+		if (retval == ERROR_SUCCESS)
+		{
+			DWORD type = 0;
+			PBYTE buf = new BYTE[len];
+			retval = RegQueryValueEx(lmKey, valname, 0, &type, buf, &len);
+			if (retval == ERROR_SUCCESS)
+			{
+				retval = RegSetValueEx(cuKey, valname , 0, type,
+					buf, len);
+			}
+			delete [] buf;
+		}
+	}
 }

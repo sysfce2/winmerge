@@ -24,9 +24,10 @@
  * @brief Implementation of the CMergeEditView class
  */
 // ID line follows -- this is updated by SVN
-// $Id: MergeEditView.cpp 5678 2008-07-25 11:16:52Z kimmov $
+// $Id: MergeEditView.cpp 6050 2008-10-29 20:07:21Z kimmov $
 
 #include "stdafx.h"
+#include <vector>
 #include "BCMenu.h"
 #include "merge.h"
 #include "LocationView.h"
@@ -44,12 +45,15 @@
 #include "OptionsDef.h"
 #include "SyntaxColors.h"
 #include "MergeLineFlags.h"
+#include "PluginsListDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
+
+using namespace std;
 
 /** @brief Timer ID for delayed rescan. */
 const UINT IDT_RESCAN = 2;
@@ -171,7 +175,6 @@ BEGIN_MESSAGE_MAP(CMergeEditView, CCrystalEditViewEx)
 	ON_COMMAND(ID_FILE_MERGINGMODE, OnMergingMode)
 	ON_UPDATE_COMMAND_UI(ID_FILE_MERGINGMODE, OnUpdateMergingMode)
 	ON_UPDATE_COMMAND_UI(ID_STATUS_MERGINGMODE, OnUpdateMergingStatus)
-	ON_COMMAND(ID_FILE_CLOSE, OnWindowClose)
 	ON_WM_VSCROLL ()
 	ON_WM_HSCROLL ()
 	ON_COMMAND(ID_EDIT_COPY_LINENUMBERS, OnEditCopyLineNumbers)
@@ -201,6 +204,7 @@ BEGIN_MESSAGE_MAP(CMergeEditView, CCrystalEditViewEx)
 	ON_COMMAND(ID_VIEW_ZOOMNORMAL, OnViewZoomNormal)
 	ON_UPDATE_COMMAND_UI(ID_STATUS_LEFTFILE_ENCODING, OnUpdateStatusLeftEncoding)
 	ON_UPDATE_COMMAND_UI(ID_STATUS_RIGHTFILE_ENCODING, OnUpdateStatusRightEncoding)
+	ON_COMMAND(ID_PLUGINS_LIST, &CMergeEditView::OnPluginsList)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -342,21 +346,30 @@ int CMergeEditView::GetAdditionalTextBlocks (int nLineIndex, TEXTBLOCK *pBuf)
 		return 0;
 
 	int nLineLength = GetLineLength(nLineIndex);
-	wdiffarray worddiffs;
+	vector<wdiff*> worddiffs;
 	GetDocument()->GetWordDiffArray(nLineIndex, &worddiffs);
-	if (worddiffs.GetSize() == 0 || (worddiffs[0].end[0] == -1 && worddiffs[0].end[1] + 1 == nLineLength) || (worddiffs[0].end[1] == -1 && worddiffs[0].end[0] + 1 == nLineLength))
+	if (worddiffs.size() == 0 || (worddiffs[0]->end[0] == -1 &&
+			worddiffs[0]->end[1] + 1 == nLineLength) ||
+			(worddiffs[0]->end[1] == -1 && worddiffs[0]->end[0] + 1 == nLineLength))
+	{
+		while (!worddiffs.empty())
+		{
+			delete worddiffs.back();
+			worddiffs.pop_back();
+		}
 		return 0;
+	}
 
 	BOOL lineInCurrentDiff = IsLineInCurrentDiff(nLineIndex);
-	int nWordDiffs = worddiffs.GetSize();
+	int nWordDiffs = worddiffs.size();
 
 	pBuf[0].m_nCharPos = 0;
 	pBuf[0].m_nColorIndex = COLORINDEX_NONE;
 	pBuf[0].m_nBgColorIndex = COLORINDEX_NONE;
 	for (int i = 0; i < nWordDiffs; i++)
 	{
-		pBuf[1 + i * 2].m_nCharPos = worddiffs[i].start[m_nThisPane];
-		pBuf[2 + i * 2].m_nCharPos = worddiffs[i].end[m_nThisPane] + 1;
+		pBuf[1 + i * 2].m_nCharPos = worddiffs[i]->start[m_nThisPane];
+		pBuf[2 + i * 2].m_nCharPos = worddiffs[i]->end[m_nThisPane] + 1;
 		if (lineInCurrentDiff)
 		{
 			pBuf[1 + i * 2].m_nColorIndex = COLORINDEX_HIGHLIGHTTEXT1 | COLORINDEX_APPLYFORCE;
@@ -370,6 +383,13 @@ int CMergeEditView::GetAdditionalTextBlocks (int nLineIndex, TEXTBLOCK *pBuf)
 		pBuf[2 + i * 2].m_nColorIndex = COLORINDEX_NONE;
 		pBuf[2 + i * 2].m_nBgColorIndex = COLORINDEX_NONE;
 	}
+
+	while (!worddiffs.empty())
+	{
+		delete worddiffs.back();
+		worddiffs.pop_back();
+	}
+
 	return nWordDiffs * 2 + 1;
 }
 
@@ -490,8 +510,8 @@ void CMergeEditView::GetLineColors2(int nLineIndex, DWORD ignoreFlags, COLORREF 
 		if (!GetOptionsMgr()->GetBool(OPT_SYNTAX_HIGHLIGHT))
 		{
 			// If no syntax hilighting, get windows default colors
-			crBkgnd = GetSysColor (COLOR_WINDOW);
-			crText = GetSysColor (COLOR_WINDOWTEXT);
+			crBkgnd = GetColor (COLORINDEX_BKGND);
+			crText = GetColor (COLORINDEX_NORMALTEXT);
 			bDrawWhitespace = FALSE;
 		}
 		else
@@ -686,7 +706,7 @@ void CMergeEditView::OnEditCopy()
 
 	CString text;
 
-	CMergeDoc::CDiffTextBuffer * buffer = pDoc->m_ptBuf[m_nThisPane];
+	CDiffTextBuffer * buffer = pDoc->m_ptBuf[m_nThisPane];
 
 	buffer->GetTextWithoutEmptys(ptSelStart.y, ptSelStart.x,
 		ptSelEnd.y, ptSelEnd.x, text);
@@ -776,6 +796,7 @@ void CMergeEditView::OnUpdateEditPaste(CCmdUI* pCmdUI)
  */
 void CMergeEditView::OnEditUndo()
 {
+	WaitStatusCursor waitstatus(IDS_STATUS_UNDO);
 	CMergeDoc* pDoc = GetDocument();
 	CMergeEditView *tgt = *(pDoc->curUndo-1);
 	if(tgt==this)
@@ -1141,8 +1162,7 @@ void CMergeEditView::OnL2r()
 		// If cursor is inside diff get number of that diff
 		if (m_bCurrentLineIsDiff)
 		{
-			CPoint pt;
-			pt = GetCursorPos();
+			CPoint pt = GetCursorPos();
 			currentDiff = pDoc->m_diffList.LineToDiff(pt.y);
 		}
 	}
@@ -1398,6 +1418,7 @@ void CMergeEditView::OnEditOperation(int nAction, LPCTSTR pszText)
  */
 void CMergeEditView::OnEditRedo()
 {
+	WaitStatusCursor waitstatus(IDS_STATUS_REDO);
 	CMergeDoc* pDoc = GetDocument();
 	CMergeEditView *tgt = *(pDoc->curUndo);
 	if(tgt==this)
@@ -1948,7 +1969,7 @@ HMENU CMergeEditView::createPrediffersSubmenu(HMENU hMenu)
 		if (plugin.TestAgainstRegList(pd->m_strBothFilenames.c_str()) == FALSE)
 			continue;
 
-		DoAppendMenu(hMenu, MF_STRING, ID, plugin.name.c_str());
+		DoAppendMenu(hMenu, MF_STRING, ID, plugin.m_name.c_str());
 	}
 	for (iScript = 0 ; iScript < piScriptArray2->GetSize() ; iScript++, ID ++)
 	{
@@ -1956,7 +1977,7 @@ HMENU CMergeEditView::createPrediffersSubmenu(HMENU hMenu)
 		if (plugin.TestAgainstRegList(pd->m_strBothFilenames.c_str()) == FALSE)
 			continue;
 
-		DoAppendMenu(hMenu, MF_STRING, ID, plugin.name.c_str());
+		DoAppendMenu(hMenu, MF_STRING, ID, plugin.m_name.c_str());
 	}
 
 	// build the menu : second part, others plugins
@@ -1971,7 +1992,7 @@ HMENU CMergeEditView::createPrediffersSubmenu(HMENU hMenu)
 		if (plugin.TestAgainstRegList(pd->m_strBothFilenames.c_str()) == TRUE)
 			continue;
 
-		DoAppendMenu(hMenu, MF_STRING, ID, plugin.name.c_str());
+		DoAppendMenu(hMenu, MF_STRING, ID, plugin.m_name.c_str());
 	}
 	for (iScript = 0 ; iScript < piScriptArray2->GetSize() ; iScript++, ID ++)
 	{
@@ -1979,7 +2000,7 @@ HMENU CMergeEditView::createPrediffersSubmenu(HMENU hMenu)
 		if (plugin.TestAgainstRegList(pd->m_strBothFilenames.c_str()) == TRUE)
 			continue;
 
-		DoAppendMenu(hMenu, MF_STRING, ID, plugin.name.c_str());
+		DoAppendMenu(hMenu, MF_STRING, ID, plugin.m_name.c_str());
 	}
 
 	// compute the m_CurrentPredifferID (to set the radio button)
@@ -1996,14 +2017,14 @@ HMENU CMergeEditView::createPrediffersSubmenu(HMENU hMenu)
 		for (iScript = 0 ; iScript < piScriptArray->GetSize() ; iScript++, ID ++)
 		{
 			PluginInfo & plugin = piScriptArray->ElementAt(iScript);
-			if (prediffer.pluginName == plugin.name)
+			if (prediffer.pluginName == plugin.m_name)
 				m_CurrentPredifferID = ID;
 
 		}
 		for (iScript = 0 ; iScript < piScriptArray2->GetSize() ; iScript++, ID ++)
 		{
 			PluginInfo & plugin = piScriptArray2->ElementAt(iScript);
-			if (prediffer.pluginName == plugin.name)
+			if (prediffer.pluginName == plugin.m_name)
 				m_CurrentPredifferID = ID;
 		}
 	}
@@ -2076,7 +2097,7 @@ void CMergeEditView::OnUpdateStatusRightEOL(CCmdUI* pCmdUI)
  */
 void CMergeEditView::OnConvertEolTo(UINT nID )
 {
-	int nStyle = CRLF_STYLE_AUTOMATIC;;
+	CRLFSTYLE nStyle = CRLF_STYLE_AUTOMATIC;;
 	switch (nID)
 	{
 		case ID_EOL_TO_DOS:
@@ -2231,7 +2252,7 @@ void CMergeEditView::OnUpdateChangePane(CCmdUI* pCmdUI)
  */
 void CMergeEditView::OnWMGoto()
 {
-	CWMGotoDlg dlg;
+	WMGotoDlg dlg;
 	CMergeDoc *pDoc = GetDocument();
 	CPoint pos = GetCursorPos();
 	int nRealLine = 0;
@@ -2298,6 +2319,9 @@ void CMergeEditView::RefreshOptions()
 		SetInsertTabs(FALSE);
 
 	SetSelectionMargin(GetOptionsMgr()->GetBool(OPT_VIEW_FILEMARGIN));
+
+	if (!GetOptionsMgr()->GetBool(OPT_SYNTAX_HIGHLIGHT))
+		SetTextType(CCrystalTextView::TextType::SRC_PLAIN);
 
 	SetWordWrapping(GetOptionsMgr()->GetBool(OPT_WORDWRAP));
 	SetViewLineNumbers(GetOptionsMgr()->GetBool(OPT_VIEW_LINENUMBERS));
@@ -2437,7 +2461,7 @@ void CMergeEditView::SetPredifferByMenu(UINT nID )
 	{
 		prediffer.bWithFile = TRUE;
 		PluginInfo & plugin = piScriptArray->ElementAt(pluginNumber);
-		prediffer.pluginName = plugin.name;
+		prediffer.pluginName = plugin.m_name;
 	}
 	else
 	{
@@ -2446,7 +2470,7 @@ void CMergeEditView::SetPredifferByMenu(UINT nID )
 			return;
 		prediffer.bWithFile = FALSE;
 		PluginInfo & plugin = piScriptArray2->ElementAt(pluginNumber);
-		prediffer.pluginName = plugin.name;
+		prediffer.pluginName = plugin.m_name;
 	}
 
 	// update data for the radio button
@@ -2470,7 +2494,7 @@ int CMergeEditView::FindPrediffer(LPCTSTR prediffer) const
 	for (i=0; i<piScriptArray->GetSize(); ++i, ++ID)
 	{
 		PluginInfo & plugin = piScriptArray->ElementAt(i);
-		if (plugin.name == prediffer)
+		if (plugin.m_name == prediffer)
 			return ID;
 	}
 
@@ -2480,7 +2504,7 @@ int CMergeEditView::FindPrediffer(LPCTSTR prediffer) const
 	for (i=0; i<piScriptArray2->GetSize(); ++i, ++ID)
 	{
 		PluginInfo & plugin = piScriptArray2->ElementAt(i);
-		if (plugin.name == prediffer)
+		if (plugin.m_name == prediffer)
 			return ID;
 	}
 	return -1;
@@ -2578,17 +2602,6 @@ void CMergeEditView::GotoLine(UINT nLine, BOOL bRealLine, int pane)
 	// work with goto target file.
 	if ((bLeftIsCurrent && pane == 1) || (!bLeftIsCurrent && pane == 0))
 		pSplitterWnd->ActivateNext();
-}
-
-/**
- * @brief Called when user selects Window/Close.
- * Route closing to CMainFrame::OnClose().
- * @todo We probably should just remove this OnClose() handling for
- *  CMergeEditView and handle it in CMainFrame.
- */
-void CMergeEditView::OnWindowClose()
-{
-	GetParentFrame()->PostMessage(WM_CLOSE, 0, 0);
 }
 
 /**
@@ -2756,12 +2769,13 @@ void CMergeEditView::OnOpenFileWithEditor()
 }
 
 /**
- * @brief Force repaint of location pane
+ * @brief Force repaint of the location pane.
  */
 void CMergeEditView::RepaintLocationPane()
 {
+	// Must force recalculation due to caching of data in location pane.
 	if (m_pLocationView)
-		m_pLocationView->Invalidate();
+		m_pLocationView->ForceRecalculate();
 }
 
 /**
@@ -2955,7 +2969,7 @@ void CMergeEditView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 bool CMergeEditView::IsInitialized() const
 {
 	CMergeEditView * pThis = const_cast<CMergeEditView *>(this);
-	CMergeDoc::CDiffTextBuffer * pBuffer = dynamic_cast<CMergeDoc::CDiffTextBuffer *>(pThis->LocateTextBuffer());
+	CDiffTextBuffer * pBuffer = dynamic_cast<CDiffTextBuffer *>(pThis->LocateTextBuffer());
 	return pBuffer->IsInitialized();
 }
 
@@ -3186,9 +3200,13 @@ void CMergeEditView::OnUpdateViewChangeScheme(CCmdUI *pCmdUI)
 
 	const HMENU hSubMenu = pCmdUI->m_pSubMenu->m_hMenu;
 
-	for (int i = ID_COLORSCHEME_FIRST; i <= ID_COLORSCHEME_LAST; ++i)
+	String name = theApp.LoadString(ID_COLORSCHEME_FIRST);
+	DoAppendMenu(hSubMenu, MF_STRING, ID_COLORSCHEME_FIRST, name.c_str());
+	DoAppendMenu(hSubMenu, MF_SEPARATOR, 0, NULL);
+
+	for (int i = ID_COLORSCHEME_FIRST + 1; i <= ID_COLORSCHEME_LAST; ++i)
 	{
-		String name = theApp.LoadString(i);
+		name = theApp.LoadString(i);
 		DoAppendMenu(hSubMenu, MF_STRING, i, name.c_str());
 	}
 
@@ -3228,7 +3246,11 @@ void CMergeEditView::OnUpdateChangeScheme(CCmdUI* pCmdUI)
 	const bool bIsCurrentScheme = (m_CurSourceDef->type == (pCmdUI->m_nID - ID_COLORSCHEME_FIRST));
 	pCmdUI->SetRadio(bIsCurrentScheme);
 
-	pCmdUI->Enable(TRUE);
+	BOOL syntaxHLEnabled = GetOptionsMgr()->GetBool(OPT_SYNTAX_HIGHLIGHT);
+	if (syntaxHLEnabled)
+		pCmdUI->Enable(TRUE);
+	else
+		pCmdUI->Enable(FALSE);
 }
 
 /**
@@ -3361,4 +3383,13 @@ void CMergeEditView::OnUpdateStatusRightEncoding(CCmdUI* pCmdUI)
 {
 	const FileTextEncoding & encoding = GetDocument()->GetEncoding(1);
 	pCmdUI->SetText(encoding.GetName().c_str());
+}
+
+/**
+ * @brief Show the plugins list dialog.
+ */
+void CMergeEditView::OnPluginsList()
+{
+	PluginsListDlg dlg;
+	dlg.DoModal();
 }

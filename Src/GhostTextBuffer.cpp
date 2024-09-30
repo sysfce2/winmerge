@@ -23,11 +23,16 @@
 //    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //
 /////////////////////////////////////////////////////////////////////////////
-
+/** 
+ * @file  GhostTextBuffer.cpp
+ *
+ * @brief Implementation of GhostTextBuffer class.
+ */
+// ID line follows -- this is updated by SVN
+// $Id: GhostTextBuffer.cpp 5727 2008-08-03 19:28:15Z kimmov $
 
 #include "stdafx.h"
 #include "GhostTextBuffer.h"
-
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -38,8 +43,6 @@ static char THIS_FILE[] = __FILE__;
 #ifdef _DEBUG
 #define _ADVANCED_BUGCHECK  1
 #endif
-
-
 
 BEGIN_MESSAGE_MAP (CGhostTextBuffer, CCrystalTextBuffer)
 //{{AFX_MSG_MAP(CGhostTextBuffer)
@@ -55,7 +58,7 @@ CGhostTextBuffer::CGhostTextBuffer()
 }
 
 BOOL CGhostTextBuffer::
-InitNew (int nCrlfStyle /*= CRLF_STYLE_DOS*/ )
+InitNew (CRLFSTYLE nCrlfStyle /*= CRLF_STYLE_DOS*/ )
 {
 	m_bUndoBeginGroup = FALSE;
 	return CCrystalTextBuffer::InitNew(nCrlfStyle);
@@ -154,7 +157,7 @@ InternalDeleteGhostLine (CCrystalTextView * pSource, int nLine, int nCount)
  */
 void CGhostTextBuffer::GetTextWithoutEmptys(int nStartLine, int nStartChar, 
                  int nEndLine, int nEndChar, 
-                 CString &text, int nCrlfStyle /* CRLF_STYLE_AUTOMATIC */)
+                 CString &text, CRLFSTYLE nCrlfStyle /* CRLF_STYLE_AUTOMATIC */)
 {
 	int lines = (int) m_aLines.GetSize();
 	ASSERT(nStartLine >= 0 && nStartLine < lines);
@@ -235,8 +238,6 @@ void CGhostTextBuffer::GetTextWithoutEmptys(int nStartLine, int nStartChar,
 ////////////////////////////////////////////////////////////////////////////
 // undo/redo functions
 
-
-
 void CGhostTextBuffer::SUndoRecord::
 SetText (LPCTSTR pszText, int nLength)
 {
@@ -267,8 +268,6 @@ FreeText ()
 		free(m_pszText);
 	m_pszText = NULL;
 }
-
-
 
 BOOL CGhostTextBuffer::
 Undo (CCrystalTextView * pSource, CPoint & ptCursorPos)
@@ -562,45 +561,6 @@ AddUndoRecord (BOOL bInsert, const CPoint & ptStartPos, const CPoint & ptEndPos,
 		m_aUndoBuf.SetSize (m_nUndoPosition);
 	}
 
-	//  If undo buffer size is close to critical, remove the oldest records
-	ASSERT (m_aUndoBuf.GetSize () <= m_nUndoBufSize);
-	nBufSize = (int) m_aUndoBuf.GetSize ();
-	if (nBufSize >= m_nUndoBufSize)
-	{
-		int nIndex = 0;
-		for (;;)
-		{
-			nIndex++;
-			if (nIndex == nBufSize || (m_aUndoBuf[nIndex].m_dwFlags & UNDO_BEGINGROUP) != 0)
-				break;
-		}
-		m_aUndoBuf.RemoveAt (0, nIndex);
-
-//<jtuc 2003-06-28>
-//- Keep m_nSyncPosition in sync.
-//- Ensure first undo record is flagged UNDO_BEGINGROUP since part of the code
-//..relies on this condition.
-		if (m_nSyncPosition >= 0)
-		{
-			m_nSyncPosition -= nIndex;		// за c'est bien...mais non, test inutile ? Ou Apres !
-		}
-		if (nIndex < nBufSize)
-		{
-			// Not really necessary as long as groups are discarded as a whole.
-			// Just in case some day the loop above should be changed to limit
-			// the number of discarded undo records to some reasonable value...
-			m_aUndoBuf[0].m_dwFlags |= UNDO_BEGINGROUP;		// за c'est sale
-		}
-		else
-		{
-			// No undo records left - begin a new group:
-			m_bUndoBeginGroup = TRUE;
-		}
-//</jtuc>
-
-	}
-	ASSERT (m_aUndoBuf.GetSize () < m_nUndoBufSize);
-
 	//  Add new record
 	SUndoRecord ur;
 	ur.m_dwFlags = bInsert ? UNDO_INSERT : 0;
@@ -624,7 +584,6 @@ AddUndoRecord (BOOL bInsert, const CPoint & ptStartPos, const CPoint & ptEndPos,
 	m_aUndoBuf.Add (ur);
 	m_nUndoPosition = (int) m_aUndoBuf.GetSize ();
 
-	ASSERT (m_aUndoBuf.GetSize () <= m_nUndoBufSize);
 }
 
 
@@ -729,8 +688,6 @@ InsertText (CCrystalTextView * pSource, int nLine, int nPos, LPCTSTR pszText, in
 	}
 
 	RecomputeEOL (pSource, nLine, nEndLine);
-
-
 	if (bHistory == false)
 	{
 		delete paSavedRevisonNumbers;
@@ -822,9 +779,7 @@ DeleteText (CCrystalTextView * pSource, int nStartLine, int nStartChar,
 	}
 
 	RecomputeEOL (pSource, nStartLine, nStartLine);
-
-
-	if (bHistory == false)
+	if (bHistory == FALSE)
 	{
 		delete paSavedRevisonNumbers;
 		return TRUE;
@@ -840,9 +795,6 @@ DeleteText (CCrystalTextView * pSource, int nStartLine, int nStartChar,
 		FlushUndoGroup (pSource);
 	return TRUE;
 }
-
-
-
 
 BOOL CGhostTextBuffer::
 InsertGhostLine (CCrystalTextView * pSource, int nLine)
@@ -884,8 +836,6 @@ RemoveAllGhostLines()
 	RecomputeRealityMapping();
 }
 
-
-
 ////////////////////////////////////////////////////////////////////////////
 // apparent <-> real line conversion
 
@@ -900,8 +850,6 @@ int CGhostTextBuffer::ApparentLastRealLine() const
 	const RealityBlock & block = m_RealityBlocks[bmax];
 	return block.nStartApparent + block.nCount - 1;
 }
-
-
 
 /**
 Return underlying real line. 
@@ -1106,7 +1054,6 @@ limitWithPreviousBlock:
 	return nApparent;
 }
 
-
 /** Do what we need to do just after we've been reloaded */
 void CGhostTextBuffer::FinishLoading()
 {
@@ -1237,7 +1184,6 @@ void CGhostTextBuffer::checkFlagsFromReality(BOOL bFlag) const
 	for ( ; i < GetLineCount() ; i++)
 		ASSERT ((GetLineFlags(i) & LF_GHOST) != 0);
 }
-
 
 void CGhostTextBuffer::OnNotifyLineHasBeenEdited(int nLine)
 {

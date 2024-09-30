@@ -24,7 +24,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: Merge.h 4696 2007-11-03 07:55:34Z jtuc $
+// $Id: Merge.h 5892 2008-09-05 06:43:12Z jtuc $
 
 #if !defined(AFX_MERGE_H__BBCD4F88_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MERGE_H__BBCD4F88_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -36,6 +36,7 @@
 #include "resource.h"       // main symbols
 #include "MergeDoc.h"
 #include "OptionsMgr.h"
+#include "RegOptionsMgr.h"
 #include "FileFilterHelper.h"
 
 struct FileFilter;
@@ -104,13 +105,37 @@ protected:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	void InitializeFileFilters();
 	BOOL ParseArgsAndDoOpen(MergeCmdLineInfo& cmdInfo, CMainFrame* pMainFrame);
-	void SetOptionsFromCmdLine(const MergeCmdLineInfo& cmdInfo);
 	// End MergeArgs.cpp
 
 	bool LoadAndOpenProjectFile(LPCTSTR sFilepath);
 	bool IsProjectFile(LPCTSTR filepath) const;
 
 	void ReloadMenu();
+
+	//@{
+	/**
+	 * @name Active operations counter.
+	 * These functions implement counter for active operations. We need to
+	 * track active operations during whose user cannot exit the application.
+	 * E.g. copying files in folder compare is such an operation.
+	 */
+	/**
+	 * Increment the active operation counter.
+	 */
+	void AddOperation() { InterlockedIncrement(&m_nActiveOperations); }
+	/**
+	 * Decrement the active operation counter.
+	 */
+	void RemoveOperation()
+	{
+		ASSERT(m_nActiveOperations > 0);
+		InterlockedDecrement( &m_nActiveOperations);
+	}
+	/**
+	 * Get the active operations count.
+	 */
+	LONG GetActiveOperations() const { return m_nActiveOperations; }
+	//@}
 
 	//{{AFX_MSG(CMergeApp)
 	afx_msg BOOL OnOpenRecentFile(UINT nID);
@@ -126,15 +151,13 @@ private:
 	CLogFile * m_pLog;
 	int m_nLastCompareResult;
 	bool m_bNonInteractive;
+	LONG m_nActiveOperations; /**< Active operations count. */
 };
 
 extern CMergeApp theApp;
 
 COptionsMgr * GetOptionsMgr();
 CLogFile * GetLog();
-
-/////////////////////////////////////////////////////////////////////////////
-CMergeDoc *GetDoc();
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Developer Studio will insert additional declarations immediately before the previous line.

@@ -25,7 +25,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: Splash.cpp 5188 2008-03-25 17:44:57Z kimmov $
+// $Id: Splash.cpp 5525 2008-06-26 12:35:55Z kimmov $
 
 #include "stdafx.h"
 #include "resource.h"
@@ -191,6 +191,7 @@ void CSplashWnd::HideSplashScreen()
  */
 void CSplashWnd::PostNcDestroy()
 {
+	CWnd::PostNcDestroy();
 	delete this;
 }
 

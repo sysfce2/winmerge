@@ -3,8 +3,8 @@
  *
  * @brief Declaration file for SyntaxColors class
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: SyntaxColors.h 3126 2006-03-04 02:36:46Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: SyntaxColors.h 5187 2008-03-24 21:34:35Z kimmov $
 
 #ifndef _SYNTAX_COLORS_H_
 #define _SYNTAX_COLORS_H_
@@ -71,8 +71,8 @@ class SyntaxColors
 {
 public:
 	SyntaxColors();
-	SyntaxColors(SyntaxColors *pColors);
-	void Clone(SyntaxColors *pColors);
+	SyntaxColors(const SyntaxColors *pColors);
+	void Clone(const SyntaxColors *pColors);
 	COLORREF GetColor(UINT index) const { return m_colors[index]; }
 	void SetColor(UINT index, COLORREF color);
 	BOOL GetBold(UINT index) const { return m_bolds[index]; }

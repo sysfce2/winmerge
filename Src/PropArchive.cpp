@@ -3,10 +3,11 @@
  *
  * @brief Implementation of CPropArchive propertysheet
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PropArchive.cpp 4588 2007-10-05 11:35:46Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: PropArchive.cpp 5470 2008-06-12 13:05:09Z kimmov $
 
 #include "stdafx.h"
+#include "Constants.h"
 #include "Merge.h"
 #include "PropArchive.h"
 #include "OptionsDef.h"
@@ -79,7 +80,7 @@ void CPropArchive::WriteOptions()
 BOOL CPropArchive::OnInitDialog()
 {
 	theApp.TranslateDialog(m_hWnd);
-	m_wwwLink.m_link = _T("http://winmerge.org/downloads.php");
+	m_wwwLink.m_link = DownloadUrl;
 	UpdateData(FALSE);
 
 	UpdateControls();

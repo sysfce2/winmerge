@@ -4,16 +4,13 @@
  * @brief Declaration file for DirCmpReport Dialog.
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DirCmpReportDlg.h 3456 2006-08-09 06:38:07Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: DirCmpReportDlg.h 5444 2008-06-07 06:48:49Z kimmov $
 
 #ifndef _DIRCMPREPORTDLG_H_
 #define _DIRCMPREPORTDLG_H_
 
-#ifndef DirReportTypes_h_included
 #include "DirReportTypes.h"
-#endif
-
 #include "SuperComboBox.h"
 
 /** 

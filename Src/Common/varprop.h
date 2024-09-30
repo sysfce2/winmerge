@@ -1,10 +1,10 @@
 /**
- *  @file varprop.cpp
+ *  @file varprop.h
  *
  *  @brief Declaration of generic named property classes
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: varprop.h 4979 2008-01-31 16:15:30Z kimmov $
+// $Id: varprop.h 5373 2008-05-26 09:05:30Z kimmov $
 //////////////////////////////////////////////////////////////////////
 
 #ifndef varprop_h_included

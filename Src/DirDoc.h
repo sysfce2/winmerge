@@ -24,17 +24,14 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirDoc.h 5454 2008-06-09 22:13:20Z kimmov $
+// $Id: DirDoc.h 5646 2008-07-20 16:22:24Z jtuc $
 
 #if !defined(AFX_DIRDOC_H__0B17B4C1_356F_11D1_95CD_444553540000__INCLUDED_)
 #define AFX_DIRDOC_H__0B17B4C1_356F_11D1_95CD_444553540000__INCLUDED_
 #pragma once
 
-#include "diffThread.h"
-
-#ifndef PluginManager_h_included
+#include "DiffThread.h"
 #include "PluginManager.h"
-#endif
 
 class CDirView;
 class CMergeDoc;
@@ -126,7 +123,7 @@ public:
 
 	BOOL HasDiffs() const { return m_pCtxt != NULL; }
 	const CDiffContext & GetDiffContext() const { return *m_pCtxt; }
-	DIFFITEM GetDiffByKey(POSITION key) const { return m_pCtxt->GetDiffAt(key); }
+	const DIFFITEM & GetDiffByKey(POSITION key) const { return m_pCtxt->GetDiffAt(key); }
 	DIFFITEM & GetDiffRefByKey(POSITION key) { return m_pCtxt->GetDiffRefAt(key); }
 	String GetLeftBasePath() const { return m_pCtxt->GetNormalizedLeft(); }
 	String GetRightBasePath() const { return m_pCtxt->GetNormalizedRight(); }

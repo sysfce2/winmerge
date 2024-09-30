@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: codepage_detect.cpp 5027 2008-02-11 21:17:11Z sdottaka $
+// $Id: codepage_detect.cpp 5447 2008-06-08 12:36:06Z jtuc $
 
 #include "StdAfx.h"
 #include <shlwapi.h>
@@ -157,7 +157,7 @@ static unsigned demoGuessEncoding_rc(const char *src, size_t len)
 			++src;
 			--len;
 		}
-		lstrcpynA(line, base, sizeof line);
+		lstrcpynA(line, base, len < sizeof line ? len + 1 : sizeof line);
 	} while (len && sscanf(line, "#pragma code_page(%d)", &cp) != 1);
 	return cp;
 }

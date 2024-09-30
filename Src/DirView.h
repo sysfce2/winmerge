@@ -24,7 +24,7 @@
  */ 
 //
 // ID line follows -- this is updated by SVN
-// $Id: DirView.h 5019 2008-02-10 11:50:33Z jtuc $
+// $Id: DirView.h 5647 2008-07-21 09:41:45Z kimmov $
 
 #if !defined(AFX_DirView_H__16E7C721_351C_11D1_95CD_444553540000__INCLUDED_)
 #define AFX_DirView_H__16E7C721_351C_11D1_95CD_444553540000__INCLUDED_
@@ -116,8 +116,8 @@ public:
 
 	UINT GetSelectedCount() const;
 	int GetFirstSelectedInd();
-	DIFFITEM GetNextSelectedInd(int &ind);
-	DIFFITEM GetItemAt(int ind);
+	DIFFITEM & GetNextSelectedInd(int &ind);
+	DIFFITEM & GetItemAt(int ind);
 	void AddParentFolderItem(BOOL bEnable);
 	void RefreshOptions();
 
@@ -373,13 +373,14 @@ protected:
 	afx_msg void OnEditPaste();
 	afx_msg void OnEditUndo();
 	afx_msg void OnUpdateEditUndo(CCmdUI* pCmdUI);
+	afx_msg void OnItemChanged(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnBeginLabelEdit(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnEndLabelEdit(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnPluginsList();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 	BOOL OnHeaderBeginDrag(LPNMHEADER hdr, LRESULT* pResult);
 	BOOL OnHeaderEndDrag(LPNMHEADER hdr, LRESULT* pResult);
-	afx_msg void OnItemChanged(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnBeginLabelEdit(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnEndLabelEdit(NMHDR* pNMHDR, LRESULT* pResult);
 
 private:
 	void OpenSelection(PackingInfo * infoUnpacker = NULL);
@@ -405,7 +406,6 @@ private:
 	POSITION GetItemKeyFromData(DWORD_PTR dw) const;
 	const DIFFITEM & GetDiffItem(int sel) const;
 	DIFFITEM & GetDiffItemRef(int sel);
-	const DIFFITEM & GetDiffItemConstRef(int sel) const;
 	int GetSingleSelectedItem() const;
 	bool IsItemNavigableDiff(const DIFFITEM & di) const;
 	void MoveFocus(int currentInd, int i, int selCount);

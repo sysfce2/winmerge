@@ -22,29 +22,20 @@
  *
  * @brief Declaration of CMergeDoc class
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: MergeDoc.h 5085 2008-02-26 15:18:15Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: MergeDoc.h 5511 2008-06-23 22:54:36Z kimmov $
 
 #if !defined(AFX_MERGEDOC_H__BBCD4F90_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MERGEDOC_H__BBCD4F90_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
 
-#include "GhostTextBuffer.h"
+#include "DiffTextBuffer.h"
 #include <vector>
 #include "DiffWrapper.h"
 #include "DiffList.h"
 #include "stringdiffs.h"
-
-#ifndef _TEMP_FILE_
 #include "TempFile.h"
-#endif
-
-#ifndef _PATH_CONTEXT_H_
 #include "PathContext.h"
-#endif
-
-#ifndef _DIFF_FILE_INFO_H_INCLUDED
 #include "DiffFileInfo.h"
-#endif
 
 /**
  * @brief Additional action codes for WinMerge.
@@ -131,87 +122,12 @@ class CMergeDoc : public CDocument
 {
 // Attributes
 public:
-
-/**
- * @brief Specialized buffer to save file data
- */
-class CDiffTextBuffer : public CGhostTextBuffer
-	{
-		friend class CMergeDoc;
-private :
-		CMergeDoc * m_pOwnerDoc; /**< Merge document owning this buffer. */
-		int m_nThisPane; /**< Left/Right side */
-		BOOL FlagIsSet(UINT line, DWORD flag);
-		String m_strTempPath; /**< Temporary files folder. */
-		int unpackerSubcode;
-		/* 
-		 * @brief Unicode encoding from ucr::UNICODESET 
-		 *
-		 * @note m_unicoding and m_codepage are indications of how the buffer is supposed to be saved on disk
-		 * In memory, it is invariant, depending on build:
-		 * ANSI:
-		 *   in memory it is CP_ACP/CP_THREAD_ACP 8-bit characters
-		 * Unicode:
-		 *   in memory it is wchars
-		 */
-		FileTextEncoding m_encoding; /**< File's encoding information. */
-
-		int NoteCRLFStyleFromBuffer(TCHAR *lpLineBegin, DWORD dwLineLen = 0);
-		void ReadLineFromBuffer(TCHAR *lpLineBegin, DWORD dwLineNum, DWORD dwLineLen = 0);
-public :
-		void SetTempPath(String path);
-		virtual void AddUndoRecord (BOOL bInsert, const CPoint & ptStartPos, const CPoint & ptEndPos,
-			LPCTSTR pszText, int cchText, int nLinesToValidate, int nActionType = CE_ACTION_UNKNOWN, CDWordArray *paSavedRevisonNumbers = NULL);
-		bool curUndoGroup();
-		void ReplaceLine(CCrystalTextView * pSource, int nLine, LPCTSTR pchText, int cchText, int nAction =CE_ACTION_UNKNOWN);
-		void ReplaceFullLine(CCrystalTextView * pSource, int nLine, const CString& strText, int nAction =CE_ACTION_UNKNOWN);
-
-		int LoadFromFile(LPCTSTR pszFileName, PackingInfo * infoUnpacker,
-			LPCTSTR filteredFilenames, BOOL & readOnly, int nCrlfStyle,
-			const FileTextEncoding & encoding, CString &sError);
-		int SaveToFile (LPCTSTR pszFileName, BOOL bTempFile, CString & sError,
-			PackingInfo * infoUnpacker = NULL, int nCrlfStyle = CRLF_STYLE_AUTOMATIC,
-			BOOL bClearModifiedFlag = TRUE );
-		int getUnicoding() const { return m_encoding.m_unicoding; }
-		void setUnicoding(int value) { m_encoding.m_unicoding = value; }
-		int getCodepage() const { return m_encoding.m_codepage; }
-		void setCodepage(int value) { m_encoding.m_codepage = value; }
-		const FileTextEncoding & getEncoding() const { return m_encoding; }
-
-		CDiffTextBuffer(CMergeDoc * pDoc, int pane);
-
-		// If line has text (excluding eol), set strLine to text (excluding eol)
-		BOOL GetLine(int nLineIndex, CString &strLine);
-
-		// if line has any text (including eol), set strLine to text (including eol)
-		BOOL GetFullLine(int nLineIndex, CString &strLine);
-
-		virtual void SetModified (BOOL bModified = TRUE);
-
-		void prepareForRescan();
-
-		/** 
-		After editing a line, we don't know if there is a diff or not.
-		So we clear the LF_DIFF flag (and it is more easy to read during edition).
-		Rescan will set the proper color
-		*/
-		virtual void OnNotifyLineHasBeenEdited(int nLine);
-
-		bool IsInitialized() const;
-
-	} friend;
-
-// End declaration of CMergeDoc::CDiffTextBuffer
-
-// Begin declaration of CMergeDoc
-
 	CDiffTextBuffer *m_ptBuf[2]; /**< Left/Right side text buffer */
 
 protected: // create from serialization only
 	CMergeDoc();
 	DECLARE_DYNCREATE(CMergeDoc)
 
-	
 	// Operations
 public:	
 	DiffFileInfo *m_pSaveFileInfo[2];
@@ -283,7 +199,7 @@ public:
 	typedef enum { BYTEDIFF, WORDDIFF } DIFFLEVEL;
 	void Showlinediff(CMergeEditView * pView, DIFFLEVEL difflvl);
 	void Showlinediff(CMergeDiffDetailView * pView, DIFFLEVEL difflvl);
-	void GetWordDiffArray(int nLineIndex, wdiffarray *pworddiffs);
+	void GetWordDiffArray(int nLineIndex, std::vector<wdiff*> *pworddiffs);
 private:
 	void Computelinediff(CCrystalTextView * pView, CCrystalTextView * pOther, int line, CRect * rc1, CRect * rc2, DIFFLEVEL difflvl);
 // End MergeDocLineDiffs.cpp

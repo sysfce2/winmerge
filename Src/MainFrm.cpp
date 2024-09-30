@@ -24,12 +24,13 @@
  * @brief Implementation of the CMainFrame class
  */
 // ID line follows -- this is updated by SVN
-// $Id: MainFrm.cpp 5481 2008-06-15 13:30:32Z sdottaka $
+// $Id: MainFrm.cpp 5924 2008-09-07 22:25:05Z sdottaka $
 
 #include "stdafx.h"
 #include <vector>
 #include <htmlhelp.h>  // From HTMLHelp Workshop (incl. in Platform SDK)
 #include <shlwapi.h>
+#include "Constants.h"
 #include "Merge.h"
 #include "UnicodeString.h"
 #include "BCMenu.h"
@@ -47,7 +48,7 @@
 #include "ConflictFileParser.h"
 #include "coretools.h"
 #include "Splash.h"
-#include "PropLineFilter.h"
+#include "LineFiltersDlg.h"
 #include "logfile.h"
 #include "paths.h"
 #include "WaitStatusCursor.h"
@@ -70,6 +71,7 @@
 #include "MergeCmdLineInfo.h"
 #include "FileOrFolderSelect.h"
 #include "PropBackups.h"
+#include "PluginsListDlg.h"
 
 /*
  One source file must compile the stubs for multimonitor
@@ -88,11 +90,13 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 static void LoadToolbarImageList(CMainFrame::TOOLBAR_SIZE size, UINT nIDResource, CImageList& ImgList);
+static const CPtrList &GetDocList(const CMultiDocTemplate *pTemplate);
 
 /**
  * @brief A table associating menuitem id, icon and menus to apply.
  */
 const CMainFrame::MENUITEM_ICON CMainFrame::m_MenuIcons[] = {
+	{ ID_FILE_OPENCONFLICT,			IDB_FILE_OPENCONFLICT,			CMainFrame::MENU_ALL },
 	{ ID_EDIT_COPY,					IDB_EDIT_COPY,					CMainFrame::MENU_ALL },
 	{ ID_EDIT_CUT,					IDB_EDIT_CUT,					CMainFrame::MENU_ALL },
 	{ ID_EDIT_PASTE,				IDB_EDIT_PASTE,					CMainFrame::MENU_ALL },
@@ -112,6 +116,7 @@ const CMainFrame::MENUITEM_ICON CMainFrame::m_MenuIcons[] = {
 	{ ID_TOOLS_FILTERS,				IDB_TOOLS_FILTERS,				CMainFrame::MENU_ALL },
 	{ ID_TOOLS_CUSTOMIZECOLUMNS,	IDB_TOOLS_COLUMNS,				CMainFrame::MENU_ALL },
 	{ ID_TOOLS_GENERATEPATCH,		IDB_TOOLS_GENERATEPATCH,		CMainFrame::MENU_ALL },
+	{ ID_PLUGINS_LIST,				IDB_PLUGINS_LIST,				CMainFrame::MENU_ALL },
 	{ ID_FILE_PRINT,				IDB_FILE_PRINT,					CMainFrame::MENU_FILECMP },
 	{ ID_TOOLS_GENERATEREPORT,		IDB_TOOLS_GENERATEREPORT,		CMainFrame::MENU_FILECMP },
 	{ ID_EDIT_TOGGLE_BOOKMARK,		IDB_EDIT_TOGGLE_BOOKMARK,		CMainFrame::MENU_FILECMP },
@@ -212,44 +217,43 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipText)
 	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipText)
 	ON_COMMAND(ID_HELP_RELEASENOTES, OnHelpReleasenotes)
-  ON_COMMAND(ID_HELP_TRANSLATIONS, OnHelpTranslations)
+	ON_COMMAND(ID_HELP_TRANSLATIONS, OnHelpTranslations)
 	ON_COMMAND(ID_FILE_OPENCONFLICT, OnFileOpenConflict)
+	ON_COMMAND(ID_PLUGINS_LIST, OnPluginsList)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /**
  * @brief MainFrame statusbar panels/indicators
  */
-static UINT indicators[] =
+static UINT StatusbarIndicators[] =
 {
 	ID_SEPARATOR,           // status line indicator
 	ID_SEPARATOR,           // Merge mode
 	ID_SEPARATOR,           // Diff number
-	ID_INDICATOR_CAPS,
-	ID_INDICATOR_NUM,
-	ID_INDICATOR_SCRL,
+	ID_INDICATOR_CAPS,      // Caps Lock
+	ID_INDICATOR_NUM,       // Num Lock
+	ID_INDICATOR_OVR,       // Insert
 };
-
-/** @brief Relative (to WinMerge executable ) path to local help file. */
-static const TCHAR DocsPath[] = _T("\\Docs\\WinMerge.chm");
-
-/**
- * @brief URL to help indes in internet.
- * We use internet help when local help file is not found (not installed).
- */
-static const TCHAR DocsURL[] = _T("http://winmerge.org/2.8/manual/index.html");
-
-/** @brief Release notes in HTML format. */
-static const TCHAR RelNotes[] = _T("\\Docs\\ReleaseNotes.html");
-
-/** @brief URL to translations page in internet. */
-static const TCHAR TranslationsUrl[] = _T("http://winmerge.org/translations/");
 
 /** @brief Timer ID for window flashing timer. */
 static const UINT ID_TIMER_FLASH = 1;
 
 /** @brief Timeout for window flashing timer, in milliseconds. */
 static const UINT WINDOW_FLASH_TIMEOUT = 500;
+
+/**
+  * @brief Return a const reference to a CMultiDocTemplate's list of documents.
+  */
+static const CPtrList &GetDocList(const CMultiDocTemplate *pTemplate)
+{
+	struct Template : public CMultiDocTemplate
+	{
+	public:
+		using CMultiDocTemplate::m_docList;
+	};
+	return static_cast<const struct Template *>(pTemplate)->m_docList;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame construction/destruction
@@ -323,9 +327,17 @@ CMainFrame::~CMainFrame()
 	}
 
 	delete m_pLineFilters;
+
+	// BCMenu destructor calls DestroyMenu()
+	m_pMenus[MENU_DEFAULT]->Detach();
 	delete m_pMenus[MENU_DEFAULT];
+	m_pMenus[MENU_DEFAULT] = NULL;
+	m_pMenus[MENU_MERGEVIEW]->Detach();
 	delete m_pMenus[MENU_MERGEVIEW];
+	m_pMenus[MENU_MERGEVIEW] = NULL;
+	m_pMenus[MENU_DIRVIEW]->Detach();
 	delete m_pMenus[MENU_DIRVIEW];
+	m_pMenus[MENU_DIRVIEW] = NULL;
 	delete m_pSyntaxColors;
 }
 
@@ -347,27 +359,31 @@ protected:
 
 static StatusDisplay myStatusDisplay;
 
+#ifdef _UNICODE
+const TCHAR CMainFrame::szClassName[] = _T("WinMergeWindowClassW");
+#else
+const TCHAR CMainFrame::szClassName[] = _T("WinMergeWindowClassA");
+#endif
 /**
  * @brief Change MainFrame window class name
  *        see http://support.microsoft.com/kb/403825/ja
  */
 BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 {
-	LPCTSTR   lpzsNewName = _T("WinMergeWindowClass");
 	WNDCLASS wndcls;
 	BOOL bRes = CMDIFrameWnd::PreCreateWindow(cs);
 	HINSTANCE hInst = AfxGetInstanceHandle();
 	// see if the class already exists
-	if (!::GetClassInfo(hInst, lpzsNewName, &wndcls))
+	if (!::GetClassInfo(hInst, szClassName, &wndcls))
 	{
 		// get default stuff
 		::GetClassInfo(hInst, cs.lpszClass, &wndcls);
 		// register a new class
-		wndcls.lpszClassName = lpzsNewName;
+		wndcls.lpszClassName = szClassName;
 		wndcls.hIcon = ::LoadIcon(hInst, MAKEINTRESOURCE(IDR_MAINFRAME));
 		::RegisterClass(&wndcls);
 	}
-	cs.lpszClass = lpzsNewName;
+	cs.lpszClass = szClassName;
 	return bRes;
 }
 
@@ -397,8 +413,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		TRACE0("Failed to create status bar\n");
 		return -1;      // fail to create
 	}
-	theApp.SetIndicators(m_wndStatusBar, indicators, sizeof(indicators)/sizeof(UINT));
-	
+	theApp.SetIndicators(m_wndStatusBar, StatusbarIndicators,
+			countof(StatusbarIndicators));
+
 	m_wndStatusBar.SetPaneInfo(1, ID_STATUS_MERGINGMODE, 0, 100); 
 	m_wndStatusBar.SetPaneInfo(2, ID_STATUS_DIFFNUM, 0, 150); 
 	if (GetOptionsMgr()->GetBool(OPT_SHOW_STATUSBAR) == false)
@@ -449,7 +466,7 @@ HMENU CMainFrame::GetPrediffersSubmenu(HMENU mainMenu)
 	// look for "Plugins" menu
 	int i;
 	for (i = 0 ; i < ::GetMenuItemCount(mainMenu) ; i++)
-		if (::GetMenuItemID(::GetSubMenu(mainMenu, i), 0) == ID_UNPACK_MANUAL)
+		if (::GetMenuItemID(::GetSubMenu(mainMenu, i), 0) == ID_PLUGINS_LIST)
 			break;
 	HMENU editMenu = ::GetSubMenu(mainMenu, i);
 
@@ -766,11 +783,11 @@ int CMainFrame::ShowMergeDoc(CDirDoc * pDirDoc,
 
 void CMainFrame::RedisplayAllDirDocs()
 {
-	DirDocList dirdocs;
-	GetAllDirDocs(&dirdocs);
-	while (!dirdocs.IsEmpty())
+	const DirDocList &dirdocs = GetAllDirDocs();
+	POSITION pos = dirdocs.GetHeadPosition();
+	while (pos)
 	{
-		CDirDoc * pDirDoc = dirdocs.RemoveHead();
+		CDirDoc * pDirDoc = dirdocs.GetNext(pos);
 		pDirDoc->Redisplay();
 	}
 }
@@ -870,10 +887,8 @@ void CMainFrame::OnUpdateOptionsShowSkipped(CCmdUI* pCmdUI)
  */
 void CMainFrame::OnHelpGnulicense() 
 {
-	const String spath = GetModulePath() + _T("\\Copying");
-	const TCHAR url[] = _T("http://www.gnu.org/licenses/gpl-2.0.html");
-
-	OpenFileOrUrl(spath.c_str(), url);
+	const String spath = GetModulePath() + LicenseFile;
+	OpenFileOrUrl(spath.c_str(), LicenceUrl);
 }
 
 /**
@@ -1007,11 +1022,11 @@ void CMainFrame::OnOptions()
 		SetEOLMixed(GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL));
 
 		// make an attempt at rescanning any open diff sessions
-		MergeDocList docs;
-		GetAllMergeDocs(&docs);
-		while (!docs.IsEmpty())
+		const MergeDocList &docs = GetAllMergeDocs();
+		POSITION pos = docs.GetHeadPosition();
+		while (pos)
 		{
-			CMergeDoc * pMergeDoc = docs.RemoveHead();
+			CMergeDoc * pMergeDoc = docs.GetNext(pos);
 
 			// Re-read MergeDoc settings (also updates view settings)
 			// and rescan using new options
@@ -1020,12 +1035,11 @@ void CMainFrame::OnOptions()
 		}
 
 		// Update all dirdoc settings
-		DirDocList dirDocs;
-		GetAllDirDocs(&dirDocs);
-
-		while (!dirDocs.IsEmpty())
+		const DirDocList &dirDocs = GetAllDirDocs();
+		pos = dirDocs.GetHeadPosition();
+		while (pos)
 		{
-			CDirDoc *pDirDoc = dirDocs.RemoveHead();
+			CDirDoc * pDirDoc = dirDocs.GetNext(pos);
 			pDirDoc->RefreshOptions();
 		}
 	}
@@ -1413,20 +1427,18 @@ int CMainFrame::SyncFileToVCS(LPCTSTR pszDest, BOOL &bApplyToAll,
  */
 void CMainFrame::OnViewSelectfont() 
 {
-	CFrameWnd * pFrame = GetActiveFrame();
-	BOOL bDirFrame = pFrame->IsKindOf(RUNTIME_CLASS(CDirFrame));
-
+	FRAMETYPE frame = GetFrameType(GetActiveFrame());
 	CHOOSEFONT cf;
 	LOGFONT *lf = NULL;
 	ZeroMemory(&cf, sizeof(CHOOSEFONT));
 	cf.lStructSize = sizeof(CHOOSEFONT);
 	cf.Flags = CF_INITTOLOGFONTSTRUCT|CF_FORCEFONTEXIST|CF_SCREENFONTS;
-	if (!bDirFrame)
+	if (frame == FRAME_FILE)
 		cf.Flags |= CF_FIXEDPITCHONLY; // Only fixed-width fonts for merge view
 
 	// CF_FIXEDPITCHONLY = 0x00004000L
 	// in case you are a developer and want to disable it to test with, eg, a Chinese capable font
-	if (bDirFrame)
+	if (frame == FRAME_FOLDER)
 		lf = &m_lfDir;
 	else
 		lf = &m_lfDiff;
@@ -1435,7 +1447,7 @@ void CMainFrame::OnViewSelectfont()
 
 	if (ChooseFont(&cf))
 	{
-		if (bDirFrame)
+		if (frame == FRAME_FOLDER)
 		{
 			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_USECUSTOM, true);
 			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_HEIGHT, lf->lfHeight);
@@ -1472,7 +1484,7 @@ void CMainFrame::OnViewSelectfont()
 			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_FACENAME, lf->lfFaceName);
 		}
 
-		if (bDirFrame)
+		if (frame == FRAME_FOLDER)
 			m_lfDir = *lf;
 		else
 			m_lfDiff = *lf;
@@ -1558,10 +1570,9 @@ void CMainFrame::GetFontProperties()
  */
 void CMainFrame::OnViewUsedefaultfont() 
 {
-	CFrameWnd * pFrame = GetActiveFrame();
-	BOOL bDirFrame = pFrame->IsKindOf(RUNTIME_CLASS(CDirFrame));
+	FRAMETYPE frame = GetFrameType(GetActiveFrame());
 
-	if (bDirFrame)
+	if (frame == FRAME_FOLDER)
 	{
 		GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_USECUSTOM, false);
 
@@ -1619,30 +1630,30 @@ void CMainFrame::UpdateResources()
 {
 	m_wndStatusBar.SetPaneText(0, theApp.LoadString(AFX_IDS_IDLEMESSAGE).c_str());
 
-	DirDocList dirdocs;
-	GetAllDirDocs(&dirdocs);
-	while (!dirdocs.IsEmpty())
+	const DirDocList &dirdocs = GetAllDirDocs();
+	POSITION pos = dirdocs.GetHeadPosition();
+	while (pos)
 	{
-		CDirDoc * pDoc = dirdocs.RemoveHead();
+		CDirDoc * pDoc = dirdocs.GetNext(pos);
 		pDoc->UpdateResources();
 	}
 
-	MergeDocList mergedocs;
-	GetAllMergeDocs(&mergedocs);
-	while (!mergedocs.IsEmpty())
+	const MergeDocList &mergedocs = GetAllMergeDocs();
+	pos = mergedocs.GetHeadPosition();
+	while (pos)
 	{
-		CMergeDoc * pDoc = mergedocs.RemoveHead();
+		CMergeDoc * pDoc = mergedocs.GetNext(pos);
 		pDoc->UpdateResources();
 	}
 }
 
 BOOL CMainFrame::IsComparing()
 {
-	DirDocList dirdocs;
-	GetAllDirDocs(&dirdocs);
-	while (!dirdocs.IsEmpty())
+	const DirDocList &dirdocs = GetAllDirDocs();
+	POSITION pos = dirdocs.GetHeadPosition();
+	while (pos)
 	{
-		CDirDoc * pDirDoc = dirdocs.RemoveHead();
+		CDirDoc * pDirDoc = dirdocs.GetNext(pos);
 		UINT threadState = pDirDoc->m_diffThread.GetThreadState();
 		if (threadState == CDiffThread::THREAD_COMPARING)
 			return TRUE;
@@ -1750,6 +1761,9 @@ void CMainFrame::ActivateFrame(int nCmdShow)
  */
 void CMainFrame::OnClose()
 {
+	if (theApp.GetActiveOperations())
+		return;
+
 	// Check if there are multiple windows open and ask for closing them
 	BOOL bAskClosing = GetOptionsMgr()->GetBool(OPT_ASK_MULTIWINDOW_CLOSE);
 	if (bAskClosing)
@@ -1823,11 +1837,11 @@ void CMainFrame::addToMru(LPCTSTR szItem, LPCTSTR szRegSubKey, UINT nMaxItems)
  */
 void CMainFrame::ApplyViewWhitespace() 
 {
-	MergeDocList mergedocs;
-	GetAllMergeDocs(&mergedocs);
-	while (!mergedocs.IsEmpty())
+	const MergeDocList &mergedocs = GetAllMergeDocs();
+	POSITION pos = mergedocs.GetHeadPosition();
+	while (pos)
 	{
-		CMergeDoc * pMergeDoc = mergedocs.RemoveHead();
+		CMergeDoc *pMergeDoc = mergedocs.GetNext(pos);
 		CMergeEditView * pLeft = pMergeDoc->GetLeftView();
 		CMergeEditView * pRight = pMergeDoc->GetRightView();
 		CMergeDiffDetailView * pLeftDetail = pMergeDoc->GetLeftDetailView();
@@ -1873,96 +1887,15 @@ void CMainFrame::OnUpdateViewWhitespace(CCmdUI* pCmdUI)
 }
 
 /// Get list of MergeDocs (documents underlying edit sessions)
-void CMainFrame::GetAllMergeDocs(MergeDocList * pMergeDocs)
+const MergeDocList &CMainFrame::GetAllMergeDocs()
 {
-	CMultiDocTemplate * pTemplate = theApp.m_pDiffTemplate;
-	for (POSITION pos = pTemplate->GetFirstDocPosition(); pos; )
-	{
-		CDocument * pDoc = pTemplate->GetNextDoc(pos);
-		CMergeDoc * pMergeDoc = static_cast<CMergeDoc *>(pDoc);
-		pMergeDocs->AddTail(pMergeDoc);
-	}
+	return static_cast<const MergeDocList &>(GetDocList(theApp.m_pDiffTemplate));
 }
 
 /// Get list of DirDocs (documents underlying a scan)
-void CMainFrame::GetAllDirDocs(DirDocList * pDirDocs)
+const DirDocList &CMainFrame::GetAllDirDocs()
 {
-	CMultiDocTemplate * pTemplate = theApp.m_pDirTemplate;
-	for (POSITION pos = pTemplate->GetFirstDocPosition(); pos; )
-	{
-		CDocument * pDoc = pTemplate->GetNextDoc(pos);
-		CDirDoc * pDirDoc = static_cast<CDirDoc *>(pDoc);
-		pDirDocs->AddTail(pDirDoc);
-	}
-}
-
-/// Get list of all dirviews
-void CMainFrame::GetDirViews(DirViewList * pDirViews)
-{
-	GetAllViews(NULL, NULL, pDirViews);
-}
-
-/// Get list of all merge edit views
-void CMainFrame::GetMergeEditViews(MergeEditViewList * pMergeViews)
-{
-	GetAllViews(pMergeViews, NULL, NULL);
-}
-
-/// Get pointers to all views into typed lists (both arguments are optional)
-void CMainFrame::GetAllViews(MergeEditViewList * pEditViews, MergeDetailViewList * pDetailViews, DirViewList * pDirViews)
-{
-	for (POSITION pos = AfxGetApp()->GetFirstDocTemplatePosition(); pos; )
-	{
-		CDocTemplate * pTemplate = AfxGetApp()->GetNextDocTemplate(pos);
-		for (POSITION pos2 = pTemplate->GetFirstDocPosition(); pos2; )
-		{
-			CDocument * pDoc = pTemplate->GetNextDoc(pos2);
-			CMergeDoc * pMergeDoc = dynamic_cast<CMergeDoc *>(pDoc);
-			CDirDoc * pDirDoc = dynamic_cast<CDirDoc *>(pDoc);
-			for (POSITION pos3 = pDoc->GetFirstViewPosition(); pos3; )
-			{
-				CView * pView = pDoc->GetNextView(pos3);
-				// Don't get Location View (font don't change for this view)
-				if (pView->IsKindOf(RUNTIME_CLASS(CLocationView)))
-					continue;
-				if (pMergeDoc)
-				{
-					if (pEditViews || pDetailViews)
-					{
-						// a merge doc only has merge edit views or diff detail views
-						CMergeEditView * pEditView = dynamic_cast<CMergeEditView *>(pView);
-						CMergeDiffDetailView * pDetailView = dynamic_cast<CMergeDiffDetailView *>(pView);
-						ASSERT(pEditView || pDetailView);
-						if (pEditView)
-						{
-							if (pEditViews)
-								pEditViews->AddTail(pEditView);
-						}
-						else if (pDetailView)
-						{
-							if (pDetailViews)
-								pDetailViews->AddTail(pDetailView);
-						}
-					}
-				}
-				else if (pDirDoc)
-				{
-					if (pDirViews)
-					{
-						// a dir doc only has dir views
-						CDirView * pDirView = dynamic_cast<CDirView *>(pView);
-						ASSERT(pDirView);
-						pDirViews->AddTail(pDirView);
-					}
-				}
-				else
-				{
-					// There are currently only two types of docs 2003-02-20
-					ASSERT(0);
-				}
-			}
-		}
-	}
+	return static_cast<const DirDocList &>(GetDocList(theApp.m_pDirTemplate));
 }
 
 /**
@@ -1978,8 +1911,7 @@ void CMainFrame::GetAllViews(MergeEditViewList * pEditViews, MergeDetailViewList
 CMergeDoc * CMainFrame::GetMergeDocToShow(CDirDoc * pDirDoc, BOOL * pNew)
 {
 	const BOOL bMultiDocs = GetOptionsMgr()->GetBool(OPT_MULTIDOC_MERGEDOCS);
-	MergeDocList docs;
-	GetAllMergeDocs(&docs);
+	const MergeDocList &docs = GetAllMergeDocs();
 
 	if (!pDirDoc->HasDiffs() && !bMultiDocs && !docs.IsEmpty())
 	{
@@ -2042,10 +1974,11 @@ void CMainFrame::OnToolsGeneratePatch()
 {
 	CPatchTool patcher;
 	CFrameWnd * pFrame = GetActiveFrame();
+	FRAMETYPE frame = GetFrameType(pFrame);
 	BOOL bOpenDialog = TRUE;
 
 	// Mergedoc active?
-	if (pFrame->IsKindOf(RUNTIME_CLASS(CChildFrame)))
+	if (frame == FRAME_FILE)
 	{
 		CMergeDoc * pMergeDoc = (CMergeDoc *) pFrame->GetActiveDocument();
 		// If there are changes in files, tell user to save them first
@@ -2061,7 +1994,7 @@ void CMainFrame::OnToolsGeneratePatch()
 		}
 	}
 	// Dirview active
-	else if (pFrame->IsKindOf(RUNTIME_CLASS(CDirFrame)))
+	else if (frame == FRAME_FOLDER)
 	{
 		CDirDoc * pDoc = (CDirDoc*)pFrame->GetActiveDocument();
 		CDirView *pView = pDoc->GetMainView();
@@ -2192,10 +2125,18 @@ void CMainFrame::OnDropFiles(HDROP dropInfo)
 		files[0], files[1]);
 
 	// Check if they dropped a project file
-	if (wNumFilesDropped == 1 && theApp.IsProjectFile(files[0]))
+	if (wNumFilesDropped == 1)
 	{
-		theApp.LoadAndOpenProjectFile(files[0]);
-		return;
+		if (theApp.IsProjectFile(files[0]))
+		{
+			theApp.LoadAndOpenProjectFile(files[0]);
+			return;
+		}
+		if (IsConflictFile((LPCTSTR)files[0]))
+		{
+			DoOpenConflict((LPCTSTR)files[0], true);
+			return;
+		}
 	}
 
 	DoFileOpen(files[0], files[1], FFILEOPEN_NONE, FFILEOPEN_NONE, ctrlKey);
@@ -2424,6 +2365,7 @@ static void LoadConfigLog(CConfigLog & configLog, COptionsMgr * options,
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bSyntaxHighlight, options, OPT_SYNTAX_HIGHLIGHT, cfgdir);
 	LoadConfigIntSetting(&configLog.m_miscSettings.bInsertTabs, options, OPT_TAB_TYPE, cfgdir);
 	LoadConfigIntSetting(&configLog.m_miscSettings.nTabSize, options, OPT_TAB_SIZE, cfgdir);
+	LoadConfigBoolSetting(&configLog.m_miscSettings.bPluginsEnabled, options, OPT_PLUGINS_ENABLED, cfgdir);
 
 	LoadConfigIntSetting(&configLog.m_cpSettings.nDefaultMode, options, OPT_CP_DEFAULT_MODE, cfgdir);
 	LoadConfigIntSetting(&configLog.m_cpSettings.nDefaultCustomValue, options, OPT_CP_DEFAULT_CUSTOM, cfgdir);
@@ -2528,13 +2470,14 @@ void CMainFrame::OnToolsFilters()
 {
 	String title = theApp.LoadString(IDS_FILTER_TITLE);
 	CPropertySheet sht(title.c_str());
-	CPropLineFilter filter;
+	LineFiltersDlg lineFiltersDlg;
 	FileFiltersDlg fileFiltersDlg;
 	FILEFILTER_INFOLIST fileFilters;
 	LineFiltersList * lineFilters = new LineFiltersList();
 	CString selectedFilter;
+	const CString origFilter = theApp.m_globalFileFilter.GetFilterNameOrMask();
 	sht.AddPage(&fileFiltersDlg);
-	sht.AddPage(&filter);
+	sht.AddPage(&lineFiltersDlg);
 	sht.m_psh.dwFlags |= PSH_NOAPPLYNOW; // Hide 'Apply' button since we don't need it
 
 	// Make sure all filters are up-to-date
@@ -2543,10 +2486,11 @@ void CMainFrame::OnToolsFilters()
 	theApp.m_globalFileFilter.GetFileFilters(&fileFilters, selectedFilter);
 	fileFiltersDlg.SetFilterArray(&fileFilters);
 	fileFiltersDlg.SetSelected(selectedFilter);
-	filter.m_bIgnoreRegExp = GetOptionsMgr()->GetBool(OPT_LINEFILTER_ENABLED);
+	const BOOL lineFiltersEnabledOrig = GetOptionsMgr()->GetBool(OPT_LINEFILTER_ENABLED);
+	lineFiltersDlg.m_bIgnoreRegExp = lineFiltersEnabledOrig;
 
 	lineFilters->CloneFrom(m_pLineFilters);
-	filter.SetList(lineFilters);
+	lineFiltersDlg.SetList(lineFilters);
 
 	if (sht.DoModal() == IDOK)
 	{
@@ -2569,10 +2513,58 @@ void CMainFrame::OnToolsFilters()
 			CString sFilter = theApp.m_globalFileFilter.GetFilterNameOrMask();
 			GetOptionsMgr()->SaveOption(OPT_FILEFILTER_CURRENT, sFilter);
 		}
-		GetOptionsMgr()->SaveOption(OPT_LINEFILTER_ENABLED, filter.m_bIgnoreRegExp == TRUE);
+		BOOL linefiltersEnabled = lineFiltersDlg.m_bIgnoreRegExp;
+		GetOptionsMgr()->SaveOption(OPT_LINEFILTER_ENABLED, linefiltersEnabled == TRUE);
 
+		// Check if compare documents need rescanning
+		BOOL bFileCompareRescan = FALSE;
+		BOOL bFolderCompareRescan = FALSE;
+		CFrameWnd * pFrame = GetActiveFrame();
+		FRAMETYPE frame = GetFrameType(pFrame);
+		if (frame == FRAME_FILE)
+		{
+			if (lineFiltersEnabledOrig != linefiltersEnabled ||
+					!m_pLineFilters->Compare(lineFilters))
+			{
+				bFileCompareRescan = TRUE;
+			}
+		}
+		else if (frame == FRAME_FOLDER)
+		{
+			const CString newFilter = theApp.m_globalFileFilter.GetFilterNameOrMask();
+			if (lineFiltersEnabledOrig != linefiltersEnabled || 
+					!m_pLineFilters->Compare(lineFilters) || origFilter != newFilter)
+			{
+				int res = LangMessageBox(IDS_FILTERCHANGED, MB_ICONWARNING | MB_YESNO);
+				if (res == IDYES)
+					bFolderCompareRescan = TRUE;
+			}
+		}
+
+		// Save new filters before (possibly) rescanning
 		m_pLineFilters->CloneFrom(lineFilters);
 		m_pLineFilters->SaveFilters();
+
+		if (bFileCompareRescan)
+		{
+			const MergeDocList &docs = GetAllMergeDocs();
+			POSITION pos = docs.GetHeadPosition();
+			while (pos)
+			{
+				CMergeDoc * pMergeDoc = docs.GetNext(pos);
+				pMergeDoc->FlushAndRescan(TRUE);
+			}
+		}
+		else if (bFolderCompareRescan)
+		{
+			const DirDocList &dirDocs = GetAllDirDocs();
+			POSITION pos = dirDocs.GetHeadPosition();
+			while (pos)
+			{
+				CDirDoc * pDirDoc = dirDocs.GetNext(pos);
+				pDirDoc->Rescan();
+			}
+		}
 	}
 	delete lineFilters;
 }
@@ -2607,10 +2599,8 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 		{
 			if (GetOptionsMgr()->GetBool(OPT_CLOSE_WITH_ESC))
 			{
-				MergeDocList docs;
-				GetAllMergeDocs(&docs);
-				DirDocList dirDocs;
-				GetAllDirDocs(&dirDocs);
+				const MergeDocList &docs = GetAllMergeDocs();
+				const DirDocList &dirDocs = GetAllDirDocs();
 
 				if (docs.IsEmpty() && dirDocs.IsEmpty())
 				{
@@ -2780,51 +2770,22 @@ void CMainFrame::OnFileOpenproject()
 LRESULT CMainFrame::OnCopyData(WPARAM wParam, LPARAM lParam)
 {
 	COPYDATASTRUCT *pCopyData = (COPYDATASTRUCT*)lParam;
-	LPWSTR p = (LPWSTR)(pCopyData->lpData);
-	int argc = pCopyData->dwData;
-	TCHAR **argv = new (TCHAR *[argc]);
-	USES_CONVERSION;
-
-	for (int i = 0; i < argc; i++)
-	{
-		argv[i] = new TCHAR[lstrlenW(p) * (sizeof(WCHAR)/sizeof(TCHAR)) + 1];
-		lstrcpy(argv[i], W2T(p));
-		while (*p) p++;
-		p++;
-	}
-
-	PostMessage(WM_USER, (WPARAM)argc, (LPARAM)argv);
-
+	// Bail out if data isn't zero-terminated
+	DWORD cchData = pCopyData->cbData / sizeof(TCHAR);
+	if (cchData == 0 || ((LPCTSTR)(pCopyData->lpData))[cchData - 1] != _T('\0'))
+		return FALSE;
+	LPTSTR pchData = new TCHAR[cchData];
+	memcpy(pchData, pCopyData->lpData, pCopyData->cbData);
+	PostMessage(WM_USER, (WPARAM)pchData, (LPARAM)0);
 	return TRUE;
 }
 
 LRESULT CMainFrame::OnUser(WPARAM wParam, LPARAM lParam)
 {
-	// MFC's ParseCommandLine method is working with __argc and __targv
-	// variables. We need to send MergeCmdLineInfo object rather than
-	// passing the command line as string. Until we do, we temporary
-	// change these variable values and restore then after parsing.
-
-	int argc = __argc;
-	TCHAR **argv = __targv;
-
-	__argc = wParam;
-	__targv = reinterpret_cast<TCHAR **>(lParam);
-
-	MergeCmdLineInfo cmdInfo(*__targv);
-	theApp.ParseCommandLine(cmdInfo);
+	LPCTSTR pchData = (LPCTSTR)wParam;
+	MergeCmdLineInfo cmdInfo = pchData;
 	theApp.ParseArgsAndDoOpen(cmdInfo, this);
-
-	// Delete memrory allocated in OnCopyData method.
-	for (int i = 0; i < __argc; ++i)
-	{
-		delete[] __targv[i];
-	}
-	delete __targv;
-
-	__argc = argc;
-	__targv = argv;
-
+	delete pchData;
 	return TRUE;
 }
 
@@ -2833,11 +2794,10 @@ LRESULT CMainFrame::OnUser(WPARAM wParam, LPARAM lParam)
  */
 void CMainFrame::ShowFontChangeMessage()
 {
-	DirViewList dirViews;
-	MergeEditViewList editViews;
-	GetAllViews(&editViews, NULL, &dirViews);
+	const DirDocList &dirdocs = GetAllDirDocs();
+	const MergeDocList &mergedocs = GetAllMergeDocs();
 
-	if (editViews.GetCount() > 0 || dirViews.GetCount() > 0)
+	if (dirdocs.GetCount() > 0 || mergedocs.GetCount() > 0)
 		LangMessageBox(IDS_FONT_CHANGE, MB_ICONINFORMATION | MB_DONT_DISPLAY_AGAIN, IDS_FONT_CHANGE);
 }
 
@@ -2905,21 +2865,21 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 void CMainFrame::OnWindowCloseAll()
 {
 	// save any dirty edit views
-	MergeDocList mergedocs;
-	GetAllMergeDocs(&mergedocs);
-	for (POSITION pos = mergedocs.GetHeadPosition(); pos; mergedocs.GetNext(pos))
+	const MergeDocList &mergedocs = GetAllMergeDocs();
+	POSITION pos = mergedocs.GetHeadPosition();
+	while (pos)
 	{
-		CMergeDoc * pMergeDoc = mergedocs.GetAt(pos);
+		CMergeDoc * pMergeDoc = mergedocs.GetNext(pos);
 		// Allow user to cancel closing
 		if (!pMergeDoc->PromptAndSaveIfNeeded(TRUE))
 			return;
 	}
 
-	DirDocList dirdocs;
-	GetAllDirDocs(&dirdocs);
-	while (!dirdocs.IsEmpty())
+	const DirDocList &dirdocs = GetAllDirDocs();
+	pos = dirdocs.GetHeadPosition();
+	while (pos)
 	{
-		CDirDoc * pDirDoc = dirdocs.RemoveHead();
+		CDirDoc * pDirDoc = dirdocs.GetNext(pos);
 		if (pDirDoc->HasDirView())
 		{
 			pDirDoc->CloseMergeDocs();
@@ -2940,16 +2900,14 @@ void CMainFrame::OnWindowCloseAll()
  */ 
 void CMainFrame::OnUpdateWindowCloseAll(CCmdUI* pCmdUI)
 {
-	MergeDocList mergedocs;
-	GetAllMergeDocs(&mergedocs);
+	const MergeDocList &mergedocs = GetAllMergeDocs();
 	if (!mergedocs.IsEmpty())
 	{
 		pCmdUI->Enable(TRUE);
 		return;
 	}
 
-	DirDocList dirdocs;
-	GetAllDirDocs(&dirdocs);
+	const DirDocList &dirdocs = GetAllDirDocs();
 	if (!dirdocs.IsEmpty())
 		pCmdUI->Enable(TRUE);
 	else
@@ -3097,10 +3055,9 @@ void CMainFrame::OnSaveProject()
 	String left;
 	String right;
 	CFrameWnd * pFrame = GetActiveFrame();
-	BOOL bMergeFrame = pFrame->IsKindOf(RUNTIME_CLASS(CChildFrame));
-	BOOL bDirFrame = pFrame->IsKindOf(RUNTIME_CLASS(CDirFrame));
+	FRAMETYPE frame = GetFrameType(pFrame);
 
-	if (bMergeFrame)
+	if (frame == FRAME_FILE)
 	{
 		CMergeDoc * pMergeDoc = (CMergeDoc *) pFrame->GetActiveDocument();
 		left = pMergeDoc->m_filePaths.GetLeft();
@@ -3109,7 +3066,7 @@ void CMainFrame::OnSaveProject()
 		pathsDlg.m_bLeftPathReadOnly = pMergeDoc->m_ptBuf[0]->GetReadOnly();
 		pathsDlg.m_bRightPathReadOnly = pMergeDoc->m_ptBuf[1]->GetReadOnly();
 	}
-	else if (bDirFrame)
+	else if (frame == FRAME_FOLDER)
 	{
 		// Get paths currently in compare
 		CDirDoc * pDoc = (CDirDoc*)pFrame->GetActiveDocument();
@@ -3168,20 +3125,6 @@ void CMainFrame::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)
 			KillTimer(ID_TIMER_FLASH);
 		}
 	}
-}
-
-/**
- * @brief Work around a bug WinMerge does not exit.
- * See the bug #1602313 WinMerge stays in tasklist after closing
- * http://winmerge.org/bug/1602313
- * Double-post the WM_QUIT message until we'll figure who is
- * "eating" the first message.
- */
-void CMainFrame::OnNcDestroy()
-{
-	CMDIFrameWnd::OnNcDestroy();
-
-	AfxPostQuitMessage(0);
 }
 
 BOOL CMainFrame::CreateToobar()
@@ -3423,14 +3366,21 @@ BOOL CMainFrame::OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult)
  */
 bool CMainFrame::AskCloseConfirmation()
 {
-	DirViewList dirViews;
-	MergeEditViewList mergeViews; 
-	GetAllViews(&mergeViews, NULL, &dirViews);
+	const DirDocList &dirdocs = GetAllDirDocs();
+	const MergeDocList &mergedocs = GetAllMergeDocs();
 
 	int ret = IDYES;
-	const int count = dirViews.GetCount() + (mergeViews.GetCount() / 2);
+	const int count = dirdocs.GetCount() + mergedocs.GetCount();
 	if (count > 1)
 	{
+		// Check that we don't have one empty dirdoc + mergedoc situation.
+		// That happens since we open "hidden" dirdoc for every file compare.
+		if (dirdocs.GetCount() == 1)
+		{
+			CDirDoc *pDoc = dirdocs.GetHead();
+			if (!pDoc->HasDiffs())
+				return true;
+		}
 		ret = LangMessageBox(IDS_CLOSEALL_WINDOWS, MB_YESNO | MB_ICONWARNING);
 	}
 	return (ret == IDYES);
@@ -3478,20 +3428,23 @@ void CMainFrame::OnFileOpenConflict()
  * modified by default so user can just save it and accept workspace
  * file as resolved file.
  * @param [in] conflictFile Full path to conflict file to open.
+ * @param [in] checked If true, do not check if it really is project file.
  * @return TRUE if conflict file was opened for resolving.
  */
-BOOL CMainFrame::DoOpenConflict(LPCTSTR conflictFile)
+BOOL CMainFrame::DoOpenConflict(LPCTSTR conflictFile, bool checked)
 {
 	BOOL conflictCompared = FALSE;
-	String confl = (LPCTSTR)conflictFile;
 
-	bool confFile = IsConflictFile(confl);
-	if (!confFile)
+	if (!checked)
 	{
-		CString message;
-		LangFormatString1(message, IDS_NOT_CONFLICT_FILE, confl.c_str());
-		AfxMessageBox(message, MB_ICONSTOP);
-		return FALSE;
+		bool confFile = IsConflictFile(conflictFile);
+		if (!confFile)
+		{
+			CString message;
+			LangFormatString1(message, IDS_NOT_CONFLICT_FILE, conflictFile);
+			AfxMessageBox(message, MB_ICONSTOP);
+			return FALSE;
+		}
 	}
 
 	// Create temp files and put them into the list,
@@ -3505,7 +3458,7 @@ BOOL CMainFrame::DoOpenConflict(LPCTSTR conflictFile)
 
 	// Parse conflict file into two files.
 	bool inners;
-	bool success = ParseConflictFile(confl, workFile, revFile, inners);
+	bool success = ParseConflictFile(conflictFile, workFile.c_str(), revFile.c_str(), inners);
 
 	if (success)
 	{
@@ -3526,4 +3479,31 @@ BOOL CMainFrame::DoOpenConflict(LPCTSTR conflictFile)
 		LangMessageBox(IDS_ERROR_CONF_RESOLVE, MB_ICONSTOP);
 	}
 	return conflictCompared;
+}
+
+/**
+ * @brief Get type of frame (File/Folder compare).
+ * @param [in] pFrame Pointer to frame to check.
+ * @return FRAMETYPE of the given frame.
+*/
+FRAMETYPE CMainFrame::GetFrameType(const CFrameWnd * pFrame) const
+{
+	BOOL bMergeFrame = pFrame->IsKindOf(RUNTIME_CLASS(CChildFrame));
+	BOOL bDirFrame = pFrame->IsKindOf(RUNTIME_CLASS(CDirFrame));
+
+	if (bMergeFrame)
+		return FRAME_FILE;
+	else if (bDirFrame)
+		return FRAME_FOLDER;
+	else
+		return FRAME_OTHER;
+}
+
+/**
+ * @brief Show the plugins list dialog.
+ */
+void CMainFrame::OnPluginsList()
+{
+	PluginsListDlg dlg;
+	dlg.DoModal();
 }

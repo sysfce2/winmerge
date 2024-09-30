@@ -5,14 +5,12 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: FileLocation.h 5057 2008-02-19 21:02:22Z kimmov $
+// $Id: FileLocation.h 5444 2008-06-07 06:48:49Z kimmov $
 
 #ifndef FileLocation_included
 #define FileLocation_included
 
-#ifndef FileTextEncoding_h_included
 #include "FileTextEncoding.h"
-#endif
 
 /**
  * @brief A structure containing file's path and encoding information.

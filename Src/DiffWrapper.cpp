@@ -22,7 +22,7 @@
  * @date  Created: 2003-08-22
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffWrapper.cpp 5027 2008-02-11 21:17:11Z sdottaka $
+// $Id: DiffWrapper.cpp 5647 2008-07-21 09:41:45Z kimmov $
 
 #include "stdafx.h"
 #include <string>
@@ -44,6 +44,7 @@
 #include "FolderCmp.h"
 #include "FilterCommentsManager.h"
 #include "Environment.h"
+#include "AnsiConvert.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -90,6 +91,7 @@ CDiffWrapper::CDiffWrapper()
 , m_bPathsAreTemp(FALSE)
 , m_pMovedLines(NULL)
 , m_pFilterList(NULL)
+, m_bPluginsEnabled(false)
 {
 	ZeroMemory(&m_status, sizeof(DIFFSTATUS));
 	// character that ends a line.  Currently this is always `\n'
@@ -105,6 +107,15 @@ CDiffWrapper::~CDiffWrapper()
 	delete m_infoPrediffer;
 	delete m_FilterCommentsManager;
 	delete m_pMovedLines;
+}
+
+/**
+ * @brief Set plugins enabled/disabled.
+ * @param [in] enable if true plugins are enabled.
+ */
+void CDiffWrapper::EnablePlugins(bool enable)
+{
+	m_bPluginsEnabled = enable;
 }
 
 /**
@@ -662,36 +673,53 @@ BOOL CDiffWrapper::RunFileDiff()
 	replace_char(&*filepath2.begin(), '/', '\\');
 
 	BOOL bRet = TRUE;
-	USES_CONVERSION;
-	String strFile1Temp = filepath1;
-	String strFile2Temp = filepath2;
+	String strFile1Temp(filepath1);
+	String strFile2Temp(filepath2);
 	
 	m_options.SetToDiffUtils();
-	//SwapToInternalSettings();
 
 	if (m_bUseDiffList)
 		m_nDiffs = m_pDiffList->GetSize();
 
-	// Do the preprocessing now, overwrite the temp files
-	// NOTE: FileTransform_UCS2ToUTF8() may create new temp
-	// files and return new names, those created temp files
-	// are deleted in end of function.
-	if (m_infoPrediffer->bToBeScanned)
+	if (m_bPluginsEnabled)
 	{
-		// this can only fail if the data can not be saved back (no more
-		// place on disk ???) What to do then ??
-		FileTransform_Prediffing(strFile1Temp, m_sToFindPrediffer.c_str(), m_infoPrediffer,
-			m_bPathsAreTemp);
-	}
-	else
-	{
-		// This can fail if the prediffer has a problem
-		if (FileTransform_Prediffing(strFile1Temp, *m_infoPrediffer,
+		// Do the preprocessing now, overwrite the temp files
+		// NOTE: FileTransform_UCS2ToUTF8() may create new temp
+		// files and return new names, those created temp files
+		// are deleted in end of function.
+		if (m_infoPrediffer->bToBeScanned)
+		{
+			// this can only fail if the data can not be saved back (no more
+			// place on disk ???) What to do then ??
+			FileTransform_Prediffing(strFile1Temp, m_sToFindPrediffer.c_str(), m_infoPrediffer,
+				m_bPathsAreTemp);
+		}
+		else
+		{
+			// This can fail if the prediffer has a problem
+			if (FileTransform_Prediffing(strFile1Temp, *m_infoPrediffer,
+				m_bPathsAreTemp) == FALSE)
+			{
+				// display a message box
+				CString sError;
+				LangFormatString2(sError, IDS_PREDIFFER_ERROR, strFile1Temp.c_str(),
+					m_infoPrediffer->pluginName.c_str());
+				AfxMessageBox(sError, MB_OK | MB_ICONSTOP);
+				// don't use any more this prediffer
+				m_infoPrediffer->bToBeScanned = FALSE;
+				m_infoPrediffer->pluginName.erase();
+			}
+		}
+
+		// We use the same plugin for both files, so it must be defined before
+		// second file
+		ASSERT(m_infoPrediffer->bToBeScanned == FALSE);
+		if (FileTransform_Prediffing(strFile2Temp, *m_infoPrediffer,
 			m_bPathsAreTemp) == FALSE)
 		{
 			// display a message box
 			CString sError;
-			LangFormatString2(sError, IDS_PREDIFFER_ERROR, strFile1Temp.c_str(),
+			LangFormatString2(sError, IDS_PREDIFFER_ERROR, strFile2Temp.c_str(),
 				m_infoPrediffer->pluginName.c_str());
 			AfxMessageBox(sError, MB_OK | MB_ICONSTOP);
 			// don't use any more this prediffer
@@ -700,22 +728,11 @@ BOOL CDiffWrapper::RunFileDiff()
 		}
 	}
 
+	// Comparing UTF-8 files seems to require this conversion?
+	// I'm still very confused about why, as what the functions
+	// document doing is UCS2 to UTF-8 conversion, nothing else.
+	// Something is wrong here. - Kimmo
 	FileTransform_UCS2ToUTF8(strFile1Temp, m_bPathsAreTemp);
-	// We use the same plugin for both files, so it must be defined before
-	// second file
-	ASSERT(m_infoPrediffer->bToBeScanned == FALSE);
-	if (FileTransform_Prediffing(strFile2Temp, *m_infoPrediffer,
-		m_bPathsAreTemp) == FALSE)
-	{
-		// display a message box
-		CString sError;
-		LangFormatString2(sError, IDS_PREDIFFER_ERROR, strFile2Temp.c_str(),
-			m_infoPrediffer->pluginName.c_str());
-		AfxMessageBox(sError, MB_OK | MB_ICONSTOP);
-		// don't use any more this prediffer
-		m_infoPrediffer->bToBeScanned = FALSE;
-		m_infoPrediffer->pluginName.erase();
-	}
 	FileTransform_UCS2ToUTF8(strFile2Temp, m_bPathsAreTemp);
 
 	DiffFileData diffdata;
@@ -794,26 +811,28 @@ BOOL CDiffWrapper::RunFileDiff()
 	// Done with diffutils filedata
 	diffdata.Close();
 
-	// Delete temp files transformation functions possibly created
-	if (lstrcmpi(filepath1.c_str(), strFile1Temp.c_str()) != 0)
+	if (m_bPluginsEnabled)
 	{
-		if (!::DeleteFile(strFile1Temp.c_str()))
+		// Delete temp files transformation functions possibly created
+		if (lstrcmpi(filepath1.c_str(), strFile1Temp.c_str()) != 0)
 		{
-			LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-				strFile1Temp.c_str(), GetSysError(GetLastError())));
+			if (!::DeleteFile(strFile1Temp.c_str()))
+			{
+				LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
+					strFile1Temp.c_str(), GetSysError(GetLastError())));
+			}
+			strFile1Temp.erase();
 		}
-		strFile1Temp.erase();
-	}
-	if (lstrcmpi(filepath2.c_str(), strFile2Temp.c_str()) != 0)
-	{
-		if (!::DeleteFile(strFile2Temp.c_str()))
+		if (lstrcmpi(filepath2.c_str(), strFile2Temp.c_str()) != 0)
 		{
-			LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-				strFile2Temp.c_str(), GetSysError(GetLastError())));
+			if (!::DeleteFile(strFile2Temp.c_str()))
+			{
+				LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
+					strFile2Temp.c_str(), GetSysError(GetLastError())));
+			}
+			strFile2Temp.erase();
 		}
-		strFile2Temp.erase();
 	}
-
 	return bRet;
 }
 
@@ -1190,7 +1209,6 @@ CDiffWrapper::LoadWinMergeDiffsFromDiffUtilsScript(struct change * script, const
  */
 void CDiffWrapper::WritePatchFile(struct change * script, file_data * inf)
 {
-	USES_CONVERSION;
 	file_data inf_patch[2] = {0};
 	CopyMemory(&inf_patch, inf, sizeof(file_data) * 2);
 	
@@ -1204,8 +1222,8 @@ void CDiffWrapper::WritePatchFile(struct change * script, file_data * inf)
 		path2 = m_s2File;
 	replace_char(&*path1.begin(), '\\', '/');
 	replace_char(&*path2.begin(), '\\', '/');
-	inf_patch[0].name = strdup(T2CA(path1.c_str()));
-	inf_patch[1].name = strdup(T2CA(path2.c_str()));
+	inf_patch[0].name = ansiconvert_SystemCP(path1.c_str());
+	inf_patch[1].name = ansiconvert_SystemCP(path2.c_str());
 
 	outfile = NULL;
 	if (!m_sPatchFile.IsEmpty())

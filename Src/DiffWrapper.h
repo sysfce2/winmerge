@@ -21,21 +21,15 @@
  *
  * @date  Created: 2003-08-22
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DiffWrapper.h 5027 2008-02-11 21:17:11Z sdottaka $
+// ID line follows -- this is updated by SVN
+// $Id: DiffWrapper.h 5647 2008-07-21 09:41:45Z kimmov $
 
 #ifndef _DIFFWRAPPER_H
 #define _DIFFWRAPPER_H
 
 #include "FileLocation.h"
-
-#ifndef FileTextStats_h_included
 #include "FileTextStats.h"
-#endif
-
-#ifndef CompareOptions_h_included
 #include "CompareOptions.h"
-#endif
 
 class CDiffContext;
 class PrediffingInfo;
@@ -174,6 +168,7 @@ public:
 	MovedLines * GetMovedLines() { return m_pMovedLines; }
 	void SetCompareFiles(const String &OriginalFile1, const String &OriginalFile2);
 	void SetFilterList(LPCTSTR filterStr);
+	void EnablePlugins(bool enable);
 
 protected:
 	String FormatSwitchString();
@@ -208,6 +203,7 @@ private:
 	DiffList *m_pDiffList; /**< Pointer to external DiffList */
 	MovedLines * m_pMovedLines;
 	FilterCommentsManager * m_FilterCommentsManager; /**< Comments filtering manager */
+	bool m_bPluginsEnabled; /**< Are plugins enabled? */
 };
 
 

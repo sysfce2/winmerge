@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: coretools.cpp 5745 2008-08-06 17:10:45Z kimmov $
+// $Id: coretools.cpp 5744 2008-08-06 17:08:58Z kimmov $
 
 #include <windows.h>
 #include <tchar.h>
@@ -18,10 +18,7 @@
 #include <assert.h>
 #include "UnicodeString.h"
 #include "coretools.h"
-
-#ifndef countof
-#define countof(array)  (sizeof(array)/sizeof((array)[0]))
-#endif /* countof */
+#include "coretypes.h"
 
 static String MyGetSysError(int nerr);
 static BOOL MyCreateDirectoryIfNeeded(LPCTSTR lpPathName, String * perrstr);
@@ -151,7 +148,7 @@ DWORD FPRINTF(HANDLE hf, LPCTSTR fmt, ... )
     va_list vl;
     va_start( vl, fmt );
 
-	_vstprintf(fprintf_buffer, fmt, vl);
+	_vsntprintf(fprintf_buffer, countof(fprintf_buffer), fmt, vl);
 	DWORD dwWritten;
 	WriteFile(hf, fprintf_buffer, _tcslen(fprintf_buffer)*sizeof(TCHAR), &dwWritten, NULL);
 
@@ -347,30 +344,6 @@ void AddExtension(LPTSTR name, LPCTSTR ext)
 		_tcscat(name,_T("."));
 		_tcscat(name,ext);
 	}
-}
-
-BOOL GetFreeSpaceString(LPCTSTR drivespec, ULONG mode, LPTSTR s)
-{
-  DWORD sectorsPerCluster,
-	  bytesPerSector,
-	  numberOfFreeClusters,
-	  totalNumberOfClusters, total;
-
-  if (!GetDiskFreeSpace(drivespec,
-						&sectorsPerCluster,
-						&bytesPerSector,
-						&numberOfFreeClusters,
-						&totalNumberOfClusters))
-    return FALSE;
-
-  total = numberOfFreeClusters*bytesPerSector*sectorsPerCluster;
-  if (mode==BYTES)
-    _stprintf(s, _T("%lu bytes available"), total);
-  else if (mode==KBYTES)
-    _stprintf(s, _T("%1.1fK available"), (float)(total/(float)mode));
-  else
-    _stprintf(s, _T("%1.1f MB available"), (float)(total/(float)mode));
-  return TRUE;
 }
 
 int fcmp(float a,float b)
@@ -974,7 +947,7 @@ HANDLE RunIt(LPCTSTR szExeFile, LPCTSTR szArgs, BOOL bMinimized /*= TRUE*/, BOOL
     si.wShowWindow = (bMinimized) ? SW_MINIMIZE : SW_HIDE;
 
 	TCHAR args[4096];
-	_stprintf(args,_T("\"%s\" %s"), szExeFile, szArgs);
+	_sntprintf(args, countof(args), _T("\"%s\" %s"), szExeFile, szArgs);
     if (CreateProcess(szExeFile, args, NULL, NULL,
 		FALSE, NORMAL_PRIORITY_CLASS|(bNewConsole? CREATE_NEW_CONSOLE:0),
                          NULL, _T(".\\"), &si, &procInfo))

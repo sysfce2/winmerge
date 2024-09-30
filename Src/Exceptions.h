@@ -24,7 +24,7 @@
  *  @brief Exceptions handlers (currently, only SE handler for try/catch)
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: Exceptions.h 862 2003-11-23 23:34:05Z puddle $
+// $Id: Exceptions.h 5350 2008-05-21 13:30:03Z kimmov $
 
 #include "StdAfx.h"
 #include "eh.h"
@@ -86,7 +86,7 @@ public:
 	virtual BOOL GetErrorMessage( LPTSTR lpszError, UINT nMaxError, PUINT pnHelpContext = NULL )
 	{
 		static TCHAR message[512];
-		_stprintf(message, _T("Exception %s (0x%.8x)"), getSeMessage(), getSeNumber());
+		_sntprintf(message, countof(message), _T("Exception %s (0x%.8x)"), getSeMessage(), getSeNumber());
 		_tcsncpy(lpszError, message, nMaxError-1);
 		lpszError[nMaxError-1] = 0;
 		return TRUE;
@@ -113,6 +113,7 @@ public:
 	SE_Handler() { fnOld = _set_se_translator(seh_trans_func); }
 	~SE_Handler() { _set_se_translator(fnOld); }
 };
+
 
 
 

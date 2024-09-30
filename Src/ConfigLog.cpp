@@ -20,7 +20,7 @@
  * @brief CConfigLog implementation
  */
 // ID line follows -- this is updated by SVN
-// $Id: ConfigLog.cpp 5202 2008-03-27 23:09:52Z kimmov $
+// $Id: ConfigLog.cpp 5647 2008-07-21 09:41:45Z kimmov $
 
 #include "stdafx.h"
 #ifndef UNICODE
@@ -83,9 +83,9 @@ void CConfigLog::WritePluginsInLogFile(LPCWSTR transformationEvent, CStdioFile &
 	{
 		PluginInfo & plugin = piPluginArray->ElementAt(iPlugin);
 		file.WriteString(_T("\n  "));
-		file.WriteString(plugin.name.c_str());
+		file.WriteString(plugin.m_name.c_str());
 		file.WriteString(_T(" ["));
-		file.WriteString(plugin.filepath.c_str());
+		file.WriteString(plugin.m_filepath.c_str());
 		file.WriteString(_T("]"));
 	}
 }
@@ -508,12 +508,13 @@ BOOL CConfigLog::DoFile(bool writing, CString &sError)
 	WriteLocaleSettings(m_file, LOCALE_SYSTEM_DEFAULT, _T("Locale (System)"));
 
 // Codepage settings
-	WriteItemYesNo(0, _T("Detect codepage automatically for RC and HTML files"), &m_cpSettings.bDetectCodepage);
+	WriteItemYesNo(1, _T("Detect codepage automatically for RC and HTML files"), &m_cpSettings.bDetectCodepage);
 	WriteItem(m_file, 1, _T("unicoder codepage"), getDefaultCodepage());
 
 // Plugins
-	FileWriteString(_T("\nPlugins: "));
-	FileWriteString(_T("\n Unpackers: "));
+	FileWriteString(_T("\nPlugins:\n"));
+	WriteItemYesNo(1, _T("Plugins enabled"), &m_miscSettings.bPluginsEnabled);
+	FileWriteString(_T(" Unpackers: "));
 	WritePluginsInLogFile(L"FILE_PACK_UNPACK", m_file);
 	WritePluginsInLogFile(L"BUFFER_PACK_UNPACK", m_file);
 	FileWriteString(_T("\n Prediffers: "));

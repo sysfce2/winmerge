@@ -4,7 +4,7 @@
  * @brief Declaration file for Coretools.cpp
  */
 // ID line follows -- this is updated by SVN
-// $Id: coretools.h 4654 2007-10-22 19:25:50Z kimmov $
+// $Id: coretools.h 5348 2008-05-19 17:35:45Z kimmov $
 
 #ifndef CORETOOLS_H
 #define CORETOOLS_H
@@ -104,7 +104,6 @@ void SplitFilename(LPCTSTR s, String * path, String * name, String * ext);
 void SplitViewName(LPCTSTR s, String * path, String * name, String * ext);
 void TestSplitFilename();
 void AddExtension(LPTSTR name, LPCTSTR ext);
-BOOL GetFreeSpaceString(LPCTSTR drivespec, ULONG mode, LPTSTR s);
 int fcmp(float a,float b);
 BOOL FindAnyFile(LPTSTR filespec, LPTSTR name);
 long SwapEndian(long val);

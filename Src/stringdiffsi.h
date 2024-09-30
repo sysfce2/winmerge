@@ -5,10 +5,14 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: stringdiffsi.h 4782 2007-11-21 14:28:17Z kimmov $
+// $Id: stringdiffsi.h 5459 2008-06-10 16:49:30Z kimmov $
 
 #ifndef stringdiffsi_h_included
 #define stringdiffsi_h_included
+
+#include <vector>
+
+struct wdiff;
 
 /**
  * @brief Class to hold together data needed to implement sd_ComputeWordDiffs
@@ -16,9 +20,11 @@
 class stringdiffs
 {
 public:
-	stringdiffs(const CString & str1, const CString & str2,
+	stringdiffs(const String & str1, const String & str2,
 		bool case_sensitive, int whitespace, int breakType,
-		wdiffarray * pDiffs);
+		std::vector<wdiff*> * pDiffs);
+
+	~stringdiffs();
 
 	void BuildWordDiffList();
 	void PopulateDiffs();
@@ -32,32 +38,30 @@ private:
 		word(int s=0, int e=0, int h=0) : start(s), end(e), hash(h) { }
 		int length() const { return end+1-start; }
 	};
-	typedef CArray<word, word&> wordarray;
-
 
 // Implementation methods
 private:
 
-	void BuildWordsArray(const CString & str, wordarray * words);
+	void BuildWordsArray(const String & str, std::vector<word*> * words);
 	bool findSync(int *w1, int *w2) const;
 	int FindNextMatchInWords2(const word & needword1, int bw2) const;
 	int FindNextMatchInWords1(const word & needword2, int bw1) const;
 
-	int hash(const CString & str, int begin, int end) const;
+	int hash(const String & str, int begin, int end) const;
 	bool AreWordsSame(const word & word1, const word & word2) const;
 	bool caseMatch(TCHAR ch1, TCHAR ch2) const;
 
 // Implementation data
 private:
-	const CString & m_str1;
-	const CString & m_str2;
+	const String & m_str1;
+	const String & m_str2;
 	bool m_case_sensitive;
 	int m_whitespace;
 	int m_breakType;
-	wdiffarray * m_pDiffs;
-	wordarray m_words1;
-	wordarray m_words2;
-	wdiffarray m_wdiffs;
+	std::vector<wdiff*> * m_pDiffs;
+	std::vector<word*> m_words1;
+	std::vector<word*> m_words2;
+	std::vector<wdiff*> m_wdiffs;
 };
 
 

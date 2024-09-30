@@ -20,7 +20,7 @@
  * @brief Declaration ConflictFileParser.
  */
 // ID line follows -- this is updated by SVN
-// $Id: ConflictFileParser.h 4964 2008-01-27 11:50:51Z kimmov $
+// $Id: ConflictFileParser.h 5892 2008-09-05 06:43:12Z jtuc $
 
 // Conflict file parsing method modified from original code got from:
 // TortoiseCVS - a Windows shell extension for easy version control
@@ -32,10 +32,10 @@
 
 #include "UnicodeString.h"
 
-bool IsConflictFile(const String &conflictFileName);
+bool IsConflictFile(LPCTSTR conflictFileName);
 
-bool ParseConflictFile(const String &conflictFileName,
-		const String &workingCopyFileName, const String &newRevisionFileName,
+bool ParseConflictFile(LPCTSTR conflictFileName,
+		LPCTSTR workingCopyFileName, LPCTSTR newRevisionFileName,
 		bool &nestedConflicts);
 
 #endif // _CONFLICT_FILE_PARSER_H_

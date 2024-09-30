@@ -36,7 +36,7 @@
  * @brief Implementation file for CShellFileOp class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: CShellFileOp.cpp 4720 2007-11-07 19:04:16Z kimmov $
+// $Id: CShellFileOp.cpp 5796 2008-08-13 05:28:25Z kimmov $
 
 #include "stdafx.h"
 #include "shlobj.h"
@@ -540,9 +540,7 @@ int    nAPIRet;
         }
 
                                         // drum roll please....
-    ((CFrameWnd *)AfxGetMainWnd())->BeginModalState();
     nAPIRet = SHFileOperation ( &m_rFOS );  // tah-dah!
-    ((CFrameWnd *)AfxGetMainWnd())->EndModalState();
                                         // Save the return value from the API.
     if ( NULL != lpnAPIReturn )
         {

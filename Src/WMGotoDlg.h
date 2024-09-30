@@ -17,37 +17,41 @@
 /**
  * @file  WMGotoDlg.h
  *
- * @brief Declaration file for CWMGotoDlg
+ * @brief Declaration file for WMGotoDlg dialog.
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: WMGotoDlg.h 4735 2007-11-11 12:21:25Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: WMGotoDlg.h 5295 2008-04-14 08:09:06Z kimmov $
 
 #if !defined(AFX_WMGOTODLG_H__A9D2366D_6358_4A74_9A45_6681D22EC786__INCLUDED_)
 #define AFX_WMGOTODLG_H__A9D2366D_6358_4A74_9A45_6681D22EC786__INCLUDED_
 
 
 /**
- * @brief Class for Goto-dialog
+ * @brief Class for Goto-dialog.
+ * This dialog allows user to go to certain line or or difference in the file
+ * compare. As there are two panels with different line numbers, there is a
+ * choice for target panel. When dialog is opened, its values are initialized
+ * for active file's line number.
  */
-class CWMGotoDlg : public CDialog
+class WMGotoDlg : public CDialog
 {
 // Construction
 public:
-	CWMGotoDlg(CWnd* pParent = NULL);   // standard constructor
+	WMGotoDlg(CWnd* pParent = NULL);   // standard constructor
 
 // Dialog Data
-	//{{AFX_DATA(CWMGotoDlg)
+	//{{AFX_DATA(WMGotoDlg)
 	enum { IDD = IDD_WMGOTO };
-	CString	m_strParam;
-	int		m_nFile;
-	int		m_nGotoWhat;
+	CString m_strParam;  /**< Line/difference number. */
+	int m_nFile;         /**< Target file number. */
+	int m_nGotoWhat;     /**< Goto line or difference? */
 	//}}AFX_DATA
 
 
 // Overrides
 	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(CWMGotoDlg)
+	//{{AFX_VIRTUAL(WMGotoDlg)
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
@@ -56,7 +60,7 @@ public:
 protected:
 
 	// Generated message map functions
-	//{{AFX_MSG(CWMGotoDlg)
+	//{{AFX_MSG(WMGotoDlg)
     virtual BOOL OnInitDialog();
 		// NOTE: the ClassWizard will add member functions here
 	//}}AFX_MSG

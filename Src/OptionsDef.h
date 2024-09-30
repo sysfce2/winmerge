@@ -4,10 +4,15 @@
  * @brief Constants for option-names
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: OptionsDef.h 5042 2008-02-14 17:09:58Z kimmov $
+// $Id: OptionsDef.h 5647 2008-07-21 09:41:45Z kimmov $
 
 #ifndef _OPTIONS_DEF_H_
 #define _OPTIONS_DEF_H_
+
+#include <tchar.h>
+
+// User's language
+const TCHAR OPT_SELECTED_LANGUAGE[] = _T("Locale/LanguageId");
 
 // View-menu
 const TCHAR OPT_SHOW_UNIQUE_LEFT[] = _T("Settings/ShowUniqueLeft");
@@ -145,6 +150,9 @@ const TCHAR OPT_VSS_PATH[] = _T("Settings/VssPath");
 // Archive support
 const TCHAR OPT_ARCHIVE_ENABLE[] = _T("Merge7z/Enable");
 const TCHAR OPT_ARCHIVE_PROBETYPE[] = _T("Merge7z/ProbeSignature");
+
+// Plugins
+const TCHAR OPT_PLUGINS_ENABLED[] = _T("Settings/PluginsEnabled");
 
 // Font options
 const TCHAR OPT_FONT_FILECMP_USECUSTOM[] = _T("Font/Specified");

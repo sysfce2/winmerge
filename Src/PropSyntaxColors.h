@@ -4,17 +4,14 @@
  * @brief Declaration file for CPropSyntaxColors propertyheet
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PropSyntaxColors.h 4588 2007-10-05 11:35:46Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: PropSyntaxColors.h 5444 2008-06-07 06:48:49Z kimmov $
 
 #ifndef _PROP_SYNTAX_COLORS_H_
 #define _PROP_SYNTAX_COLORS_H_
 
 #include "ColorButton.h"
-
-#ifndef _IOPTIONSPANEL_H_
 #include "IOptionsPanel.h"
-#endif
 
 class SyntaxColors;
 

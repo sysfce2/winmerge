@@ -8,7 +8,7 @@
  * @brief Project-wide includes and declarations
  */
 // ID line follows -- this is updated by SVN
-// $Id: StdAfx.h 5289 2008-04-12 07:41:41Z kimmov $
+// $Id: StdAfx.h 5526 2008-06-26 12:50:32Z kimmov $
 
 #if !defined(AFX_STDAFX_H__BBCD4F8A_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_STDAFX_H__BBCD4F8A_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -54,11 +54,6 @@
 #define _abs64	_abs64_patch
 #endif
 
-//Make VS2005 build less noisy by disabling warnings for deprecated string functions.
-#if _MSC_VER >= 1400
-	#define _CRT_SECURE_NO_DEPRECATE
-#endif
-
 // Common MFC headers
 
 #include <afxwin.h>         // MFC core and standard components
@@ -73,11 +68,7 @@
 #include "sizecbar.h"
 #include "scbarg.h"
 
-// Miscellaneous macros
-
-#ifndef countof
-#define countof(array)  (sizeof(array)/sizeof((array)[0]))
-#endif /* countof */
+#include "coretypes.h"
 
 /**
  * @name User-defined Windows-messages

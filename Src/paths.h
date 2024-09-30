@@ -4,7 +4,7 @@
  * @brief Declaration file for path routines
  */
 // ID line follows -- this is updated by SVN
-// $Id: paths.h 5302 2008-04-16 13:00:41Z kimmov $
+// $Id: paths.h 5301 2008-04-16 12:51:56Z kimmov $
 
 #ifndef paths_h_included
 #define paths_h_included
@@ -36,7 +36,5 @@ String paths_GetParentPath(LPCTSTR path);
 String paths_GetLastSubdir(const String & path);
 BOOL paths_IsPathAbsolute(const String & path);
 String paths_EnsurePathExist(const String & sPath);
-String paths_GetWindowsDirectory();
-String paths_GetMyDocuments(HWND hWindow);
 
 #endif // paths_h_included

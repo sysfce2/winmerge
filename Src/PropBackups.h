@@ -5,14 +5,12 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropBackups.h 4387 2007-07-26 08:05:42Z kimmov $
+// $Id: PropBackups.h 5444 2008-06-07 06:48:49Z kimmov $
 
 #ifndef _PROPBACKUPS_H_
 #define _PROPBACKUPS_H_
 
-#ifndef _IOPTIONSPANEL_H_
 #include "IOptionsPanel.h"
-#endif
 
 class COptionsMgr;
 

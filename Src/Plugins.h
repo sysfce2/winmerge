@@ -23,16 +23,14 @@
  *
  *  @brief Declaration file for VBS Scriptlets, VB ActiveX DLL, VC++ COM DLL
  */ 
-// RCS ID line follows -- this is updated by CVS
-// $Id: Plugins.h 4736 2007-11-11 12:26:36Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: Plugins.h 5492 2008-06-17 08:18:40Z kimmov $
 
 #ifndef __PLUGINS_H__
 #define __PLUGINS_H__
 
-#ifndef _FileFilterMgr_included_
-#define _FileFilterMgr_included_
+#include <vector>
 #include "FileFilterMgr.h"
-#endif
 
 class CRegExp;
 
@@ -53,9 +51,8 @@ class PluginInfo
 {
 public:
 	PluginInfo()
+		: m_lpDispatch(NULL), m_filters(NULL)
 	{	
-		lpDispatch = NULL; 
-		filters = NULL; 
 	};
 	/// Parse the filter string (only for files), and create the filters
 	void LoadFilterString();
@@ -67,16 +64,16 @@ public:
 	BOOL TestAgainstRegList(LPCTSTR szTest);
 
 public:
-	String      filepath;
-	LPDISPATCH  lpDispatch;
-	String      name; // usually filename, except for special cases (like auto or no)
-	CString     filtersText;
-	CString     description;
-	BOOL        bUnicodeMode;
-	BOOL        bAutomatic;
-	FileFilterList  *filters;
+	String      m_filepath;
+	LPDISPATCH  m_lpDispatch;
+	String      m_name; // usually filename, except for special cases (like auto or no)
+	CString     m_filtersText;
+	CString     m_description;
+	BOOL        m_bUnicodeMode;
+	BOOL        m_bAutomatic;
+	std::vector<FileFilterElement*> *m_filters;
 	/// only for plugins with free function names (EDITOR_SCRIPT)
-	int         nFreeFunctions;
+	int         m_nFreeFunctions;
 };
 
 

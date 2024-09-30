@@ -6,7 +6,7 @@
  * @date  Created: 2003-08-19
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirViewColItems.cpp 5019 2008-02-10 11:50:33Z jtuc $
+// $Id: DirViewColItems.cpp 5422 2008-06-04 12:54:47Z kimmov $
 
 
 #include "stdafx.h"
@@ -21,7 +21,6 @@
 #include "locality.h"
 #include "unicoder.h"
 #include "coretools.h"
-#include "FolderCmp.h"
 
 // shlwapi.h prior to VC6SP6 might lack definition of StrIsIntlEqual
 #ifdef UNICODE
@@ -69,7 +68,7 @@ static int sign64(__int64 val)
  * @brief Function to compare two diffcodes for a sort
  * @todo How shall we order diff statuses?
  */
-static int cmpdiffcode(int diffcode1, int diffcode2)
+static UINT cmpdiffcode(UINT diffcode1, UINT diffcode2)
 {
 	return diffcode1-diffcode2;	
 }
@@ -159,14 +158,23 @@ static String MakeShortSize(__int64 size)
 	}
 
 	TCHAR buffer[48];
-	_stprintf(buffer, _T("%lf"), number);
+	_sntprintf(buffer, countof(buffer), _T("%lf"), number);
 	return locality::GetLocaleStr(buffer, ndigits) + suffix;
 }
 
 /**
- * @name Functions to display each type of column info.
+ * @name Functions to format content of each type of column.
+ * These functions all receive two parameters, a pointer to CDiffContext.
+ * which contains general compare information. And a void pointer whose type
+ * depends on column to format. Function to call for each column, and
+ * parameter for the function are defined in static DirColInfo f_cols table.
  */
 /* @{ */
+/**
+ * @brief Format Filename column data.
+ * @param [in] p Pointer to DIFFITEM.
+ * @return String to show in the column.
+ */
 static String ColFileNameGet(const CDiffContext *, const void *p) //sfilename
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM*>(p);
@@ -178,17 +186,24 @@ static String ColFileNameGet(const CDiffContext *, const void *p) //sfilename
 		di.left.filename + _T("|") + di.right.filename
 	);
 }
-/*static CString ColNameGet(const CDiffContext *, const void *p) //sfilename
-{
-	const CString &r = *static_cast<const CString*>(p);
-	return r;
-}*/
+
+/**
+ * @brief Format Extension column data.
+ * @param [in] p Pointer to String having extension string.
+ * @return String to show in the column.
+ */
 static String ColExtGet(const CDiffContext *, const void *p) //sfilename
 {
 	const String &r = *static_cast<const String*>(p);
 	LPCTSTR s = PathFindExtension(r.c_str());
 	return s + _tcsspn(s, _T("."));
 }
+
+/**
+ * @brief Format Folder column data.
+ * @param [in] p Pointer to DIFFITEM.
+ * @return String to show in the column.
+ */
 static String ColPathGet(const CDiffContext *, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM*>(p);
@@ -217,6 +232,13 @@ static String ColPathGet(const CDiffContext *, const void *p)
 		s = _T(".");
 	return s;
 }
+
+/**
+ * @brief Format Result column data.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM.
+ * @return String to show in the column.
+ */
 static String ColStatusGet(const CDiffContext *pCtxt, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM*>(p);
@@ -265,6 +287,12 @@ static String ColStatusGet(const CDiffContext *pCtxt, const void *p)
 	}
 	return s;
 }
+
+/**
+ * @brief Format Date column data.
+ * @param [in] p Pointer to integer (seconds since 1.1.1970).
+ * @return String to show in the column.
+ */
 static String ColTimeGet(const CDiffContext *, const void *p)
 {
 	const __int64 &r = *static_cast<const __int64*>(p);
@@ -273,6 +301,12 @@ static String ColTimeGet(const CDiffContext *, const void *p)
 	else
 		return _T("");
 }
+
+/**
+ * @brief Format Sizw column data.
+ * @param [in] p Pointer to integer containing size in bytes.
+ * @return String to show in the column.
+ */
 static String ColSizeGet(const CDiffContext *, const void *p)
 {
 	const __int64 &r = *static_cast<const __int64*>(p);
@@ -283,6 +317,12 @@ static String ColSizeGet(const CDiffContext *, const void *p)
 	}
 	return s;
 }
+
+/**
+ * @brief Format Folder column data.
+ * @param [in] p Pointer to DIFFITEM.
+ * @return String to show in the column.
+ */
 static String ColSizeShortGet(const CDiffContext *, const void *p)
 {
 	const __int64 &r = *static_cast<const __int64*>(p);
@@ -293,6 +333,12 @@ static String ColSizeShortGet(const CDiffContext *, const void *p)
 	}
 	return s;
 }
+
+/**
+ * @brief Format Difference cout column data.
+ * @param [in] p Pointer to integer having count of differences.
+ * @return String to show in the column.
+ */
 static String ColDiffsGet(const CDiffContext *, const void *p)
 {
 	const int &r = *static_cast<const int*>(p);
@@ -311,6 +357,12 @@ static String ColDiffsGet(const CDiffContext *, const void *p)
 	}
 	return s;
 }
+
+/**
+ * @brief Format Newer/Older column data.
+ * @param [in] p Pointer to DIFFITEM.
+ * @return String to show in the column.
+ */
 static String ColNewerGet(const CDiffContext *, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
@@ -336,6 +388,14 @@ static String ColNewerGet(const CDiffContext *, const void *p)
 	}
 	return _T("***");
 }
+
+/**
+ * @brief Format Version info to string.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] pdi Pointer to DIFFITEM.
+ * @param [in] bLeft Is the item left-size item?
+ * @return String proper to show in the GUI.
+ */
 static String GetVersion(const CDiffContext * pCtxt, const DIFFITEM * pdi, BOOL bLeft)
 {
 	DIFFITEM & di = const_cast<DIFFITEM &>(*pdi);
@@ -346,16 +406,36 @@ static String GetVersion(const CDiffContext * pCtxt, const DIFFITEM * pdi, BOOL 
 	}
 	return dfi.version.GetFileVersionString();
 }
+
+/**
+ * @brief Format Version column data (for left-side).
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM.
+ * @return String to show in the column.
+ */
 static String ColLversionGet(const CDiffContext * pCtxt, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
 	return GetVersion(pCtxt, &di, TRUE);
 }
+
+/**
+ * @brief Format Version column data (for right-side).
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM.
+ * @return String to show in the column.
+ */
 static String ColRversionGet(const CDiffContext * pCtxt, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
 	return GetVersion(pCtxt, &di, FALSE);
 }
+
+/**
+ * @brief Format Short Result column data.
+ * @param [in] p Pointer to DIFFITEM.
+ * @return String to show in the column.
+ */
 static String ColStatusAbbrGet(const CDiffContext *, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
@@ -398,6 +478,12 @@ static String ColStatusAbbrGet(const CDiffContext *, const void *p)
 
 	return theApp.LoadString(id);
 }
+
+/**
+ * @brief Format Binary column data.
+ * @param [in] p Pointer to DIFFITEM.
+ * @return String to show in the column.
+ */
 static String ColBinGet(const CDiffContext *, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
@@ -407,16 +493,35 @@ static String ColBinGet(const CDiffContext *, const void *p)
 	else
 		return _T("");
 }
+
+/**
+ * @brief Format File Attributes column data.
+ * @param [in] p Pointer to file flags class.
+ * @return String to show in the column.
+ */
 static String ColAttrGet(const CDiffContext *, const void *p)
 {
 	const DiffFileFlags &r = *static_cast<const DiffFileFlags *>(p);
-	return r.toString();
+	return r.ToString();
 }
+
+/**
+ * @brief Format File Encoding column data.
+ * @param [in] p Pointer to file information.
+ * @return String to show in the column.
+ */
 static String ColEncodingGet(const CDiffContext *, const void *p)
 {
 	const DiffFileInfo &r = *static_cast<const DiffFileInfo *>(p);
 	return r.encoding.GetName();
 }
+
+/**
+ * @brief Format EOL type to string.
+ * @param [in] p Pointer to DIFFITEM.
+ * @param [in] bLeft Are we formatting left-side file's data?
+ * @return EOL type as as string.
+ */
 static String GetEOLType(const CDiffContext *, const void *p, BOOL bLeft)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
@@ -450,18 +555,32 @@ static String GetEOLType(const CDiffContext *, const void *p, BOOL bLeft)
 	{
 		String s = theApp.LoadString(IDS_EOL_MIXED);
 		TCHAR strstats[40];
-		_stprintf(strstats, _T(":%d/%d/%d"), stats.ncrlfs, stats.ncrs, stats.nlfs);
+		_sntprintf(strstats, countof(strstats), _T(":%d/%d/%d"), stats.ncrlfs, stats.ncrs, stats.nlfs);
 		s += strstats;
 		return s;
 	}
 	
 	return theApp.LoadString(id);
 }
+
+/**
+ * @brief Format EOL type column data (for left-side file).
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM.
+ * @return String to show in the column.
+ */
 static String ColLEOLTypeGet(const CDiffContext * pCtxt, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
 	return GetEOLType(pCtxt, &di, TRUE);
 }
+
+/**
+ * @brief Format EOL type column data (for right-side file).
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM.
+ * @return String to show in the column.
+ */
 static String ColREOLTypeGet(const CDiffContext * pCtxt, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
@@ -474,8 +593,21 @@ static String ColREOLTypeGet(const CDiffContext * pCtxt, const void *p)
 
 /**
  * @name Functions to sort each type of column info.
+ * These functions are used to sort information in folder compare GUI. Each
+ * column info (type) has its own function to compare the data. Each
+ * function receives three parameters:
+ * - pointer to compare context
+ * - two parameters for data to compare (type varies)
+ * Return value is -1, 0, or 1, where 0 means datas are identical.
  */
-/* @{ */ 
+/* @{ */
+/**
+ * @brief Compare file names.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM having first name to compare.
+ * @param [in] q Pointer to DIFFITEM having second name to compare.
+ * @return Compare result.
+ */
 static int ColFileNameSort(const CDiffContext *pCtxt, const void *p, const void *q)
 {
 	const DIFFITEM &ldi = *static_cast<const DIFFITEM *>(p);
@@ -485,14 +617,15 @@ static int ColFileNameSort(const CDiffContext *pCtxt, const void *p, const void 
 	if (!ldi.diffcode.isDirectory() && rdi.diffcode.isDirectory())
 		return 1;
 	return lstrcmpi(ColFileNameGet(pCtxt, p).c_str(), ColFileNameGet(pCtxt, q).c_str());
-	//return ldi.sLeftFilename.CompareNoCase(rdi.sLeftFilename);
 }
-/*static int ColNameSort(const CDiffContext *, const void *p, const void *q)
-{
-	const CString &r = *static_cast<const CString*>(p);
-	const CString &s = *static_cast<const CString*>(q);
-	return r.CompareNoCase(s);
-}*/
+
+/**
+ * @brief Compare file name extensions.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p First file name extension to compare.
+ * @param [in] q Second file name extension to compare.
+ * @return Compare result.
+ */
 static int ColExtSort(const CDiffContext *pCtxt, const void *p, const void *q)
 {
 	const String &r = *static_cast<const String*>(p);
@@ -500,61 +633,160 @@ static int ColExtSort(const CDiffContext *pCtxt, const void *p, const void *q)
 	return lstrcmpi(PathFindExtension(r.c_str()), PathFindExtension(s.c_str()));
 	//return ColExtGet(pCtxt, p).CompareNoCase(ColExtGet(pCtxt, q));
 }
+
+/**
+ * @brief Compare folder names.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM having first folder name to compare.
+ * @param [in] q Pointer to DIFFITEM having second folder name to compare.
+ * @return Compare result.
+ */
 static int ColPathSort(const CDiffContext *pCtxt, const void *p, const void *q)
 {
 	return lstrcmpi(ColPathGet(pCtxt, p).c_str(), ColPathGet(pCtxt, q).c_str());
 }
+
+/**
+ * @brief Compare compare results.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM having first result to compare.
+ * @param [in] q Pointer to DIFFITEM having second result to compare.
+ * @return Compare result.
+ */
 static int ColStatusSort(const CDiffContext *, const void *p, const void *q)
 {
 	const DIFFITEM &ldi = *static_cast<const DIFFITEM *>(p);
 	const DIFFITEM &rdi = *static_cast<const DIFFITEM *>(q);
 	return cmpdiffcode(rdi.diffcode.diffcode, ldi.diffcode.diffcode);
 }
+
+/**
+ * @brief Compare file times.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p First time to compare.
+ * @param [in] q Second time to compare.
+ * @return Compare result.
+ */
 static int ColTimeSort(const CDiffContext *, const void *p, const void *q)
 {
 	const __int64 &r = *static_cast<const __int64*>(p);
 	const __int64 &s = *static_cast<const __int64*>(q);
 	return cmp64(r, s);
 }
+
+/**
+ * @brief Compare file sizes.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p First size to compare.
+ * @param [in] q Second size to compare.
+ * @return Compare result.
+ */
 static int ColSizeSort(const CDiffContext *, const void *p, const void *q)
 {
 	const __int64 &r = *static_cast<const __int64*>(p);
 	const __int64 &s = *static_cast<const __int64*>(q);
 	return cmp64(r, s);
 }
+
+/**
+ * @brief Compare difference counts.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p First count to compare.
+ * @param [in] q Second count to compare.
+ * @return Compare result.
+ */
 static int ColDiffsSort(const CDiffContext *, const void *p, const void *q)
 {
 	const int &r = *static_cast<const int*>(p);
 	const int &s = *static_cast<const int*>(q);
 	return r - s;
 }
+
+/**
+ * @brief Compare newer/older statuses.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM having first status to compare.
+ * @param [in] q Pointer to DIFFITEM having second status to compare.
+ * @return Compare result.
+ */
 static int ColNewerSort(const CDiffContext *pCtxt, const void *p, const void *q)
 {
 	return ColNewerGet(pCtxt, p).compare(ColNewerGet(pCtxt, q));
 }
+
+/**
+ * @brief Compare left-side file versions.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM having first version to compare.
+ * @param [in] q Pointer to DIFFITEM having second version to compare.
+ * @return Compare result.
+ */
 static int ColLversionSort(const CDiffContext *pCtxt, const void *p, const void *q)
 {
 	return ColLversionGet(pCtxt, p).compare(ColLversionGet(pCtxt, q));
 }
+
+/**
+ * @brief Compare right-side file versions.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM having first version to compare.
+ * @param [in] q Pointer to DIFFITEM having second version to compare.
+ * @return Compare result.
+ */
 static int ColRversionSort(const CDiffContext *pCtxt, const void *p, const void *q)
 {
 	return ColRversionGet(pCtxt, p).compare(ColRversionGet(pCtxt, q));
 }
+
+/**
+ * @brief Compare binary statuses.
+ * This function returns a comparison of binary results.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to DIFFITEM having first status to compare.
+ * @param [in] q Pointer to DIFFITEM having second status to compare.
+ * @return Compare result:
+ * - if both items are text files or binary files: 0
+ * - if left is text and right is binary: -1
+ * - if left is binary and right is text: 1
+ */
 static int ColBinSort(const CDiffContext *, const void *p, const void *q)
 {
 	const DIFFITEM &ldi = *static_cast<const DIFFITEM *>(p);
 	const DIFFITEM &rdi = *static_cast<const DIFFITEM *>(q);
-	int i = ldi.diffcode.isBin();
-	int j = rdi.diffcode.isBin();
+	const bool i = ldi.diffcode.isBin();
+	const bool j = rdi.diffcode.isBin();
 
-	return i - j;
+	if (!i && !j)
+		return 0;
+	else if (i && !j)
+		return 1;
+	else if (!i && j)
+		return -1;
+	else
+		return 0;
 }
+
+/**
+ * @brief Compare file flags.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to first flag structure to compare.
+ * @param [in] q Pointer to second flag structure to compare.
+ * @return Compare result.
+ */
 static int ColAttrSort(const CDiffContext *, const void *p, const void *q)
 {
 	const DiffFileFlags &r = *static_cast<const DiffFileFlags *>(p);
 	const DiffFileFlags &s = *static_cast<const DiffFileFlags *>(q);
-	return r.toString().compare(s.toString());
+	return r.ToString().compare(s.ToString());
 }
+
+/**
+ * @brief Compare file encodings.
+ * @param [in] pCtxt Pointer to compare context.
+ * @param [in] p Pointer to first structure to compare.
+ * @param [in] q Pointer to second structure to compare.
+ * @return Compare result.
+ */
 static int ColEncodingSort(const CDiffContext *, const void *p, const void *q)
 {
 	const DiffFileInfo &r = *static_cast<const DiffFileInfo *>(p);

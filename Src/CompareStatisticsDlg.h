@@ -19,14 +19,19 @@
  *
  * @brief Declaration file for CompareStatisticsDlg dialog
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: CompareStatisticsDlg.h 4596 2007-10-07 09:44:06Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: CompareStatisticsDlg.h 5293 2008-04-14 05:58:23Z kimmov $
 
 #ifndef _COMPARESTATISTICSDLG_H_
 #define _COMPARESTATISTICSDLG_H_
 
 class CompareStats;
 
+/**
+ * @brief A dialog showing folder compare statistics.
+ * This dialog shows statistics about current folder compare. It shows amounts
+ * if items in different compare status categories.
+ */
 class CompareStatisticsDlg : public CDialog
 {
 	DECLARE_DYNAMIC(CompareStatisticsDlg)
@@ -49,7 +54,7 @@ protected:
 
 // Implementation data
 private:
-	const CompareStats * m_pCompareStats;
+	const CompareStats * m_pCompareStats; /**< Compare statistics structure. */
 };
 
 #endif // _COMPARESTATISTICSDLG_H_

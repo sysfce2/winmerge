@@ -85,7 +85,7 @@
  * @brief Implementation of the CCrystalTextView class
  */
 // ID line follows -- this is updated by SVN
-// $Id: ccrystaltextview.cpp 5450 2008-06-09 19:56:55Z gerundt $
+// $Id: ccrystaltextview.cpp 6007 2008-10-09 15:01:03Z sdottaka $
 
 #include "stdafx.h"
 #include <malloc.h>
@@ -103,6 +103,9 @@
 #include "gotodlg.h"
 #include "ViewableWhitespace.h"
 #include "SyntaxColors.h"
+#include "Ucs2Utf8.h"
+#include "unicoder.h"
+#include "pcre.h"
 
 // Escaped character constants in range 0x80-0xFF are interpreted in current codepage
 // Using C locale gets us direct mapping to Unicode codepoints
@@ -497,7 +500,6 @@ CCrystalTextView::CCrystalTextView ()
 , m_nMaxLineLength(-1)
 {
   AFX_ZERO_INIT_OBJECT (CView);
-  m_rxnode = NULL;
   m_pszMatched = NULL;
   m_bSelMargin = TRUE;
   m_bViewLineNumbers = FALSE;
@@ -540,11 +542,6 @@ CCrystalTextView::~CCrystalTextView ()
     {
       free (m_pszLastFindWhat);
       m_pszLastFindWhat=NULL;
-    }
-  if (m_rxnode)
-    {
-      RxFree (m_rxnode);
-      m_rxnode = NULL;
     }
   if (m_pszMatched)
     {
@@ -802,61 +799,8 @@ void CCrystalTextView::ScrollToSubLine( int nNewTopSubLine,
 void CCrystalTextView::
 ScrollToLine (int nNewTopLine, BOOL bNoSmoothScroll /*= FALSE*/ , BOOL bTrackScrollBar /*= TRUE*/ )
 {
-  //BEGIN SW
   if( m_nTopLine != nNewTopLine )
     ScrollToSubLine( GetSubLineIndex( nNewTopLine ), bNoSmoothScroll, bTrackScrollBar );
-
-  /*ORIGINAL
-  if (m_nTopLine != nNewTopLine)
-  {
-    if (bNoSmoothScroll || ! m_bSmoothScroll)
-    {
-      int nScrollLines = m_nTopLine - nNewTopLine;
-      m_nTopLine = nNewTopLine;
-      ScrollWindow(0, nScrollLines * GetLineHeight());
-      UpdateWindow();
-      if (bTrackScrollBar)
-        RecalcVertScrollBar(TRUE);
-    }
-    else
-    {
-      //	Do smooth scrolling
-      int nLineHeight = GetLineHeight();
-      if (m_nTopLine > nNewTopLine)
-      {
-        int nIncrement = (m_nTopLine - nNewTopLine) / SMOOTH_SCROLL_FACTOR + 1;
-        while (m_nTopLine != nNewTopLine)
-        {
-          int nTopLine = m_nTopLine - nIncrement;
-          if (nTopLine < nNewTopLine)
-            nTopLine = nNewTopLine;
-          int nScrollLines = nTopLine - m_nTopLine;
-          m_nTopLine = nTopLine;
-          ScrollWindow(0, - nLineHeight * nScrollLines);
-          UpdateWindow();
-          if (bTrackScrollBar)
-            RecalcVertScrollBar(TRUE);
-        }
-      }
-      else
-      {
-        int nIncrement = (nNewTopLine - m_nTopLine) / SMOOTH_SCROLL_FACTOR + 1;
-        while (m_nTopLine != nNewTopLine)
-        {
-          int nTopLine = m_nTopLine + nIncrement;
-          if (nTopLine > nNewTopLine)
-            nTopLine = nNewTopLine;
-          int nScrollLines = nTopLine - m_nTopLine;
-          m_nTopLine = nTopLine;
-          ScrollWindow(0, - nLineHeight * nScrollLines);
-          UpdateWindow();
-          if (bTrackScrollBar)
-            RecalcVertScrollBar(TRUE);
-        }
-      }
-    }
-  }
-  *///END SW
 }
 
 /** Append szadd to string str, and advance position curpos */
@@ -1070,12 +1014,6 @@ DrawLineHelperImpl (CDC * pdc, CPoint & ptOrigin, const CRect & rcClip,
           //CSize sz = pdc->GetTextExtent(line, nCount);
           //ASSERT(sz.cx == m_nCharWidth * nCount);
 #endif
-          /*
-             CRect rcBounds = rcClip;
-             rcBounds.left = ptOrigin.x;
-             rcBounds.right = rcBounds.left + GetCharWidth() * nCount;
-             pdc->ExtTextOut(rcBounds.left, rcBounds.top, ETO_OPAQUE, &rcBounds, NULL, 0, NULL);
-           */
            
           if (i < lineLen)
             {
@@ -1428,12 +1366,6 @@ void CCrystalTextView::DrawScreenLine( CDC *pdc, CPoint &ptOrigin, const CRect &
       ASSERT(pBuf[nActualItem].m_nCharPos >= 0 &&
          pBuf[nActualItem].m_nCharPos <= nLineLength);
 
-      /*
-      pdc->SelectObject(GetFont(GetItalic(COLORINDEX_NORMALTEXT), GetBold(COLORINDEX_NORMALTEXT)));
-      DrawLineHelper(
-        pdc, ptOrigin, rcClip, pBuf[nActualItem].m_nColorIndex, pszChars, 
-        nOffset, pBuf[nActualItem].m_nCharPos, ptTextPos);
-      */
       int I=0;
       for (I = nActualItem; I < nBlocks - 1 &&
         pBuf[I + 1].m_nCharPos <= nOffset + nCount; I ++)
@@ -1503,59 +1435,62 @@ public:
 };
 
 int CCrystalTextView::
-MergeTextBlocks (TEXTBLOCK *pBuf1, int nBlocks1, TEXTBLOCK *pBuf2, int nBlocks2, TEXTBLOCK *&pMergedBuf)
+MergeTextBlocks (TEXTBLOCK *pBuf1, int nBlocks1, TEXTBLOCK *pBuf2,
+     int nBlocks2, TEXTBLOCK *&pMergedBuf)
 {
   int i, j, k;
 
   pMergedBuf = new TEXTBLOCK[nBlocks1 + nBlocks2];
 
   for (i = 0, j = 0, k = 0; ; k++)
-  {
-    if (i >= nBlocks1 && j >= nBlocks2)
     {
-      break;
+      if (i >= nBlocks1 && j >= nBlocks2)
+        {
+          break;
+        }
+      else if ((i < nBlocks1 && j < nBlocks2) &&
+          (pBuf1[i].m_nCharPos == pBuf2[j].m_nCharPos))
+        {
+          pMergedBuf[k].m_nCharPos = pBuf2[j].m_nCharPos;
+          if (pBuf2[j].m_nColorIndex == COLORINDEX_NONE)
+            pMergedBuf[k].m_nColorIndex = pBuf1[i].m_nColorIndex;
+          else
+            pMergedBuf[k].m_nColorIndex = pBuf2[j].m_nColorIndex;
+          if (pBuf2[j].m_nBgColorIndex == COLORINDEX_NONE)
+            pMergedBuf[k].m_nBgColorIndex = pBuf1[i].m_nBgColorIndex;
+          else
+            pMergedBuf[k].m_nBgColorIndex = pBuf2[j].m_nBgColorIndex;
+          i++;
+          j++;
+        }
+      else if (j >= nBlocks2 || (i < nBlocks1 &&
+          pBuf1[i].m_nCharPos < pBuf2[j].m_nCharPos))
+        {
+          pMergedBuf[k].m_nCharPos = pBuf1[i].m_nCharPos;
+          if (nBlocks2 == 0 || pBuf2[j - 1].m_nColorIndex == COLORINDEX_NONE)
+            pMergedBuf[k].m_nColorIndex = pBuf1[i].m_nColorIndex;
+          else
+            pMergedBuf[k].m_nColorIndex = pBuf2[j - 1].m_nColorIndex;
+          if (nBlocks2 == 0 || pBuf2[j - 1].m_nBgColorIndex == COLORINDEX_NONE)
+            pMergedBuf[k].m_nBgColorIndex = pBuf1[i].m_nBgColorIndex;
+          else
+            pMergedBuf[k].m_nBgColorIndex = pBuf2[j - 1].m_nBgColorIndex;
+          i++;
+        }
+      else if (i >= nBlocks1 || (j < nBlocks2 && pBuf1[i].m_nCharPos > pBuf2[j].m_nCharPos))
+        {
+          pMergedBuf[k].m_nCharPos = pBuf2[j].m_nCharPos;
+          if (i > 0 && pBuf2[j].m_nColorIndex == COLORINDEX_NONE)
+            pMergedBuf[k].m_nColorIndex = pBuf1[i - 1].m_nColorIndex;
+          else
+            pMergedBuf[k].m_nColorIndex = pBuf2[j].m_nColorIndex;
+          if (i > 0 && pBuf2[j].m_nBgColorIndex == COLORINDEX_NONE)
+            pMergedBuf[k].m_nBgColorIndex = pBuf1[i - 1].m_nBgColorIndex;
+          else
+            pMergedBuf[k].m_nBgColorIndex = pBuf2[j].m_nBgColorIndex;
+          j++;
+        }
     }
-    else if ((i < nBlocks1 && j < nBlocks2) && (pBuf1[i].m_nCharPos == pBuf2[j].m_nCharPos))
-    {
-      pMergedBuf[k].m_nCharPos = pBuf2[j].m_nCharPos;
-      if (pBuf2[j].m_nColorIndex == COLORINDEX_NONE)
-        pMergedBuf[k].m_nColorIndex = pBuf1[i].m_nColorIndex;
-      else
-        pMergedBuf[k].m_nColorIndex = pBuf2[j].m_nColorIndex;
-      if (pBuf2[j].m_nBgColorIndex == COLORINDEX_NONE)
-        pMergedBuf[k].m_nBgColorIndex = pBuf1[i].m_nBgColorIndex;
-      else
-        pMergedBuf[k].m_nBgColorIndex = pBuf2[j].m_nBgColorIndex;
-      i++;
-      j++;
-    }
-    else if (j >= nBlocks2 || (i < nBlocks1 && pBuf1[i].m_nCharPos < pBuf2[j].m_nCharPos))
-    {
-      pMergedBuf[k].m_nCharPos = pBuf1[i].m_nCharPos;
-      if (nBlocks2 == 0 || pBuf2[j - 1].m_nColorIndex == COLORINDEX_NONE)
-        pMergedBuf[k].m_nColorIndex = pBuf1[i].m_nColorIndex;
-      else
-        pMergedBuf[k].m_nColorIndex = pBuf2[j - 1].m_nColorIndex;
-      if (nBlocks2 == 0 || pBuf2[j - 1].m_nBgColorIndex == COLORINDEX_NONE)
-        pMergedBuf[k].m_nBgColorIndex = pBuf1[i].m_nBgColorIndex;
-      else
-        pMergedBuf[k].m_nBgColorIndex = pBuf2[j - 1].m_nBgColorIndex;
-      i++;
-    }
-    else if (i >= nBlocks1 || (j < nBlocks2 && pBuf1[i].m_nCharPos > pBuf2[j].m_nCharPos))
-    {
-      pMergedBuf[k].m_nCharPos = pBuf2[j].m_nCharPos;
-      if (i > 0 && pBuf2[j].m_nColorIndex == COLORINDEX_NONE)
-        pMergedBuf[k].m_nColorIndex = pBuf1[i - 1].m_nColorIndex;
-      else
-        pMergedBuf[k].m_nColorIndex = pBuf2[j].m_nColorIndex;
-      if (i > 0 && pBuf2[j].m_nBgColorIndex == COLORINDEX_NONE)
-        pMergedBuf[k].m_nBgColorIndex = pBuf1[i - 1].m_nBgColorIndex;
-      else
-        pMergedBuf[k].m_nBgColorIndex = pBuf2[j].m_nBgColorIndex;
-      j++;
-    }
-  }
   return k;
 }
 
@@ -1584,17 +1519,16 @@ DrawSingleLine (CDC * pdc, const CRect & rc, int nLineIndex)
   DWORD dwCookie = GetParseCookie (nLineIndex - 1);
   TEXTBLOCK *pBuf = new TEXTBLOCK[(nLength+1) * 3]; // be aware of nLength == 0
   int nBlocks = 0;
-  //BEGIN SW
+
   // insert at least one textblock of normal color at the beginning
   pBuf[0].m_nCharPos = 0;
   pBuf[0].m_nColorIndex = COLORINDEX_NORMALTEXT;
   pBuf[0].m_nBgColorIndex = COLORINDEX_BKGND;
   nBlocks++;
-  //END SW
+
   m_ParseCookies->SetAt(nLineIndex, ParseLine (dwCookie, nLineIndex, pBuf, nBlocks));
   ASSERT (m_ParseCookies->GetAt(nLineIndex) != - 1);
 
-////////
   // Allocate table for max possible diff count:
   // every char might be a diff (empty line has one char) and every diff
   // needs three blocks plus one block at end (see called function)
@@ -1609,17 +1543,14 @@ DrawSingleLine (CDC * pdc, const CRect & rc, int nLineIndex)
 
   pBuf = pMergedBuf;
   nBlocks = nMergedBlocks;
-///////
 
-  //BEGIN SW
   int nActualItem = 0;
   int nActualOffset = 0;
   // Wrap the line
   IntArray anBreaks(nLength);
-  int	nBreaks = 0;
+  int nBreaks = 0;
 
   WrapLineCached( nLineIndex, GetScreenChars(), anBreaks.GetData(), nBreaks );
-  //END SW
 
   //  Draw the line text
   CPoint origin (rc.left - m_nOffsetChar * nCharWidth, rc.top);
@@ -1627,41 +1558,7 @@ DrawSingleLine (CDC * pdc, const CRect & rc, int nLineIndex)
     pdc->SetBkColor (crBkgnd);
   if (crText != CLR_NONE)
     pdc->SetTextColor (crText);
-// BOOL bColorSet = FALSE;
 
-  //BEGIN SW
-  /*ORIGINAL
-  if (nBlocks > 0)
-  {
-    ASSERT(pBuf[0].m_nCharPos >= 0 && pBuf[0].m_nCharPos <= nLength);
-    if (crText == CLR_NONE)
-      pdc->SetTextColor(GetColor(COLORINDEX_NORMALTEXT));
-    pdc->SelectObject(GetFont(GetItalic(COLORINDEX_NORMALTEXT), GetBold(COLORINDEX_NORMALTEXT)));
-    DrawLineHelper(pdc, origin, rc, COLORINDEX_NORMALTEXT, pszChars, 0, pBuf[0].m_nCharPos, CPoint(0, nLineIndex));
-    for (int I = 0; I < nBlocks - 1; I ++)
-    {
-      ASSERT(pBuf[I].m_nCharPos >= 0 && pBuf[I].m_nCharPos <= nLength);
-      if (crText == CLR_NONE)
-        pdc->SetTextColor(GetColor(pBuf[I].m_nColorIndex));
-      pdc->SelectObject(GetFont(GetItalic(pBuf[I].m_nColorIndex), GetBold(pBuf[I].m_nColorIndex)));
-      DrawLineHelper(pdc, origin, rc, pBuf[I].m_nColorIndex, pszChars,
-              pBuf[I].m_nCharPos, pBuf[I + 1].m_nCharPos - pBuf[I].m_nCharPos,
-              CPoint(pBuf[I].m_nCharPos, nLineIndex));
-    }
-    ASSERT(pBuf[nBlocks - 1].m_nCharPos >= 0 && pBuf[nBlocks - 1].m_nCharPos <= nLength);
-    if (crText == CLR_NONE)
-      pdc->SetTextColor(GetColor(pBuf[nBlocks - 1].m_nColorIndex));
-    pdc->SelectObject(GetFont(GetItalic(pBuf[nBlocks - 1].m_nColorIndex),
-              GetBold(pBuf[nBlocks - 1].m_nColorIndex)));
-    DrawLineHelper(pdc, origin, rc, pBuf[nBlocks - 1].m_nColorIndex, pszChars,
-              pBuf[nBlocks - 1].m_nCharPos, nLength - pBuf[nBlocks - 1].m_nCharPos,
-              CPoint(pBuf[nBlocks - 1].m_nCharPos, nLineIndex));
-  }
-  else
-  */
-  //END SW
-
-  // BEGIN SW
   if( nBreaks > 0 )
     {
       // Draw all the screen lines of the wrapped line
@@ -1702,26 +1599,6 @@ DrawSingleLine (CDC * pdc, const CRect & rc, int nLineIndex)
         crText, crBkgnd, bDrawWhitespace,
         pszChars, 0, nLength, nActualOffset, CPoint(0, nLineIndex));
 
-  //	Draw whitespaces to the left of the text
-  //BEGIN SW
-  // Drawing is now realized by DrawScreenLine()
-  /*ORIGINAL
-  CRect frect = rc;
-  if (origin.x > frect.left)
-    frect.left = origin.x;
-  if (frect.right > frect.left)
-  {
-    if ((m_bFocused || m_bShowInactiveSelection) && IsInsideSelBlock(CPoint(nLength, nLineIndex)))
-    {
-      pdc->FillSolidRect(frect.left, frect.top, GetCharWidth(), frect.Height(),
-                        GetColor(COLORINDEX_SELBKGND));
-      frect.left += GetCharWidth();
-    }
-    if (frect.right > frect.left)
-      pdc->FillSolidRect(frect, bDrawWhitespace ? crBkgnd : GetColor(COLORINDEX_WHITESPACE));
-  }
-  */
-  //END SW
   delete[] pBuf;
 
   // Draw empty sublines
@@ -2366,7 +2243,7 @@ GetCRLFMode ()
 }
 
 void CCrystalTextView::
-SetCRLFMode (int nCRLFMode)
+SetCRLFMode (CRLFSTYLE nCRLFMode)
 {
   if (m_pTextBuffer)
     {
@@ -2420,15 +2297,14 @@ GetFont (BOOL bItalic /*= FALSE*/ , BOOL bBold /*= FALSE*/ )
           CClientDC dc (GetDesktopWindow ());
           m_lfBaseFont.lfHeight = -MulDiv (11, dc.GetDeviceCaps (LOGPIXELSY), 72);
         }
-      m_lfBaseFont.lfWeight = bBold && !_tcsnicmp (m_lfBaseFont.lfFaceName, _T ("Courier"), 7) ? FW_BOLD : FW_NORMAL;
-      m_lfBaseFont.lfItalic = (BYTE) (bItalic && !_tcsnicmp (m_lfBaseFont.lfFaceName, _T ("Courier"), 7));
+      m_lfBaseFont.lfWeight = bBold ? FW_BOLD : FW_NORMAL;
+      m_lfBaseFont.lfItalic = (BYTE) bItalic;
       if (!m_apFonts[nIndex]->CreateFontIndirect (&m_lfBaseFont))
         {
           delete m_apFonts[nIndex];
           m_apFonts[nIndex] = NULL;
           return CView::GetFont ();
         }
-
     }
   return m_apFonts[nIndex];
 }
@@ -4066,7 +3942,6 @@ void CCrystalTextView::
 EnsureVisible (CPoint pt)
 {
   //  Scroll vertically
-  //BEGIN SW
   int			nSubLineCount = GetSubLineCount();
   int			nNewTopSubLine = m_nTopSubLine;
   CPoint	subLinePos;
@@ -4104,37 +3979,11 @@ EnsureVisible (CPoint pt)
       UpdateCaret();
       UpdateSiblingScrollPos( FALSE );
     }
-  /*ORIGINAL
-  int nLineCount = GetLineCount();
-  int nNewTopLine = m_nTopLine;
-  if (pt.y >= nNewTopLine + GetScreenLines())
-  {
-    nNewTopLine = pt.y - GetScreenLines() + 1;
-  }
-  if (pt.y < nNewTopLine)
-  {
-    nNewTopLine = pt.y;
-  }
-
-  if (nNewTopLine < 0)
-    nNewTopLine = 0;
-  if (nNewTopLine >= nLineCount)
-    nNewTopLine = nLineCount - 1;
-
-  if (m_nTopLine != nNewTopLine)
-  {
-    ScrollToLine(nNewTopLine);
-    UpdateSiblingScrollPos(TRUE);
-  }
-  */
-  //END SW
 
   //  Scroll horizontally
-  //BEGIN SW
   // we do not need horizontally scrolling, if we wrap the words
   if( m_bWordWrap )
     return;
-  //END SW
   int nActualPos = CalculateActualOffset (pt.y, pt.x);
   int nNewOffset = m_nOffsetChar;
   const int nScreenChars = GetScreenChars ();
@@ -4440,9 +4289,10 @@ SetSelectionMargin (BOOL bSelMargin)
       m_bSelMargin = bSelMargin;
       if (::IsWindow (m_hWnd))
         {
-          m_nScreenChars = -1;
-          Invalidate ();
+          InvalidateScreenRect ();
+          m_nTopSubLine = GetSubLineIndex(m_nTopLine);
           RecalcHorzScrollBar ();
+          UpdateCaret ();
         }
     }
 }
@@ -4514,7 +4364,7 @@ OnUpdateIndicatorCRLF (CCmdUI * pCmdUI)
   if (m_pTextBuffer != NULL)
     {
       String eol;
-      int crlfMode = m_pTextBuffer->GetCRLFMode ();
+      CRLFSTYLE crlfMode = m_pTextBuffer->GetCRLFMode ();
       switch (crlfMode)
         {
         case CRLF_STYLE_DOS:
@@ -4647,24 +4497,74 @@ PrepareDragData ()
 }
 
 static int
-FindStringHelper (LPCTSTR pszFindWhere, LPCTSTR pszFindWhat, DWORD dwFlags, int &nLen, RxNode *&rxnode, RxMatchRes *rxmatch)
+FindStringHelper (LPCTSTR pszFindWhere, LPCTSTR pszFindWhat, DWORD dwFlags,
+     int &nLen)
 {
   if (dwFlags & FIND_REGEXP)
     {
       int pos;
+      const char * errormsg = NULL;
+      int erroroffset = 0;
+      char regexString[200] = {0};
+      int regexLen = 0;
+      int pcre_opts = 0;
 
-      if (rxnode)
-        RxFree (rxnode);
-      rxnode = RxCompile (pszFindWhat);
-      if (rxnode && RxExec (rxnode, pszFindWhere, _tcslen (pszFindWhere), pszFindWhere, rxmatch, (dwFlags & FIND_MATCH_CASE) != 0 ? RX_CASE : 0))
+#ifdef UNICODE
+      // For unicode builds, use UTF-8.
+      // Convert pattern to UTF-8 and set option for PCRE to specify UTF-8.
+      regexLen = TransformUcs2ToUtf8(pszFindWhat, _tcslen(pszFindWhat),
+          regexString, sizeof(regexString));
+      pcre_opts |= PCRE_UTF8;
+#else
+      strcpy(regexString, pszFindWhat);
+      regexLen = strlen(regexString);
+#endif
+      pcre_opts |= PCRE_BSR_ANYCRLF;
+      if ((dwFlags & FIND_MATCH_CASE) == 0)
+        pcre_opts |= PCRE_CASELESS;
+
+      pcre *regexp = pcre_compile(regexString, pcre_opts, &errormsg,
+          &erroroffset, NULL);
+      pcre_extra *pe = NULL;
+      if (regexp)
         {
-          pos = rxmatch->Open[0];
-          nLen = rxmatch->Close[0] - rxmatch->Open[0];
+          errormsg = NULL;
+          pe = pcre_study(regexp, 0, &errormsg);
+        }
+
+      int ovector[30];
+      int compStringBufLen = _tcslen(pszFindWhere) * sizeof(TCHAR) + 1;
+      char *compString = new char[compStringBufLen];
+      int stringLen = 0;
+
+#ifdef UNICODE
+      stringLen = TransformUcs2ToUtf8(pszFindWhere, _tcslen(pszFindWhere),
+          compString, compStringBufLen);
+      compString[stringLen] = '\0';
+#else
+      strncpy(compString, pszFindWhere, compStringBufLen);
+      stringLen = strlen(compString);
+#endif
+
+      int result = pcre_exec(regexp, pe, compString, stringLen,
+          0, 0, ovector, 30);
+
+      if (result >= 0)
+        {
+#ifdef UNICODE
+          pos = ucr::stringlen_of_utf8(compString, ovector[0]);
+          nLen = ucr::stringlen_of_utf8(compString, ovector[1]) - pos;
+#else
+          pos = ovector[0];
+          nLen = ovector[1] - ovector[0];
+#endif
         }
       else
-        {
-          pos = -1;
-        }
+        pos = -1;
+
+      delete [] compString;
+      pcre_free(regexp);
+      pcre_free(pe);
       return pos;
     }
   else
@@ -4861,7 +4761,6 @@ FindTextInBlock (LPCTSTR pszText, const CPoint & ptStartPosition,
               else
                 {
                   nLineLength = GetLineLength(ptCurrentPos.y);
-                  //BEGIN SW+FP
                   if (ptCurrentPos.x == -1)
                     {
                       ptCurrentPos.x = nLineLength;
@@ -4869,43 +4768,21 @@ FindTextInBlock (LPCTSTR pszText, const CPoint & ptStartPosition,
                   else
                     if( ptCurrentPos.x >= nLineLength )
                       ptCurrentPos.x = nLineLength - 1;
-                  /*ORIGINAL
-                  if (ptCurrentPos.x == -1)
-                    {
-                      nLineLength = GetLineLength (ptCurrentPos.y);
-                      ptCurrentPos.x = nLineLength;
-                    }
-                  else
-                    nLineLength = ptCurrentPos.x;
-                  if (nLineLength <= 0)
-                    {
-                      ptCurrentPos.x = -1;
-                      ptCurrentPos.y--;
-                      continue;
-                    }
-                  *///END SW
 
                   LPCTSTR pszChars = GetLineChars (ptCurrentPos.y);
-                  //BEGIN SW
                   _tcsncpy(line.GetBuffer(ptCurrentPos.x + 2), pszChars, ptCurrentPos.x + 1);
-                  /*ORIGINAL
-                  LPTSTR pszBuf = line.GetBuffer (nLineLength + 1);
-                  _tcsncpy (pszBuf, pszChars, nLineLength);
-                  pszBuf[nLineLength] = _T ('\0');
-                  *///END SW
                   line.ReleaseBuffer (ptCurrentPos.x + 1);
                   if ((dwFlags & FIND_MATCH_CASE) == 0)
                     line.MakeUpper ();
                 }
 
-              //BEGIN SW
-              int	nFoundPos = -1;
-              int	nMatchLen = what.GetLength();
-              int	nLineLen = line.GetLength();
-              int	nPos;
+              int nFoundPos = -1;
+              int nMatchLen = what.GetLength();
+              int nLineLen = line.GetLength();
+              int nPos;
               do
                 {
-                  nPos = ::FindStringHelper(line, what, dwFlags, m_nLastFindWhatLen, m_rxnode, &m_rxmatch);
+                  nPos = ::FindStringHelper(line, what, dwFlags, m_nLastFindWhatLen);
                   if( nPos >= 0 )
                     {
                       nFoundPos = (nFoundPos == -1)? nPos : nFoundPos + nPos;
@@ -4926,42 +4803,6 @@ FindTextInBlock (LPCTSTR pszText, const CPoint & ptStartPosition,
               ptCurrentPos.y--;
               if( ptCurrentPos.y >= 0 )
                 ptCurrentPos.x = GetLineLength( ptCurrentPos.y );
-              /*ORIGINAL
-              int nPos =::FindStringHelper (line, what, dwFlags, m_nLastFindWhatLen, m_rxnode, &m_rxmatch);
-              if (nPos >= 0)    //  Found text!
-                {
-                  LPTSTR pszText = line.GetBuffer (nLineLength + 1);
-                  m_pszMatched = _tcsdup (pszText);
-                  line.ReleaseBuffer ();
-                  // m_sMatched = line.Mid (nPos);
-                  if (nEolns)
-                    {
-                      CString item = line.Left (nPos);
-                      ptCurrentPos.y -= nEolns - HowManyStr (item, _T('\n'));
-                      if (ptCurrentPos.y < 0)
-                        ptCurrentPos.y = 0;
-                      LPCTSTR current = _tcsrchr (item, _T('\n'));
-                      if (current)
-                        current++;
-                      else
-                        current = item;
-                      ptCurrentPos.x = nPos - (current - (LPCTSTR) item);
-                      if (ptCurrentPos.x < 0)
-                        ptCurrentPos.x = 0;
-                    }
-                  else
-                    {
-                      ptCurrentPos.x = nPos;
-                    }
-                  *pptFoundPos = ptCurrentPos;
-                  return TRUE;
-                }
-              else
-                m_pszMatched = NULL;
-
-              ptCurrentPos.x = -1;
-              ptCurrentPos.y--;
-              *///END SW
             }
 
           //  Beginning of text reached
@@ -5030,7 +4871,7 @@ FindTextInBlock (LPCTSTR pszText, const CPoint & ptStartPosition,
                 }
 
               //  Perform search in the line
-              int nPos =::FindStringHelper (line, what, dwFlags, m_nLastFindWhatLen, m_rxnode, &m_rxmatch);
+              int nPos =::FindStringHelper (line, what, dwFlags, m_nLastFindWhatLen);
               if (nPos >= 0)
                 {
                   if (m_pszMatched)
@@ -5535,10 +5376,6 @@ OnMouseWheel (UINT nFlags, short zDelta, CPoint pt)
   si.fMask = SIF_PAGE | SIF_RANGE;
   VERIFY (GetScrollInfo (SB_VERT, &si));
 
-  // -> HE
-// int nPageLines = GetScreenLines();
-  //int nSubLineCount = GetSubLineCount();
-
   int nNewTopSubLine= m_nTopSubLine - zDelta / 40;
 
   if (nNewTopSubLine < 0)
@@ -5548,27 +5385,6 @@ OnMouseWheel (UINT nFlags, short zDelta, CPoint pt)
 
   ScrollToSubLine(nNewTopSubLine, TRUE);
   UpdateSiblingScrollPos(FALSE);
-  // <- HE
-/* Old
-  int nLineCount = GetLineCount ();
-
-  int nNewTopLine = m_nTopLine - zDelta / 40;
-
-  if (nNewTopLine < 0)
-    nNewTopLine = 0;
-  if (nNewTopLine >= nLineCount)
-    nNewTopLine = nLineCount - 1;
-
-  if (m_nTopLine != nNewTopLine)
-    {
-      int nScrollLines = m_nTopLine - nNewTopLine;
-      m_nTopLine = nNewTopLine;
-      ScrollWindow (0, nScrollLines * GetLineHeight ());
-      UpdateWindow ();
-    }
-
-  RecalcVertScrollBar (TRUE);
-*/
 
   return CView::OnMouseWheel (nFlags, zDelta, pt);
 }

@@ -4,16 +4,13 @@
  * @brief Declaration file for DirCmpReport.
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DirCmpReport.h 4739 2007-11-12 20:41:16Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: DirCmpReport.h 5444 2008-06-07 06:48:49Z kimmov $
 
 #ifndef _DIRCMPREPORT_H_
 #define _DIRCMPREPORT_H_
 
-#ifndef _PATHCONTEXT_H_
 #include "PathContext.h"
-#endif
-
 #include "DirReportTypes.h"
 
 /**

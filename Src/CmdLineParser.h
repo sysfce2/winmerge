@@ -29,8 +29,8 @@
  *
  */
 
-// RCS ID line follows -- this is updated by CVS
-// $Id: CmdLineParser.h 3845 2006-11-24 22:32:35Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: CmdLineParser.h 5297 2008-04-14 20:39:12Z kimmov $
 
 class MergeCmdLineInfo;
 
@@ -50,17 +50,14 @@ public:
 	 *
 	 * @param [in] CmdLineInfo A class which hold the information obtained
 	 *	from the command line arguments.
-	 *
 	 */
-	CmdLineParser(MergeCmdLineInfo& CmdLineInfo) :
-		m_CmdLineInfo(CmdLineInfo)
+	CmdLineParser(MergeCmdLineInfo& cmdLineInfo) :
+		m_cmdLineInfo(cmdLineInfo)
 	{
-
 	}
 
 	/** @brief CmdLineParser's destructor. */
 	virtual ~CmdLineParser() { }
-
 
 	/** @brief The command line argument parser.
 	 *
@@ -76,8 +73,7 @@ public:
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast) = 0;
 
 protected:
-
-	MergeCmdLineInfo& m_CmdLineInfo;
+	MergeCmdLineInfo& m_cmdLineInfo; /**< Gets the command line information. */
 };
 
 #endif // _CMD_LINE_PARSER_INCLUDED_

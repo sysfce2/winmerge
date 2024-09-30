@@ -4,14 +4,12 @@
  * @brief Declaration file for Directory compare statusdialog class
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirCompProgressDlg.h 4113 2007-02-19 16:08:41Z kimmov $
+// $Id: DirCompProgressDlg.h 5444 2008-06-07 06:48:49Z kimmov $
 
 #if !defined(AFX_DIRCOMPPROGRESSDLG_H__8F66C090_C232_429F_A4A2_18D43CCC6C38__INCLUDED_)
 #define AFX_DIRCOMPPROGRESSDLG_H__8F66C090_C232_429F_A4A2_18D43CCC6C38__INCLUDED_
 
-#ifndef _COMPARESTATS_H_
 #include "CompareStats.h"
-#endif
 
 class CDirFrame;
 class CDirDoc;

@@ -1,6 +1,6 @@
 //WinMerge resource script (for English only).
 //
-// $Id: Merge2.rc 5349 2008-05-19 20:24:12Z gerundt $
+// $Id: Merge2.rc 5832 2008-08-20 21:27:49Z gerundt $
 
 
 // Include the manifest file for VC6 and VS2003.Net
@@ -138,6 +138,8 @@ IDB_TOOLBAR_DISABLED32  BITMAP                  "res\\ToolbarDisabled32.bmp"
 IDB_TOOLBAR_ENABLED32   BITMAP                  "res\\ToolbarEnabled32.bmp"
 IDB_VIEW_ZOOMIN         BITMAP                  "res\\zoom_in.bmp"
 IDB_VIEW_ZOOMOUT        BITMAP                  "res\\zoom_out.bmp"
+IDB_FILE_OPENCONFLICT   BITMAP                  "res\\open_conflict.bmp"
+IDB_PLUGINS_LIST        BITMAP                  "res\\plugins.bmp"
 
 
 /////////////////////////////////////////////////////////////////////////////

@@ -6,11 +6,12 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: MergeDiffDetailView.cpp 5085 2008-02-26 15:18:15Z kimmov $
+// $Id: MergeDiffDetailView.cpp 5952 2008-09-14 12:47:59Z sdottaka $
 //
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include <vector>
 #include "merge.h"
 #include "MergeDiffDetailView.h"
 #include "MergeDoc.h"
@@ -28,6 +29,8 @@
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
+
+using namespace std;
 
 static const UINT NROWS_INIT = 4;
 
@@ -198,25 +201,41 @@ int CMergeDiffDetailView::GetAdditionalTextBlocks (int nLineIndex, TEXTBLOCK *pB
 		return 0;
 
 	int nLineLength = GetLineLength(nLineIndex);
-	wdiffarray worddiffs;
+	vector<wdiff*> worddiffs;
 	GetDocument()->GetWordDiffArray(nLineIndex, &worddiffs);
-	if (worddiffs.GetSize() == 0 || (worddiffs[0].end[0] == -1 && worddiffs[0].end[1] + 1 == nLineLength) || (worddiffs[0].end[1] == -1 && worddiffs[0].end[0] + 1 == nLineLength))
+	if (worddiffs.size() == 0 || (worddiffs[0]->end[0] == -1 &&
+			worddiffs[0]->end[1] + 1 == nLineLength) ||
+			(worddiffs[0]->end[1] == -1 && worddiffs[0]->end[0] + 1 == nLineLength))
+	{
+		while (!worddiffs.empty())
+		{
+			delete worddiffs.back();
+			worddiffs.pop_back();
+		}
 		return 0;
+	}
 
-	int nWordDiffs = worddiffs.GetSize();
+	int nWordDiffs = worddiffs.size();
 
 	pBuf[0].m_nCharPos = 0;
 	pBuf[0].m_nColorIndex = COLORINDEX_NONE;
 	pBuf[0].m_nBgColorIndex = COLORINDEX_NONE;
 	for (int i = 0; i < nWordDiffs; i++)
 	{
-		pBuf[1 + i * 2].m_nCharPos = worddiffs[i].start[m_nThisPane];
-		pBuf[2 + i * 2].m_nCharPos = worddiffs[i].end[m_nThisPane] + 1;
+		pBuf[1 + i * 2].m_nCharPos = worddiffs[i]->start[m_nThisPane];
+		pBuf[2 + i * 2].m_nCharPos = worddiffs[i]->end[m_nThisPane] + 1;
 		pBuf[1 + i * 2].m_nColorIndex = COLORINDEX_HIGHLIGHTTEXT1 | COLORINDEX_APPLYFORCE;
 		pBuf[1 + i * 2].m_nBgColorIndex = COLORINDEX_HIGHLIGHTBKGND1 | COLORINDEX_APPLYFORCE;
 		pBuf[2 + i * 2].m_nColorIndex = COLORINDEX_NONE;
 		pBuf[2 + i * 2].m_nBgColorIndex = COLORINDEX_NONE;
 	}
+
+	while (!worddiffs.empty())
+	{
+		delete worddiffs.back();
+		worddiffs.pop_back();
+	}
+
 	return nWordDiffs * 2 + 1;
 }
 
@@ -271,8 +290,8 @@ void CMergeDiffDetailView::GetLineColors2(int nLineIndex, DWORD ignoreFlags,
 		// If no syntax hilighting
 		if (!GetOptionsMgr()->GetBool(OPT_SYNTAX_HIGHLIGHT))
 		{
-			crBkgnd = GetSysColor (COLOR_WINDOW);
-			crText = GetSysColor (COLOR_WINDOWTEXT);
+			crBkgnd = GetColor (COLORINDEX_BKGND);
+			crText = GetColor (COLORINDEX_NORMALTEXT);
 			bDrawWhitespace = FALSE;
 		}
 		else
@@ -282,8 +301,8 @@ void CMergeDiffDetailView::GetLineColors2(int nLineIndex, DWORD ignoreFlags,
 	}
 	if (nLineIndex < m_lineBegin || nLineIndex > m_lineEnd)
 		{
-			crBkgnd = GetSysColor (COLOR_WINDOW);
-			crText = GetSysColor (COLOR_WINDOW);
+			crBkgnd = GetColor (COLORINDEX_WHITESPACE);
+			crText = GetColor (COLORINDEX_WHITESPACE);
 			bDrawWhitespace = FALSE;
 	}
 }

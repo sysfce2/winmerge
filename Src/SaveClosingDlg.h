@@ -19,17 +19,14 @@
  *
  * @brief Declaration file for SaveClosingDlg dialog
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: SaveClosingDlg.h 4586 2007-10-05 10:24:01Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: SaveClosingDlg.h 5444 2008-06-07 06:48:49Z kimmov $
 
 
 #ifndef _SAVECLOSINGDLG_H_
 #define _SAVECLOSINGDLG_H_
 
-
-#ifndef CMoveConstraint_h
 #include "CMoveConstraint.h"
-#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // SaveClosingDlg dialog

@@ -1,6 +1,6 @@
 @echo off
 
-REM $Id: PreLink.bat 5192 2008-03-26 14:50:08Z kimmov $
+REM $Id: PreLink.bat 5593 2008-07-10 17:12:44Z kimmov $
 
 set info=echo *
 
@@ -32,15 +32,11 @@ REM Enable echo lines below if you need to debug this script
 REM echo %0
 REM echo $(IntDir) = %1
 REM echo $(TargetPath) = %2
-del $(TargetPath)
+del %2
 
 REM Create build directories
 mkdir ..\Build\expat
 mkdir ..\Build\pcre
-
-REM Configure PCRE
-cd %2\..\..\..\Externals\pcre\config_pcre
-nmake /f "configure.mak"
 goto %1
 
 :.\..\BuildTmp\MergeDebug
@@ -75,11 +71,11 @@ cd %2\..\..\..\Externals\scew\win32
 %devenv% "scew.vcproj" /build "Debug"
 
 REM Build PCRE
-cd %2\..\..\..\Externals\pcre\dll_pcre
+cd %2\..\..\..\Externals\pcre\Win32
 %msdev% "pcre.dsp" /make "pcre - Win32 Debug"
 %devenv% "pcre.vcproj" /build "Debug"
 cd %2\..\..\pcre
-copy bin\debug\pcre.dll %2\..\
+copy pcre.dll %2\..\
 goto Common
 
 :Release
@@ -99,11 +95,11 @@ cd %2\..\..\..\Externals\scew\win32
 %devenv% "scew.vcproj" /build "Release"
 
 REM Build PCRE
-cd %2\..\..\..\Externals\pcre\dll_pcre
+cd %2\..\..\..\Externals\pcre\Win32
 %msdev% "pcre.dsp" /make "pcre - Win32 Release"
-%devenv% "pcre.vcproj" /build "Release"
+%devenv% "pcre.vcproj" /build "MinSizeRel"
 cd %2\..\..\pcre
-copy bin\release\pcre.dll %2\..\
+copy pcre.dll %2\..\
 goto Common
 
 :Common

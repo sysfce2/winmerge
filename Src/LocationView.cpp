@@ -26,8 +26,8 @@
  *
  */
 
-// RCS ID line follows -- this is updated by CVS
-// $Id: LocationView.cpp 4801 2007-11-28 18:05:01Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: LocationView.cpp 6050 2008-10-29 20:07:21Z kimmov $
 
 #include "stdafx.h"
 #include "merge.h"
@@ -38,7 +38,9 @@
 #include "BCMenu.h"
 #include "OptionsDef.h"
 #include "MergeLineFlags.h"
-#include <math.h>
+#include "Bitmap.h"
+#include "memdc.h"
+#include "SyntaxColors.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -77,129 +79,15 @@ enum LOCBAR_TYPE
 
 IMPLEMENT_DYNCREATE(CLocationView, CView)
 
-/**
- * @brief Save an area as a bitmap
- * @param pDC [in] The source device context
- * @param rect [in] The rect to be copied
- * @return The bitmap object
- */
-static CBitmap *CopyRectToBitmap(CDC *pDC, const CRect & rect)
-{
-	CRect rc = rect;
-	CDC dcMem;
-	dcMem.CreateCompatibleDC(pDC);
-	CBitmap *pBitmap = new CBitmap;
-	pBitmap->CreateCompatibleBitmap(pDC, rc.Width(), rc.Height());
-	CBitmap *pOldBitmap = dcMem.SelectObject(pBitmap);
-	dcMem.BitBlt(0, 0, rc.Width(), rc.Height(), pDC, rc.left, rc.top, SRCCOPY);
-	dcMem.SelectObject(pOldBitmap);
-	dcMem.DeleteDC();
-	return pBitmap;
-}
-
-/**
- * @brief Draw a bitmap image
- * @param pDC [in] The destination device context to draw to
- * @param x [in] The x-coordinate of the upper-left corner of the bitmap
- * @param y [in] The y-coordinate of the upper-left corner of the bitmap
- * @param pBitmap [in] the bitmap to draw
- */
-static void DrawBitmap(CDC *pDC, int x, int y, CBitmap *pBitmap)
-{
-	CDC dcMem;
-	dcMem.CreateCompatibleDC(pDC);
-	BITMAP bm;
-	pBitmap->GetBitmap(&bm);
-	CBitmap *pOldBitmap = dcMem.SelectObject(pBitmap);
-	pDC->BitBlt(x, y, bm.bmWidth, bm.bmHeight, &dcMem, 0, 0, SRCCOPY);
-	dcMem.SelectObject(pOldBitmap);
-	dcMem.DeleteDC();
-}
-
-/**
- * @brief Duplicate a bitmap and make it dark
- * @param pDC [in] Device context
- * @param pBitmap [in] the bitmap to darken
- * @return The bitmap object
- */
-static CBitmap *GetDarkenedBitmap(CDC *pDC, CBitmap *pBitmap)
-{
-	CDC dcMem;
-	dcMem.CreateCompatibleDC(pDC);
-	BITMAP bm;
-	pBitmap->GetObject(sizeof(bm), &bm);
-	CBitmap *pBitmapDarkened = new CBitmap();
-	pBitmapDarkened->CreateCompatibleBitmap(pDC, bm.bmWidth, bm.bmHeight);
-	CBitmap *pOldBitmap = dcMem.SelectObject(pBitmapDarkened);
-	DrawBitmap(&dcMem, 0, 0, pBitmap);
-
-	BITMAPINFO bi;
-	bi.bmiHeader.biSize = sizeof(bi.bmiHeader);
-	bi.bmiHeader.biWidth = bm.bmWidth;
-	bi.bmiHeader.biHeight = bm.bmHeight;
-	bi.bmiHeader.biPlanes = 1;
-	bi.bmiHeader.biBitCount = 32;
-	bi.bmiHeader.biCompression = 0;
-	bi.bmiHeader.biSizeImage = bm.bmWidth * 4 * bm.bmHeight;
-	bi.bmiHeader.biXPelsPerMeter = 0;
-	bi.bmiHeader.biYPelsPerMeter = 0;
-	bi.bmiHeader.biClrUsed = 0;
-	bi.bmiHeader.biClrImportant = 0;
-
-	BYTE *pbuf = new BYTE[bi.bmiHeader.biSizeImage];
-	GetDIBits(dcMem.m_hDC, (HBITMAP)*pBitmapDarkened, 0, bm.bmHeight, pbuf, &bi, DIB_RGB_COLORS);
-
-	int x;
-	for (x = 0; x < bm.bmWidth; x++)
-	{
-		double b = 0.70 + (0.20 * sin(acos((double)x/bm.bmWidth*2.0-1.0)));
-		for (int y = 1; y < bm.bmHeight-1; y++)
-		{
-			int i = x * 4 + y * bm.bmWidth * 4;
-			pbuf[i  ] = (BYTE)(pbuf[i] * 0.95);
-			pbuf[i+1] = (BYTE)(pbuf[i+1] * b);
-			pbuf[i+2] = (BYTE)(pbuf[i+2] * b);
-		}
-	}
-	for (x = 0; x < bm.bmWidth; x++)
-	{
-		int i = x * 4 + 0 * bm.bmWidth * 4;
-		pbuf[i  ] = (BYTE)(pbuf[i] * 0.95);
-		pbuf[i+1] = (BYTE)(pbuf[i+1] * 0.7);
-		pbuf[i+2] = (BYTE)(pbuf[i+2] * 0.7);
-		i = x * 4 + (bm.bmHeight-1) * bm.bmWidth * 4;
-		pbuf[i  ] = (BYTE)(pbuf[i] * 0.95);
-		pbuf[i+1] = (BYTE)(pbuf[i+1] * 0.7);
-		pbuf[i+2] = (BYTE)(pbuf[i+2] * 0.7);
-	}
-	for (int y = 0; y < bm.bmHeight; y++)
-	{
-		int i = 0 * 4 + y * bm.bmWidth * 4;
-		pbuf[i  ] = (BYTE)(pbuf[i] * 0.95);
-		pbuf[i+1] = (BYTE)(pbuf[i+1] * 0.4);
-		pbuf[i+2] = (BYTE)(pbuf[i+2] * 0.4);
-		i = (bm.bmWidth-1) * 4 + y * bm.bmWidth * 4;
-		pbuf[i  ] = (BYTE)(pbuf[i] * 0.95);
-		pbuf[i+1] = (BYTE)(pbuf[i+1] * 0.4);
-		pbuf[i+2] = (BYTE)(pbuf[i+2] * 0.4);
-	}
-
-	SetDIBits(dcMem.m_hDC, (HBITMAP)*pBitmapDarkened, 0, bm.bmHeight, pbuf, &bi, DIB_RGB_COLORS);
-	delete pbuf;
-	dcMem.SelectObject(pOldBitmap);
-	dcMem.DeleteDC();
-	return pBitmapDarkened;
-}
 
 CLocationView::CLocationView()
 	: m_visibleTop(-1)
 	, m_visibleBottom(-1)
 //	MOVEDLINE_LIST m_movedLines; //*< List of moved block connecting lines */
-	, m_bIgnoreTrivials(true)
 	, m_hwndFrame(NULL)
-	, m_nPrevPaneWidth(0)
 	, m_pSavedBackgroundBitmap(NULL)
 	, m_bDrawn(false)
+	, m_bRecalculateBlocks(TRUE) // calculate for the first time
 {
 	// NB: set m_bIgnoreTrivials to false to see trivial diffs in the LocationView
 	// There is no GUI to do this
@@ -225,9 +113,8 @@ BEGIN_MESSAGE_MAP(CLocationView, CView)
 	ON_WM_CONTEXTMENU()
 	ON_WM_CLOSE()
 	ON_WM_SIZE()
-  ON_WM_VSCROLL()
+	ON_WM_VSCROLL()
 	ON_WM_ERASEBKGND()
-	ON_WM_PAINT()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -257,6 +144,18 @@ CMergeDoc* CLocationView::GetDocument() // non-debug version is inline
 /////////////////////////////////////////////////////////////////////////////
 // CLocationView message handlers
 
+/**
+ * @brief Force recalculation and update of location pane.
+ * This method forces location pane to first recalculate its data and
+ * then repaint itself. This method bypasses location pane's caching
+ * of the diff data.
+ */
+void CLocationView::ForceRecalculate()
+{
+	m_bRecalculateBlocks = TRUE;
+	Invalidate();
+}
+
 /** 
  * @brief Update view.
  */
@@ -272,14 +171,23 @@ void CLocationView::OnUpdate( CView* pSender, LPARAM lHint, CObject* pHint )
 	m_view[MERGE_VIEW_LEFT]->SetLocationView(GetSafeHwnd(), this);
 	m_view[MERGE_VIEW_RIGHT]->SetLocationView(GetSafeHwnd(), this);
 
+	m_bRecalculateBlocks = TRUE;
 	Invalidate();
 }
 
 /** 
- * @brief Change the background color for a CView
- *        See http://support.microsoft.com/kb/103786
+ * @brief Override for CMemDC to work.
  */
 BOOL CLocationView::OnEraseBkgnd(CDC* pDC)
+{
+	return FALSE;
+}
+
+/**
+ * @brief Draw custom (non-white) background.
+ * @param [in] pDC Pointer to draw context.
+ */
+void CLocationView::DrawBackground(CDC* pDC)
 {
 	// Set brush to desired background color
 	CBrush backBrush(RGB(0xe8, 0xe8, 0xf4));
@@ -293,23 +201,83 @@ BOOL CLocationView::OnEraseBkgnd(CDC* pDC)
 	pDC->PatBlt(rect.left, rect.top, rect.Width(), rect.Height(), PATCOPY);
 
 	pDC->SelectObject(pOldBrush);
-	return TRUE;
 }
-    
-/** 
- * @brief Invalidate rect of old visible area indicator to restore background correctly
+
+/**
+ * @brief Calculate bar coordinates and scaling factors.
  */
-void CLocationView::OnPaint()
+void CLocationView::CalculateBars()
 {
-	if (m_visibleTop != -1 && m_visibleBottom != -1)
+	CRect rc;
+	GetClientRect(rc);
+	const int w = rc.Width() / 4;
+	m_leftBar.left = (rc.Width() - 2 * w) / 3;
+	m_leftBar.right = m_leftBar.left + w;
+	m_rightBar.left = 2 * m_leftBar.left + w;
+	m_rightBar.right = m_rightBar.left + w;
+	const double hTotal = rc.Height() - (2 * Y_OFFSET); // Height of draw area
+	const int nbLines = min(m_view[MERGE_VIEW_LEFT]->GetSubLineCount(),
+			m_view[MERGE_VIEW_RIGHT]->GetSubLineCount());
+
+	m_lineInPix = hTotal / nbLines;
+	m_pixInLines = nbLines / hTotal;
+	if (m_lineInPix > MAX_LINEPIX)
 	{
-		CRect rc;
-		GetClientRect(rc);
-		rc.top = m_visibleTop;
-		rc.bottom = m_visibleBottom;
-		InvalidateRect(rc);
+		m_lineInPix = MAX_LINEPIX;
+		m_pixInLines = 1 / MAX_LINEPIX;
 	}
-	CView::OnPaint();
+
+	m_leftBar.top = Y_OFFSET - 1;
+	m_rightBar.top = Y_OFFSET - 1;
+	m_leftBar.bottom = (LONG)(m_lineInPix * nbLines + Y_OFFSET + 1);
+	m_rightBar.bottom = m_leftBar.bottom;
+}
+
+/**
+ * @brief Calculate difference lines and coordinates.
+ * This function calculates begin- and end-lines of differences when word-wrap
+ * is enabled. Otherwise the value from original difflist is used. Line
+ * numbers are also converted to coordinates in the window. All calculated
+ * (and not ignored) differences are added to the new list.
+ */
+void CLocationView::CalculateBlocks()
+{
+	m_diffBlocks.RemoveAll();
+	
+	CMergeDoc *pDoc = GetDocument();
+	const int nDiffs = pDoc->m_diffList.GetSize();
+
+	int nDiff = pDoc->m_diffList.FirstSignificantDiff();
+	while (nDiff != -1)
+	{
+		DIFFRANGE diff;
+		VERIFY(pDoc->m_diffList.GetDiff(nDiff, diff));
+
+		// Find end of diff. If first side has blank lines use other side.
+		const int nLineEndDiff = (diff.blank0 > 0) ? diff.dend1 : diff.dend0;
+
+		CMergeEditView *pView = m_view[MERGE_VIEW_LEFT];
+
+		// Count how many line does the diff block have.
+		const int nBlockStart = pView->GetSubLineIndex(diff.dbegin0);
+		const int nBlockEnd = pView->GetSubLineIndex(nLineEndDiff);
+		const int nBlockHeight = nBlockEnd - nBlockStart + pView->GetSubLines(nLineEndDiff);
+
+		// Convert diff block size from lines to pixels.
+		const int nBeginY = (int)(nBlockStart * m_lineInPix + Y_OFFSET);
+		const int nEndY = (int)((nBlockStart + nBlockHeight) * m_lineInPix + Y_OFFSET);
+
+		DiffBlock block;
+		block.top_line = diff.dbegin0;
+		block.bottom_line = nLineEndDiff;
+		block.top_coord = nBeginY;
+		block.bottom_coord = nEndY;
+		block.diff_index = nDiff;
+		m_diffBlocks.AddTail(block);
+
+		nDiff = pDoc->m_diffList.NextSignificantDiff(nDiff);
+	}
+	m_bRecalculateBlocks = FALSE;
 }
 
 /** 
@@ -332,89 +300,61 @@ void CLocationView::OnDraw(CDC* pDC)
 	if (!m_view[MERGE_VIEW_LEFT]->IsInitialized()) return;
 
 	CRect rc;
-	GetClientRect(rc);
+	GetClientRect(&rc);
 
-	CMergeDoc *pDoc = GetDocument();
-	const int w = rc.Width() / 4;
-	m_nLeftBarLeft = (rc.Width() - 2 * w) / 3;
-	m_nLeftBarRight = m_nLeftBarLeft + w;
-	m_nRightBarLeft = 2 * m_nLeftBarLeft + w;
-	m_nRightBarRight = m_nRightBarLeft + w;
-	const double hTotal = rc.Height() - (2 * Y_OFFSET); // Height of draw area
-	const int nbLines = min(m_view[MERGE_VIEW_LEFT]->GetSubLineCount(),
-			m_view[MERGE_VIEW_RIGHT]->GetSubLineCount());
+	CMemDC dc(pDC, &rc);
 
-	double LineInPix = hTotal / nbLines;
 	COLORREF cr0 = CLR_NONE; // Left side color
 	COLORREF cr1 = CLR_NONE; // Right side color
 	COLORREF crt = CLR_NONE; // Text color
 	BOOL bwh = FALSE;
 
-	m_pixInLines = nbLines / hTotal;
-	if (LineInPix > MAX_LINEPIX)
-	{
-		LineInPix = MAX_LINEPIX;
-		m_pixInLines = 1 / MAX_LINEPIX;
-	}
-
 	m_movedLines.RemoveAll();
 
-	// Adjust line coloring if ignoring trivials
-	DWORD ignoreFlags = (m_bIgnoreTrivials ? LF_TRIVIAL : 0);
+	CalculateBars();
+	DrawBackground(&dc);
 
 	// Draw bar outlines
-	CPen* oldObj = (CPen*)pDC->SelectStockObject(BLACK_PEN);
-	const int nBottom = (int)(LineInPix * nbLines + Y_OFFSET + 1);
-	pDC->Rectangle(m_nLeftBarLeft, Y_OFFSET - 1, m_nLeftBarRight, nBottom);
-	pDC->Rectangle(m_nRightBarLeft, Y_OFFSET - 1, m_nRightBarRight, nBottom);
-	pDC->SelectObject(oldObj);
+	CPen* oldObj = (CPen*)dc.SelectStockObject(BLACK_PEN);
+	CBrush brush(m_view[0]->GetColor(COLORINDEX_WHITESPACE));
+	CBrush* oldBrush = (CBrush*)dc.SelectObject(&brush);
+	dc.Rectangle(m_leftBar);
+	dc.Rectangle(m_rightBar);
+	dc.SelectObject(oldBrush);
+	dc.SelectObject(oldObj);
 
 	// Iterate the differences list and draw differences as colored blocks.
 
+	// Don't recalculate blocks if we earlier determined it is not needed
+	// This may save lots of processing
+	if (m_bRecalculateBlocks)
+		CalculateBlocks();
+
+	CMergeDoc *pDoc = GetDocument();
 	int nPrevEndY = -1;
 	const int nCurDiff = pDoc->GetCurrentDiff();
-	const int nDiffs = pDoc->m_diffList.GetSize();
 
-	for (int nDiff = 0; nDiff < nDiffs; ++nDiff)
+	POSITION pos = m_diffBlocks.GetHeadPosition();
+
+	while (pos)
 	{
-		DIFFRANGE diff;
-		VERIFY(pDoc->m_diffList.GetDiff(nDiff, diff));
-
-		// Skip trivial differences.
-		if (m_bIgnoreTrivials && diff.op == OP_TRIVIAL)
-		{
-			continue;
-		}
-
-		// Find end of diff. If first side has blank lines use other side.
-		const int nLineEndDiff = (diff.blank0 > 0) ? diff.dend1 : diff.dend0;
-
+		const DiffBlock &block = m_diffBlocks.GetNext(pos);
 		CMergeEditView *pView = m_view[MERGE_VIEW_LEFT];
+		const BOOL bInsideDiff = (nCurDiff == block.diff_index);
 
-		// Count how many line does the diff block have.
-		const int nBlockStart = pView->GetSubLineIndex(diff.dbegin0);
-		const int nBlockEnd = pView->GetSubLineIndex(nLineEndDiff);
-		const int nBlockHeight = nBlockEnd - nBlockStart + pView->GetSubLines(nLineEndDiff);
-
-		// Convert diff block size from lines to pixels.
-		const int nBeginY = (int)(nBlockStart * LineInPix + Y_OFFSET);
-		const int nEndY = (int)((nBlockStart + nBlockHeight) * LineInPix + Y_OFFSET);
-		
-		const BOOL bInsideDiff = (nCurDiff == nDiff);
-
-		if ((nPrevEndY != nEndY) || bInsideDiff)
+		if ((nPrevEndY != block.bottom_coord) || bInsideDiff)
 		{
 			// Draw left side block
-			m_view[MERGE_VIEW_LEFT]->GetLineColors2(diff.dbegin0, ignoreFlags, cr0, crt, bwh);
-			CRect r0(m_nLeftBarLeft, nBeginY, m_nLeftBarRight, nEndY);
-			DrawRect(pDC, r0, cr0, bInsideDiff);
+			m_view[MERGE_VIEW_LEFT]->GetLineColors2(block.top_line, 0, cr0, crt, bwh);
+			CRect r0(m_leftBar.left, block.top_coord, m_leftBar.right, block.bottom_coord);
+			DrawRect(&dc, r0, cr0, bInsideDiff);
 
 			// Draw right side block
-			m_view[MERGE_VIEW_RIGHT]->GetLineColors2(diff.dbegin0, ignoreFlags, cr1, crt, bwh);
-			CRect r1(m_nRightBarLeft, nBeginY, m_nRightBarRight, nEndY);
-			DrawRect(pDC, r1, cr1, bInsideDiff);
+			m_view[MERGE_VIEW_RIGHT]->GetLineColors2(block.top_line, 0, cr1, crt, bwh);
+			CRect r1(m_rightBar.left, block.top_coord, m_rightBar.right, block.bottom_coord);
+			DrawRect(&dc, r1, cr1, bInsideDiff);
 		}
-		nPrevEndY = nEndY;
+		nPrevEndY = block.bottom_coord;
 
 		// Test if we draw a connector
 		BOOL bDisplayConnectorFromLeft = FALSE;
@@ -440,8 +380,9 @@ void CLocationView::OnDraw(CDC* pDC)
 
 		if (bDisplayConnectorFromLeft)
 		{
-			int apparent0 = diff.dbegin0;
+			int apparent0 = block.top_line;
 			int apparent1 = pDoc->RightLineInMovedBlock(apparent0);
+			const int nBlockHeight = block.bottom_line - block.top_line;
 			if (apparent1 != -1)
 			{
 				MovedLine line;
@@ -451,13 +392,13 @@ void CLocationView::OnDraw(CDC* pDC)
 				apparent0 = pView->GetSubLineIndex(apparent0);
 				apparent1 = pView->GetSubLineIndex(apparent1);
 
-				start.x = m_nLeftBarRight;
-				int leftUpper = (int) (apparent0 * LineInPix + Y_OFFSET);
-				int leftLower = (int) ((nBlockHeight + apparent0) * LineInPix + Y_OFFSET);
+				start.x = m_leftBar.right;
+				int leftUpper = (int) (apparent0 * m_lineInPix + Y_OFFSET);
+				int leftLower = (int) ((nBlockHeight + apparent0) * m_lineInPix + Y_OFFSET);
 				start.y = leftUpper + (leftLower - leftUpper) / 2;
-				end.x = m_nRightBarLeft;
-				int rightUpper = (int) (apparent1 * LineInPix + Y_OFFSET);
-				int rightLower = (int) ((nBlockHeight + apparent1) * LineInPix + Y_OFFSET);
+				end.x = m_rightBar.left;
+				int rightUpper = (int) (apparent1 * m_lineInPix + Y_OFFSET);
+				int rightLower = (int) ((nBlockHeight + apparent1) * m_lineInPix + Y_OFFSET);
 				end.y = rightUpper + (rightLower - rightUpper) / 2;
 				line.ptLeft = start;
 				line.ptRight = end;
@@ -467,8 +408,9 @@ void CLocationView::OnDraw(CDC* pDC)
 
 		if (bDisplayConnectorFromRight)
 		{
-			int apparent1 = diff.dbegin0;
+			int apparent1 = block.top_line;
 			int apparent0 = pDoc->LeftLineInMovedBlock(apparent1);
+			const int nBlockHeight = block.bottom_line - block.top_line;
 			if (apparent0 != -1)
 			{
 				MovedLine line;
@@ -478,13 +420,13 @@ void CLocationView::OnDraw(CDC* pDC)
 				apparent0 = pView->GetSubLineIndex(apparent0);
 				apparent1 = pView->GetSubLineIndex(apparent1);
 
-				start.x = m_nLeftBarRight;
-				int leftUpper = (int) (apparent0 * LineInPix + Y_OFFSET);
-				int leftLower = (int) ((nBlockHeight + apparent0) * LineInPix + Y_OFFSET);
+				start.x = m_leftBar.right;
+				int leftUpper = (int) (apparent0 * m_lineInPix + Y_OFFSET);
+				int leftLower = (int) ((nBlockHeight + apparent0) * m_lineInPix + Y_OFFSET);
 				start.y = leftUpper + (leftLower - leftUpper) / 2;
-				end.x = m_nRightBarLeft;
-				int rightUpper = (int) (apparent1 * LineInPix + Y_OFFSET);
-				int rightLower = (int) ((nBlockHeight + apparent1) * LineInPix + Y_OFFSET);
+				end.x = m_rightBar.left;
+				int rightUpper = (int) (apparent1 * m_lineInPix + Y_OFFSET);
+				int rightLower = (int) ((nBlockHeight + apparent1) * m_lineInPix + Y_OFFSET);
 				end.y = rightUpper + (rightLower - rightUpper) / 2;
 				line.ptLeft = start;
 				line.ptRight = end;
@@ -494,13 +436,17 @@ void CLocationView::OnDraw(CDC* pDC)
 	}
 
 	if (m_displayMovedBlocks != DISPLAY_MOVED_NONE)
-		DrawConnectLines(pDC);
+		DrawConnectLines(&dc);
+
+	if (m_pSavedBackgroundBitmap)
+		delete m_pSavedBackgroundBitmap;
+	m_pSavedBackgroundBitmap = CopyRectToBitmap(&dc, rc);
 
 	// Since we have invalidated locationbar there is no previous
 	// arearect to remove
 	m_visibleTop = -1;
 	m_visibleBottom = -1;
-	DrawVisibleAreaRect(pDC);
+	DrawVisibleAreaRect(&dc);
 
 	m_bDrawn = true;
 }
@@ -816,32 +762,16 @@ int CLocationView::GetLineFromYPos(int nYCoord, int bar, BOOL bRealLine)
 int CLocationView::IsInsideBar(const CRect& rc, const POINT& pt)
 {
 	int retVal = BAR_NONE;
-	BOOL bLeftSide = FALSE;
-	BOOL bRightSide = FALSE;
-	BOOL bYarea = FALSE;
-	const int w = rc.Width() / 4;
-	const int x = (rc.Width() - 2 * w) / 3;
-	const int nbLines = min(m_view[MERGE_VIEW_LEFT]->GetSubLineCount(),
-			m_view[MERGE_VIEW_RIGHT]->GetSubLineCount());
-	// We need '1 / m_pixInLines' to get line in pixels and
-	// that multiplied by linecount gives us bottom coord for bars.
-	double xbarBottom = min(nbLines / m_pixInLines + Y_OFFSET, rc.Height() - Y_OFFSET);
-	int barBottom = (int)xbarBottom;
 
-	if ((pt.y > Y_OFFSET) && (pt.y <= barBottom))
-	{
-		bLeftSide = (pt.x >= x && pt.x < x + w);
-		bRightSide = (pt.x >= 2 * x + w && pt.x < 2 * x + 2 * w);
-		bYarea = (pt.x >= INDICATOR_MARGIN &&
-			pt.x < (rc.Width() - INDICATOR_MARGIN));
-	}
-	
-	if (bLeftSide)
+	if (m_leftBar.PtInRect(pt))
 		retVal = BAR_LEFT;
-	else if (bRightSide)
+	else if (m_rightBar.PtInRect(pt))
 		retVal = BAR_RIGHT;
-	else if (bYarea)
+	else if (pt.x >= INDICATOR_MARGIN && pt.x < (rc.Width() - INDICATOR_MARGIN) &&
+		pt.y > m_leftBar.top && pt.y <= m_leftBar.bottom)
+	{
 		retVal = BAR_YAREA;
+	}
 
 	return retVal;
 }
@@ -856,9 +786,6 @@ int CLocationView::IsInsideBar(const CRect& rc, const POINT& pt)
 void CLocationView::DrawVisibleAreaRect(CDC *pClientDC, int nTopLine, int nBottomLine)
 {
 	CMergeDoc* pDoc = GetDocument();
-	const DWORD areaColor = GetSysColor(COLOR_3DSHADOW);
-	const DWORD bkColor = GetSysColor(COLOR_WINDOW);
-	
 	if (nTopLine == -1)
 		nTopLine = pDoc->GetRightView()->GetTopSubLine();
 	
@@ -873,29 +800,14 @@ void CLocationView::DrawVisibleAreaRect(CDC *pClientDC, int nTopLine, int nBotto
 	const double hTotal = rc.Height() - (2 * Y_OFFSET); // Height of draw area
 	const int nbLines = min(m_view[MERGE_VIEW_LEFT]->GetSubLineCount(),
 			m_view[MERGE_VIEW_RIGHT]->GetSubLineCount());
-	double LineInPix = hTotal / nbLines;
-	if (LineInPix > MAX_LINEPIX)
-		LineInPix = MAX_LINEPIX;
 
 	int nTopCoord = static_cast<int>(Y_OFFSET +
-			(static_cast<double>(nTopLine * LineInPix)));
+			(static_cast<double>(nTopLine * m_lineInPix)));
 	int nLeftCoord = INDICATOR_MARGIN;
 	int nBottomCoord = static_cast<int>(Y_OFFSET +
-			(static_cast<double>(nBottomLine * LineInPix)));
+			(static_cast<double>(nBottomLine * m_lineInPix)));
 	int nRightCoord = rc.Width() - INDICATOR_MARGIN;
 	
-	// Visible area was not changed
-	if (m_visibleTop == nTopCoord && m_visibleBottom == nBottomCoord)
-		return;
-
-	// Clear previous visible rect
-	if (m_visibleTop != -1 && m_visibleBottom != -1 && m_pSavedBackgroundBitmap)
-	{
-		DrawBitmap(pClientDC, 2, m_visibleTop, m_pSavedBackgroundBitmap);
-		delete m_pSavedBackgroundBitmap;
-		m_pSavedBackgroundBitmap = NULL;
-	}
-
 	double xbarBottom = min(nbLines / m_pixInLines + Y_OFFSET, rc.Height() - Y_OFFSET);
 	int barBottom = (int)xbarBottom;
 	// Make sure bottom coord is in bar range
@@ -921,9 +833,7 @@ void CLocationView::DrawVisibleAreaRect(CDC *pClientDC, int nTopLine, int nBotto
 	CBitmap *pDarkenedBitmap = GetDarkenedBitmap(pClientDC, pBitmap);
 	DrawBitmap(pClientDC, rcVisibleArea.left, rcVisibleArea.top, pDarkenedBitmap);
 	delete pDarkenedBitmap;
-	if (m_pSavedBackgroundBitmap)
-		delete m_pSavedBackgroundBitmap;
-	m_pSavedBackgroundBitmap = pBitmap;
+	delete pBitmap;
 }
 
 /**
@@ -936,9 +846,24 @@ void CLocationView::UpdateVisiblePos(int nTopLine, int nBottomLine)
 {
 	if (m_bDrawn)
 	{
-		CDC *pDC = GetDC();
-		DrawVisibleAreaRect(pDC, nTopLine, nBottomLine);
-		ReleaseDC(pDC);
+		int nTopCoord = static_cast<int>(Y_OFFSET +
+				(static_cast<double>(nTopLine * m_lineInPix)));
+		int nBottomCoord = static_cast<int>(Y_OFFSET +
+				(static_cast<double>(nBottomLine * m_lineInPix)));
+		if (m_visibleTop != nTopCoord || m_visibleBottom != nBottomCoord)
+		{
+			// Visible area was changed
+			CDC *pDC = GetDC();
+			if (m_pSavedBackgroundBitmap)
+			{
+				CMemDC dc(pDC);
+				// Clear previous visible rect
+				DrawBitmap(&dc, 0, 0, m_pSavedBackgroundBitmap);
+
+				DrawVisibleAreaRect(&dc, nTopLine, nBottomLine);
+			}
+			ReleaseDC(pDC);
+		}
 	}
 }
 
@@ -984,16 +909,27 @@ void CLocationView::SetFrameHwnd(HWND hwndFrame)
  *
  * When locationview size changes we want to save new size
  * for new windows. But we must do it through frame window.
+ * @param [in] nType Type of resizing, SIZE_MAXIMIZED etc.
+ * @param [in] cx New panel width.
+ * @param [in] cy New panel height.
  */
 void CLocationView::OnSize(UINT nType, int cx, int cy) 
 {
 	CView::OnSize(nType, cx, cy);
-	if (cx != m_nPrevPaneWidth)
+
+	// Height change needs block recalculation
+	// TODO: Perhaps this should be determined from need to change bar size?
+	// And we could change bar sizes more lazily, not from every one pixel change in size?
+	if (cy != m_currentSize.cy)
+		m_bRecalculateBlocks = TRUE;
+
+	if (cx != m_currentSize.cx)
 	{
-		m_nPrevPaneWidth = cx;
 		if (m_hwndFrame != NULL)
 			::PostMessage(m_hwndFrame, MSG_STORE_PANESIZES, 0, 0);
 	}
+
+	m_currentSize.SetSize(cx, cy);
 }
 
 /** 
@@ -1008,11 +944,11 @@ void CLocationView::OnSize(UINT nType, int cx, int cy)
 void CLocationView::DrawDiffMarker(CDC* pDC, int yCoord)
 {
 	CPoint points[3];
-	points[0].x = m_nLeftBarLeft - DIFFMARKER_WIDTH - 1;
+	points[0].x = m_leftBar.left - DIFFMARKER_WIDTH - 1;
 	points[0].y = yCoord - DIFFMARKER_TOP;
-	points[1].x = m_nLeftBarLeft - 1;
+	points[1].x = m_leftBar.left - 1;
 	points[1].y = yCoord;
-	points[2].x = m_nLeftBarLeft - DIFFMARKER_WIDTH - 1;
+	points[2].x = m_leftBar.left - DIFFMARKER_WIDTH - 1;
 	points[2].y = yCoord + DIFFMARKER_BOTTOM;
 
 	CPen* oldObj = (CPen*)pDC->SelectStockObject(BLACK_PEN);
@@ -1022,9 +958,9 @@ void CLocationView::DrawDiffMarker(CDC* pDC, int yCoord)
 	pDC->SetPolyFillMode(WINDING);
 	pDC->Polygon(points, 3);
 
-	points[0].x = m_nRightBarRight + 1 + DIFFMARKER_WIDTH;
-	points[1].x = m_nRightBarRight + 1;
-	points[2].x = m_nRightBarRight + 1 + DIFFMARKER_WIDTH;
+	points[0].x = m_rightBar.right + 1 + DIFFMARKER_WIDTH;
+	points[1].x = m_rightBar.right + 1;
+	points[2].x = m_rightBar.right + 1 + DIFFMARKER_WIDTH;
 	pDC->Polygon(points, 3);
 
 	pDC->SelectObject(pOldBrush);

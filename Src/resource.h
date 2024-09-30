@@ -53,6 +53,7 @@
 #define IDD_PROJFILES_PATHS             233
 #define IDD_PROPPAGE_BACKUPS            234
 #define IDD_CONFIRM_COPY                235
+#define IDD_PLUGINS_LIST                236
 #define IDR_SPLASH                      308
 #define IDB_WINMERGE                    309
 #define IDB_OLDSPLASH                   310
@@ -99,6 +100,8 @@
 #define IDB_TOOLBAR_ENABLED32           357
 #define IDB_VIEW_ZOOMIN                 358
 #define IDB_VIEW_ZOOMOUT                359
+#define IDB_FILE_OPENCONFLICT           361
+#define IDB_PLUGINS_LIST                362
 #define IDI_FOLDER                      500
 #define IDI_LFOLDER                     501
 #define IDI_RFOLDER                     502
@@ -431,6 +434,8 @@
 #define IDC_TMPFOLDER_SYSTEM            1338
 #define IDC_TMPFOLDER_BROWSE            1339
 #define IDC_TMPFOLDER_NAME              1340
+#define IDC_PLUGINS_ENABLE              1341
+#define IDC_PLUGINSLIST_LIST            1342
 #define IDC_EDIT_WHOLE_WORD             8603
 #define IDC_EDIT_MATCH_CASE             8604
 #define IDC_EDIT_FINDTEXT               8605
@@ -516,6 +521,7 @@
 #define IDS_FILEFILTER_INSTALLFAIL      16460
 #define IDS_FILEFILTER_OVERWRITE        16461
 #define IDS_FILTERLINE_REGEXP           16480
+#define IDS_FILTERCHANGED               16496
 #define IDS_CC_CMD                      16720
 #define IDS_VSS_CMD                     16721
 #define IDS_DIRECTORY_WINDOW_TITLE      16800
@@ -534,6 +540,8 @@
 #define IDS_STATUS_DELETEFILES          16823
 #define IDS_STATUS_MOVEFILES            16824
 #define IDS_STATUS_CREATEREPORT         16825
+#define IDS_STATUS_UNDO                 16826
+#define IDS_STATUS_REDO                 16827
 #define IDS_LINE_STATUS_INFO_EOL        16832
 #define IDS_EMPTY_LINE_STATUS_INFO      16833
 #define IDS_LINE_STATUS_INFO            16834
@@ -613,6 +621,10 @@
 #define IDS_CONFIRM_SINGLE_COPY         17639
 #define IDS_CONFIRM_MULTIPLE_COPY       17640
 #define IDS_DIRCMP_NOTSYNC              17641
+#define IDS_CONFIRM_SINGLE_MOVE         17642
+#define IDS_CONFIRM_MULTIPLE_MOVE       17643
+#define IDS_CONFIRM_COPY_CAPTION        17644
+#define IDS_CONFIRM_MOVE_CAPTION        17645
 #define ID_DIR_OPEN_LEFT                17648
 #define ID_DIR_OPEN_LEFT_WITHEDITOR     17649
 #define ID_DIR_OPEN_LEFT_WITH           17650
@@ -862,6 +874,12 @@
 #define IDS_SUFFIX_GIGA                 30419
 #define IDS_SUFFIX_TERA                 30420
 #define IDS_SUFFIX_PETA                 30421
+#define IDS_PLUGINSLIST_NAME            30432
+#define IDS_PLUGINSLIST_TYPE            30433
+#define IDS_PLUGINSLIST_DESC            30434
+#define IDS_PLUGINS_TYPE_UNPACKER       30435
+#define IDS_PLUGINS_TYPE_PREDIFFER      30436
+#define IDS_PLUGINS_TYPE_EDITSCRIPT     30437
 #define ID_FILE_SAVE_LEFT               32768
 #define ID_FILE_SAVE_RIGHT              32769
 #define ID_FILE_SAVEAS_LEFT             32770
@@ -1031,6 +1049,7 @@
 #define ID_VIEW_ZOOMOUT                 33170
 #define ID_HELP_TRANSLATIONS            33171
 #define ID_VIEW_ZOOMNORMAL              33172
+#define ID_PLUGINS_LIST                 33173
 
 // Next default values for new objects
 //
@@ -1038,8 +1057,8 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        237
-#define _APS_NEXT_COMMAND_VALUE         33172
-#define _APS_NEXT_CONTROL_VALUE         1341
+#define _APS_NEXT_COMMAND_VALUE         33174
+#define _APS_NEXT_CONTROL_VALUE         1344
 #define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif

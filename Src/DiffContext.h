@@ -4,23 +4,15 @@
  *  @brief Declarations of CDiffContext and diff structures
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffContext.h 5051 2008-02-18 20:39:13Z kimmov $
+// $Id: DiffContext.h 5647 2008-07-21 09:41:45Z kimmov $
 
 #if !defined(AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_)
 #define AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_
 #pragma once
 
-#ifndef _PATH_CONTEXT_H_
 #include "PathContext.h"
-#endif
-
-#ifndef _DIFF_FILE_INFO_H_INCLUDED
 #include "DiffFileInfo.h"
-#endif
-
-#ifndef _DIFF_ITEM_LIST_H_
 #include "DiffItemList.h"
-#endif
 
 class PackingInfo;
 class PrediffingInfo;
@@ -62,11 +54,8 @@ public:
 	};
 
 	CDiffContext(LPCTSTR pszLeft, LPCTSTR pszRight);
-	CDiffContext(LPCTSTR pszLeft, LPCTSTR pszRight, CDiffContext& src);
 	~CDiffContext();
 
-	// add & remove differences
-	virtual void AddDiff(const DIFFITEM & di);
 	void UpdateVersion(DIFFITEM & di, BOOL bLeft) const;
 
 	//@{
@@ -96,7 +85,8 @@ public:
 	/**
 	 * Get right-side compare path in normalized form.
 	 * @return full path in left-side.
-	 */	String GetNormalizedRight() const { return m_paths.GetRight(); }
+	 */
+	String GetNormalizedRight() const { return m_paths.GetRight(); }
 	//@}
 
 	// change an existing difference
@@ -162,11 +152,10 @@ public:
 	 * cannot compare large files. And large files are usually binary files.
 	 */
 	int m_nQuickCompareLimit;
+	bool m_bPluginsEnabled; /**< Are plugins enabled? */
 	FilterList * m_pFilterList; /**< Filter list for line filters */
-	CRITICAL_SECTION m_criticalSect; /**< Critical section protecting list access. */
 
 private:
-	CList<DIFFITEM,DIFFITEM&> *m_pList; /**< Pointer to list, used to access list */
 	DIFFOPTIONS *m_pOptions; /**< Generalized compare options. */
 	CompareOptions *m_pCompareOptions; /**< Per compare method compare options. */
 	PathContext m_paths; /**< (root) paths for this context */

@@ -5,7 +5,7 @@
 // 2. Translate strings in the end of the file
 // 3. Save the file and send it to WinMerge developers
 //
-// $Id: ShellExtensionTemplate.rc 5138 2008-03-08 08:19:20Z kimmov $
+// $Id: ShellExtensionTemplate.rc 5137 2008-03-08 08:17:20Z kimmov $
 
 #include "../resource.h"
 

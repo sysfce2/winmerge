@@ -13,6 +13,24 @@ code,pre {
 	font-size: 1em;
 }
 
+h1 { font-size: 300%; }
+h2 { font-size: 200%; }
+h3 { font-size: 140%; }
+h4 { font-size: 120%; }
+
+ul {
+	list-style-type: square;
+}
+
+/* Default link style */
+a:link { color:#3366CC; text-decoration:underline; }
+a:visited { color:#003399; text-decoration:underline; }
+a:focus { color:#3366CC; text-decoration:none; }
+a:hover { color:#3366CC; text-decoration:none; }
+a:active { color:#003399; text-decoration:none; }
+
+a[name]:hover { color:black; text-decoration:none; }
+
 #head {
 	margin: 0;
 	padding: 5px;
@@ -61,6 +79,7 @@ code,pre {
 #tabs li a:link { color: black; }
 #tabs li a:visited { color: black; }
 
+#tabs li a:focus,
 #tabs li a:hover {
 	color: black;
 	background: white;
@@ -113,20 +132,27 @@ a.downloadnow {
 	padding: 5px;
 	text-align: center;
 	text-decoration: none;
-	color: black;
-	background: #00B300;
-	border: 1px solid black;
-	-moz-border-radius: 0.5em;
+	color: white;
+	background: #006600 url(/images/downloadnow.png) repeat-x top;
+	border: 1px solid #006600;
 }
 
+a.downloadnow:link,
+a.downloadnow:visited {
+	text-decoration: none;
+	color: white;
+}
+
+a.downloadnow:focus,
 a.downloadnow:hover {
-	color: black;
-	background: #00CC00;
+	text-decoration: none;
+	color: white;
+	background: #00CC00 url(/images/downloadnow-focus.png) repeat-x top;
 }
 
 a.downloadnow strong {
 	display: block;
-	text-decoration: underline;
+	/*text-decoration: underline;*/
 	font-size: larger;
 	font-weight: bold;
 }
@@ -161,9 +187,10 @@ a.downloadnow em {
 	border-bottom: 1px solid #FFFFFF;
 }
 
+.downloadmatrix a:focus,
 .downloadmatrix a:hover {
 	color: #FFFFFF;
-	background-color: #336699;
+	background-color: #3366CC;
 }
 
 .downloadmatrix li li a {
@@ -175,6 +202,12 @@ a.downloadnow em {
 	color: #FFFFFF;
 	background-color: #6699CC;
 	border-bottom: 1px solid #FFFFFF;
+}
+
+.downloadmatrix li li a:link,
+.downloadmatrix li li a:visited {
+	text-decoration: none;
+	color: #FFFFFF;
 }
 
 /* Heading list */
@@ -233,6 +266,28 @@ ul.inline li {
 	list-style: none;
 }
 
+/* Info card (Mailing lists, History) */
+.infocard {
+	width: 40em;
+	margin: 1em;
+	padding: 0;
+	background: #f9f9f9;
+	border: 1px solid #aaaaaa;
+}
+
+.infocard h3 {
+	margin: 0;
+	padding: 5px;
+	background: #f2f2f2;
+	border-bottom: 1px solid #aaaaaa;
+}
+
+.infocard p {
+	margin: 0;
+	padding: 5px;
+	padding-top: 0;
+}
+
 /* Translations Status */
 .status {
 	border-collapse: collapse;
@@ -242,7 +297,7 @@ ul.inline li {
 .status th {
 	padding: 3px;
 	background: #f2f2f2;
-	border: 1px solid #aaaaaa ;
+	border: 1px solid #aaaaaa;
 }
 
 .status td {

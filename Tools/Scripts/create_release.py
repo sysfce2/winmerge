@@ -18,7 +18,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-# $Id: create_release.py 5280 2008-04-10 19:25:54Z kimmov $
+# $Id: create_release.py 5403 2008-05-31 13:02:37Z kimmov $
 
 # This script prepares a WinMerge release
 # Tasks it does:
@@ -208,9 +208,9 @@ def build_libraries():
     call([vs_cmd, solution_path, '/rebuild', 'Release'], shell=True)
 
     print 'Build pcre library...'
-    solution_path = os.path.join(cur_path, 'Externals/pcre/dll_pcre/pcre.vcproj')
+    solution_path = os.path.join(cur_path, 'Externals/pcre/Win32/pcre.vcproj')
     #print solution_path
-    call([vs_cmd, solution_path, '/rebuild', 'Release'], shell=True)
+    call([vs_cmd, solution_path, '/rebuild', 'MinSizeRel'], shell=True)
 
 def build_targets():
     """Builds all WinMerge targets."""

@@ -7,15 +7,12 @@
  *  @brief  Declaration of Unicode file classes.
  */
 // ID line follows -- this is updated by SVN
-// $Id: UniFile.h 4968 2008-01-27 22:15:16Z kimmov $
+// $Id: UniFile.h 5543 2008-06-29 21:30:09Z kimmov $
 
 #ifndef UniFile_h_included
 #define UniFile_h_included
 
-#ifndef sbuffer_h_included
 #include "sbuffer.h"
-#endif
-
 #include "unicoder.h"
 
 /**
@@ -24,14 +21,20 @@
 class UniFile
 {
 public:
+	
+	/**
+	 * @brief A struct for error message or error code.
+	 */
 	struct UniError
 	{
-		CString apiname;
+		String apiname;
 		int syserrnum; // valid if apiname nonempty
-		CString desc; // valid if apiname empty
-		bool hasError() const { return !apiname.IsEmpty() || !desc.IsEmpty(); }
-		void ClearError() { apiname = _T(""); syserrnum = ERROR_SUCCESS; desc = _T(""); }
-		UniError() { ClearError(); }
+		String desc; // valid if apiname empty
+
+		UniError();
+		bool HasError() const;
+		void ClearError();
+		String GetError();
 	};
 
 	virtual ~UniFile() { }
@@ -42,6 +45,7 @@ public:
 	virtual String GetFullyQualifiedPath() const = 0;
 	virtual const UniError & GetLastUniError() const = 0;
 
+	virtual bool IsUnicode() = 0;
 	virtual bool ReadBom() = 0;
 	virtual bool HasBom() = 0;
 	virtual void SetBom(bool bom) = 0;
@@ -95,6 +99,8 @@ public:
 	virtual int GetLineNumber() const { return m_lineno; }
 	virtual const txtstats & GetTxtStats() const { return m_txtstats; }
 
+	bool IsUnicode();
+
 protected:
 	virtual bool DoGetFileStatus();
 	virtual void LastError(LPCTSTR apiname, int syserrnum);
@@ -112,6 +118,8 @@ protected:
 	int m_codepage; // only valid if m_unicoding==ucr::NONE;
 	txtstats m_txtstats;
 	bool m_bom; /**< Did the file have a BOM when reading? */
+	bool m_bUnicodingChecked; /**< Has unicoding been checked for the file? */
+	bool m_bUnicode; /**< Is the file unicode file? */
 };
 
 /**

@@ -20,7 +20,7 @@
  * @brief Implementation file for ConfirmFolderCopyDlg dialog
  */
 // ID line follows -- this is updated by SVN
-// $Id: ConfirmFolderCopyDlg.cpp 5306 2008-04-17 19:33:19Z kimmov $
+// $Id: ConfirmFolderCopyDlg.cpp 5711 2008-07-31 19:35:03Z kimmov $
 
 #include "stdafx.h"
 #include "Merge.h"
@@ -80,6 +80,9 @@ BOOL ConfirmFolderCopyDlg::OnInitDialog()
 	HICON icon = AfxGetApp()->LoadStandardIcon(IDI_EXCLAMATION);
 	CStatic * pIcon = (CStatic *) GetDlgItem(IDC_FLDCONFIRM_ICON);
 	pIcon->SetIcon(icon);
+
+	if (!m_caption.IsEmpty())
+		SetWindowText(m_caption);
 
 	// setup handler for resizing this dialog	
 	m_constraint.InitializeCurrentSize(this);

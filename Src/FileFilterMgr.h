@@ -17,25 +17,18 @@
  *
  *  @brief Declaration file for FileFilterMgr
  */ 
-// RCS ID line follows -- this is updated by CVS
-// $Id: FileFilterMgr.h 3785 2006-11-07 17:13:32Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: FileFilterMgr.h 5493 2008-06-17 09:59:10Z kimmov $
 
-#ifndef FileFilter_h_included
-#define FileFilter_h_included
+#ifndef FileFilterMgr_h_included
+#define FileFilterMgr_h_included
 
 // Uses MFC C++ template containers
-#ifndef __AFXTEMPL_H__
 #include <afxtempl.h>
-#endif
+#include <vector>
 #include "pcre.h"
 
 struct FileFilterElement;
-/**
- * @brief List of file filtering rules.
- * @sa FileFilterElement
- * @sa FileFilter
- */
-typedef CList<FileFilterElement, FileFilterElement&> FileFilterList;
 
 /**
  * @brief Return values for many filter functions.
@@ -97,7 +90,7 @@ public:
 	void RemoveFilter(LPCTSTR szFilterFile);
 
 	// access to array of filters
-	int GetFilterCount() const { return m_filters.GetSize(); }
+	int GetFilterCount() const { return m_filters.size(); }
 	CString GetFilterName(int i) const;
 	CString GetFilterName(const FileFilter *pFilter) const;
 	CString GetFilterPath(int i) const;
@@ -120,16 +113,12 @@ protected:
 
 // Implementation data
 private:
-	CTypedPtrArray<CPtrArray, FileFilter *> m_filters; /*< List of filters loaded */
+	std::vector<FileFilter*> m_filters; /*< List of filters loaded */
 };
 
 
-// I think that CRegExp doesn't copy correctly (I get heap corruption in CRegList::program)
-// so I'm using pointers to avoid its copy constructor
-// Perry, 2003-05-18
-
-BOOL TestAgainstRegList(const FileFilterList & filterList, LPCTSTR szTest);
-void EmptyFilterList(FileFilterList & filterList);
+BOOL TestAgainstRegList(const std::vector<FileFilterElement*> *filterList, LPCTSTR szTest);
+void EmptyFilterList(std::vector<FileFilterElement*> *filterList);
 
 
-#endif // FileFilter_h_included
+#endif // FileFilterMgr_h_included

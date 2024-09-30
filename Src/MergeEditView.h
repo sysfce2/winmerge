@@ -24,7 +24,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: MergeEditView.h 5048 2008-02-18 14:11:50Z kimmov $
+// $Id: MergeEditView.h 5647 2008-07-21 09:41:45Z kimmov $
 
 #if !defined(AFX_MERGEEDITVIEW_H__0CE31CFD_4BEE_4378_ADB4_B7C9F50A9F53__INCLUDED_)
 #define AFX_MERGEEDITVIEW_H__0CE31CFD_4BEE_4378_ADB4_B7C9F50A9F53__INCLUDED_
@@ -71,9 +71,7 @@ const UINT CONTEXT_LINES_BELOW = 3;
 
 /////////////////////////////////////////////////////////////////////////////
 // CMergeEditView view
-#ifndef __EDTLIB_H
 #include "edtlib.h"
-#endif
 #include "GhostTextView.h"
 
 class IMergeEditStatus;
@@ -280,7 +278,6 @@ protected:
 	afx_msg void OnMergingMode();
 	afx_msg void OnUpdateMergingMode(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateMergingStatus(CCmdUI* pCmdUI);
-	afx_msg void OnWindowClose();
 	afx_msg void OnHScroll (UINT nSBCode, UINT nPos, CScrollBar * pScrollBar);
 	afx_msg void OnVScroll (UINT nSBCode, UINT nPos, CScrollBar * pScrollBar);
 	afx_msg void OnEditCopyLineNumbers();
@@ -310,9 +307,9 @@ protected:
 	afx_msg void OnViewZoomNormal();
 	afx_msg void OnUpdateStatusLeftEncoding(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateStatusRightEncoding(CCmdUI* pCmdUI);
+	afx_msg void OnPluginsList();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-public:
 };
 
 #ifndef _DEBUG  // debug version in DiffView.cpp

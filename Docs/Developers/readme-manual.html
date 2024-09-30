@@ -93,16 +93,16 @@ where we want transparency, we use the GIF format, since older browsers have pro
 <h3><a name="ownbuildsystem">Our preferred build system is based on Java and Saxon</a></h3>
 <p>Our preferred build system uses the following tools:</p>
 <ul>
-  <li><a href="http://java.sun.com/j2se/">Java Runtime Environment</a></li>
+  <li><a href="http://www.java.com/getjava/">Java Runtime Environment</a></li>
   <li><a href="http://saxon.sourceforge.net/">Saxon</a></li>
   <li><a href="http://www.docbook.org/xml/">DocBook DTD</a></li>
   <li><a href="http://sourceforge.net/project/showfiles.php?group_id=21935&amp;package_id=16608">XSL StyleSheets</a></li>
   <li><a href="http://msdn.microsoft.com/library/default.asp?url=/library/en-us/htmlhelp/html/hwMicrosoftHTMLHelpDownloads.asp">HTML Help Compiler</a></li>
 </ul>
-<p>The easiest way is to install <a href="http://www.e-novative.info/software/ede.php">eDE</a>,
-because it install all required tools (except of Java).</p>
+<p>The easiest way is to download <a href="http://sourceforge.net/project/showfiles.php?group_id=13216&amp;package_id=284332&amp;release_id=614099">our manual build tools package v1</a>
+(it includes all required tools except of <a href="http://www.java.com/getjava/">Java</a>) and unzip it to the <code>build</code> subdirectory at the <code>Manual</code> directory.</p>
 
-<p>The batch files are located at the <code>build</code> subdirectory at the <code>Manual</code> directory.
+<p>The batch files are also located at the <code>build</code> subdirectory at the <code>Manual</code> directory.
 The main file ist <code>build.bat</code>. Paths to the installed tools are written in the <code>configuration.bat</code> file.</p>
 <dl>
   <dt><code>build.bat html</code> or <code>build_html.bat</code></dt>
@@ -114,74 +114,5 @@ The main file ist <code>build.bat</code>. Paths to the installed tools are writt
   <dt><code>build.bat</code></dt>
   <dd>Is the same like <code>build.bat html</code>.</dd>
 </dl>
-
-<p><b>Note:</b> If you use a other path than <code>C:\docbook\xsl</code> for the <em>XSL StyleSheets</em>
-you must change the files <code>build_html.xsl</code> and <code>build_htmlhelp.xsl</code>:</p>
-<p>build_html.xsl:</p>
-<pre>&lt;xsl:import href="file:/<b>C:/docbook/xsl/</b>html/chunk.xsl"/&gt;</pre>
-<p>build_htmlhelp.xsl:</p>
-<pre>&lt;xsl:import href="file:/<b>C:/docbook/xsl/</b>htmlhelp/htmlhelp.xsl"/&gt;</pre>
-
-<h3>Docbook support in SourceForge</h3>
-<p>SourceForge has Docbook tools installed, and they can be used from
-shell server. Tools we are interested in:</p>
-<ul>
-  <li><code>docbook2html</code></li>
-  <li><code>docbook2pdf</code></li>
-  <li><code>docbook2txt</code></li>
-  <li>(<code>docbook2rtf</code>)</li>
-</ul>
-
-<h4>Generating HTML documentation</h4>
-<p><code>Manual-html.dsl</code> file is a stylesheet file that defines rules for
-generating HTML. It forces index creation, adding navigation links, CSS stylesheet
-etc. File contains comments for settings so they are not repeated here.</p>
-
-<p>To generate HTML documentation in SF.net shell, copy all XML files, stylesheet
-file and subdirectories to shell server. Then in directory which contains XML
-files, type:</p>
-
-<pre>docbook2html -d Manual-html.dsl WinMerge_help.xml</pre>
-
-<p><b>Note:</b>
-Seems that Sourceforge.net has blocked access to outside world from shell, so to generate
-docs one needs to replace <code>docbook.dtd</code> location in <code>WinMerge_help.xml</code> with
-local path. Replace url in second line <code>"http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd"
-</code> with valid path. At the moment it is:</p>
-
-<pre>"/usr/share/sgml/docbook/sgml-dtd-4.2-1.0-24/docbook.dtd"</pre>
-
-<h4>Own build script</h4>
-<p>We have an own build script, which replaces the <code>docbook.dtd</code> url automatically making it
-easier to build manual.</p>
-
-<p>The <code>build.sh</code> script file is located at the <code>build</code> subdirectory at
-the <code>Manual</code> directory. But before you can use it at the shell server, you must give
-execute rights for it:</p>
-<pre>chmod +x build.sh</pre>
-
-<p>Now you can call the script file (from the <code>build</code> directory):</p>
-<dl>
-  <dt><code>./build.sh html</code></dt>
-  <dd>Creates the HTML files under the <code>html</code> subdirectory at the <code>build</code> directory.</dd>
-  <dt><code>./build.sh pdf</code></dt>
-  <dd>Creates the PDF file under the <code>pdf</code> subdirectory at the <code>build</code> directory.</dd>
-  <dt><code>./build.sh txt</code></dt>
-  <dd>Creates the TXT file under the <code>txt</code> subdirectory at the <code>build</code> directory.</dd>
-  <dt><code>./build.sh</code></dt>
-  <dd>Is the same like <code>./build.sh html</code>.</dd>
-</dl>
-
-<h3>Postprocessing HTML</h3>
-<p>Unfortunately some DocBook tools generate quite a messy HTML. This is especially true for DSSSL-stylesheet
-based tools. When using such tools it is strongly recommended to run some tidying tool before
-releasing/uploading HTML manual.</p>
-
-<p>One good and free tool for tidying HTML is <a href="http://tidy.sourceforge.net/">HTML tidy</a>.</p>
-
-<p>To use HTML Tidy, open command prompt, go to folder where generated HTML files are and give a command:<br>
-<code>tidy -m file.html</code>.<br>
-Repeat for all HTML files. Or create a batch file to tidy them all. This of course assumes that HTML tidy is
-added to $PATH so it can be found when running from commandline.</p>
 </body>
 </html>

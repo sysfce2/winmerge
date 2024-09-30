@@ -29,31 +29,18 @@
  *
  */
 
-// RCS ID line follows -- this is updated by CVS
-// $Id: MergeCmdLineInfo.h 3986 2006-12-20 17:51:23Z kimmov $
-
-class CmdLineParser;
+// ID line follows -- this is updated by SVN
+// $Id: MergeCmdLineInfo.h 6042 2008-10-26 10:31:07Z jtuc $
 
 /** 
  * @brief WinMerge's command line handler.
- *
+ * This class calls command line parser(s) and allows reading parsed values
+ * from public member variables.
  */
-class MergeCmdLineInfo : public CCommandLineInfo
+class MergeCmdLineInfo
 {
 public:
-
-	/** @brief ClearCaseCmdLineParser's constructor.
-	 *
-	 * @param [in] szFileName Executable file name. Required in order to
-	 *	know which command line parser to create and use.
-	 *
-	 */
-	MergeCmdLineInfo(const TCHAR *szExeName);
-
-	~MergeCmdLineInfo();
-
-	/** @brief Override CCommandLineInfo's method. */
-	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
+	MergeCmdLineInfo(LPCTSTR);
 
 public:
 
@@ -64,32 +51,29 @@ public:
 	bool m_bExitIfNoDiff; /**< Exit after telling the user that files are identical. */
 	bool m_bRecurse; /**< Include sub folder in directories compare. */
 	bool m_bNonInteractive; /**< Suppress user's notifications. */
-	bool m_bNoPrefs; /**< Do not load or remember preferences. */
 	bool m_bSingleInstance; /**< Allow only one instance of WinMerge executable. */
 	bool m_bShowUsage; /**< Show a brief reminder to command line arguments. */
 
 	DWORD m_dwLeftFlags; /**< Left side file's behavior options. */
 	DWORD m_dwRightFlags; /**< Right side file's behavior options. */
 
-	CString m_sLeftDesc; /**< Left side file's description. */
-	CString m_sRightDesc; /**< Right side file's description. */
+	String m_sLeftDesc; /**< Left side file's description. */
+	String m_sRightDesc; /**< Right side file's description. */
 
-	CString m_sFileFilter; /**< File filter mask. */
-	CString m_sPreDiffer;
+	String m_sFileFilter; /**< File filter mask. */
+	String m_sPreDiffer; /**< Pre-differ name. */
 
-	/**< Command line arguments which are mapped to WinMerge's preferences. */
-	CMapStringToString m_Settings;
-
-	CStringArray m_Files; /**< Files (or directories) to compare. */
-
-	int m_nFiles; /**< Number of files (or directories) in m_Files. */
+	std::vector<String> m_Files; /**< Files (or directories) to compare. */
 
 private:
 
-	/**< operator= is not implemented. */
-	MergeCmdLineInfo& operator=(const MergeCmdLineInfo& rhs);
+	static LPCTSTR EatParam(LPCTSTR, String &, bool *flag = 0);
+	static LPCTSTR SetOption(LPCTSTR, LPCTSTR key, LPCTSTR value = _T("1"));
+	void ParseClearCaseCmdLine(LPCTSTR);
+	void ParseWinMergeCmdLine(LPCTSTR);
 
-	CmdLineParser *m_pCmdLineParser; /**< The command line parser instance. */
+	/** Operator= is not implemented. */
+	MergeCmdLineInfo& operator=(const MergeCmdLineInfo& rhs);
 };
 
 #endif // _MERGE_CMD_LINE_INFO_INCLUDED_

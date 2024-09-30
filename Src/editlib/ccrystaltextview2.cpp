@@ -42,7 +42,7 @@
  * @brief More functions for CCrystalTextView class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: ccrystaltextview2.cpp 5105 2008-03-03 15:32:04Z sdottaka $
+// $Id: ccrystaltextview2.cpp 5485 2008-06-16 08:05:58Z kimmov $
 
 #include "stdafx.h"
 #include "editcmd.h"
@@ -444,22 +444,6 @@ MovePgDn (BOOL bSelect)
 	SubLineCursorPosToTextPos( 
 		CPoint( m_nIdealCharPos, nSubLine ), m_ptCursorPos );
 
-	/*ORIGINAL
-	int nNewTopLine = m_nTopLine + GetScreenLines() - 1;
-	if (nNewTopLine >= GetLineCount())
-		nNewTopLine = GetLineCount() - 1;
-	if (m_nTopLine != nNewTopLine)
-	{
-		ScrollToLine(nNewTopLine);
-		UpdateSiblingScrollPos(TRUE);
-	}
-
-	m_ptCursorPos.y += GetScreenLines() - 1;
-	if (m_ptCursorPos.y >= GetLineCount())
-		m_ptCursorPos.y = GetLineCount() - 1;
-	if (m_ptCursorPos.x > GetLineLength(m_ptCursorPos.y))
-		m_ptCursorPos.x = GetLineLength(m_ptCursorPos.y);
-	*///END SW
   m_nIdealCharPos = CalculateActualOffset (m_ptCursorPos.y, m_ptCursorPos.x);
   EnsureVisible (m_ptCursorPos);    //todo: no vertical scroll
 
@@ -723,7 +707,6 @@ OnMouseMove (UINT nFlags, CPoint point)
               if (ptNewCursorPos.y < m_ptAnchor.y ||
                     ptNewCursorPos.y == m_ptAnchor.y && ptNewCursorPos.x < m_ptAnchor.x)
                 {
-					//BEGIN SW
 					CPoint	pos;
 					ptEnd = m_ptAnchor;
 					CharPosToPoint( ptEnd.y, ptEnd.x, pos );
@@ -738,25 +721,11 @@ OnMouseMove (UINT nFlags, CPoint point)
 					}
 					CharPosToPoint( ptNewCursorPos.y, ptNewCursorPos.x, pos );
 					ptNewCursorPos.x = SubLineHomeToCharPos( ptNewCursorPos.y, pos.y );
-					/*ORIGINAL
-					ptEnd = m_ptAnchor;
-					if (ptEnd.y == GetLineCount() - 1)
-					{
-						ptEnd.x = GetLineLength(ptEnd.y);
-					}
-					else
-					{
-						ptEnd.y ++;
-						ptEnd.x = 0;
-					}
-					ptNewCursorPos.x = 0;
-					*///END SW
                   m_ptCursorPos = ptNewCursorPos;
                 }
               else
                 {
                   ptEnd = m_ptAnchor;
-					//BEGIN SW
 
 					CPoint	pos;
 					CharPosToPoint( ptEnd.y, ptEnd.x, pos );
@@ -778,20 +747,6 @@ OnMouseMove (UINT nFlags, CPoint point)
 					GetLineBySubLine( GetSubLineIndex( m_ptCursorPos.y ) + pos.y, nLine, nSubLine );
 					m_ptCursorPos.y = nLine;
 					m_ptCursorPos.x = SubLineHomeToCharPos( nLine, nSubLine );
-					/*ORIGINAL
-					ptEnd.x = 0;
-					m_ptCursorPos = ptNewCursorPos;
-					if (ptNewCursorPos.y == GetLineCount() - 1)
-					{
-						ptNewCursorPos.x = GetLineLength(ptNewCursorPos.y);
-					}
-					else
-					{
-						ptNewCursorPos.y ++;
-						ptNewCursorPos.x = 0;
-					}
-					m_ptCursorPos.x = 0;
-					*///END SW
                 }
               UpdateCaret ();
               SetSelection (ptNewCursorPos, ptEnd);
@@ -886,19 +841,6 @@ OnLButtonUp (UINT nFlags, CPoint point)
 				}
 				CharPosToPoint( ptNewCursorPos.y, ptNewCursorPos.x, pos );
 				ptNewCursorPos.x = SubLineHomeToCharPos( ptNewCursorPos.y, pos.y );
-				/*ORIGINAL
-				ptEnd = m_ptAnchor;
-				if (ptEnd.y == GetLineCount() - 1)
-				{
-					ptEnd.x = GetLineLength(ptEnd.y);
-				}
-				else
-				{
-					ptEnd.y ++;
-					ptEnd.x = 0;
-				}
-				ptNewCursorPos.x = 0;
-				*///END SW
               m_ptCursorPos = ptNewCursorPos;
             }
           else
@@ -922,20 +864,6 @@ OnLButtonUp (UINT nFlags, CPoint point)
 					ptNewCursorPos.x = SubLineHomeToCharPos( nLine, nSubLine );
 				}
 				m_ptCursorPos = ptNewCursorPos;
-				/*ORIGINAL
-				ptEnd.x = 0;
-				m_ptCursorPos = ptNewCursorPos;
-				if (ptNewCursorPos.y == GetLineCount() - 1)
-				{
-					ptNewCursorPos.x = GetLineLength(ptNewCursorPos.y);
-				}
-				else
-				{
-					ptNewCursorPos.y ++;
-					ptNewCursorPos.x = 0;
-				}
-              m_ptCursorPos = ptNewCursorPos;
-				*///END SW
             }
           EnsureVisible (m_ptCursorPos);
           UpdateCaret ();
@@ -1242,20 +1170,9 @@ GetFromClipboard (CString & text)
                 memcpy(text.GetBufferSetLength(cchText), pszData, cbData);
               GlobalUnlock (hData);
               bSuccess = TRUE;
-              BOOL bWinMergeClipboardFormat = FALSE;
-              UINT nFormat = 0;
-              UINT nWinMergeClipboardFormat = RegisterClipboardFormat (_T("WinMergeClipboard"));
-              while (nFormat = EnumClipboardFormats (nFormat))
-                {
-                  if (nFormat == nWinMergeClipboardFormat)
-                    bWinMergeClipboardFormat = TRUE;
-                }
-              if (!bWinMergeClipboardFormat)
-                {
-                  // truncate the data after the first null
-                  CString tmp = (LPCTSTR)text;
-                  text = tmp;
-                }
+              // If in doubt, assume zero-terminated string
+              if (!IsClipboardFormatAvailable (RegisterClipboardFormat (_T("WinMergeClipboard"))))
+                text.ReleaseBuffer();
             }
         }
       CloseClipboard ();

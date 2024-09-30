@@ -4,9 +4,11 @@
  * @brief Path handling routines
  */
 // ID line follows -- this is updated by SVN
-// $Id: paths.cpp 5302 2008-04-16 13:00:41Z kimmov $
+// $Id: paths.cpp 5323 2008-04-23 15:13:44Z kimmov $
 
-#include "stdafx.h"
+#include <windows.h>
+#include <tchar.h>
+#include <assert.h>
 #include "paths.h"
 #include <direct.h>
 #include <mbctype.h> // MBCS (multibyte codepage stuff)
@@ -408,11 +410,13 @@ BOOL paths_IsShortcut(LPCTSTR inPath)
  */
 String ExpandShortcut(const String &inFile)
 {
+	assert(inFile != _T(""));
+
+	// No path, nothing to return
+	if (inFile == _T(""))
+		return _T("");
+
 	String outFile;
-
-	// Make sure we have a path
-	ASSERT(inFile != _T(""));
-
 	IShellLink* psl;
 	HRESULT hres;
 
@@ -426,10 +430,15 @@ String ExpandShortcut(const String &inFile)
 		hres = psl->QueryInterface(IID_IPersistFile, (LPVOID*) &ppf);
 		if (SUCCEEDED(hres))
 		{
-			USES_CONVERSION;
-			LPCTSTR szFile = inFile.c_str();
+			WCHAR wsz[MAX_PATH];
+#ifdef _UNICODE
+			wcsncpy((wchar_t *)wsz, inFile.c_str(), sizeof(wsz) / sizeof(WCHAR));
+#else
+			::MultiByteToWideChar(CP_ACP, 0, inFile.c_str(), -1, wsz, MAX_PATH);
+#endif
+
 			// Load shortcut
-			hres = ppf->Load(T2CW(szFile), STGM_READ);
+			hres = ppf->Load(wsz, STGM_READ);
 
 			if (SUCCEEDED(hres))
 			{
@@ -589,43 +598,4 @@ String paths_EnsurePathExist(const String & sPath)
 		return sPath;
 	else
 		return _T("");
-}
-
-/**
- * @brief Get Windows directory.
- * @return Windows directory.
- */
-String paths_GetWindowsDirectory()
-{
-	TCHAR buf[MAX_PATH] = {0};
-	GetWindowsDirectory(buf, MAX_PATH);
-	return buf;
-}
-
-/**
- * @brief Return User's My Documents Folder.
- * This function returns full path to User's My Documents -folder.
- * @param [in] hWindow Parent window.
- * @return Full path to My Documents -folder.
- */
-String paths_GetMyDocuments(HWND hWindow)
-{
-	LPITEMIDLIST pidl;
-	LPMALLOC pMalloc;
-	String path;
-
-	HRESULT rv = SHGetSpecialFolderLocation(hWindow, CSIDL_PERSONAL, &pidl);
-	if (rv == S_OK)
-	{
-		TCHAR szPath[MAX_PATH] = {0};
-		if (SHGetPathFromIDList(pidl, szPath))
-		{
-			path = szPath;
-		}
-
-		SHGetMalloc(&pMalloc);
-		pMalloc->Free(pidl);
-		pMalloc->Release();
-	}
-	return path;
 }

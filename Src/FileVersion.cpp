@@ -4,7 +4,7 @@
  * @brief Implementation for FileVersion
  */
 // ID line follows -- this is updated by SVN
-// $Id: FileVersion.cpp 4592 2007-10-05 14:38:43Z kimmov $
+// $Id: FileVersion.cpp 5350 2008-05-21 13:30:03Z kimmov $
 
 #include "stdafx.h"
 #include "UnicodeString.h"
@@ -71,7 +71,7 @@ String FileVersion::GetFileVersionString()
 		return _T("");
 
 	TCHAR ver[30] = {0};
-	_stprintf(ver, _T("%u.%u.%u.%u"), HIWORD(m_fileVersionMS),
+	_sntprintf(ver, countof(ver), _T("%u.%u.%u.%u"), HIWORD(m_fileVersionMS),
 		LOWORD(m_fileVersionMS), HIWORD(m_fileVersionLS),
 		LOWORD(m_fileVersionLS));
 	return ver;
@@ -87,7 +87,7 @@ String FileVersion::GetProductVersionString()
 		return _T("0.0.0.0");
 
 	TCHAR ver[30] = {0};	
-	_stprintf(ver, _T("%u.%u.%u.%u"), HIWORD(m_productVersionMS),
+	_sntprintf(ver, countof(ver), _T("%u.%u.%u.%u"), HIWORD(m_productVersionMS),
 		LOWORD(m_productVersionMS), HIWORD(m_productVersionLS),
 		LOWORD(m_productVersionLS));
 	return ver;

@@ -4,7 +4,7 @@
  * @brief Implementation file for ByteCompare
  */
 // ID line follows -- this is updated by SVN
-// $Id: ByteCompare.cpp 5221 2008-03-31 15:21:35Z kimmov $
+// $Id: ByteCompare.cpp 5416 2008-06-03 15:37:48Z kimmov $
 
 #include "stdafx.h"
 #include <io.h>
@@ -119,7 +119,7 @@ int ByteCompare::CompareFiles(FileLocation *location)
 	// We could compare directly in UCS-2LE here, as an optimization, in that case
 	char buff[2][WMCMPBUFF]; // buffered access to files
 	int i;
-	int diffcode = 0;
+	UINT diffcode = 0;
 
 	// area of buffer currently holding data
 	__int64 bfstart[2]; // offset into buff[i] where current data resides

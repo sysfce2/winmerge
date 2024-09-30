@@ -4,13 +4,15 @@
  * @brief ClipBoard helper functions definitions.
  */
 // ID line follows -- this is updated by SVN
-// $Id: ClipBoard.h 4500 2007-09-02 14:27:18Z kimmov $
+// $Id: ClipBoard.h 5545 2008-06-30 01:45:21Z marcelgosselin $
 
 #ifndef _CLIPBOARD_H_
 #define _CLIPBOARD_H_
 
-BOOL PutToClipboard(LPCTSTR pszText, HWND currentWindowHandle);
-BOOL GetFromClipboard(CString & text, HWND currentWindowHandle);
-BOOL TextInClipboard();
+#include "UnicodeString.h"
+
+bool PutToClipboard(const String & text, HWND currentWindowHandle);
+bool GetFromClipboard(String & text, HWND currentWindowHandle);
+bool TextInClipboard();
 
 #endif // _CLIPBOARD_H_

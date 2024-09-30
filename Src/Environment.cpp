@@ -4,7 +4,7 @@
  * @brief Environment related routines.
  */
 // ID line follows -- this is updated by SVN
-// $Id: Environment.cpp 5042 2008-02-14 17:09:58Z kimmov $
+// $Id: Environment.cpp 5954 2008-09-14 14:25:53Z sdottaka $
 
 #include "stdafx.h"
 #include "paths.h"
@@ -45,6 +45,8 @@ LPCTSTR env_GetTempPath(int * pnerr)
 		else
 		{
 			strTempPath = GetOptionsMgr()->GetString(OPT_CUSTOM_TEMP_PATH);
+			if (!paths_EndsWithSlash(strTempPath.c_str()))
+				strTempPath += '\\';
 		}
 		strTempPath = paths_GetLongPath(strTempPath.c_str());
 	}
@@ -75,4 +77,43 @@ String env_GetTempFileName(LPCTSTR lpPathName, LPCTSTR lpPrefixString, int * pne
 		return _T("");
 	}
 	return buffer;
+}
+
+/**
+ * @brief Get Windows directory.
+ * @return Windows directory.
+ */
+String env_GetWindowsDirectory()
+{
+	TCHAR buf[MAX_PATH] = {0};
+	GetWindowsDirectory(buf, MAX_PATH);
+	return buf;
+}
+
+/**
+ * @brief Return User's My Documents Folder.
+ * This function returns full path to User's My Documents -folder.
+ * @param [in] hWindow Parent window.
+ * @return Full path to My Documents -folder.
+ */
+String env_GetMyDocuments(HWND hWindow)
+{
+	LPITEMIDLIST pidl;
+	LPMALLOC pMalloc;
+	String path;
+
+	HRESULT rv = SHGetSpecialFolderLocation(hWindow, CSIDL_PERSONAL, &pidl);
+	if (rv == S_OK)
+	{
+		TCHAR szPath[MAX_PATH] = {0};
+		if (SHGetPathFromIDList(pidl, szPath))
+		{
+			path = szPath;
+		}
+
+		SHGetMalloc(&pMalloc);
+		pMalloc->Free(pidl);
+		pMalloc->Release();
+	}
+	return path;
 }

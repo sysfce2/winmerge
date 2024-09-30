@@ -2,7 +2,7 @@
   include('../page.inc');
 
   $page = new Page;
-  //$page->addRssFeed('status_branch_rss.php', 'Translations Status (Branch)');
+  $page->addRssFeed('status_branch_rss.php', 'Translations Status (Branch)');
   $page->addRssFeed('status_trunk_rss.php', 'Translations Status (Trunk)');
   $page->printHead('WinMerge: Translations', TAB_TRANSLATIONS);
 ?>
@@ -23,12 +23,12 @@
 ?>
 <p>To change languages, select the desired language from the <em>View-&gt;Languages</em> menu choice.</p>
 <h3>Translating</h3>
-<p>If you would like to update any of these translations or add another translation, then please follow <a href="http://winmerge.svn.sourceforge.net/viewvc/*checkout*/winmerge/trunk/Docs/Developers/Translations.html">these instructions</a>.</p>
+<p>If you would like to update any of these translations or add another translation, then please follow <a href="instructions.php">these instructions</a>.<br />
+You can find a more technical view about the <a href="http://winmerge.org/Wiki/Translation_System">translation system</a> in our <a href="http://winmerge.org/Wiki/">Developer Wiki</a>.</p>
 <h3>Status</h3>
 <p>The following two pages inform you about the translations status of the stable and developer version of WinMerge:</p>
 <ul>
-  <li><a href="http://winmerge.org/Wiki/Translations">Stable Version (Branch)</a></li>
-  <!--<li><a href="status_branch.php">Stable Version (Branch)</a> <?php $page->printRssFeedLink('status_branch_rss.php'); ?></li>-->
+  <li><a href="status_branch.php">Stable Version (Branch)</a> <?php $page->printRssFeedLink('status_branch_rss.php'); ?></li>
   <li><a href="status_trunk.php">Developer Version (Trunk)</a> <?php $page->printRssFeedLink('status_trunk_rss.php'); ?></li>
 </ul>
 <?php

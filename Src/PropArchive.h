@@ -4,17 +4,14 @@
  * @brief Declaration file for CPropArchive propertyheet
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PropArchive.h 3126 2006-03-04 02:36:46Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: PropArchive.h 5444 2008-06-07 06:48:49Z kimmov $
 
 #ifndef _PROP_ARCHIVE_H_
 #define _PROP_ARCHIVE_H_
 
 #include "StatLink.h"
-
-#ifndef _IOPTIONSPANEL_H_
 #include "IOptionsPanel.h"
-#endif
 
 class COptionsMgr;
 

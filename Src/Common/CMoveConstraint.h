@@ -17,15 +17,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #ifndef CMoveConstraint_h
 #define CMoveConstraint_h
 
-#ifndef __AFXTEMPL_H__
 #include <afxtempl.h>
-#endif
 
 class CFormView;
 
 namespace prdlg {
-
-class ConstraintData;
 
 /*!
   \class CMoveConstraint
@@ -259,4 +255,5 @@ private:
 } // namespace
 
 #endif // CMoveConstraint_h
+
 

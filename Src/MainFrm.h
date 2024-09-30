@@ -24,7 +24,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: MainFrm.h 5452 2008-06-09 21:18:32Z kimmov $
+// $Id: MainFrm.h 5924 2008-09-07 22:25:05Z sdottaka $
 
 #if !defined(AFX_MAINFRM_H__BBCD4F8C_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MAINFRM_H__BBCD4F8C_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -62,6 +62,16 @@ enum
 	VCS_CLEARCASE,
 };
 
+/**
+ * @brief Frame/View/Document types.
+ */
+enum FRAMETYPE
+{
+	FRAME_FOLDER, /**< Folder compare frame. */
+	FRAME_FILE, /**< File compare frame. */
+	FRAME_OTHER, /**< No frame? */
+};
+
 enum { WM_NONINTERACTIVE = 888 }; // timer value
 
 class BCMenu;
@@ -77,9 +87,6 @@ class TempFile;
 
 
 // typed lists (homogenous pointer lists)
-typedef CTypedPtrList<CPtrList, CMergeEditView *> MergeEditViewList;
-typedef CTypedPtrList<CPtrList, CMergeDiffDetailView *> MergeDetailViewList;
-typedef CTypedPtrList<CPtrList, CDirView *> DirViewList;
 typedef CTypedPtrList<CPtrList, CMergeDoc *> MergeDocList;
 typedef CTypedPtrList<CPtrList, CDirDoc *> DirDocList;
 
@@ -101,7 +108,7 @@ public:
 	BOOL m_bShowErrors; /**< Show folder compare error items? */
 	LOGFONT m_lfDiff; /**< MergeView user-selected font */
 	LOGFONT m_lfDir; /**< DirView user-selected font */
-
+	static const TCHAR szClassName[];
 // Operations
 public:
 	HMENU NewDirViewMenu();
@@ -123,20 +130,20 @@ public:
 	CString SetStatus(LPCTSTR status);
 	void ClearStatusbarItemCount();
 	void ApplyViewWhitespace();
-	void OpenFileToExternalEditor(LPCTSTR file);
 	void SetEOLMixed(BOOL bAllow);
 	void SelectFilter();
 	void ShowVSSError(CException *e, LPCTSTR strItem);
 	void ShowHelp(LPCTSTR helpLocation = NULL);
 	void UpdateCodepageModule();
-	void GetDirViews(DirViewList * pDirViews);
-	void GetMergeEditViews(MergeEditViewList * pMergeViews);
 	void CheckinToClearCase(CString strDestinationPath);
 	static void CenterToMainFrame(CDialog * dlg);
 	static void SetMainIcon(CDialog * dlg);
 	void StartFlashing();
 	bool AskCloseConfirmation();
-	BOOL DoOpenConflict(LPCTSTR conflictFile);
+	BOOL DoOpenConflict(LPCTSTR conflictFile, bool checked = false);
+	FRAMETYPE GetFrameType(const CFrameWnd * pFrame) const;
+
+	static void OpenFileToExternalEditor(LPCTSTR file);
 
 // Overrides
 	virtual void GetMessageString(UINT nID, CString& rMessage) const;
@@ -317,7 +324,6 @@ protected:
 	afx_msg void OnUpdateWindowCloseAll(CCmdUI* pCmdUI);
 	afx_msg void OnSaveProject();
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
-	afx_msg void OnNcDestroy();
 	afx_msg void OnDebugResetOptions();
 	afx_msg void OnToolbarNone();
 	afx_msg void OnUpdateToolbarNone(CCmdUI* pCmdUI);
@@ -326,14 +332,17 @@ protected:
 	afx_msg void OnToolbarBig();
 	afx_msg void OnUpdateToolbarBig(CCmdUI* pCmdUI);
 	afx_msg BOOL OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnHelpReleasenotes();
+	afx_msg void OnHelpTranslations();
+	afx_msg void OnFileOpenConflict();
+	afx_msg void OnPluginsList();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
 private:
 	void addToMru(LPCTSTR szItem, LPCTSTR szRegSubKey, UINT nMaxItems = 20);
-	void GetAllViews(MergeEditViewList * pEditViews, MergeDetailViewList * pDetailViews, DirViewList * pDirViews);
-	void GetAllMergeDocs(MergeDocList * pMergeDocs);
-	void GetAllDirDocs(DirDocList * pDirDocs);
+	const MergeDocList &GetAllMergeDocs();
+	const DirDocList &GetAllDirDocs();
 	BOOL IsComparing();
 	void RedisplayAllDirDocs();
 	CMergeDoc * GetMergeDocToShow(CDirDoc * pDirDoc, BOOL * pNew);
@@ -344,10 +353,6 @@ private:
 	CMergeEditView * GetActiveMergeEditView();
 	void LoadToolbarImages();
 	HMENU NewMenu( int view, int ID );
-public:
-	afx_msg void OnHelpReleasenotes();
-	afx_msg void OnHelpTranslations();
-	afx_msg void OnFileOpenConflict();
 };
 
 CMainFrame * GetMainFrame(); // access to the singleton main frame object

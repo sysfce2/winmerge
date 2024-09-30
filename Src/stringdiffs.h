@@ -5,10 +5,12 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: stringdiffs.h 2953 2006-01-17 04:31:41Z elsapo $
+// $Id: stringdiffs.h 5459 2008-06-10 16:49:30Z kimmov $
 
 #ifndef stringdiffs_h_included
 #define stringdiffs_h_included
+
+#include <vector>
 
 /** @brief One difference between two strings */
 struct wdiff {
@@ -32,14 +34,12 @@ struct wdiff {
 		}
 	}
 };
-typedef CArray<wdiff, wdiff&> wdiffarray; /**< An array of differences between two strings */
 
+void sd_ComputeWordDiffs(const String & str1, const String & str2,
+		bool case_sensitive, int whitespace, int breakType, bool byte_level,
+		std::vector<wdiff*> * pDiffs);
 
-void sd_ComputeWordDiffs(const CString & str1, const CString & str2,
-                   bool case_sensitive, int whitespace, int breakType, bool byte_level,
-                   wdiffarray * pDiffs);
-
-void sd_ComputeByteDiff(CString & str1, CString & str2, 
+void sd_ComputeByteDiff(String & str1, CString & str2, 
 			bool casitive, int xwhite, 
 			int &begin1, int &begin2, int &end1, int &end2);
 

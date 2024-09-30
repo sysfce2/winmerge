@@ -24,7 +24,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: OpenDlg.h 5310 2008-04-19 07:44:50Z kimmov $
+// $Id: OpenDlg.h 5444 2008-06-07 06:48:49Z kimmov $
 
 #if !defined(AFX_OPENDLG_H__69FB0D77_2A05_11D1_BA92_00A024706EDC__INCLUDED_)
 #define AFX_OPENDLG_H__69FB0D77_2A05_11D1_BA92_00A024706EDC__INCLUDED_
@@ -33,10 +33,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // COpenDlg dialog
 #include "SuperComboBox.h"
-
-#ifndef CMoveConstraint_h
 #include "CMoveConstraint.h"
-#endif
 #include "FileTransform.h"
 
 class ProjectFile;
@@ -100,7 +97,7 @@ private:
 protected:
 	void SetStatus(UINT msgID);
 	void SetUnpackerStatus(UINT msgID);
-	BOOL LoadProjectFile(CString path);
+	BOOL LoadProjectFile(const CString &path);
 	void TrimPaths();
 
 	// Generated message map functions

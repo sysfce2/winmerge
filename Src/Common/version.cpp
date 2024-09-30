@@ -4,7 +4,7 @@
  *  @brief Implementation of CVersionInfo class
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: version.cpp 4592 2007-10-05 14:38:43Z kimmov $
+// $Id: version.cpp 5350 2008-05-21 13:30:03Z kimmov $
 
 
 #include "stdafx.h"
@@ -353,7 +353,7 @@ void CVersionInfo::QueryValue(LPCTSTR szId, CString& s)
 	BOOL    bRetCode;
 
 	TCHAR szSelector[256];
-	_stprintf(szSelector,_T("\\StringFileInfo\\%s%s\\%s"),
+	_sntprintf(szSelector, countof(szSelector), _T("\\StringFileInfo\\%s%s\\%s"),
 			m_strLanguage, m_strCodepage, szId);
 	bRetCode = VerQueryValue((LPVOID)m_pVffInfo,
 		szSelector,

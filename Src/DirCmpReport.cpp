@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirCmpReport.cpp 4778 2007-11-20 21:33:49Z gerundt $
+// $Id: DirCmpReport.cpp 5815 2008-08-17 17:33:10Z sdottaka $
 //
 
 #include "stdafx.h"
@@ -16,6 +16,7 @@
 #include "coretools.h"
 #include "WaitStatusCursor.h"
 #include "paths.h"
+#include "AnsiConvert.h"
 #include <afxadv.h>
 
 UINT CF_HTML = RegisterClipboardFormat(_T("HTML Format"));
@@ -222,8 +223,8 @@ void DirCmpReport::GenerateReport(REPORT_TYPE nReportType)
  */
 void DirCmpReport::WriteString(LPCTSTR pszText)
 {
-	USES_CONVERSION;
-	LPCSTR pchOctets = T2A((LPTSTR)pszText);
+	LPCSTR pchOctets = ansiconvert_ThreadCP(pszText);
+	void *pvOctets = const_cast<char *>(pchOctets);
 	size_t cchAhead = strlen(pchOctets);
 	while (LPCSTR pchAhead = (LPCSTR)memchr(pchOctets, '\n', cchAhead))
 	{
@@ -236,6 +237,7 @@ void DirCmpReport::WriteString(LPCTSTR pszText)
 		cchAhead -= cchLine;
 	}
 	m_pFile->Write(pchOctets, cchAhead);
+	free(pvOctets);
 }
 
 /**
@@ -432,4 +434,5 @@ void DirCmpReport::GenerateXmlFooter()
 {
 	WriteString(_T("</WinMergeDiffReport>\n"));
 }
+
 

@@ -50,6 +50,7 @@ Localization:
 
 * Dutch:
   Michel Coene
+  Thomas De Rocker
   Ronald Schaap
 
 * French:	
@@ -57,7 +58,10 @@ Localization:
   Gil Andre 
   Laurent Ganier
   Matthieu Pupat
-    
+
+* Galician:
+  Medulio
+
 * German:	
   Tim Gerundt
   Winfried Peter
@@ -134,6 +138,7 @@ Other Contributors (code, ideas, testing..):
 * Marvin Gouw
 * Robert Grange
 * Jan Hryz
+* jwdevel
 * Ed_K
 * Alberto Kalb
 * Robert Knienider
@@ -148,6 +153,8 @@ Other Contributors (code, ideas, testing..):
 * Andreas Morsing
 * Ryan Mott
 * Tim Musschoot
+* Marco De Paoli
+* Chris Paulse
 * Dan Pidcock
 * Vincent Osele
 * Scott Rasmussen
@@ -167,6 +174,7 @@ WinMerge includes code from:
 * Michael P. Mehl (CMessageBoxDialog)
 * Cristi Posea (CSizingControlBar)
 * Ferdinand Prantl (CrystalEditor syntax rules)
+* Keith Rule (CMemDC - memory DC)
 * Henry Spencer (CRegExp)
 * Andrei Stcherbatchenko (CrystalEditor)
 

@@ -336,6 +336,7 @@ CzechLanguage=Tjeckiska menyer och dialoger
 DanishLanguage=Danska menyer och dialoger
 DutchLanguage=Nederländska menyer och dialoger
 FrenchLanguage=Franska menyer och dialoger
+GalicianLanguage=Galiciska menyer och dialoger
 GermanLanguage=Tyska menyer och dialoger
 GreekLanguage=Grekiska menyer och dialoger
 HungarianLanguage=Ungerska menyer och dialoger

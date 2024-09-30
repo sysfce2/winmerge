@@ -4,12 +4,12 @@
  * @brief Declaration file for LineFiltersList class
  */
 // ID line follows -- this is updated by SVN
-// $Id: LineFiltersList.h 4999 2008-02-05 15:34:52Z kimmov $
+// $Id: LineFiltersList.h 5653 2008-07-21 19:28:48Z kimmov $
 
 #ifndef _LINEFILTERS_LIST_H_
 #define _LINEFILTERS_LIST_H_
 
-#include "stdafx.h"
+#include <vector>
 
 class COptionsMgr;
 
@@ -22,8 +22,6 @@ struct LineFilterItem
 	String filterStr; /**< Filter string */
 	LineFilterItem() : enabled(FALSE) { }
 };
-
-typedef CList<LineFilterItem, const LineFilterItem&> LineFilterItems;
 
 /**
  @brief List of line filters.
@@ -38,8 +36,9 @@ public:
 	int GetCount() const;
 	void Empty();
 	String GetAsString() const;
-	LineFilterItem GetAt(int ind);
-	void CloneFrom(LineFiltersList *list);
+	const LineFilterItem & GetAt(int ind) const;
+	void CloneFrom(const LineFiltersList *list);
+	bool Compare(const LineFiltersList *list) const;
 
 	void Initialize(COptionsMgr *pOptionsMgr);
 	void SaveFilters();
@@ -47,9 +46,8 @@ public:
 	void Import(LPCTSTR filters);
 
 private:
-	LineFilterItems m_items; /**< List for linefilter items */
+	std::vector<LineFilterItem*> m_items; /**< List for linefilter items */
 	COptionsMgr * m_pOptionsMgr; /**< Options-manager for storage */
 };
 
 #endif // _LINEFILTERS_LIST_H_
-
