@@ -4,7 +4,7 @@
  * @brief Declaration file for FilterList.
  */
 // ID line follows -- this is updated by SVN
-// $Id: FilterList.h 5027 2008-02-11 21:17:11Z sdottaka $
+// $Id: FilterList.h 7432 2010-11-18 14:16:08Z gerundt $
 
 #ifndef _FILTERLIST_H_
 #define _FILTERLIST_H_
@@ -48,7 +48,7 @@ public:
 	void AddRegExp(const char *regularExpression, EncodingType encoding);
 	void RemoveAllFilters();
 	bool HasRegExps();
-	bool Match(const char *string, int codepage = CP_UTF8);
+	bool Match(size_t stringlen, const char *string, int codepage = CP_UTF8);
 	const char * GetLastMatchExpression();
 
 private:

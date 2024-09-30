@@ -21,7 +21,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: AboutDlg.cpp 6142 2008-12-01 23:06:18Z kimmov $
+// $Id: AboutDlg.cpp 7447 2010-11-24 07:58:17Z gerundt $
 
 #include "stdafx.h"
 #include "Constants.h"
@@ -72,10 +72,8 @@ BOOL CAboutDlg::OnInitDialog()
 	CString sVersion = version.GetFixedProductVersion();
 	LangFormatString1(m_strVersion, IDS_VERSION_FMT, sVersion);
 
-#ifdef _UNICODE
 	m_strVersion += _T(" ");
 	m_strVersion += theApp.LoadString(IDS_UNICODE).c_str();
-#endif
 
 #ifdef WIN64
 	m_strVersion += _T(" ");

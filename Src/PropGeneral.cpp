@@ -21,17 +21,18 @@
 /** 
  * @file  PropGeneral.h
  *
- * @brief Implementation file for CPropGeneral propertyheet
+ * @brief Implementation file for PropGeneral propertyheet
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropGeneral.cpp 6359 2009-01-22 19:12:53Z kimmov $
+// $Id: PropGeneral.cpp 7501 2011-01-03 13:29:00Z gerundt $
 
 #include "stdafx.h"
 #include "merge.h"
 #include "PropGeneral.h"
 #include "OptionsDef.h"
 #include "OptionsMgr.h"
+#include "OptionsPanel.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -39,14 +40,11 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-/////////////////////////////////////////////////////////////////////////////
-// CPropGeneral property page
-
 /** 
  * @brief Constructor initialising members.
  */
-CPropGeneral::CPropGeneral(COptionsMgr *optionsMgr) : CPropertyPage(CPropGeneral::IDD)
-, m_pOptionsMgr(optionsMgr)
+PropGeneral::PropGeneral(COptionsMgr *optionsMgr) 
+: OptionsPanel(optionsMgr, PropGeneral::IDD)
 , m_bScroll(FALSE)
 , m_bDisableSplash(FALSE)
 , m_bSingleInstance(FALSE)
@@ -61,11 +59,11 @@ CPropGeneral::CPropGeneral(COptionsMgr *optionsMgr) : CPropertyPage(CPropGeneral
 {
 }
 
-CPropGeneral::~CPropGeneral()
+PropGeneral::~PropGeneral()
 {
 }
 
-BOOL CPropGeneral::OnInitDialog()
+BOOL PropGeneral::OnInitDialog()
 {
 	theApp.TranslateDialog(m_hWnd);
 	CPropertyPage::OnInitDialog();
@@ -82,10 +80,10 @@ BOOL CPropGeneral::OnInitDialog()
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
-void CPropGeneral::DoDataExchange(CDataExchange* pDX)
+void PropGeneral::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CPropGeneral)
+	//{{AFX_DATA_MAP(PropGeneral)
 	DDX_Check(pDX, IDC_SCROLL_CHECK, m_bScroll);
 	DDX_Check(pDX, IDC_DISABLE_SPLASH, m_bDisableSplash);
 	DDX_Check(pDX, IDC_SINGLE_INSTANCE, m_bSingleInstance);
@@ -101,8 +99,8 @@ void CPropGeneral::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(CPropGeneral, CPropertyPage)
-	//{{AFX_MSG_MAP(CPropGeneral)
+BEGIN_MESSAGE_MAP(PropGeneral, CPropertyPage)
+	//{{AFX_MSG_MAP(PropGeneral)
 	ON_BN_CLICKED(IDC_RESET_ALL_MESSAGE_BOXES, OnResetAllMessageBoxes)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
@@ -110,46 +108,43 @@ END_MESSAGE_MAP()
 /** 
  * @brief Reads options values from storage to UI.
  */
-void CPropGeneral::ReadOptions()
+void PropGeneral::ReadOptions()
 {
-	m_bScroll = m_pOptionsMgr->GetBool(OPT_SCROLL_TO_FIRST);
-	m_bDisableSplash = m_pOptionsMgr->GetBool(OPT_DISABLE_SPLASH);
-	m_bSingleInstance = m_pOptionsMgr->GetBool(OPT_SINGLE_INSTANCE);
-	m_bVerifyPaths = m_pOptionsMgr->GetBool(OPT_VERIFY_OPEN_PATHS);
-	m_bCloseWindowWithEsc = m_pOptionsMgr->GetBool(OPT_CLOSE_WITH_ESC);
-	m_bAskMultiWindowClose = m_pOptionsMgr->GetBool(OPT_ASK_MULTIWINDOW_CLOSE);
-	m_bMultipleFileCmp = m_pOptionsMgr->GetBool(OPT_MULTIDOC_MERGEDOCS);
-	m_bMultipleDirCmp = m_pOptionsMgr->GetBool(OPT_MULTIDOC_DIRDOCS);
-	m_nAutoCompleteSource = m_pOptionsMgr->GetInt(OPT_AUTO_COMPLETE_SOURCE);
-	m_bPreserveFiletime = m_pOptionsMgr->GetBool(OPT_PRESERVE_FILETIMES);
-	m_bShowSelectFolderOnStartup = m_pOptionsMgr->GetBool(OPT_SHOW_SELECT_FILES_AT_STARTUP);
+	m_bScroll = GetOptionsMgr()->GetBool(OPT_SCROLL_TO_FIRST);
+	m_bDisableSplash = GetOptionsMgr()->GetBool(OPT_DISABLE_SPLASH);
+	m_bSingleInstance = GetOptionsMgr()->GetBool(OPT_SINGLE_INSTANCE);
+	m_bVerifyPaths = GetOptionsMgr()->GetBool(OPT_VERIFY_OPEN_PATHS);
+	m_bCloseWindowWithEsc = GetOptionsMgr()->GetBool(OPT_CLOSE_WITH_ESC);
+	m_bAskMultiWindowClose = GetOptionsMgr()->GetBool(OPT_ASK_MULTIWINDOW_CLOSE);
+	m_bMultipleFileCmp = GetOptionsMgr()->GetBool(OPT_MULTIDOC_MERGEDOCS);
+	m_bMultipleDirCmp = GetOptionsMgr()->GetBool(OPT_MULTIDOC_DIRDOCS);
+	m_nAutoCompleteSource = GetOptionsMgr()->GetInt(OPT_AUTO_COMPLETE_SOURCE);
+	m_bPreserveFiletime = GetOptionsMgr()->GetBool(OPT_PRESERVE_FILETIMES);
+	m_bShowSelectFolderOnStartup = GetOptionsMgr()->GetBool(OPT_SHOW_SELECT_FILES_AT_STARTUP);
 }
 
 /** 
  * @brief Writes options values from UI to storage.
  */
-void CPropGeneral::WriteOptions()
+void PropGeneral::WriteOptions()
 {
-	m_pOptionsMgr->SaveOption(OPT_SCROLL_TO_FIRST, m_bScroll == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_DISABLE_SPLASH, m_bDisableSplash == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_SINGLE_INSTANCE, m_bSingleInstance == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_VERIFY_OPEN_PATHS, m_bVerifyPaths == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_CLOSE_WITH_ESC, m_bCloseWindowWithEsc == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_ASK_MULTIWINDOW_CLOSE, m_bAskMultiWindowClose == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_MULTIDOC_MERGEDOCS, m_bMultipleFileCmp == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_MULTIDOC_DIRDOCS, m_bMultipleDirCmp == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_AUTO_COMPLETE_SOURCE, m_nAutoCompleteSource);
-	m_pOptionsMgr->SaveOption(OPT_PRESERVE_FILETIMES, m_bPreserveFiletime);
-	m_pOptionsMgr->SaveOption(OPT_SHOW_SELECT_FILES_AT_STARTUP, m_bShowSelectFolderOnStartup);
+	GetOptionsMgr()->SaveOption(OPT_SCROLL_TO_FIRST, m_bScroll == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_DISABLE_SPLASH, m_bDisableSplash == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_SINGLE_INSTANCE, m_bSingleInstance == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_VERIFY_OPEN_PATHS, m_bVerifyPaths == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_CLOSE_WITH_ESC, m_bCloseWindowWithEsc == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_ASK_MULTIWINDOW_CLOSE, m_bAskMultiWindowClose == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_MULTIDOC_MERGEDOCS, m_bMultipleFileCmp == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_MULTIDOC_DIRDOCS, m_bMultipleDirCmp == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_AUTO_COMPLETE_SOURCE, m_nAutoCompleteSource);
+	GetOptionsMgr()->SaveOption(OPT_PRESERVE_FILETIMES, m_bPreserveFiletime);
+	GetOptionsMgr()->SaveOption(OPT_SHOW_SELECT_FILES_AT_STARTUP, m_bShowSelectFolderOnStartup);
 }
-
-/////////////////////////////////////////////////////////////////////////////
-// CPropGeneral message handlers
 
 /** 
  * @brief Called when user wants to see all messageboxes again.
  */
-void CPropGeneral::OnResetAllMessageBoxes()
+void PropGeneral::OnResetAllMessageBoxes()
 {
 	CMessageBoxDialog::ResetMessageBoxes();
 	LangMessageBox(IDS_MESSAGE_BOX_ARE_RESET, MB_ICONINFORMATION);

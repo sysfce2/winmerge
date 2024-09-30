@@ -23,59 +23,12 @@
 //	stdafx.obj will contain the pre-compiled type information
 //
 // RCS ID line follows -- this is updated by CVS
-// $Id: StdAfx.cpp 5626 2008-07-16 08:24:27Z kimmov $
+// $Id: StdAfx.cpp 7452 2010-12-06 06:56:28Z gerundt $
 
 #include "stdafx.h"
 #include "LogFile.h"
 #include "Merge.h"
 
-// Convert any negative inputs to negative char equivalents
-// This is aimed at correcting any chars mistakenly 
-// sign-extended to negative ints.
-// This is ok for the UNICODE build because UCS-2LE code bytes
-// do not extend as high as 2Gig (actually even full Unicode
-// codepoints don't extend that high).
-static wint_t normch(wint_t c)
-{
-#ifdef _UNICODE
-	return (unsigned short)(short)c;
-#else
-	return (unsigned char)(char)c;
-#endif
-}
-
-/** @brief Return nonzero if input is outside ASCII or is underline. */
-int xisspecial (wint_t c)
-{
-  return normch(c) > (unsigned) _T ('\x7f') || c == _T ('_');
-}
-
-/**
- * @brief Return non-zero if input is alphabetic or "special" (see xisspecial).
- * Also converts any negative inputs to negative char equivalents (see normch).
- */
-int xisalpha (wint_t c)
-{
-  return _istalpha (normch(c)) || xisspecial (normch(c));
-}
-
-/**
- * @brief Return non-zero if input is alphanumeric or "special" (see xisspecial).
- * Also converts any negative inputs to negative char equivalents (see normch).
- */
-int xisalnum (wint_t c)
-{
-  return _istalnum (normch(c)) || xisspecial (normch(c));
-}
-
-/**
- * @brief Return non-zero if input character is a space.
- * Also converts any negative inputs to negative char equivalents (see normch).
- */
-int xisspace (wint_t c)
-{
-  return _istspace (normch(c));
-}
 
 /**
  * @brief Load string resource and return as CString.
@@ -194,28 +147,6 @@ CString Fmt(LPCTSTR fmt, ...)
 	str.FormatV(fmt, args);
 	va_end(args);
 	return str;
-}
-
-// Get appropriate clipboard format for TCHAR text
-int GetClipTcharTextFormat()
-{
-#ifdef _UNICODE
-	return CF_UNICODETEXT;
-#else
-	return CF_TEXT;
-#endif // _UNICODE
-}
-
-/**
- * @brief Return true if Unicode (16-bit) build
- */
-bool IsUnicodeBuild()
-{
-#ifdef UNICODE
-	return true;
-#else
-	return false;
-#endif
 }
 
 #if _MSC_VER <= 1310

@@ -1,28 +1,27 @@
 /** 
  * @file  PropArchive.h
  *
- * @brief Declaration file for CPropArchive propertyheet
+ * @brief Declaration file for PropArchive propertyheet
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropArchive.h 5444 2008-06-07 06:48:49Z kimmov $
+// $Id: PropArchive.h 7501 2011-01-03 13:29:00Z gerundt $
 
 #ifndef _PROP_ARCHIVE_H_
 #define _PROP_ARCHIVE_H_
 
 #include "StatLink.h"
-#include "IOptionsPanel.h"
+#include "OptionsPanel.h"
 
 class COptionsMgr;
 
 /** 
  * @brief Class for Archive Support options page.
  */
-class CPropArchive : public CPropertyPage
+class PropArchive : public OptionsPanel
 {
 public:
-	CPropArchive(COptionsMgr *optionsMgr);
-	virtual ~CPropArchive();
+	PropArchive(COptionsMgr *optionsMgr);
 
 // Implement IOptionsPanel
 	virtual void ReadOptions();
@@ -44,8 +43,5 @@ public:
 	BOOL m_bEnableSupport;
 	int m_nInstallType;
 	BOOL m_bProbeType;
-
-private:
-	COptionsMgr * m_pOptionsMgr; /**< Options-manager for storage */
 };
 #endif // _PROP_ARCHIVE_H_

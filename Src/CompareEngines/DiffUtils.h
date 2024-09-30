@@ -1,10 +1,10 @@
-/** 
+/**
  * @file  DiffUtils.h
  *
  * @brief Declaration of DiffUtils class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffUtils.h 5909 2008-09-07 03:19:44Z marcelgosselin $
+// $Id: DiffUtils.h 7327 2010-10-20 20:25:08Z gerundt $
 
 
 #ifndef _DIFF_UTILS_H_
@@ -41,7 +41,7 @@ public:
 	void GetDiffCounts(int & diffs, int & trivialDiffs);
 	void GetTextStats(int side, FileTextStats *stats);
 	bool Diff2Files(struct change ** diffs, int depth,
-		int * bin_status, bool bMovedBlocks, int * bin_file);
+			int * bin_status, bool bMovedBlocks, int * bin_file);
 	void SetCodepage(int codepage) { m_codepage = codepage; }
 
 protected:

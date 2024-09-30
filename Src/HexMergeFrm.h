@@ -24,11 +24,13 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: HexMergeFrm.h 5774 2008-08-09 09:21:52Z kimmov $
+// $Id: HexMergeFrm.h 7278 2010-09-24 06:25:00Z jtuc $
 
 #include "SplitterWndEx.h"
 #include "EditorFilepathBar.h"
-#include "../externals/heksedit/heksedit.h"
+
+#define HEKSEDIT_INTERFACE_VERSION 1
+#include "heksedit.h"
 
 class CHexMergeDoc;
 
@@ -67,6 +69,7 @@ public:
 	//{{AFX_VIRTUAL(CHexMergeFrame)
 	public:
 	virtual BOOL OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext);
+	virtual void ActivateFrame(int nCmdShow = -1);
 	virtual BOOL DestroyWindow();
 	protected:
 	//}}AFX_VIRTUAL
@@ -75,12 +78,11 @@ public:
 private:
 	void SavePosition();
 	virtual ~CHexMergeFrame();
-	void CreateHexWndStatusBar(CStatusBar &);
+	void CreateHexWndStatusBar(CStatusBar &, CWnd *);
 // Generated message map functions
 private:
 	int m_nLastSplitPos;
 	void UpdateHeaderSizes();
-	BOOL m_bActivated;
 	CHexMergeDoc * m_pMergeDoc;
 	HICON m_hIdentical;
 	HICON m_hDifferent;

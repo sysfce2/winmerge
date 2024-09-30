@@ -1,16 +1,17 @@
 /** 
  * @file  PropBackups.cpp
  *
- * @brief Implementation of CPropBackups propertysheet
+ * @brief Implementation of PropBackups propertysheet
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropBackups.cpp 6468 2009-02-16 21:47:33Z sdottaka $
+// $Id: PropBackups.cpp 7501 2011-01-03 13:29:00Z gerundt $
 
 #include "stdafx.h"
 #include "Merge.h"
 #include "PropBackups.h"
 #include "OptionsDef.h"
 #include "OptionsMgr.h"
+#include "OptionsPanel.h"
 #include "FileOrFolderSelect.h"
 
 #ifdef _DEBUG
@@ -19,16 +20,12 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-
-// CPropBackups dialog
-
 /** 
  * @brief Constructor taking OptionsManager parameter.
  * @param [in] optionsMgr Pointer to OptionsManager.
  */
-CPropBackups::CPropBackups(COptionsMgr *optionsMgr)
-	: CPropertyPage(CPropBackups::IDD)
-	, m_pOptionsMgr(optionsMgr)
+PropBackups::PropBackups(COptionsMgr *optionsMgr)
+	: OptionsPanel(optionsMgr, PropBackups::IDD)
 	, m_bCreateForFolderCmp(FALSE)
 	, m_bCreateForFileCmp(FALSE)
 	, m_bAppendBak(FALSE)
@@ -37,14 +34,7 @@ CPropBackups::CPropBackups(COptionsMgr *optionsMgr)
 {
 }
 
-/** 
- * @brief Destructor.
- */
-CPropBackups::~CPropBackups()
-{
-}
-
-void CPropBackups::DoDataExchange(CDataExchange* pDX)
+void PropBackups::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	DDX_Check(pDX, IDC_BACKUP_FOLDERCMP, m_bCreateForFolderCmp);
@@ -56,7 +46,7 @@ void CPropBackups::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(CPropBackups, CPropertyPage)
+BEGIN_MESSAGE_MAP(PropBackups, CPropertyPage)
 	ON_BN_CLICKED(IDC_BACKUP_BROWSE, OnBnClickedBackupBrowse)
 END_MESSAGE_MAP()
 
@@ -64,20 +54,20 @@ END_MESSAGE_MAP()
 /** 
  * @brief Reads options values from storage to UI.
  */
-void CPropBackups::ReadOptions()
+void PropBackups::ReadOptions()
 {
-	m_bCreateForFolderCmp = m_pOptionsMgr->GetBool(OPT_BACKUP_FOLDERCMP);
-	m_bCreateForFileCmp = m_pOptionsMgr->GetBool(OPT_BACKUP_FILECMP);
-	m_nBackupFolder = m_pOptionsMgr->GetInt(OPT_BACKUP_LOCATION);
-	m_sGlobalFolder = m_pOptionsMgr->GetString(OPT_BACKUP_GLOBALFOLDER).c_str();
-	m_bAppendBak = m_pOptionsMgr->GetBool(OPT_BACKUP_ADD_BAK);
-	m_bAppendTime = m_pOptionsMgr->GetBool(OPT_BACKUP_ADD_TIME);
+	m_bCreateForFolderCmp = GetOptionsMgr()->GetBool(OPT_BACKUP_FOLDERCMP);
+	m_bCreateForFileCmp = GetOptionsMgr()->GetBool(OPT_BACKUP_FILECMP);
+	m_nBackupFolder = GetOptionsMgr()->GetInt(OPT_BACKUP_LOCATION);
+	m_sGlobalFolder = GetOptionsMgr()->GetString(OPT_BACKUP_GLOBALFOLDER).c_str();
+	m_bAppendBak = GetOptionsMgr()->GetBool(OPT_BACKUP_ADD_BAK);
+	m_bAppendTime = GetOptionsMgr()->GetBool(OPT_BACKUP_ADD_TIME);
 }
 
 /** 
  * @brief Writes options values from UI to storage.
  */
-void CPropBackups::WriteOptions()
+void PropBackups::WriteOptions()
 {
 	m_sGlobalFolder.TrimLeft();
 	m_sGlobalFolder.TrimRight();
@@ -87,18 +77,18 @@ void CPropBackups::WriteOptions()
 		m_sGlobalFolder += "\\";
 	}
 
-	m_pOptionsMgr->SaveOption(OPT_BACKUP_FOLDERCMP, m_bCreateForFolderCmp == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_BACKUP_FILECMP, m_bCreateForFileCmp == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_BACKUP_LOCATION, m_nBackupFolder);
-	m_pOptionsMgr->SaveOption(OPT_BACKUP_GLOBALFOLDER, m_sGlobalFolder);
-	m_pOptionsMgr->SaveOption(OPT_BACKUP_ADD_BAK, m_bAppendBak == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_BACKUP_ADD_TIME, m_bAppendTime == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_BACKUP_FOLDERCMP, m_bCreateForFolderCmp == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_BACKUP_FILECMP, m_bCreateForFileCmp == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_BACKUP_LOCATION, m_nBackupFolder);
+	GetOptionsMgr()->SaveOption(OPT_BACKUP_GLOBALFOLDER, m_sGlobalFolder);
+	GetOptionsMgr()->SaveOption(OPT_BACKUP_ADD_BAK, m_bAppendBak == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_BACKUP_ADD_TIME, m_bAppendTime == TRUE);
 }
 
 /** 
  * @brief Called before propertysheet is drawn.
  */
-BOOL CPropBackups::OnInitDialog()
+BOOL PropBackups::OnInitDialog()
 {
 	theApp.TranslateDialog(m_hWnd);
     CPropertyPage::OnInitDialog();
@@ -110,10 +100,10 @@ BOOL CPropBackups::OnInitDialog()
 /** 
  * @brief Called when user selects Browse-button.
  */
-void CPropBackups::OnBnClickedBackupBrowse()
+void PropBackups::OnBnClickedBackupBrowse()
 {
 	CString path;
-	if (SelectFolder(path, NULL, 0, GetSafeHwnd()))
+	if (SelectFolder(path, m_sGlobalFolder, 0, GetSafeHwnd()))
 	{
 		SetDlgItemText(IDC_BACKUP_FOLDER, path);
 	}

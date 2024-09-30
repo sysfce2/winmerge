@@ -1,6 +1,6 @@
 //Microsoft Developer Studio generated resource script.
 //
-// $Id: ShellExtension.rc 6494M 2009-06-09 11:24:12Z (local) $
+// $Id: ShellExtension.rc 7587M 2013-02-02 21:37:16Z (local) $
 
 #include "resource.h"
 
@@ -43,6 +43,14 @@ END
 3 TEXTINCLUDE
 BEGIN
     "1 TYPELIB ""ShellExtension.tlb""\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_EUQ)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE LANG_BASQUE, SUBLANG_DEFAULT\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#include ""Languages\\ShellExtensionBasque.rc""\r\n"
+    "#endif //_WIN32\r\n"
+    "#endif\r\n"
     "\r\n"
     "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_PTB)\r\n"
     "#ifdef _WIN32\r\n"
@@ -188,6 +196,14 @@ BEGIN
     "#endif //_WIN32\r\n"
     "#endif\r\n"
     "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FAR)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE LANG_FARSI, SUBLANG_NEUTRAL\r\n"
+    "#pragma code_page(1256)\r\n"
+    "#include ""Languages\\ShellExtensionPersian.rc""\r\n"
+    "#endif //_WIN32\r\n"
+    "#endif\r\n"
+    "\r\n"
     "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_PLK)\r\n"
     "#ifdef _WIN32\r\n"
     "LANGUAGE LANG_POLISH, SUBLANG_DEFAULT\r\n"
@@ -220,11 +236,27 @@ BEGIN
     "#endif //_WIN32\r\n"
     "#endif\r\n"
     "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_SER)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE LANG_SERBIAN, SUBLANG_SERBIAN_CYRILLIC\r\n"
+    "#pragma code_page(1251)\r\n"
+    "#include ""Languages\\ShellExtensionSerbian.rc""\r\n"
+    "#endif //_WIN32\r\n"
+    "#endif\r\n"
+    "\r\n"
     "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_SKY)\r\n"
     "#ifdef _WIN32\r\n"
     "LANGUAGE LANG_SLOVAK, SUBLANG_DEFAULT\r\n"
     "#pragma code_page(1250)\r\n"
     "#include ""Languages\\ShellExtensionSlovak.rc""\r\n"
+    "#endif //_WIN32\r\n"
+    "#endif\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_SLV)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE LANG_SLOVENIAN, SUBLANG_DEFAULT\r\n"
+    "#pragma code_page(1250)\r\n"
+    "#include ""Languages\\ShellExtensionSlovenian.rc""\r\n"
     "#endif //_WIN32\r\n"
     "#endif\r\n"
     "\r\n"
@@ -272,8 +304,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,15,2,0
- PRODUCTVERSION 1,15,2,0
+ FILEVERSION 1,16,8,0
+ PRODUCTVERSION 1,16,8,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -291,15 +323,15 @@ BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "http://winmerge.org\0"
             VALUE "FileDescription", "WinMerge Shell Integration library\0"
-            VALUE "FileVersion", "1.15.2\0"
+            VALUE "FileVersion", "1.16.8\0"
             VALUE "InternalName", "ShellExtension\0"
-            VALUE "LegalCopyright", "Copyright 2003-2008\0"
+            VALUE "LegalCopyright", "Copyright 2003-2013\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OLESelfRegister", "\0"
             VALUE "OriginalFilename", "ShellExtension.DLL\0"
             VALUE "PrivateBuild", "\0"
             VALUE "ProductName", "WinMerge Shell Integration library\0"
-            VALUE "ProductVersion", "1.15.2\0"
+            VALUE "ProductVersion", "1.16.8\0"
             VALUE "SpecialBuild", "\0"
         END
     END
@@ -334,15 +366,15 @@ IDB_WINMERGE            BITMAP                  "WinMerge.bmp"
 STRINGTABLE
 BEGIN
     IDS_PROJNAME            "ShellExtension"
-    IDS_CONTEXT_MENU        "WinMerge"
+    IDS_CONTEXT_MENU        "&WinMerge"
     IDS_CONTEXT_HELP        "Open with WinMerge"
     IDS_CONTEXT_HELP_MANYITEMS "Please select no more than 2 items"
-    IDS_COMPARE             "Compare"
-    IDS_COMPARE_ELLIPSIS    "Compare..."
-    IDS_COMPARE_TO          "Compare To"
+    IDS_COMPARE             "&Compare"
+    IDS_COMPARE_ELLIPSIS    "&Compare..."
+    IDS_COMPARE_TO          "&Compare To"
     IDS_HELP_SAVETHIS       "Save this path. Select another path to compare with this path."
     IDS_HELP_COMPARESAVED   "Compare to saved path (%1)"
-    IDS_RESELECT_FIRST      "Re-select First"
+    IDS_RESELECT_FIRST      "&Re-select First"
 END
 
 #endif    // English (U.S.) resources
@@ -356,6 +388,14 @@ END
 // Generated from the TEXTINCLUDE 3 resource.
 //
 1 TYPELIB "ShellExtension.tlb"
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_EUQ)
+#ifdef _WIN32
+LANGUAGE LANG_BASQUE, SUBLANG_DEFAULT
+#pragma code_page(1252)
+#include "Languages\ShellExtensionBasque.rc"
+#endif //_WIN32
+#endif
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_PTB)
 #ifdef _WIN32
@@ -501,6 +541,14 @@ LANGUAGE LANG_NORWEGIAN, SUBLANG_NORWEGIAN_BOKMAL
 #endif //_WIN32
 #endif
 
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FAR)
+#ifdef _WIN32
+LANGUAGE LANG_FARSI, SUBLANG_NEUTRAL
+#pragma code_page(1256)
+#include "Languages\ShellExtensionPersian.rc"
+#endif //_WIN32
+#endif
+
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_PLK)
 #ifdef _WIN32
 LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
@@ -525,11 +573,27 @@ LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
 #endif //_WIN32
 #endif
 
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_SER)
+#ifdef _WIN32
+LANGUAGE LANG_SERBIAN, SUBLANG_SERBIAN_CYRILLIC
+#pragma code_page(1251)
+#include "Languages\ShellExtensionSerbian.rc"
+#endif //_WIN32
+#endif
+
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_SKY)
 #ifdef _WIN32
 LANGUAGE LANG_SLOVAK, SUBLANG_DEFAULT
 #pragma code_page(1250)
 #include "Languages\ShellExtensionSlovak.rc"
+#endif //_WIN32
+#endif
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_SLV)
+#ifdef _WIN32
+LANGUAGE LANG_SLOVENIAN, SUBLANG_DEFAULT
+#pragma code_page(1250)
+#include "Languages\ShellExtensionSlovenian.rc"
 #endif //_WIN32
 #endif
 

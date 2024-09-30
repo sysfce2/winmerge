@@ -1,27 +1,26 @@
 /** 
  * @file  PropBackups.h
  *
- * @brief Declaration file for CPropBackups propertyheet
+ * @brief Declaration file for PropBackups propertyheet
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropBackups.h 5444 2008-06-07 06:48:49Z kimmov $
+// $Id: PropBackups.h 7501 2011-01-03 13:29:00Z gerundt $
 
 #ifndef _PROPBACKUPS_H_
 #define _PROPBACKUPS_H_
 
-#include "IOptionsPanel.h"
+#include "OptionsPanel.h"
 
 class COptionsMgr;
 
 /**
  * @brief A class for Backup file options page.
  */
-class CPropBackups : public CPropertyPage
+class PropBackups : public OptionsPanel
 {
 public:
-	CPropBackups(COptionsMgr *optionsMgr);
-	virtual ~CPropBackups();
+	PropBackups(COptionsMgr *optionsMgr);
 
 // Implement IOptionsPanel
 	virtual void ReadOptions();
@@ -50,9 +49,6 @@ protected:
 	afx_msg void OnBnClickedBackupBrowse();
 
 	DECLARE_MESSAGE_MAP()
-
-private:
-	COptionsMgr * m_pOptionsMgr; /**< Options-manager for storage */
 };
 
 #endif // _PROPBACKUPS_H_

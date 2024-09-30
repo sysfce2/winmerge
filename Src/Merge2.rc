@@ -1,15 +1,11 @@
 //WinMerge resource script (for English only).
 //
-// $Id: Merge2.rc 6021 2008-10-20 18:07:27Z kimmov $
+// $Id: Merge2.rc 7470 2010-12-08 09:40:16Z gerundt $
 
 
 // Include the manifest file for VC6 and VS2003.Net
 #if _MSC_VER < 1400
-  #ifdef UNICODE
-    CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "res\\WinMergeU.exe.manifest"
-  #else
-    CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "res\\WinMerge.exe.manifest"
-  #endif
+  CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "res\\WinMergeU.exe.manifest"
 #endif // MSC_VER
 
 

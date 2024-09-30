@@ -24,7 +24,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: MainFrm.h 6484 2009-02-23 09:10:43Z kimmov $
+// $Id: MainFrm.h 7430 2010-11-17 13:42:16Z gerundt $
 
 #if !defined(AFX_MAINFRM_H__BBCD4F8C_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MAINFRM_H__BBCD4F8C_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -34,20 +34,7 @@
 #include "MDITabBar.h"
 #include "OptionsMgr.h"
 #include "VSSHelper.h"
-struct FileLocation;
-
-/**
- * @brief Flags used when opening files
- */
-enum
-{
-	FFILEOPEN_NONE		= 0x0000,
-	FFILEOPEN_NOMRU		= 0x0001, /**< Do not add this path to MRU list */
-	FFILEOPEN_READONLY	= 0x0002, /**< Open this path as read-only */
-	FFILEOPEN_MODIFIED  = 0x0004, /**< Mark file modified after opening. */
-	FFILEOPEN_CMDLINE	= 0x0010, /**< Path is read from commandline */
-	FFILEOPEN_PROJECT	= 0x0020, /**< Path is read from project-file */
-};
+#include "MergeCmdLineInfo.h"
 
 /**
  * @brief Supported versioncontrol systems.
@@ -83,7 +70,7 @@ class CMergeDiffDetailView;
 class SyntaxColors;
 class LineFiltersList;
 class TempFile;
-
+struct FileLocation;
 
 // typed lists (homogenous pointer lists)
 typedef CTypedPtrList<CPtrList, CMergeDoc *> MergeDocList;
@@ -177,7 +164,7 @@ public:
 	SyntaxColors * GetMainSyntaxColors() { return m_pSyntaxColors; }
 	BOOL m_bClearCaseTool; /**< WinMerge is executed as an external Rational ClearCase compare/merge tool. */
 	BOOL m_bFlashing; /**< Window is flashing. */
-	BOOL m_bExitIfNoDiff; /**< If command line switch -x given close application if files are identical. */
+	MergeCmdLineInfo::ExitNoDiff m_bExitIfNoDiff; /**< Exit if files are identical? */
 	LineFiltersList *m_pLineFilters; /**< List of linefilters */
 
 	/**
@@ -307,6 +294,8 @@ protected:
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnUpdatePluginUnpackMode(CCmdUI* pCmdUI);
 	afx_msg void OnPluginUnpackMode(UINT nID);
+	afx_msg void OnUpdatePluginPrediffMode(CCmdUI* pCmdUI);
+	afx_msg void OnPluginPrediffMode(UINT nID);
 	afx_msg void OnUpdateReloadPlugins(CCmdUI* pCmdUI);
 	afx_msg void OnReloadPlugins();
 	afx_msg void OnSaveConfigData();

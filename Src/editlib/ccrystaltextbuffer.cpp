@@ -60,7 +60,7 @@
  * @brief Code for CCrystalTextBuffer class
  */
 // line follows -- this is updated by SVN
-// $Id: ccrystaltextbuffer.cpp 6452 2009-02-13 19:12:46Z kimmov $
+// $Id: ccrystaltextbuffer.cpp 7489 2010-12-31 11:55:48Z gerundt $
 
 #include "StdAfx.h"
 #include <vector>
@@ -520,11 +520,7 @@ BOOL CCrystalTextBuffer::SaveToFile(LPCTSTR pszFileName,
   __try
   {
     TCHAR drive[_MAX_PATH], dir[_MAX_PATH], name[_MAX_PATH], ext[_MAX_PATH];
-#ifdef _UNICODE
     _wsplitpath (pszFileName, drive, dir, name, ext);
-#else
-    _splitpath (pszFileName, drive, dir, name, ext);
-#endif
     _tcscpy (szTempFileDir, drive);
     _tcscat (szTempFileDir, dir);
     _tcscpy (szBackupFileName, pszFileName);
@@ -631,7 +627,7 @@ BOOL CCrystalTextBuffer::SaveToFile(LPCTSTR pszFileName,
 #endif // #if 0 savetofile
 
 CRLFSTYLE CCrystalTextBuffer::
-GetCRLFMode ()
+GetCRLFMode () const
 {
   return m_nCRLFMode;
 }
@@ -766,7 +762,7 @@ FlagToIndex (DWORD dwFlag)
 }
 
 int CCrystalTextBuffer::
-FindLineWithFlag (DWORD dwFlag)
+FindLineWithFlag (DWORD dwFlag) const
 {
   int nSize = (int) m_aLines.GetSize ();
   for (int L = 0; L < nSize; L++)
@@ -778,7 +774,7 @@ FindLineWithFlag (DWORD dwFlag)
 }
 
 int CCrystalTextBuffer::
-GetLineWithFlag (DWORD dwFlag)
+GetLineWithFlag (DWORD dwFlag) const
 {
   int nFlagIndex =::FlagToIndex (dwFlag);
   if (nFlagIndex < 0)
@@ -857,7 +853,7 @@ SetLineFlag (int nLine, DWORD dwFlag, BOOL bSet, BOOL bRemoveFromPreviousLine /*
  */
 void CCrystalTextBuffer::GetTextWithoutEmptys(int nStartLine, int nStartChar, 
                  int nEndLine, int nEndChar, 
-                 CString &text, CRLFSTYLE nCrlfStyle /* CRLF_STYLE_AUTOMATIC */)
+                 CString &text, CRLFSTYLE nCrlfStyle /* CRLF_STYLE_AUTOMATIC */) const
 {
   LPCTSTR sEol = GetStringEol (nCrlfStyle);
   GetText(nStartLine, nStartChar, nEndLine, nEndChar, text, sEol);
@@ -865,7 +861,8 @@ void CCrystalTextBuffer::GetTextWithoutEmptys(int nStartLine, int nStartChar,
 
 
 void CCrystalTextBuffer::
-GetText (int nStartLine, int nStartChar, int nEndLine, int nEndChar, CString & text, LPCTSTR pszCRLF /*= NULL*/ )
+GetText (int nStartLine, int nStartChar, int nEndLine, int nEndChar,
+		CString & text, LPCTSTR pszCRLF /*= NULL*/ ) const
 {
   ASSERT (m_bInit);             //  Text buffer not yet initialized.
   //  You must call InitNew() or LoadFromFile() first!
@@ -926,7 +923,7 @@ GetText (int nStartLine, int nStartChar, int nEndLine, int nEndChar, CString & t
       memcpy (pszBuf, m_aLines[nStartLine].GetLine(nStartChar), sizeof (TCHAR) * nCount);
       pszBuf += nCount;
     }
-  text.ReleaseBuffer (pszBuf - text);
+  text.ReleaseBuffer ((int) (pszBuf - text));
   text.FreeExtra ();
 }
 
@@ -1223,21 +1220,21 @@ InternalInsertText (CCrystalTextView * pSource, int nLine, int nPos,
 }
 
 BOOL CCrystalTextBuffer::
-CanUndo ()
+CanUndo () const
 {
   ASSERT (m_nUndoPosition >= 0 && m_nUndoPosition <= m_aUndoBuf.size ());
   return m_nUndoPosition > 0;
 }
 
 BOOL CCrystalTextBuffer::
-CanRedo ()
+CanRedo () const
 {
   ASSERT (m_nUndoPosition >= 0 && m_nUndoPosition <= m_aUndoBuf.size ());
   return m_nUndoPosition < m_aUndoBuf.size ();
 }
 
 POSITION CCrystalTextBuffer::
-GetUndoActionCode (int & nAction, POSITION pos /*= NULL*/ )
+GetUndoActionCode (int & nAction, POSITION pos /*= NULL*/ ) const
 {
   ASSERT (CanUndo ());          //  Please call CanUndo() first
 
@@ -1274,7 +1271,7 @@ GetUndoActionCode (int & nAction, POSITION pos /*= NULL*/ )
 }
 
 POSITION CCrystalTextBuffer::
-GetRedoActionCode (int & nAction, POSITION pos /*= NULL*/ )
+GetRedoActionCode (int & nAction, POSITION pos /*= NULL*/ ) const
 {
   ASSERT (CanRedo ());          //  Please call CanRedo() before!
 
@@ -1315,7 +1312,7 @@ GetRedoActionCode (int & nAction, POSITION pos /*= NULL*/ )
 }
 
 POSITION CCrystalTextBuffer::
-GetUndoDescription (CString & desc, POSITION pos /*= NULL*/ )
+GetUndoDescription (CString & desc, POSITION pos /*= NULL*/ ) const
 {
   int nAction;
   POSITION retValue = GetUndoActionCode(nAction, pos);
@@ -1328,7 +1325,7 @@ GetUndoDescription (CString & desc, POSITION pos /*= NULL*/ )
 }
 
 POSITION CCrystalTextBuffer::
-GetRedoDescription (CString & desc, POSITION pos /*= NULL*/ )
+GetRedoDescription (CString & desc, POSITION pos /*= NULL*/ ) const
 {
   int nAction;
   POSITION retValue = GetRedoActionCode(nAction, pos);
@@ -1661,7 +1658,7 @@ DeleteText (CCrystalTextView * pSource, int nStartLine, int nStartChar,
 
 
 BOOL CCrystalTextBuffer::
-GetActionDescription (int nAction, CString & desc)
+GetActionDescription (int nAction, CString & desc) const
 {
   HINSTANCE hOldResHandle = AfxGetResourceHandle ();
 #ifdef CRYSEDIT_RES_HANDLE
@@ -1767,7 +1764,7 @@ FlushUndoGroup (CCrystalTextView * pSource)
 }
 
 int CCrystalTextBuffer::
-FindNextBookmarkLine (int nCurrentLine)
+FindNextBookmarkLine (int nCurrentLine) const
 {
   BOOL bWrapIt = TRUE;
   DWORD dwFlags = GetLineFlags (nCurrentLine);
@@ -1796,7 +1793,7 @@ FindNextBookmarkLine (int nCurrentLine)
 }
 
 int CCrystalTextBuffer::
-FindPrevBookmarkLine (int nCurrentLine)
+FindPrevBookmarkLine (int nCurrentLine) const
 {
   BOOL bWrapIt = TRUE;
   DWORD dwFlags = GetLineFlags (nCurrentLine);
@@ -1819,47 +1816,27 @@ FindPrevBookmarkLine (int nCurrentLine)
 
       // Start from the end of text
       bWrapIt = FALSE;
-      nCurrentLine = nSize - 1;
+      nCurrentLine = (int) (nSize - 1);
     }
   return -1;
 }
 
 BOOL CCrystalTextBuffer::
-IsMBSLead (int nLine, int nCol)
+IsMBSLead (int nLine, int nCol) const
 {
   ASSERT (m_bInit);             //  Text buffer not yet initialized.
   //  You must call InitNew() or LoadFromFile() first!
 
-#ifdef _UNICODE
-  LPCTSTR string = (LPCTSTR) GetLineChars (nLine);
-  LPCTSTR current = string + nCol;
   return FALSE;
-#else // _UNICODE
-  const unsigned char *string = (const unsigned char *) GetLineChars (nLine);
-  const unsigned char *current = string + nCol;
-  if (_ismbslead (string, current) < 0)
-    return TRUE;
-  return FALSE;
-#endif // _UNICODE
 }
 
 BOOL CCrystalTextBuffer::
-IsMBSTrail (int nLine, int nCol)
+IsMBSTrail (int nLine, int nCol) const
 {
   ASSERT (m_bInit);             //  Text buffer not yet initialized.
   //  You must call InitNew() or LoadFromFile() first!
 
-#ifdef _UNICODE
-  LPCTSTR string = (LPCTSTR) GetLineChars (nLine);
-  LPCTSTR current = string + nCol;
   return FALSE;
-#else // _UNICODE
-  const unsigned char *string = (const unsigned char *) GetLineChars (nLine);
-  const unsigned char *current = string + nCol;
-  if (_ismbstrail (string, current) < 0)
-    return TRUE;
-  return FALSE;
-#endif // _UNICODE
 }
 
 //BEGIN SW
@@ -1884,7 +1861,7 @@ void CCrystalTextBuffer::DeleteLine(int line, int nCount /*=1*/)
   m_aLines.RemoveAt(line, nCount);
 }
 
-int CCrystalTextBuffer::GetTabSize()
+int CCrystalTextBuffer::GetTabSize() const
 {
   ASSERT( m_nTabSize >= 0 && m_nTabSize <= 64 );
   return m_nTabSize;

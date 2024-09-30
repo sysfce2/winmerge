@@ -17,7 +17,7 @@
 
 # Copyright (c) 2008 Kimmo Varis <kimmov@winmerge.org>
 
-# $Id: fix_manifest.py 6164 2008-12-14 09:39:12Z kimmov $
+# $Id: fix_manifest.py 7245 2010-09-12 09:32:59Z kimmov $
 
 # fix_manifest.py
 # A Python script to add external manifest rules to the VS project files.
@@ -34,8 +34,6 @@ from xml.dom import minidom
 # The version of the script
 script_version = 0.1
 
-manifest_path = r'$(InputDir)\res\$(TargetFileName).manifest'
-
 def process_project_file(filename):
   '''Process a given project file.
 
@@ -48,14 +46,14 @@ def process_project_file(filename):
     #print 'Opening file ' + filename + ' for parsing...'
     fread = open(filename, 'r')
   except IOError, (errno, strerror):
-    print 'Cannot open file ' + file + ' for reading'
+    print 'Cannot open file ' + filename + ' for reading'
     print 'Error: ' + strerror
     return False
 
   try:
     fwrite = open(outfile, 'w')
   except IOError, (errno, strerror):
-    print 'Cannot open file ' + infile + ' for writing'
+    print 'Cannot open file ' + outfile + ' for writing'
     print 'Error: ' + strerror
     fread.close()
     return False
@@ -131,6 +129,7 @@ def handle_config_elem(element):
 def handle_tool_element(element):
   '''Adds new attributes to the element.'''
 
+  manifest_path = r'$(InputDir)\res\$(TargetFileName).manifest'
   element.setAttribute('AdditionalManifestFiles', manifest_path)
   element.setAttribute('EmbedManifest', 'true')
 

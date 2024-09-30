@@ -20,7 +20,7 @@
  * @brief Code file routines
  */
 // ID line follows -- this is updated by SVN
-// $Id: files.cpp 4833 2007-12-17 16:33:16Z kimmov $
+// $Id: files.cpp 7389 2010-10-31 14:43:29Z jtuc $
 
 #include "stdafx.h"
 #include <sys/stat.h>
@@ -67,7 +67,7 @@ BOOL files_openFileMapped(MAPPEDFILEDATA *fileData)
 	{
 		bSuccess = FALSE;
 		LogErrorString(Fmt(_T("CreateFile(%s) failed in files_openFileMapped: %s")
-			, fileData->fileName, GetSysError(GetLastError())));
+			, fileData->fileName, GetSysError(GetLastError()).c_str()));
 	}
 	else
 	{
@@ -95,7 +95,7 @@ BOOL files_openFileMapped(MAPPEDFILEDATA *fileData)
 		{
 			bSuccess = FALSE;
 			LogErrorString(Fmt(_T("CreateFileMapping(%s) failed: %s")
-				, fileData->fileName, GetSysError(GetLastError())));
+				, fileData->fileName, GetSysError(GetLastError()).c_str()));
 		}
 		else
 		{
@@ -105,7 +105,7 @@ BOOL files_openFileMapped(MAPPEDFILEDATA *fileData)
 			{
 				bSuccess = FALSE;
 				LogErrorString(Fmt(_T("MapViewOfFile(%s) failed: %s")
-					, fileData->fileName, GetSysError(GetLastError())));
+					, fileData->fileName, GetSysError(GetLastError()).c_str()));
 			}
 		}
 	}

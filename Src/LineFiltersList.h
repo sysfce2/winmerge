@@ -4,7 +4,7 @@
  * @brief Declaration file for LineFiltersList class
  */
 // ID line follows -- this is updated by SVN
-// $Id: LineFiltersList.h 5620 2008-07-15 17:34:10Z kimmov $
+// $Id: LineFiltersList.h 7499 2011-01-02 13:55:55Z gerundt $
 
 #ifndef _LINEFILTERS_LIST_H_
 #define _LINEFILTERS_LIST_H_
@@ -36,7 +36,7 @@ public:
 	int GetCount() const;
 	void Empty();
 	String GetAsString() const;
-	const LineFilterItem & GetAt(int ind) const;
+	const LineFilterItem & GetAt(size_t ind) const;
 	void CloneFrom(const LineFiltersList *list);
 	bool Compare(const LineFiltersList *list) const;
 

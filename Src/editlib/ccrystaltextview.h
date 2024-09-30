@@ -29,7 +29,7 @@
  * @brief Declaration file for CCrystalTextView
  */
 // ID line follows -- this is updated by SVN
-// $Id: ccrystaltextview.h 6093 2008-11-17 23:35:56Z gerundt $
+// $Id: ccrystaltextview.h 7447 2010-11-24 07:58:17Z gerundt $
 
 #if !defined(AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_)
 #define AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_
@@ -171,7 +171,7 @@ protected:
     BOOL m_bPreparingToDrag;
     BOOL m_bDraggingText;
     BOOL m_bDragSelection, m_bWordSelection, m_bLineSelection;
-    UINT m_nDragSelTimer;
+    UINT_PTR m_nDragSelTimer;
 
     CPoint m_ptDrawSelStart, m_ptDrawSelEnd;
 
@@ -464,11 +464,9 @@ protected:
     int GetCharWidthFromString(LPCTSTR lpsz);
     int GetCharWidthFromDisplayableChar(const ViewableWhitespaceChars * lpspc, TCHAR ch);
 
-#ifdef _UNICODE
     BOOL m_bChWidthsCalculated[65536/256];
     int m_iChDoubleWidthFlags[65536/32];
     int GetCharWidthUnicodeChar(wchar_t ch);
-#endif
     void ResetCharWidths();
 
 	//BEGIN SW
@@ -790,6 +788,7 @@ public :
     virtual bool SetTextType (LPCTSTR pszExt);
     virtual bool SetTextType (CCrystalTextView::TextType enuType);
     virtual bool SetTextType (CCrystalTextView::TextDefinition *def);
+    virtual bool SetTextTypeByContent (LPCTSTR pszContent);
     static void LoadSettings ();
     static void SaveSettings ();
 

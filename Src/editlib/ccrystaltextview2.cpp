@@ -42,13 +42,14 @@
  * @brief More functions for CCrystalTextView class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: ccrystaltextview2.cpp 5910 2008-09-07 03:27:29Z marcelgosselin $
+// $Id: ccrystaltextview2.cpp 7452 2010-12-06 06:56:28Z gerundt $
 
 #include "StdAfx.h"
 #include "editcmd.h"
 #include "ccrystaltextview.h"
 #include "ccrystaltextbuffer.h"
 #include <malloc.h>
+#include "string_util.h"
 
 #ifndef __AFXPRIV_H__
 #pragma message("Include <afxpriv.h> in your stdafx.h to avoid this message")
@@ -61,7 +62,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-#define CRYSTAL_TIMER_DRAGSEL   1001
+static const UINT_PTR CRYSTAL_TIMER_DRAGSEL = 1001;
 
 static LPTSTR NTAPI EnsureCharNext(LPCTSTR current)
 {
@@ -169,21 +170,21 @@ MoveWordLeft (BOOL bSelect)
   LPCTSTR pszChars = GetLineChars (m_ptCursorPos.y);
   int nPos = m_ptCursorPos.x;
   int nPrevPos;
-  while (nPos > 0 && xisspace (pszChars[nPrevPos = ::EnsureCharPrev(pszChars, pszChars + nPos) - pszChars]))
+  while (nPos > 0 && xisspace (pszChars[nPrevPos = (int) (::EnsureCharPrev(pszChars, pszChars + nPos) - pszChars)]))
     nPos = nPrevPos;
 
   if (nPos > 0)
     {
-      int nPrevPos = ::CharPrev(pszChars, pszChars + nPos) - pszChars;
+      int nPrevPos = (int) (::CharPrev(pszChars, pszChars + nPos) - pszChars);
       nPos = nPrevPos;
       if (xisalnum (pszChars[nPos]))
         {
-          while (nPos > 0 && (xisalnum (pszChars[nPrevPos = ::EnsureCharPrev(pszChars, pszChars + nPos) - pszChars])))
+          while (nPos > 0 && (xisalnum (pszChars[nPrevPos = (int) (::EnsureCharPrev(pszChars, pszChars + nPos) - pszChars)])))
             nPos = nPrevPos;
         }
       else
         {
-          while (nPos > 0 && !xisalnum (pszChars[nPrevPos = ::EnsureCharPrev(pszChars, pszChars + nPos) - pszChars])
+          while (nPos > 0 && !xisalnum (pszChars[nPrevPos = (int) (::EnsureCharPrev(pszChars, pszChars + nPos) - pszChars)])
                 && !xisspace (pszChars[nPrevPos]))
             nPos = nPrevPos;
         }
@@ -228,17 +229,17 @@ MoveWordRight (BOOL bSelect)
   if (xisalnum (pszChars[nPos]))
     {
       while (nPos < nLength && xisalnum (pszChars[nPos]))
-        nPos = ::EnsureCharNext(pszChars + nPos) - pszChars;
+        nPos = (int) (::EnsureCharNext(pszChars + nPos) - pszChars);
     }
   else
     {
       while (nPos < nLength && !xisalnum (pszChars[nPos])
             && !xisspace (pszChars[nPos]))
-        nPos = ::EnsureCharNext(pszChars + nPos) - pszChars;
+        nPos = (int) (::EnsureCharNext(pszChars + nPos) - pszChars);
     }
 
   while (nPos < nLength && xisspace (pszChars[nPos]))
-    nPos = ::EnsureCharNext(pszChars + nPos) - pszChars;
+    nPos = (int) (::EnsureCharNext(pszChars + nPos) - pszChars);
 
   m_ptCursorPos.x = nPos;
   m_nIdealCharPos = CalculateActualOffset (m_ptCursorPos.y, m_ptCursorPos.x);
@@ -531,7 +532,7 @@ WordToRight (CPoint pt)
     {
       if (!xisalnum (pszChars[pt.x]))
         break;
-      pt.x += ::CharNext (&pszChars[pt.x]) - &pszChars[pt.x];
+      pt.x += (int) (::CharNext (&pszChars[pt.x]) - &pszChars[pt.x]);
     }
   ASSERT_VALIDTEXTPOS (pt);
   return pt;
@@ -545,7 +546,7 @@ WordToLeft (CPoint pt)
   int nPrevX = pt.x;
   while (pt.x > 0)
     {
-      nPrevX -= &pszChars[pt.x] - ::CharPrev (pszChars, &pszChars[pt.x]);
+      nPrevX -= (int) (&pszChars[pt.x] - ::CharPrev (pszChars, &pszChars[pt.x]));
       if (!xisalnum (pszChars[nPrevX]))
         break;
       pt.x = nPrevX;
@@ -793,8 +794,7 @@ OnMouseMove (UINT nFlags, CPoint point)
             m_pTextBuffer->BeginUndoGroup ();
 
           COleDataSource ds;
-          UINT fmt = GetClipTcharTextFormat();      // CF_TEXT or CF_UNICODETEXT
-          ds.CacheGlobalData (fmt, hData);
+          ds.CacheGlobalData (CF_UNICODETEXT, hData);
           m_bDraggingText = TRUE;
           DROPEFFECT de = ds.DoDragDrop (GetDropEffect ());
           if (de != DROPEFFECT_NONE)
@@ -1117,8 +1117,7 @@ Copy ()
 BOOL CCrystalTextView::
 TextInClipboard ()
 {
-  UINT fmt = GetClipTcharTextFormat();
-  return IsClipboardFormatAvailable (fmt);
+  return IsClipboardFormatAvailable (CF_UNICODETEXT);
 }
 
 BOOL CCrystalTextView::
@@ -1141,8 +1140,7 @@ PutToClipboard (LPCTSTR pszText, int cchText)
           LPTSTR pszData = (LPTSTR)::GlobalLock (hData);
           memcpy (pszData, pszText, cbData);
           GlobalUnlock (hData);
-          UINT fmt = GetClipTcharTextFormat();
-          bOK = SetClipboardData (fmt, hData) != NULL;
+          bOK = SetClipboardData (CF_UNICODETEXT, hData) != NULL;
           if (bOK)
             SetClipboardData (RegisterClipboardFormat (_T("WinMergeClipboard")), NULL);
         }
@@ -1157,15 +1155,15 @@ GetFromClipboard (CString & text)
   BOOL bSuccess = FALSE;
   if (OpenClipboard ())
     {
-      UINT fmt = GetClipTcharTextFormat();
-      HGLOBAL hData = GetClipboardData (fmt);
+      HGLOBAL hData = GetClipboardData (CF_UNICODETEXT);
       if (hData != NULL)
         {
           LPTSTR pszData = (LPTSTR) GlobalLock (hData);
           if (pszData != NULL)
             {
-              SIZE_T cbData = GlobalSize (hData);
-              int cchText = cbData / sizeof(TCHAR) - 1;
+              UINT cbData = (UINT) GlobalSize (hData);
+              // in case we get an odd length for unicodes
+              int cchText = ((cbData + 1) / sizeof(TCHAR)) - 1;
               if (cchText >= 0)
                 memcpy(text.GetBufferSetLength(cchText), pszData, cbData);
               GlobalUnlock (hData);

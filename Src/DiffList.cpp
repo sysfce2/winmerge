@@ -20,7 +20,7 @@
  * @brief Implementation file for DiffList class
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffList.cpp 6369 2009-01-23 15:42:56Z kimmov $
+// $Id: DiffList.cpp 7418 2010-11-11 12:22:43Z gerundt $
 
 #include "StdAfx.h"
 #include "DiffList.h"
@@ -467,7 +467,8 @@ int DiffList::LastSignificantDiff() const
  */
 const DIFFRANGE * DiffList::FirstSignificantDiffRange() const
 {
-	if (m_firstSignificant == -1) return NULL;
+	if (m_firstSignificant == -1)
+		return NULL;
 	return DiffRangeAt(m_firstSignificant);
 }
 
@@ -477,7 +478,8 @@ const DIFFRANGE * DiffList::FirstSignificantDiffRange() const
  */
 const DIFFRANGE * DiffList::LastSignificantDiffRange() const
 {
-	if (m_lastSignificant == -1) return NULL;
+	if (m_lastSignificant == -1)
+		return NULL;
 	return DiffRangeAt(m_lastSignificant);
 }
 

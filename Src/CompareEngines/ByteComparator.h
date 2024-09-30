@@ -1,10 +1,10 @@
-/** 
+/**
  * @file ByteComparator.h
  *
  * @brief Declaration file for ByteComparator class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: ByteComparator.h 6054 2008-10-30 22:20:44Z kimmov $
+// $Id: ByteComparator.h 7327 2010-10-20 20:25:08Z gerundt $
 
 #ifndef ByteComparator_h_included
 #define ByteComparator_h_included
@@ -41,8 +41,8 @@ public:
 	} COMP_RESULT;
 
 	COMP_RESULT CompareBuffers(FileTextStats & stats0, FileTextStats & stats1,
-		const char* &ptr0, const char* &ptr1, const char* end0, const char* end1,
-		bool eof0, bool eof1, __int64 offset0, __int64 offset1);
+			const char* &ptr0, const char* &ptr1, const char* end0, const char* end1,
+			bool eof0, bool eof1, __int64 offset0, __int64 offset1);
 
 protected:
 	void HandleSide0Eol(char **ptr, const char *end, bool eof);

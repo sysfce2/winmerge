@@ -24,7 +24,7 @@
  * @brief Implementation of the CMergeEditView class
  */
 // ID line follows -- this is updated by SVN
-// $Id: MergeEditView.cpp 6750 2009-05-14 14:34:10Z kimmov $
+// $Id: MergeEditView.cpp 7440 2010-11-21 17:42:49Z gerundt $
 
 #include "StdAfx.h"
 #include <vector>
@@ -61,7 +61,7 @@ const UINT IDT_RESCAN = 2;
 const UINT RESCAN_TIMEOUT = 1000;
 
 /** @brief Location for file compare specific help to open. */
-static TCHAR MergeViewHelpLocation[] = _T("::/htmlhelp/CompareFiles.html");
+static TCHAR MergeViewHelpLocation[] = _T("::/htmlhelp/Compare_files.html");
 
 /////////////////////////////////////////////////////////////////////////////
 // CMergeEditView
@@ -431,6 +431,9 @@ void CMergeEditView::GetLineColors(int nLineIndex, COLORREF & crBkgnd,
 void CMergeEditView::GetLineColors2(int nLineIndex, DWORD ignoreFlags, COLORREF & crBkgnd,
                                 COLORREF & crText, BOOL & bDrawWhitespace)
 {
+	if (GetLineCount() <= nLineIndex)
+		return;
+
 	DWORD dwLineFlags = GetLineFlags(nLineIndex);
 
 	if (dwLineFlags & ignoreFlags)
@@ -2041,6 +2044,13 @@ void CMergeEditView::OnContextMenu(CWnd* pWnd, CPoint point)
 	// Create the menu and populate it with the available functions
 	BCMenu menu;
 	VERIFY(menu.LoadMenu(IDR_POPUP_MERGEVIEW));
+
+	// Remove copying item copying from active side
+	if (m_nThisPane == 0) // left?
+		menu.RemoveMenu(ID_R2L, MF_BYCOMMAND);
+	else
+		menu.RemoveMenu(ID_L2R, MF_BYCOMMAND);
+
 	VERIFY(menu.LoadToolbar(IDR_MAINFRAME));
 	theApp.TranslateMenu(menu.m_hMenu);
 
@@ -2169,10 +2179,6 @@ void CMergeEditView::OnUpdateConvertEolTo(CCmdUI* pCmdUI)
  */
 void CMergeEditView::OnL2RNext()
 {
-	// Check that diff is selected
-	if (GetDocument()->GetCurrentDiff() == -1)
-		return;
-
 	OnL2r();
 	OnNextdiff();
 }
@@ -2182,11 +2188,7 @@ void CMergeEditView::OnL2RNext()
  */
 void CMergeEditView::OnUpdateL2RNext(CCmdUI* pCmdUI)
 {
-	// Check that right side is not readonly
-	if (!IsReadOnly(1))
-		pCmdUI->Enable(GetDocument()->GetCurrentDiff()!=-1);
-	else
-		pCmdUI->Enable(false);
+	OnUpdateL2r(pCmdUI);
 }
 
 /**
@@ -2194,10 +2196,6 @@ void CMergeEditView::OnUpdateL2RNext(CCmdUI* pCmdUI)
  */
 void CMergeEditView::OnR2LNext()
 {
-	// Check that diff is selected
-	if (GetDocument()->GetCurrentDiff() == -1)
-		return;
-
 	OnR2l();
 	OnNextdiff();
 }
@@ -2207,11 +2205,7 @@ void CMergeEditView::OnR2LNext()
  */
 void CMergeEditView::OnUpdateR2LNext(CCmdUI* pCmdUI)
 {
-	// Check that left side is not readonly
-	if (!IsReadOnly(0))
-		pCmdUI->Enable(GetDocument()->GetCurrentDiff()!=-1);
-	else
-		pCmdUI->Enable(false);
+	OnUpdateR2l(pCmdUI);
 }
 
 /**

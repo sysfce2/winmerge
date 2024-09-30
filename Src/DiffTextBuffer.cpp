@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffTextBuffer.cpp 6750 2009-05-14 14:34:10Z kimmov $
+// $Id: DiffTextBuffer.cpp 7529 2011-05-24 16:05:52Z sdottaka $
 
 #include "StdAfx.h"
 #include "UniFile.h"
@@ -173,7 +173,7 @@ CDiffTextBuffer::CDiffTextBuffer(CMergeDoc * pDoc, int pane)
  * @param [in] nLineIndex Index of the line to get.
  * @param [out] strLine Returns line text in the index.
  */
-BOOL CDiffTextBuffer::GetLine(int nLineIndex, CString &strLine)
+BOOL CDiffTextBuffer::GetLine(int nLineIndex, CString &strLine) const
 {
 	int nLineLength = CCrystalTextBuffer::GetLineLength(nLineIndex);
 	if (nLineLength < 0)
@@ -208,7 +208,7 @@ void CDiffTextBuffer::SetModified(BOOL bModified /*= TRUE*/)
  * @param [out] strLine Returns line text in the index. Existing content
  * of this string is overwritten.
  */
-BOOL CDiffTextBuffer::GetFullLine(int nLineIndex, CString &strLine)
+BOOL CDiffTextBuffer::GetFullLine(int nLineIndex, CString &strLine) const
 {
 	int cchText = GetFullLineLength(nLineIndex);
 	if (cchText == 0)
@@ -241,7 +241,7 @@ void CDiffTextBuffer::AddUndoRecord(BOOL bInsert, const CPoint & ptStartPos,
  * @param [in] flag Flag to check.
  * @return TRUE if flag is set, FALSE otherwise.
  */
-BOOL CDiffTextBuffer::FlagIsSet(UINT line, DWORD flag)
+BOOL CDiffTextBuffer::FlagIsSet(UINT line, DWORD flag) const
 {
 	return ((m_aLines[line].m_dwFlags & flag) == flag);
 }
@@ -405,10 +405,16 @@ int CDiffTextBuffer::LoadFromFile(LPCTSTR pszFileNameInit,
 				break;
 			// but if last line had eol, we add an extra (empty) line to buffer
 
-			// Manually grow line array exponentially
+			// Grow line array
 			if (lineno == arraysize)
 			{
-				arraysize *= 2;
+				// For smaller sizes use exponential growth, but for larger
+				// sizes grow by constant ratio. Unlimited exponential growth
+				// easily runs out of memory.
+				if (arraysize < 100 * 1024)
+					arraysize *= 2;
+				else
+					arraysize += 100 * 1024;
 				m_aLines.SetSize(arraysize);
 			}
 
@@ -509,7 +515,7 @@ LoadFromFileExit:
 		if (!::DeleteFile(pszFileName))
 		{
 			LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-				pszFileName, GetSysError(GetLastError())));
+				pszFileName, GetSysError(GetLastError()).c_str()));
 		}
 
 	return nRetVal;
@@ -573,10 +579,10 @@ int CDiffTextBuffer::SaveToFile (LPCTSTR pszFileName,
 			sError = uniErr.GetError().c_str();
 			if (bTempFile)
 				LogErrorString(Fmt(_T("Opening file %s failed: %s"),
-					pszFileName, sError));
+					pszFileName, sError.c_str()));
 			else
 				LogErrorString(Fmt(_T("Opening file %s failed: %s"),
-					sIntermediateFilename, sError));
+					sIntermediateFilename.c_str(), sError.c_str()));
 		}
 		return SAVE_FAILED;
 	}
@@ -642,7 +648,7 @@ int CDiffTextBuffer::SaveToFile (LPCTSTR pszFileName,
 			if (!::DeleteFile(sIntermediateFilename.c_str()))
 			{
 				LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-					sIntermediateFilename.c_str(), GetSysError(GetLastError())));
+					sIntermediateFilename.c_str(), GetSysError(GetLastError()).c_str()));
 			}
 			// returns now, don't overwrite the original file
 			return SAVE_PACK_FAILED;
@@ -653,7 +659,7 @@ int CDiffTextBuffer::SaveToFile (LPCTSTR pszFileName,
 			if (!::DeleteFile(sIntermediateFilename.c_str()))
 			{
 				LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-					sIntermediateFilename.c_str(), GetSysError(GetLastError())));
+					sIntermediateFilename.c_str(), GetSysError(GetLastError()).c_str()));
 			}
 			sIntermediateFilename = csTempFileName;
 		}
@@ -664,7 +670,7 @@ int CDiffTextBuffer::SaveToFile (LPCTSTR pszFileName,
 			if (!::DeleteFile(sIntermediateFilename.c_str()))
 			{
 				LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-					sIntermediateFilename.c_str(), GetSysError(GetLastError())));
+					sIntermediateFilename.c_str(), GetSysError(GetLastError()).c_str()));
 			}
 			if (bClearModifiedFlag)
 			{
@@ -683,7 +689,7 @@ int CDiffTextBuffer::SaveToFile (LPCTSTR pszFileName,
 		{
 			sError = GetSysError(GetLastError());
 			LogErrorString(Fmt(_T("CopyFile(%s, %s) failed: %s"),
-				sIntermediateFilename.c_str(), pszFileName, sError));
+				sIntermediateFilename.c_str(), pszFileName, sError.c_str()));
 		}
 	}
 	else

@@ -4,7 +4,7 @@
  * @brief Implementation file for FilterList.
  */
 // ID line follows -- this is updated by SVN
-// $Id: FilterList.cpp 5553 2008-07-03 19:05:36Z kimmov $
+// $Id: FilterList.cpp 7432 2010-11-18 14:16:08Z gerundt $
 
 #include "stdafx.h"
 #include <vector>
@@ -106,11 +106,10 @@ bool FilterList::HasRegExps()
  * @param [in] codepage codepage of string.
  * @return true if any of the expressions did match the string.
  */
-bool FilterList::Match(const char *string, int codepage/*=CP_UTF8*/)
+bool FilterList::Match(size_t stringlen, const char *string, int codepage/*=CP_UTF8*/)
 {
 	bool retval = false;
 	unsigned int count = m_list.size();
-	int stringlen = strlen(string);
 
 	// convert string into UTF-8
 	ucr::buffer buf(stringlen * 2);

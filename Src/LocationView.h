@@ -8,7 +8,7 @@
 //////////////////////////////////////////////////////////////////////
 
 // ID line follows -- this is updated by SVN
-// $Id: LocationView.h 6085 2008-11-12 17:31:24Z kimmov $
+// $Id: LocationView.h 7283 2010-09-25 13:56:28Z gerundt $
 
 #ifndef __LOCATIONVIEW_H__
 #define __LOCATIONVIEW_H__
@@ -127,6 +127,9 @@ protected:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnPaint();
+	afx_msg void OnUpdateFileSave(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateFileSaveLeft(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateFileSaveRight(CCmdUI* pCmdUI);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

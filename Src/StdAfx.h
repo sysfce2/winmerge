@@ -8,7 +8,7 @@
  * @brief Project-wide includes and declarations
  */
 // ID line follows -- this is updated by SVN
-// $Id: StdAfx.h 5852 2008-08-24 10:33:01Z sdottaka $
+// $Id: StdAfx.h 7452 2010-12-06 06:56:28Z gerundt $
 
 #if !defined(AFX_STDAFX_H__BBCD4F8A_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_STDAFX_H__BBCD4F8A_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -107,13 +107,6 @@ enum MERGE_VIEW_ID
 /// Seconds ignored in filetime differences if option enabled
 static const UINT SmallTimeDiff = 2;
 
-// Miscellaneous functions defined in StdAfx.cpp
-
-int xisspecial (wint_t c);
-int xisalpha (wint_t c);
-int xisalnum (wint_t c);
-int xisspace (wint_t c);
-
 #include "UnicodeString.h"
 
 	/** @brief Load string from string resources; shortcut for CString::LoadString */
@@ -145,11 +138,6 @@ void LogErrorString(LPCTSTR sz);
 
 	/** @brief Inline sprintf-style format; shortcut for CString::Format */
 CString Fmt(LPCTSTR fmt, ...);
-
-	/** @brief Get appropriate clipboard format for TCHAR text, ie, CF_TEXT or CF_UNICODETEXT */
-int GetClipTcharTextFormat();
-
-bool IsUnicodeBuild();
 
 	/** @brief include for the custom dialog boxes, with do not ask/display again */
 #include "MessageBoxDialog.h"

@@ -6,13 +6,12 @@
  * @date  Created: 2003-08-19
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirColsDlg.cpp 5547 2008-06-30 13:37:00Z marcelgosselin $
+// $Id: DirColsDlg.cpp 7336 2010-10-21 21:31:24Z gerundt $
 
 
 #include "stdafx.h"
 #include "merge.h"
 #include "DirColsDlg.h"
-#include "dllver.h"
 #include <algorithm>
 
 #ifdef _DEBUG
@@ -63,13 +62,8 @@ END_MESSAGE_MAP()
 void CDirColsDlg::InitList()
 {
 	// Show selection across entire row.
-	DWORD newstyle = LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT;
-	// Also enable infotips if they have new enough version for our
-	// custom draw code
-	// LPNMLVCUSTOMDRAW->iSubItem not supported before comctl32 4.71
-	if (GetDllVersion(_T("comctl32.dll")) >= PACKVERSION(4,71))
-		newstyle |= LVS_EX_INFOTIP;
-	m_listColumns.SetExtendedStyle(m_listColumns.GetExtendedStyle() | newstyle);
+	// Also enable infotips.
+	m_listColumns.SetExtendedStyle(LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT | LVS_EX_INFOTIP);
 	m_listColumns.InsertColumn(0, _T(""), LVCFMT_LEFT, 150);
 }
 
@@ -274,7 +268,6 @@ void CDirColsDlg::OnDefaults()
  */
 void CDirColsDlg::OnLvnItemchangedColdlgList(NMHDR *pNMHDR, LRESULT *pResult)
 {
-	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 	POSITION pos = m_listColumns.GetFirstSelectedItemPosition();
 
 	if (pos)

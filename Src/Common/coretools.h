@@ -4,7 +4,7 @@
  * @brief Declaration file for Coretools.cpp
  */
 // ID line follows -- this is updated by SVN
-// $Id: coretools.h 5901 2008-09-06 02:48:07Z marcelgosselin $
+// $Id: coretools.h 7432 2010-11-18 14:16:08Z gerundt $
 
 #ifndef CORETOOLS_H
 #define CORETOOLS_H
@@ -105,6 +105,7 @@ float RoundMeasure(float measure, float units);
 String LegalizeFileName(LPCTSTR szFileName);
 
 int tcssubptr(LPCTSTR start, LPCTSTR end);
+size_t linelen(const char *string);
 
 HANDLE RunIt(LPCTSTR szExeFile, LPCTSTR szArgs, BOOL bMinimized = TRUE, BOOL bNewConsole = FALSE);
 BOOL HasExited(HANDLE hProcess, DWORD *pCode = NULL);

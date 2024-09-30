@@ -20,7 +20,7 @@
  * @brief Declaration file for FileFilterHelper
  */
 // ID line follows -- this is updated by SVN
-// $Id: FileFilterHelper.h 6069 2008-11-04 23:04:18Z kimmov $
+// $Id: FileFilterHelper.h 7485 2010-12-28 21:05:18Z gerundt $
 
 #ifndef _FILEFILTERHELPER_H_
 #define _FILEFILTERHELPER_H_
@@ -104,7 +104,6 @@ public:
 
 	FileFilterMgr * GetManager() const;
 	void SetFileFilterPath(LPCTSTR szFileFilterPath);
-	void EditFileFilter(LPCTSTR szFileFilterPath);
 	void GetFileFilters(FILEFILTER_INFOLIST * filters, CString & selected) const;
 	CString GetFileFilterName(LPCTSTR filterPath) const;
 	CString GetFileFilterPath(LPCTSTR filterName) const;

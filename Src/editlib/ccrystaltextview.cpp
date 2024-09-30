@@ -85,7 +85,7 @@
  * @brief Implementation of the CCrystalTextView class
  */
 // ID line follows -- this is updated by SVN
-// $Id: ccrystaltextview.cpp 6093 2008-11-17 23:35:56Z gerundt $
+// $Id: ccrystaltextview.cpp 7447 2010-11-24 07:58:17Z gerundt $
 
 #include "StdAfx.h"
 #include <malloc.h>
@@ -105,6 +105,7 @@
 #include "SyntaxColors.h"
 #include "Ucs2Utf8.h"
 #include "unicoder.h"
+#include "string_util.h"
 #include "pcre.h"
 
 // Escaped character constants in range 0x80-0xFF are interpreted in current codepage
@@ -272,7 +273,7 @@ EXPAND_PRIMITIVE (MoveCtrlEnd, TextEnd)
 CCrystalTextView::TextDefinition CCrystalTextView::m_SourceDefs[] =
   {
     CCrystalTextView::SRC_PLAIN, _T ("Plain"), _T ("txt,doc,diz"), &CCrystalTextView::ParseLinePlain, SRCOPT_AUTOINDENT, /*4,*/ _T (""), _T (""), _T (""), (DWORD)-1,
-    CCrystalTextView::SRC_ASP, _T ("ASP"), _T ("asp"), &CCrystalTextView::ParseLineAsp, SRCOPT_AUTOINDENT|SRCOPT_BRACEANSI, /*2,*/ _T (""), _T (""), _T ("'"), (DWORD)-1,
+    CCrystalTextView::SRC_ASP, _T ("ASP"), _T ("asp,ascx"), &CCrystalTextView::ParseLineAsp, SRCOPT_AUTOINDENT|SRCOPT_BRACEANSI, /*2,*/ _T (""), _T (""), _T ("'"), (DWORD)-1,
     CCrystalTextView::SRC_BASIC, _T ("Basic"), _T ("bas,vb,vbs,frm,dsm,cls,ctl,pag,dsr"), &CCrystalTextView::ParseLineBasic, SRCOPT_AUTOINDENT, /*4,*/ _T (""), _T (""), _T ("\'"), (DWORD)-1,
     CCrystalTextView::SRC_BATCH, _T ("Batch"), _T ("bat,btm,cmd"), &CCrystalTextView::ParseLineBatch, SRCOPT_INSERTTABS|SRCOPT_AUTOINDENT, /*4,*/ _T (""), _T (""), _T ("rem "), (DWORD)-1,
     CCrystalTextView::SRC_C, _T ("C"), _T ("c,cc,cpp,cxx,h,hpp,hxx,hm,inl,rh,tlh,tli,xs"), &CCrystalTextView::ParseLineC, SRCOPT_AUTOINDENT|SRCOPT_BRACEANSI, /*2,*/ _T ("/*"), _T ("*/"), _T ("//"), (DWORD)-1,
@@ -808,7 +809,7 @@ ScrollToLine (int nNewTopLine, BOOL bNoSmoothScroll /*= FALSE*/ , BOOL bTrackScr
 static void AppendStringAdv(CString & str, int & curpos, LPCTSTR szadd)
 {
   str += szadd;
-  curpos += _tcslen(szadd);
+  curpos += (int) _tcslen(szadd);
 }
 
 /** Append escaped control char to string str, and advance position curpos */
@@ -925,11 +926,7 @@ int CCrystalTextView::GetCharWidthFromChar(TCHAR ch)
     return GetCharWidth() * 3;
   // This assumes a fixed width font
   // But the UNICODE case handles double-wide glyphs (primarily Chinese characters)
-#ifdef _UNICODE
   return GetCharWidthUnicodeChar(ch);
-#else
-  return GetCharWidth();
-#endif
 }
 
 /**
@@ -939,14 +936,10 @@ int CCrystalTextView::GetCharWidthFromString(LPCTSTR lpsz)
 {
   // This assumes a fixed width font
   // But the UNICODE case handles double-wide glyphs (primarily Chinese characters)
-#ifdef _UNICODE
   int n=0;
   for (LPCTSTR p = lpsz; *p; ++p)
     n += GetCharWidthUnicodeChar(*p);
   return n;
-#else
-  return strlen(lpsz) * GetCharWidth();
-#endif
 }
 
 /**
@@ -983,7 +976,6 @@ DrawLineHelperImpl (CDC * pdc, CPoint & ptOrigin, const CRect & rcClip,
       const int nCharWidthNarrowed = nCharWidth / 2;
       const int nCharWidthWidened = nCharWidth * 2 - nCharWidthNarrowed;
       const int nLineHeight = GetLineHeight();
-      int nSumWidth = 0;
 
       // i the character index, from 0 to lineLen-1
       int i = 0;
@@ -1028,10 +1020,6 @@ DrawLineHelperImpl (CDC * pdc, CPoint & ptOrigin, const CRect & rcClip,
               int nCount = lineLen - ibegin;
               int nCountFit = nWidth / nCharWidth + 2/* wide char */;
               if (nCount > nCountFit) {
-#ifndef _UNICODE
-                if (_ismbslead((unsigned char *)(LPCSTR)line, (unsigned char *)(LPCSTR)line + nCountFit - 1))
-                  nCountFit++;
-#endif
                 nCount = nCountFit;
               }
 
@@ -1311,7 +1299,7 @@ void CCrystalTextView::InvalidateLineCache( int nLineIndex1, int nLineIndex2 /*=
       return;
 
     if( nLineIndex2 >= m_panSubLines->GetSize() )
-      nLineIndex2 = m_panSubLines->GetUpperBound();
+      nLineIndex2 = (int) m_panSubLines->GetUpperBound();
 
     for( int i = nLineIndex1; i <= nLineIndex2; i++ )
       if( i >= 0 && i < m_panSubLines->GetSize() )
@@ -1670,10 +1658,6 @@ EscapeHTML (const CString & strText, BOOL & bLastCharSpace, int & nNonbreakChars
             bLastCharSpace = FALSE;
             nNonbreakChars++;
         }
-#ifndef _UNICODE
-      if (IsDBCSLeadByte (ch))
-        strHTML += strText[++i];
-#endif
       if ((nNonbreakChars % nScreenChars) == nScreenChars - 1)
         {
           strHTML += _T("<wbr>");
@@ -2102,7 +2086,6 @@ OnDraw (CDC * pdc)
     rcCacheLine.OffsetRect( 0, nSubLineOffset * nLineHeight );
   }
 
-  const int nMaxLineChars = GetScreenChars();
   //END SW
 
   int nCurrentLine = m_nTopLine;
@@ -2398,11 +2381,7 @@ int CCrystalTextView::CharPosToPoint( int nLineIndex, int nCharPos, CPoint &char
 /** Does character introduce a multicharacter character? */
 static inline bool IsLeadByte(TCHAR ch)
 {
-#ifdef UNICODE
   return false;
-#else
-  return _getmbcp() && IsDBCSLeadByte(ch);
-#endif
 }
 
 int CCrystalTextView::CursorPointToCharPos( int nLineIndex, const CPoint &curPoint )
@@ -2941,8 +2920,6 @@ OnPrint (CDC * pdc, CPrintInfo * pInfo)
   int nCurrentLine;
   for (nCurrentLine = nTopLine; nCurrentLine <= nEndLine; nCurrentLine++)
     {
-      int nSubLines = GetSubLines (nCurrentLine);
-
       rcLine.bottom = rcLine.top + GetSubLines (nCurrentLine) * nLineHeight;
       rcMargin.bottom = rcLine.bottom;
 
@@ -4511,16 +4488,11 @@ FindStringHelper (LPCTSTR pszFindWhere, LPCTSTR pszFindWhat, DWORD dwFlags,
       int regexLen = 0;
       int pcre_opts = 0;
 
-#ifdef UNICODE
       // For unicode builds, use UTF-8.
       // Convert pattern to UTF-8 and set option for PCRE to specify UTF-8.
       regexLen = TransformUcs2ToUtf8(pszFindWhat, _tcslen(pszFindWhat),
           regexString, sizeof(regexString));
       pcre_opts |= PCRE_UTF8;
-#else
-      strcpy(regexString, pszFindWhat);
-      regexLen = strlen(regexString);
-#endif
       pcre_opts |= PCRE_BSR_ANYCRLF;
       if ((dwFlags & FIND_MATCH_CASE) == 0)
         pcre_opts |= PCRE_CASELESS;
@@ -4539,27 +4511,17 @@ FindStringHelper (LPCTSTR pszFindWhere, LPCTSTR pszFindWhat, DWORD dwFlags,
       char *compString = new char[compStringBufLen];
       int stringLen = 0;
 
-#ifdef UNICODE
       stringLen = TransformUcs2ToUtf8(pszFindWhere, _tcslen(pszFindWhere),
           compString, compStringBufLen);
       compString[stringLen] = '\0';
-#else
-      strncpy(compString, pszFindWhere, compStringBufLen);
-      stringLen = strlen(compString);
-#endif
 
       int result = pcre_exec(regexp, pe, compString, stringLen,
           0, 0, ovector, 30);
 
       if (result >= 0)
         {
-#ifdef UNICODE
           pos = ucr::stringlen_of_utf8(compString, ovector[0]);
           nLen = ucr::stringlen_of_utf8(compString, ovector[1]) - pos;
-#else
-          pos = ovector[0];
-          nLen = ovector[1] - ovector[0];
-#endif
         }
       else
         pos = -1;
@@ -6033,7 +5995,6 @@ CString CCrystalTextView::GetTextBufferEol(int nLine) const
   return m_pTextBuffer->GetLineEol(nLine); 
 }
 
-#ifdef _UNICODE
 int CCrystalTextView::GetCharWidthUnicodeChar(wchar_t ch)
 {
   if (!m_bChWidthsCalculated[ch/256])
@@ -6068,15 +6029,12 @@ int CCrystalTextView::GetCharWidthUnicodeChar(wchar_t ch)
   else
     return GetCharWidth();
 }
-#endif
 
 /** @brief Reset computed unicode character widths. */
 void CCrystalTextView::ResetCharWidths ()
 {
-#ifdef _UNICODE
   ZeroMemory(m_bChWidthsCalculated, sizeof(m_bChWidthsCalculated));
   ZeroMemory(m_iChDoubleWidthFlags, sizeof(m_iChDoubleWidthFlags));
-#endif
 }
 
 // This function assumes selection is in one line
@@ -6186,6 +6144,19 @@ void CCrystalTextView::EnsureVisible (CPoint ptStart, CPoint ptEnd)
     }
 }
 
+// Analyze the first line of file to detect its type
+// Mainly it works for xml files
+bool CCrystalTextView::
+SetTextTypeByContent (LPCTSTR pszContent)
+{
+  int nLen;
+  if (::FindStringHelper(pszContent, _T("^\\s*\\<\\?xml\\s+.+?\\?\\>\\s*$"),
+      FIND_REGEXP, nLen) == 0)
+    {
+      return SetTextType(CCrystalTextView::SRC_XML);
+    }
+  return false;
+}
 
 ////////////////////////////////////////////////////////////////////////////
 #pragma warning ( default : 4100 )

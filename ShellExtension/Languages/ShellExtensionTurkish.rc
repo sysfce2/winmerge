@@ -1,6 +1,6 @@
 //Microsoft Developer Studio generated resource script.
 //
-// $Id: ShellExtensionTurkish.rc 3204 2006-04-09 12:58:21Z kimmov $
+// $Id: ShellExtensionTurkish.rc 7580 2013-01-02 01:36:48Z christianlist $
 
 #include "../resource.h"
 
@@ -15,7 +15,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Turkish (U.S.) resources
+// Turkish resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_TRK)
 #ifdef _WIN32
@@ -32,14 +32,14 @@ STRINGTABLE
 BEGIN
     IDS_PROJNAME            "ShellExtension"
     IDS_CONTEXT_MENU        "WinMerge"
-    IDS_CONTEXT_HELP        "Open with WinMerge"
-    IDS_CONTEXT_HELP_MANYITEMS "Please select no more than 2 items"
-    IDS_COMPARE             "Compare"
-    IDS_COMPARE_ELLIPSIS    "Compare..."
-    IDS_COMPARE_TO          "Compare To"
-    IDS_HELP_SAVETHIS       "Save this path. Select another path to compare with this path."
-    IDS_HELP_COMPARESAVED   "Compare to saved path (%1)"
-    IDS_RESELECT_FIRST      "Re-select First"
+    IDS_CONTEXT_HELP        "WinMerge ile aç"
+    IDS_CONTEXT_HELP_MANYITEMS "Lütfen 2 ögeden fazlasýný seçmeyin"
+    IDS_COMPARE             "Karþýlaþtýr"
+    IDS_COMPARE_ELLIPSIS    "Karþýlaþtýr..."
+    IDS_COMPARE_TO          "Þununla karþýlaþtýr"
+    IDS_HELP_SAVETHIS       "Bu yolu kaydet. Bu yolla karþýlaþtýrmak için baþka bir yol seçin."
+    IDS_HELP_COMPARESAVED   "Kaydedilmiþ yolla karþýlaþtýr (%1)"
+    IDS_RESELECT_FIRST      "Birinciyi yeniden seç"
 END
 
 #endif    // Turkish resources

@@ -20,11 +20,12 @@
  * @brief Implementation for DirItem routines
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirItem.cpp 5019 2008-02-10 11:50:33Z jtuc $
+// $Id: DirItem.cpp 7491 2010-12-31 13:37:55Z gerundt $
 
-#include "stdafx.h"
+#include <windows.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <tchar.h>
 #include "UnicodeString.h"
 #include "coretools.h"
 #include "DirItem.h"

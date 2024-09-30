@@ -1,30 +1,29 @@
 /** 
  * @file  PropSyntaxColors.h
  *
- * @brief Declaration file for CPropSyntaxColors propertyheet
+ * @brief Declaration file for PropSyntaxColors propertyheet
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropSyntaxColors.h 5444 2008-06-07 06:48:49Z kimmov $
+// $Id: PropSyntaxColors.h 7501 2011-01-03 13:29:00Z gerundt $
 
 #ifndef _PROP_SYNTAX_COLORS_H_
 #define _PROP_SYNTAX_COLORS_H_
 
 #include "ColorButton.h"
-#include "IOptionsPanel.h"
+#include "OptionsPanel.h"
 
 class SyntaxColors;
 
 const int NumCustomColors = 16;
 
-class CPropSyntaxColors : public CPropertyPage, public IOptionsPanel
+class PropSyntaxColors : public OptionsPanel
 {
-	DECLARE_DYNAMIC(CPropSyntaxColors)
+	DECLARE_DYNAMIC(PropSyntaxColors)
 
 // Construction & Destruction
 public:
-	CPropSyntaxColors(COptionsMgr *optionsMgr, SyntaxColors *pColors);
-	virtual ~CPropSyntaxColors();
+	PropSyntaxColors(COptionsMgr *optionsMgr, SyntaxColors *pColors);
 
 // Implement IOptionsPanel
 	virtual void ReadOptions();
@@ -37,8 +36,6 @@ private:
 	enum { IDD = IDD_PROPPAGE_COLORS_SYNTAX };
 
 protected:
-
-
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
 	afx_msg void OnBnClickedEcolorKeywords();
@@ -100,6 +97,5 @@ private:
 
 	SyntaxColors *m_pTempColors;
 	COLORREF m_cCustColors[COLORINDEX_COUNT];
-	COptionsMgr * m_pOptionsMgr;
 };
 #endif // _PROP_SYNTAX_COLORS_H_

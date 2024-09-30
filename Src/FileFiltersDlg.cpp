@@ -20,7 +20,7 @@
  * @brief Implementation of FileFilters -dialog
  */
 // ID line follows -- this is updated by SVN
-// $Id: FileFiltersDlg.cpp 5193 2008-03-26 22:27:38Z gerundt $
+// $Id: FileFiltersDlg.cpp 7485 2010-12-28 21:05:18Z gerundt $
 
 #include "stdafx.h"
 #include "UnicodeString.h"
@@ -28,7 +28,6 @@
 #include "MainFrm.h"
 #include "FileFiltersDlg.h"
 #include "coretools.h"
-#include "dllver.h"
 #include "FileFilterMgr.h"
 #include "paths.h"
 #include "SharedFilterDlg.h"
@@ -125,13 +124,8 @@ void FileFiltersDlg::SetSelected(const CString & selected)
 void FileFiltersDlg::InitList()
 {
 	// Show selection across entire row.
-	DWORD newstyle = LVS_EX_FULLROWSELECT;
-	// Also enable infotips if they have new enough version for our
-	// custom draw code
-	// LPNMLVCUSTOMDRAW->iSubItem not supported before comctl32 4.71
-	if (GetDllVersion(_T("comctl32.dll")) >= PACKVERSION(4,71))
-		newstyle |= LVS_EX_INFOTIP;
-	m_listFilters.SetExtendedStyle(m_listFilters.GetExtendedStyle() | newstyle);
+	// Also enable infotips.
+	m_listFilters.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_INFOTIP);
 
 	String title = theApp.LoadString(IDS_FILTERFILE_NAMETITLE);
 	m_listFilters.InsertColumn(0, title.c_str(), LVCFMT_LEFT, 150);
@@ -242,8 +236,17 @@ void FileFiltersDlg::OnFiltersEditbtn()
 	if (sel > 0)
 	{
 		CString path = m_listFilters.GetItemText(sel, 2);
-		theApp.m_globalFileFilter.EditFileFilter(path);
+		EditFileFilter(path);
 	}
+}
+
+/**
+ * @brief Edit file filter in external editor.
+ * @param [in] path Full path to file filter to edit.
+ */
+void FileFiltersDlg::EditFileFilter(LPCTSTR path)
+{
+	CMainFrame::OpenFileToExternalEditor(path);
 }
 
 /**
@@ -319,12 +322,6 @@ void FileFiltersDlg::OnInfoTip(NMHDR * pNMHDR, LRESULT * pResult)
 	LVHITTESTINFO lvhti = {0};
 	NMLVGETINFOTIP * pInfoTip = reinterpret_cast<NMLVGETINFOTIP*>(pNMHDR);
 	ASSERT(pInfoTip);
-
-	if (GetDllVersion(_T("comctl32.dll")) < PACKVERSION(4,71))
-	{
-		// LPNMLVCUSTOMDRAW->iSubItem not supported before comctl32 4.71
-		return;
-	}
 
 	// Get subitem under mouse cursor
 	lvhti.pt = m_ptLastMousePos;
@@ -462,7 +459,7 @@ void FileFiltersDlg::OnBnClickedFilterfileNewbutton()
 			ResMsgBox1(IDS_FILEFILTER_TMPL_COPY, templatePath.c_str(), MB_ICONERROR);
 			return;
 		}
-		theApp.m_globalFileFilter.EditFileFilter(s);
+		EditFileFilter(s);
 		FileFilterMgr *pMgr = theApp.m_globalFileFilter.GetManager();
 		int retval = pMgr->AddFilter(s);
 		if (retval == FILTER_OK)

@@ -9,6 +9,7 @@ Project lead:
 * Christian List <list1974@hotmail.com>
 
 Developers:
+* Denis Bradford <denisbradford@users.sourceforge.net>
 * Tim Gerundt <tim@gerundt.de>
 * Marcel Gosselin <marcelgosselin@users.sourceforge.net>
 * Gal Hammer <galh@users.sourceforge.net>
@@ -25,6 +26,9 @@ Inactive/past developers:
 * Christian "Seier" Blackburn (Installer)
 
 Localization:
+* Basque:
+  Xabier Aramendi <Azpidatziak@gmail.com>  
+
 * Bulgarian:
   Sld <sld|mail.bg>
   tigertron <ivg_18@yahoo.com>
@@ -39,7 +43,7 @@ Localization:
   Koko <kokokoko@giga.net.tw>
 
 * Croatian:
-  Hasan Osmanagæ <hasan.osmanagic@public.carnet.hr>
+  Hasan Osmanagiæ <hasan.osmanagic@public.carnet.hr>
 
 * Czech:
   Jiri Tax <jt@taxoft.cz>
@@ -74,6 +78,7 @@ Localization:
 
 * Hungarian:
   Márton Balázs <documan@users.sourceforge.net>
+  Mihalicza József <jmihalicza@gmail.com>
 
 * Italian:
   Andrea Decorte <deco1985@hotmail.com>
@@ -87,6 +92,9 @@ Localization:
 
 * Norwegian:
   Hans Fredrik Nordhaug <hansfn@users.sourceforge.net>
+
+* Persian:
+  Abolfazl Rostamzadeh <a.rostamzadeh at gmail.com>
 
 * Polish:
   M.T <mtrz@users.sourceforge.net>
@@ -106,12 +114,16 @@ Localization:
 * Russian:
   Dmitriy S. Aleshkowskiy <wwarlock@mail.ru>
 
+* Serbian:
+  Ozzii <ivanstar61@gmail.com>
+
 * Slovak:
   Majvan <vancojur@decef.elf.stuba.sk>
   Ivan Masár <helix84@centrum.sk>
 
 * Slovenian:
   Iztok Osredkar <iztok.osredkar@institut-oko.si>
+  Filip Komar <filip.komar@gmail.com>
 
 * Spanish:
   Mario Angel <marioangel70@gmail.com>
@@ -123,6 +135,7 @@ Localization:
   Göran Håkansson <goran.x.hakansson@telia.com>
 
 * Turkish:
+  Afyonlu <afyonlu@users.sourceforge.net>
   Ozkan UNVER <turquaz37915@users.sourceforge.net>
 
 * Ukranian
@@ -133,7 +146,7 @@ Localization:
 Other Contributors (code, ideas, testing..):
 * Andre Arpin
 * Steve Beaudoin
-* Denis Bradford
+* bulklodd <bulklodd@users.sourceforge.net>
 * Adam Carrivick
 * Hern Chen
 * Jeremy Dewey
@@ -171,6 +184,7 @@ Other Contributors (code, ideas, testing..):
 * Vikrant
 * Gilbert Wellisch
 * Paul Welter
+* Lars Wittenburg
 
 
 WinMerge includes code from:
@@ -187,7 +201,7 @@ WinMerge includes code from:
 * Andrei Stcherbatchenko (CrystalEditor)
 
 *** NOTE ***
-If your name is missing please send email us to:
+If your name is missing please email us at:
 winmerge-support@lists.sourceforge.net
 
 Thanks!

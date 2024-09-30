@@ -24,14 +24,13 @@
  * @brief Implementation of the CFilepathEdit class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: FilepathEdit.cpp 6501 2009-02-25 13:37:09Z kimmov $
+// $Id: FilepathEdit.cpp 7452 2010-12-06 06:56:28Z gerundt $
 
 #include "stdafx.h"
 #include "Merge.h"
 #include "BCMenu.h"
 #include "FilepathEdit.h"
 #include "Shlwapi.h"
-#include "dllVer.h"		
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -242,9 +241,8 @@ void CFilepathEdit::CustomCopy(int iBegin, int iEnd /*=-1*/)
 	// Copy selected data from m_sOriginalText into the alloc'd data area
 	_tcscpy (pszData, (LPTSTR) m_sOriginalText.Mid(iBegin, iEnd - iBegin).GetBuffer(0));
 	GlobalUnlock (hData);
-	UINT fmt = GetClipTcharTextFormat();      // CF_TEXT or CF_UNICODETEXT
 	// Using alloc'd data, set the clipboard
-	SetClipboardData (fmt, hData);
+	SetClipboardData (CF_UNICODETEXT, hData);
 
 	// release the clipboard
 	CloseClipboard ();

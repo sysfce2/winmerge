@@ -5,7 +5,7 @@
  * @brief Declaration of CDiffViewBar class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffViewBar.h 2938 2006-01-12 18:29:22Z kimmov $
+// $Id: DiffViewBar.h 7419 2010-11-12 08:13:22Z gerundt $
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -38,6 +38,7 @@ public:
 	int  GetPanelHeight();
 	void UpdateBarHeight(int DiffPanelHeight);
 	void SetFrameHwnd(HWND hwndFrame);
+	void UpdateResources();
 
 protected:
 	CSplitterWndEx * m_pwndDetailSplitter;

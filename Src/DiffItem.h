@@ -4,7 +4,7 @@
  *  @brief Declaration of DIFFITEM
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffItem.h 6095 2008-11-18 20:05:27Z kimmov $
+// $Id: DiffItem.h 7424 2010-11-15 13:25:49Z gerundt $
 
 #ifndef _DIFF_ITEM_H_
 #define _DIFF_ITEM_H_
@@ -144,9 +144,8 @@ struct DIFFITEM : ListEntry
 	DIFFITEM() : parent(NULL), nidiffs(-1), nsdiffs(-1), customFlags1(0) { }
 	~DIFFITEM();
 
-	bool isEmpty() const { return this == &emptyitem; }
-	String getLeftFilepath(const String &sLeftRoot) const;
-	String getRightFilepath(const String &sRightRoot) const;
+	String GetLeftFilepath(const String &sLeftRoot) const;
+	String GetRightFilepath(const String &sRightRoot) const;
 	int GetDepth() const;
 	bool IsAncestor(const DIFFITEM *pdi) const;
 	bool HasChildren() const;

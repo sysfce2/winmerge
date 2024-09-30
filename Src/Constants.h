@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: Constants.h 6733 2009-05-12 07:31:07Z kimmov $
+// $Id: Constants.h 7474 2010-12-20 12:24:01Z gerundt $
 
 #ifndef _CONSTANTS_H_
 #define _CONSTANTS_H_
@@ -17,7 +17,7 @@ const TCHAR WinMergeURL[] = _T("http://winmerge.org/");
  * @brief URL to help index in internet.
  * We use internet help when local help file is not found (not installed).
  */
-const TCHAR DocsURL[] = _T("http://winmerge.org/docs/manual/index.html");
+const TCHAR DocsURL[] = _T("http://manual.winmerge.org/index.html");
 
 /** @brief URL to translations page in internet. */
 const TCHAR TranslationsUrl[] = _T("http://winmerge.org/translations/");
@@ -49,5 +49,18 @@ const TCHAR WinMergeDocumentsFolder[] = _T("WinMerge");
  * So it makes sense to have own subfolder for filters.
  */
 const TCHAR DefaultRelativeFilterPath[] = _T("WinMerge\\Filters");
+
+/**
+ * @brief Flags used when opening files
+ */
+enum
+{
+	FFILEOPEN_NONE		= 0x0000,
+	FFILEOPEN_NOMRU		= 0x0001, /**< Do not add this path to MRU list */
+	FFILEOPEN_READONLY	= 0x0002, /**< Open this path as read-only */
+	FFILEOPEN_MODIFIED  = 0x0004, /**< Mark file modified after opening. */
+	FFILEOPEN_CMDLINE	= 0x0010, /**< Path is read from commandline */
+	FFILEOPEN_PROJECT	= 0x0020, /**< Path is read from project-file */
+};
 
 #endif // _CONSTANTS_H_

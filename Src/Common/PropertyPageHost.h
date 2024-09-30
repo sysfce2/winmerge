@@ -8,7 +8,7 @@
  * WinMerge.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropertyPageHost.h 6810 2009-06-02 04:41:46Z kimmov $
+// $Id: PropertyPageHost.h 7309 2010-10-17 12:15:28Z gerundt $
 
 #if !defined(AFX_PROPERTYPAGEHOST_H__43CF5AE7_C70B_443D_BC8B_7DA1D0E082DD__INCLUDED_)
 #define AFX_PROPERTYPAGEHOST_H__43CF5AE7_C70B_443D_BC8B_7DA1D0E082DD__INCLUDED_
@@ -48,7 +48,7 @@ public:
 	BOOL AddPage(CPropertyPage* pPage, LPCTSTR szTitle = NULL, DWORD dwItemData = 0);
 	BOOL SetActivePage(int nIndex, BOOL bAndFocus = TRUE);
 	BOOL SetActivePage(CPropertyPage* pPage, BOOL bAndFocus = TRUE);
-	int GetPageCount() { return m_aPages.GetSize(); }
+	int GetPageCount() { return (int) m_aPages.GetSize(); }
 	CString GetPageTitle(int nIndex);
 	DWORD GetPageItemData(int nIndex);
 	CPropertyPage* GetPage(int nIndex);

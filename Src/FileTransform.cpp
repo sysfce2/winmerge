@@ -24,7 +24,7 @@
  *  @brief Implementation of file transformations
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: FileTransform.cpp 5492 2008-06-17 08:18:40Z kimmov $
+// $Id: FileTransform.cpp 7484 2010-12-28 20:56:59Z gerundt $
 
 #include "StdAfx.h"
 #include "FileTransform.h"
@@ -137,6 +137,9 @@ BOOL FileTransform_Unpacking(String & filepath, const PackingInfo * handler, int
 	PluginInfo * plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"FILE_PACK_UNPACK", handler->pluginName.c_str());
 	if (plugin == NULL)
 		plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"BUFFER_PACK_UNPACK", handler->pluginName.c_str());
+	if (plugin == NULL)
+		return FALSE;
+
 	LPDISPATCH piScript = plugin->m_lpDispatch;
 	if (handler->bWithFile)
 	{
@@ -449,7 +452,7 @@ BOOL FileTransform_NormalizeUnicode(String & filepath, BOOL bMayOverwrite)
 			if (!::DeleteFile(filepath.c_str()))
 			{
 				LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-					filepath.c_str(), GetSysError(GetLastError())));
+					filepath.c_str(), GetSysError(GetLastError()).c_str()));
 			}
 		}
 		// and change the filepath if everything works
@@ -460,7 +463,7 @@ BOOL FileTransform_NormalizeUnicode(String & filepath, BOOL bMayOverwrite)
 		if (!::DeleteFile(tempFilepath.c_str()))
 		{
 			LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-				tempFilepath.c_str(), GetSysError(GetLastError())));
+				tempFilepath.c_str(), GetSysError(GetLastError()).c_str()));
 		}
 	}
 
@@ -495,7 +498,7 @@ BOOL FileTransform_UCS2ToUTF8(String & filepath, BOOL bMayOverwrite)
 			if (!::DeleteFile(filepath.c_str()))
 			{
 				LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-					filepath.c_str(), GetSysError(GetLastError())));
+					filepath.c_str(), GetSysError(GetLastError()).c_str()));
 			}
 		}
 		// and change the filepath if everything works
@@ -506,7 +509,7 @@ BOOL FileTransform_UCS2ToUTF8(String & filepath, BOOL bMayOverwrite)
 		if (!::DeleteFile(tempFilepath.c_str()))
 		{
 			LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-				tempFilepath.c_str(), GetSysError(GetLastError())));
+				tempFilepath.c_str(), GetSysError(GetLastError()).c_str()));
 		}
 	}
 

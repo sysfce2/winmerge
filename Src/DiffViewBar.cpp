@@ -6,11 +6,12 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffViewBar.cpp 2913 2006-01-04 21:36:46Z kimmov $
+// $Id: DiffViewBar.cpp 7419 2010-11-12 08:13:22Z gerundt $
 //
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Merge.h"
 
 #include "ChildFrm.h"
 #include "DiffViewBar.h"
@@ -158,4 +159,12 @@ void CDiffViewBar::OnWindowPosChanged(WINDOWPOS* lpwndpos)
 void CDiffViewBar::SetFrameHwnd(HWND hwndFrame)
 {
 	m_hwndFrame = hwndFrame;
+}
+/**
+ * @brief Update any resources necessary after a GUI language change
+ */
+void CDiffViewBar::UpdateResources()
+{
+	String sCaption = theApp.LoadString(IDS_DIFFBAR_CAPTION);
+	SetWindowText(sCaption.c_str());
 }

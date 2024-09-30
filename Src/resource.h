@@ -56,6 +56,7 @@
 #define IDD_CONFIRM_COPY                235
 #define IDD_PLUGINS_LIST                236
 #define IDD_PROPPAGE_SHELL              237
+#define IDD_PROPPAGE_COMPARE_FOLDER     238
 #define IDR_SPLASH                      308
 #define IDB_WINMERGE                    309
 #define IDB_OLDSPLASH                   310
@@ -430,10 +431,8 @@
 #define IDC_LFILTER_LIST                1327
 #define IDC_LFILTER_ADDBTN              1328
 #define IDC_LFILTER_EDITBTN             1329
-#define IDC_LFILTER_EDITBOX             1330
 #define IDC_LFILTER_REMOVEBTN           1331
 #define IDC_BUTTON2                     1332
-#define IDC_LFILTER_EDITSAVE            1333
 #define IDC_ABOUTBOX_ICON               1334
 #define IDC_ASK_MULTIWINDOW_CLOSE       1335
 #define IDC_COLDLG_LIST                 1336
@@ -445,6 +444,8 @@
 #define IDC_PLUGINSLIST_LIST            1342
 #define IDC_ENABLE_SHELL_CONTEXT_MENU   1343
 #define IDC_STARTUP_FOLDER_SELECT       1344
+#define IDC_COMPAREFOLDER_DEFAULTS      1348
+#define IDC_COMPARE_QUICKC_LIMIT        1350
 #define IDC_EDIT_WHOLE_WORD             8603
 #define IDC_EDIT_MATCH_CASE             8604
 #define IDC_EDIT_FINDTEXT               8605
@@ -492,6 +493,9 @@
 #define IDS_OPTIONSPG_ARCHIVE           9050
 #define IDS_OPTIONSPG_BACKUPS           9051
 #define IDS_OPTIONSPG_SHELL             9052
+#define IDS_OPTIONSPG_MERGECOLORS       9053
+#define IDS_OPTIONSPG_GENCOMPARE        9054
+#define IDS_OPTIONSPG_FOLDERCOMPARE     9055
 #define IDS_TO                          16000
 #define IDS_FROM_LEFT                   16001
 #define IDS_TO_LEFT                     16002
@@ -813,67 +817,6 @@
 #define IDS_UNICODING_UCS2_LE           18594
 #define IDS_UNICODING_UCS2_BE           18595
 #define IDD_LANGUAGE_SELECT             30000
-#define IDS_CPG_WESTERN_EUROPEAN        30200
-#define IDS_CPG_EASTERN_EUROPEAN        30201
-#define IDS_CPG_EAST_ASIAN              30202
-#define IDS_CPG_SOUTH_ASIAN             30203
-#define IDS_CPG_MIDDLE_EASTERN          30204
-#define IDS_CPG_NA                      30205
-#define IDS_CPP_WINDOWS                 30210
-#define IDS_CPP_DOS                     30211
-#define IDS_CPP_MACINTOSH               30212
-#define IDS_CPP_IBM                     30213
-#define IDS_CPP_NA                      30214
-#define IDS_CP_EBCDIC                   30220
-#define IDS_CP_IBM_EBCDIC_CYRILLIC      30221
-#define IDS_CP_DOS_US                   30230
-#define IDS_CP_DOS_ARABIC               30231
-#define IDS_CP_DOS_GREEK                30232
-#define IDS_CP_DOS_BALTIC               30233
-#define IDS_CP_DOS_LATIN1               30234
-#define IDS_CP_DOS_GREEK1               30235
-#define IDS_CP_DOS_LATIN2               30236
-#define IDS_CP_DOS_CYRILLIC             30237
-#define IDS_CP_DOS_TURKISH              30238
-#define IDS_CP_DOS_PORTUGUESE           30239
-#define IDS_CP_DOS_ICELANDIC            30250
-#define IDS_CP_DOS_HEBREW               30251
-#define IDS_CP_DOS_FRENCH_CANADA        30252
-#define IDS_CP_DOS_NORDIC               30253
-#define IDS_CP_DOS_CYRILLIC_CIS1        30254
-#define IDS_CP_DOS_GREEK2               30255
-#define IDS_CP_WINDOWS_THAI             30256
-#define IDS_CP_WINDOWS_JAPANESE         30257
-#define IDS_CP_WINDOWS_CHINESE_SIMP     30258
-#define IDS_CP_WINDOWS_KOREAN           30259
-#define IDS_CP_WINDOWS_CHINESE_TRAD     30270
-#define IDS_CP_WINDOWS_LATIN2           30271
-#define IDS_CP_WINDOWS_CYRILLIC         30272
-#define IDS_CP_WINDOWS_LATIN1           30273
-#define IDS_CP_WINDOWS_GREEK            30274
-#define IDS_CP_WINDOWS_TURKISH          30275
-#define IDS_CP_WINDOWS_HEBREW           30276
-#define IDS_CP_WINDOWS_ARABIC           30277
-#define IDS_CP_WINDOWS_BALTIC           30278
-#define IDS_CP_WINDOWS_VIETNAM          30279
-#define IDS_CP_MACINTOSH_ROMAN          30290
-#define IDS_CP_MACINTOSH_GREEK          30291
-#define IDS_CP_MACINTOSH_CYRILLIC       30292
-#define IDS_CP_MACINTOSH_CENTRAL_EUROPE 30293
-#define IDS_CP_MACINTOSH_ICELANDIC      30294
-#define IDS_CP_MACINTOSH_TURKISH        30295
-#define IDS_CP_UTF7                     30300
-#define IDS_CP_UTF8                     30301
-#define IDS_CP_WINDOWS_JAPANESE_EXTRA   30320
-#define IDS_CP_WINDOWS_CHINESE_SIMP_EXTRA 30321
-#define IDS_CP_WINDOWS_KOREAN_EXTRA     30322
-#define IDS_CP_WINDOWS_LATIN2_EXTRA     30323
-#define IDS_CP_WINDOWS_CHINESE_TRAD_EXTRA 30324
-#define IDS_CP_WINDOWS_CYRILLIC_EXTRA   30326
-#define IDS_CP_WINDOWS_LATIN1_EXTRA     30327
-#define IDS_CP_WINDOWS_GREEK_EXTRA      30328
-#define IDS_CP_WINDOWS_TURKISH_EXTRA    30329
-#define IDS_CP_WINDOWS_HEBREW_EXTRA     30340
 #define IDS_EOL_DOS                     30400
 #define IDS_EOL_MAC                     30401
 #define IDS_EOL_UNIX                    30402
@@ -950,6 +893,7 @@
 #define ID_TOOLS_GENERATEREPORT         32868
 #define ID_MERGE_COMPARE                32869
 #define ID_MERGE_COMPARE_XML            32870
+#define ID_MERGE_COMPARE_HEX            32871
 #define ID_UNPACK_MANUAL                32880
 #define ID_UNPACK_AUTO                  32881
 #define ID_POPUP_OPEN_WITH_UNPACKER     32882
@@ -1071,15 +1015,18 @@
 #define ID_HELP_TRANSLATIONS            33171
 #define ID_VIEW_ZOOMNORMAL              33172
 #define ID_PLUGINS_LIST                 33173
-
+#define ID_PREDIFFER_MANUAL             33174
+#define ID_PREDIFFER_AUTO               33175
+#define ID_VIEW_EXPAND                  33176
+#define ID_VIEW_COLLAPSE                33177
 // Next default values for new objects
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        237
-#define _APS_NEXT_COMMAND_VALUE         33174
-#define _APS_NEXT_CONTROL_VALUE         1345
+#define _APS_NEXT_RESOURCE_VALUE        239
+#define _APS_NEXT_COMMAND_VALUE         33178
+#define _APS_NEXT_CONTROL_VALUE         1351
 #define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif

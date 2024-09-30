@@ -1,16 +1,17 @@
 /** 
  * @file  PropEditor.cpp
  *
- * @brief Implementation of CPropEditor propertysheet
+ * @brief Implementation of PropEditor propertysheet
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PropEditor.cpp 4616 2007-10-14 08:22:14Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: PropEditor.cpp 7501 2011-01-03 13:29:00Z gerundt $
 
 #include "stdafx.h"
 #include "merge.h"
 #include "PropEditor.h"
 #include "OptionsDef.h"
 #include "OptionsMgr.h"
+#include "OptionsPanel.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -21,15 +22,12 @@ static char THIS_FILE[] = __FILE__;
 /** @brief Maximum size for tabs in spaces. */
 static const int MAX_TABSIZE = 64;
 
-/////////////////////////////////////////////////////////////////////////////
-// CPropEditor dialog
-
 /** 
  * @brief Constructor.
  * @param [in] optionsMgr Pointer to options manager for handling options.
  */
-CPropEditor::CPropEditor(COptionsMgr *optionsMgr) : CPropertyPage(CPropEditor::IDD)
-, m_pOptionsMgr(optionsMgr)
+PropEditor::PropEditor(COptionsMgr *optionsMgr) 
+: OptionsPanel(optionsMgr, PropEditor::IDD)
 , m_bHiliteSyntax(FALSE)
 , m_nTabType(-1)
 , m_nTabSize(0)
@@ -44,10 +42,10 @@ CPropEditor::CPropEditor(COptionsMgr *optionsMgr) : CPropertyPage(CPropEditor::I
 /** 
  * @brief Function handling dialog data exchange between GUI and variables.
  */
-void CPropEditor::DoDataExchange(CDataExchange* pDX)
+void PropEditor::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CPropEditor)
+	//{{AFX_DATA_MAP(PropEditor)
 	DDX_Check(pDX, IDC_HILITE_CHECK, m_bHiliteSyntax);
 	DDX_Radio(pDX, IDC_PROP_INSERT_TABS, m_nTabType);
 	DDX_Text(pDX, IDC_TAB_EDIT, m_nTabSize);
@@ -60,8 +58,8 @@ void CPropEditor::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(CPropEditor, CDialog)
-	//{{AFX_MSG_MAP(CPropEditor)
+BEGIN_MESSAGE_MAP(PropEditor, CDialog)
+	//{{AFX_MSG_MAP(PropEditor)
 	ON_BN_CLICKED(IDC_VIEW_LINE_DIFFERENCES, OnLineDiffControlClicked)
 	ON_BN_CLICKED(IDC_EDITOR_CHARLEVEL, OnLineDiffControlClicked)
 	ON_BN_CLICKED(IDC_EDITOR_WORDLEVEL, OnLineDiffControlClicked)
@@ -72,45 +70,42 @@ END_MESSAGE_MAP()
 /** 
  * @brief Reads options values from storage to UI.
  */
-void CPropEditor::ReadOptions()
+void PropEditor::ReadOptions()
 {
-	m_nTabSize = m_pOptionsMgr->GetInt(OPT_TAB_SIZE);
-	m_nTabType = m_pOptionsMgr->GetInt(OPT_TAB_TYPE);
-	m_bAutomaticRescan = m_pOptionsMgr->GetBool(OPT_AUTOMATIC_RESCAN);
-	m_bHiliteSyntax = m_pOptionsMgr->GetBool(OPT_SYNTAX_HIGHLIGHT);
-	m_bAllowMixedEol = m_pOptionsMgr->GetBool(OPT_ALLOW_MIXED_EOL);
-	m_bViewLineDifferences = m_pOptionsMgr->GetBool(OPT_WORDDIFF_HIGHLIGHT);
-	m_bBreakOnWords = m_pOptionsMgr->GetBool(OPT_BREAK_ON_WORDS);
-	m_nBreakType = m_pOptionsMgr->GetInt(OPT_BREAK_TYPE);
+	m_nTabSize = GetOptionsMgr()->GetInt(OPT_TAB_SIZE);
+	m_nTabType = GetOptionsMgr()->GetInt(OPT_TAB_TYPE);
+	m_bAutomaticRescan = GetOptionsMgr()->GetBool(OPT_AUTOMATIC_RESCAN);
+	m_bHiliteSyntax = GetOptionsMgr()->GetBool(OPT_SYNTAX_HIGHLIGHT);
+	m_bAllowMixedEol = GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL);
+	m_bViewLineDifferences = GetOptionsMgr()->GetBool(OPT_WORDDIFF_HIGHLIGHT);
+	m_bBreakOnWords = GetOptionsMgr()->GetBool(OPT_BREAK_ON_WORDS);
+	m_nBreakType = GetOptionsMgr()->GetInt(OPT_BREAK_TYPE);
 }
 
 /** 
  * @brief Writes options values from UI to storage.
  */
-void CPropEditor::WriteOptions()
+void PropEditor::WriteOptions()
 {
 	// Sanity check tabsize
 	if (m_nTabSize < 1)
 		m_nTabSize = 1;
 	if (m_nTabSize > MAX_TABSIZE)
 		m_nTabSize = MAX_TABSIZE;
-	m_pOptionsMgr->SaveOption(OPT_TAB_SIZE, (int)m_nTabSize);
-	m_pOptionsMgr->SaveOption(OPT_TAB_TYPE, (int)m_nTabType);
-	m_pOptionsMgr->SaveOption(OPT_AUTOMATIC_RESCAN, m_bAutomaticRescan == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_ALLOW_MIXED_EOL, m_bAllowMixedEol == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_SYNTAX_HIGHLIGHT, m_bHiliteSyntax == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_WORDDIFF_HIGHLIGHT, !!m_bViewLineDifferences);
-	m_pOptionsMgr->SaveOption(OPT_BREAK_ON_WORDS, !!m_bBreakOnWords);
-	m_pOptionsMgr->SaveOption(OPT_BREAK_TYPE, m_nBreakType);
+	GetOptionsMgr()->SaveOption(OPT_TAB_SIZE, (int)m_nTabSize);
+	GetOptionsMgr()->SaveOption(OPT_TAB_TYPE, (int)m_nTabType);
+	GetOptionsMgr()->SaveOption(OPT_AUTOMATIC_RESCAN, m_bAutomaticRescan == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_ALLOW_MIXED_EOL, m_bAllowMixedEol == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_SYNTAX_HIGHLIGHT, m_bHiliteSyntax == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_WORDDIFF_HIGHLIGHT, !!m_bViewLineDifferences);
+	GetOptionsMgr()->SaveOption(OPT_BREAK_ON_WORDS, !!m_bBreakOnWords);
+	GetOptionsMgr()->SaveOption(OPT_BREAK_TYPE, m_nBreakType);
 }
-
-/////////////////////////////////////////////////////////////////////////////
-// CPropEditor message handlers
 
 /** 
  * @brief Called before propertysheet is drawn.
  */
-BOOL CPropEditor::OnInitDialog() 
+BOOL PropEditor::OnInitDialog() 
 {
 	theApp.TranslateDialog(m_hWnd);
 	CPropertyPage::OnInitDialog();
@@ -132,7 +127,7 @@ BOOL CPropEditor::OnInitDialog()
 /**
  * @brief Load strings (from resource) into combobox for break type
  */
-void CPropEditor::LoadBreakTypeStrings()
+void PropEditor::LoadBreakTypeStrings()
 {
 	CComboBox * cbo = (CComboBox *)GetDlgItem(IDC_BREAK_TYPE);
 	cbo->AddString(theApp.LoadString(IDS_BREAK_ON_WHITESPACE).c_str());
@@ -142,7 +137,7 @@ void CPropEditor::LoadBreakTypeStrings()
 /**
  * @brief Handlers any clicks in any of the line differencing controls
  */
-void CPropEditor::OnLineDiffControlClicked()
+void PropEditor::OnLineDiffControlClicked()
 {
 	UpdateLineDiffControls();
 }
@@ -152,7 +147,7 @@ void CPropEditor::OnLineDiffControlClicked()
  * @param [in] item ID of dialog control to enable/disable.
  * @param [in] enable if true control is enabled, else disabled.
  */
-void CPropEditor::EnableDlgItem(int item, bool enable)
+void PropEditor::EnableDlgItem(int item, bool enable)
 {
 	GetDlgItem(item)->EnableWindow(!!enable);
 }
@@ -160,7 +155,7 @@ void CPropEditor::EnableDlgItem(int item, bool enable)
 /** 
  * @brief Update availability of line difference controls
  */
-void CPropEditor::UpdateLineDiffControls()
+void PropEditor::UpdateLineDiffControls()
 {
 	UpdateDataFromWindow();
 	// Can only choose char/word level if line differences are enabled
@@ -173,7 +168,7 @@ void CPropEditor::UpdateLineDiffControls()
 /** 
  * @brief Check tabsize value when control loses focus.
  */
-void CPropEditor::OnEnKillfocusTabEdit()
+void PropEditor::OnEnKillfocusTabEdit()
 {
 	CEdit * pEdit = (CEdit *)GetDlgItem(IDC_TAB_EDIT);
 	CString valueAsText;

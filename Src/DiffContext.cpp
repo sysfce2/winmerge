@@ -24,7 +24,7 @@
  *  @brief Implementation of CDiffContext
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: DiffContext.cpp 6136 2008-12-01 17:04:25Z kimmov $
+// $Id: DiffContext.cpp 7424 2010-11-15 13:25:49Z gerundt $
 //////////////////////////////////////////////////////////////////////
 
 #include "StdAfx.h"
@@ -125,9 +125,9 @@ BOOL CDiffContext::UpdateInfoFromDiskHalf(DIFFITEM & di, BOOL bLeft)
 	String filepath;
 
 	if (bLeft == TRUE)
-		filepath = paths_ConcatPath(di.getLeftFilepath(GetNormalizedLeft()), di.left.filename);
+		filepath = paths_ConcatPath(di.GetLeftFilepath(GetNormalizedLeft()), di.left.filename);
 	else
-		filepath = paths_ConcatPath(di.getRightFilepath(GetNormalizedRight()), di.right.filename);
+		filepath = paths_ConcatPath(di.GetRightFilepath(GetNormalizedRight()), di.right.filename);
 
 	DiffFileInfo & dfi = bLeft ? di.left : di.right;
 	if (!dfi.Update(filepath.c_str()))
@@ -185,7 +185,7 @@ void CDiffContext::UpdateVersion(DIFFITEM & di, BOOL bLeft) const
 		LPCTSTR ext = PathFindExtension(di.left.filename.c_str());
 		if (!CheckFileForVersion(ext))
 			return;
-		spath = di.getLeftFilepath(GetNormalizedLeft());
+		spath = di.GetLeftFilepath(GetNormalizedLeft());
 		spath = paths_ConcatPath(spath, di.left.filename);
 	}
 	else
@@ -195,7 +195,7 @@ void CDiffContext::UpdateVersion(DIFFITEM & di, BOOL bLeft) const
 		LPCTSTR ext = PathFindExtension(di.right.filename.c_str());
 		if (!CheckFileForVersion(ext))
 			return;
-		spath = di.getRightFilepath(GetNormalizedRight());
+		spath = di.GetRightFilepath(GetNormalizedRight());
 		spath = paths_ConcatPath(spath, di.right.filename);
 	}
 	

@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: AnsiConvert.cpp 5590 2008-07-10 13:10:18Z kimmov $
+// $Id: AnsiConvert.cpp 7436 2010-11-21 13:06:27Z gerundt $
 
 #include <windows.h>
 
@@ -46,9 +46,6 @@ LPCSTR ansiconvert_ThreadCP(LPCTSTR str)
  */
 LPCSTR convert(LPCTSTR str, UINT codepage)
 {
-#ifndef UNICODE
-	return strdup(str);
-#else
 	int len = WideCharToMultiByte(codepage, 0, str, -1, 0, 0, 0, 0);
 	if (len)
 	{
@@ -57,5 +54,4 @@ LPCSTR convert(LPCTSTR str, UINT codepage)
 		return ansi;
 	}
 	return NULL;
-#endif
 }

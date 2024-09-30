@@ -20,7 +20,7 @@
  * @brief Implementation file for VSSHelper class
  */
 // ID line follows -- this is updated by SVN
-// $Id: VSSHelper.cpp 5626 2008-07-16 08:24:27Z kimmov $
+// $Id: VSSHelper.cpp 7388 2010-10-31 14:32:29Z jtuc $
 
 
 #include "stdafx.h"
@@ -64,14 +64,14 @@ BOOL VSSHelper::ReLinkVCProj(CString strSavePath, CString * psError)
 	if (tempPath.empty())
 	{
 		LogErrorString(Fmt(_T("CMainFrame::ReLinkVCProj() - couldn't get temppath: %s")
-			, GetSysError(nerr)));
+			, GetSysError(nerr).c_str()));
 		return FALSE;
 	}
 	String tempFile = env_GetTempFileName(tempPath.c_str(), _T("_LT"), &nerr);
 	if (tempFile.empty())
 	{
 		LogErrorString(Fmt(_T("CMainFrame::ReLinkVCProj() - couldn't get tempfile: %s")
-			, GetSysError(nerr)));
+			, GetSysError(nerr).c_str()));
 		return FALSE;
 	}
 

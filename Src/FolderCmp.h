@@ -4,7 +4,7 @@
  * @brief Declaration file for FolderCmp
  */
 // ID line follows -- this is updated by SVN
-// $Id: FolderCmp.h 5442 2008-06-06 05:20:49Z kimmov $
+// $Id: FolderCmp.h 7492 2011-01-01 13:40:57Z gerundt $
 
 #ifndef _FOLDERCMP_H_
 #define _FOLDERCMP_H_
@@ -12,6 +12,7 @@
 #include "DiffFileData.h"
 #include "DiffUtils.h"
 #include "ByteCompare.h"
+#include "TimeSizeCompare.h"
 
 class CDiffContext;
 class PackingInfo;
@@ -43,7 +44,7 @@ class FolderCmp
 public:
 	FolderCmp();
 	~FolderCmp();
-	bool RunPlugins(CDiffContext * pCtxt, PluginsContext * plugCtxt, CString &errStr);
+	bool RunPlugins(CDiffContext * pCtxt, PluginsContext * plugCtxt, String &errStr);
 	void CleanupAfterPlugins(PluginsContext *plugCtxt);
 	UINT prepAndCompareTwoFiles(CDiffContext * pCtxt, DIFFITEM &di);
 
@@ -56,6 +57,7 @@ public:
 private:
 	CompareEngines::DiffUtils *m_pDiffUtilsEngine;
 	CompareEngines::ByteCompare *m_pByteCompare;
+	CompareEngines::TimeSizeCompare *m_pTimeSizeCompare;
 };
 
 

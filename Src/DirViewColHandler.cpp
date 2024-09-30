@@ -6,7 +6,7 @@
  * @date  Created: 2003-08-19
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirViewColHandler.cpp 6138 2008-12-01 17:24:02Z kimmov $
+// $Id: DirViewColHandler.cpp 7337 2010-10-21 22:20:18Z gerundt $
 
 
 #include "StdAfx.h"
@@ -15,7 +15,6 @@
 #include "DirDoc.h"
 #include "resource.h"
 #include "coretools.h"
-#include "dllver.h"
 #include "DirViewColItems.h"
 #include "DirColsDlg.h"
 #include "OptionsDef.h"

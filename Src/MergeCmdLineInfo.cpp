@@ -27,12 +27,13 @@
  */
 
 // ID line follows -- this is updated by SVN
-// $Id: MergeCmdLineInfo.cpp 6247 2008-12-27 09:49:04Z kimmov $
+// $Id: MergeCmdLineInfo.cpp 7430 2010-11-17 13:42:16Z gerundt $
 
 #include "StdAfx.h"
 
 #include <shlwapi.h> // Required for PathFindFileName
 
+#include "Constants.h"
 #include "Paths.h"
 #include "Merge.h"
 #include "MainFrm.h"
@@ -50,9 +51,21 @@
  */
 LPCTSTR MergeCmdLineInfo::EatParam(LPCTSTR p, String &param, bool *flag)
 {
-	if (p && *(p += StrSpn(p, _T(" \t\r\n"))) == '\0')
+	if (p && *(p += StrSpn(p, _T(" \t\r\n"))) == _T('\0'))
 		p = 0;
-	LPCTSTR q = PathGetArgs(p);
+	LPCTSTR q = p;
+	if (q)
+	{
+		TCHAR c = *q;
+		bool quoted = false;
+		do
+		{
+			if (c == _T('"'))
+				quoted = !quoted;
+			c = *++q;
+		} while (c != _T('\0') && (quoted ||
+			c != _T(' ') && c != _T('\t') && c != _T('\r') && c != _T('\n')));
+	}
 	if (q > p && flag)
 	{
 		if (*p == _T('-') || *p == _T('/'))
@@ -106,11 +119,12 @@ MergeCmdLineInfo::MergeCmdLineInfo(LPCTSTR q):
 	m_nCmdShow(SW_SHOWNORMAL),
 	m_bClearCaseTool(false),
 	m_bEscShutdown(false),
-	m_bExitIfNoDiff(false),
+	m_bExitIfNoDiff(Disabled),
 	m_bRecurse(false),
 	m_bNonInteractive(false),
 	m_bSingleInstance(false),
 	m_bShowUsage(false),
+	m_nCodepage(0),
 	m_dwLeftFlags(FFILEOPEN_CMDLINE),
 	m_dwRightFlags(FFILEOPEN_CMDLINE)
 {
@@ -315,7 +329,19 @@ void MergeCmdLineInfo::ParseWinMergeCmdLine(LPCTSTR q)
 		else if (param == _T("x"))
 		{
 			// -x to close application if files are identical.
-			m_bExitIfNoDiff = true;
+			m_bExitIfNoDiff = Exit;
+		}
+		else if (param == _T("xq"))
+		{
+			// -xn to close application if files are identical without showing
+			// any messages
+			m_bExitIfNoDiff = ExitQuiet;
+		}
+		else if (param == _T("cp"))
+		{
+			String codepage;
+			q = EatParam(q, codepage);
+			m_nCodepage = _ttoi(codepage.c_str());
 		}
 		else if (param == _T("ignorews"))
 		{

@@ -1,6 +1,6 @@
 #
 # The MIT License
-# Copyright (c) 2007-2008 Kimmo Varis
+# Copyright (c) 2007-2010 Kimmo Varis
 # Copyright (c) 2008 Matthias Mayer
 #
 # Permission is hereby granted, free of charge, to any person obtaining
@@ -20,7 +20,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-# $Id: create_release.py 6337 2009-01-15 20:24:22Z kimmov $
+# $Id: create_release.py 7407 2010-11-03 17:50:26Z kimmov $
 
 # This is a script for creating a WinMerge release.
 # Tasks it does:
@@ -29,7 +29,7 @@
 # - updates POT and PO files
 # - builds libraries (expat, scew, pcre)
 # - builds WinMerge.exe and WinMergeU.exe
-# - builds 32-bit ShellExtension targets
+# - builds 32-bit and 64-bit ShellExtension targets
 # - builds user manual
 # - builds the InnoSetup installer
 # - creates per-version distribution folder
@@ -37,7 +37,6 @@
 # - creates binary distribution folder
 
 #Tasks not done (TODO?):
-# - building 64-bit ShellExtension
 # - creating packages from source and binary folders
 # - running virus check
 # - creating SHA-1 hashes for distributed files
@@ -67,19 +66,14 @@
 # CONFIGURATION:
 # Set these variables to match your environment and folders you want to use
 
-# Subversion binary - set this to absolute path to svn.exe
-#svn_binary = r'C:\Program Files\Subversion\bin\svn.exe'
-# Visual Studio path
-#vs_path = r'C:\Program Files\Microsoft Visual Studio .NET 2003'
-# InnoSetup installation path
-#innosetup_path = 'C:\\Program Files\\Inno Setup 5'
 # Relative path where to create a release folder
 dist_root_folder = 'distrib'
-# Source location
-# Give URL to SVN repository to export source from SVN or 'workspace' to export
-# from workspace
-#source_location = 'https://winmerge.svn.sourceforge.net/svnroot/winmerge/trunk'
-#source_location ='workspace'
+root_path = ''
+prog_ver = ''
+
+# Build 64-bit targets? This requires 64-bit cross-compile cabable VS version.
+# If disabled, 64-bit versions must be compiled before running this script
+build_64bit = True
 
 # END CONFIGURATION - you don't need to edit anything below...
 
@@ -87,83 +81,14 @@ from subprocess import *
 import os
 import os.path
 import sys
-import getopt
+import optparse
 import shutil
 import SetVersions
-import ConfigParser
-
-class settings:
-    def __init__(self):
-        self.rootpath = ''
-        self.svn_binary = r'C:\Program Files\Subversion\bin\svn.exe'
-        self.vs_path = ''
-        self.vs_path7 = r'C:\Program Files\Microsoft Visual Studio .NET 2003'
-        self.vs_path8 = r'C:\Program Files\Microsoft Visual Studio 8.0'
-        self.vs_path9 = r'C:\Program Files\Microsoft Visual Studio 9.0'
-        self.innosetup_path = r'C:\Program Files\Inno Setup 5'
-        self.winmerge_iss = 'WinMerge.iss' #filename only
-        self.winmerge_iss_path = 'WinMerge.iss' #including path
-        self.source = 'workspace'
-        self.version = ''
-        self.vs_version = 2003
-
-    def create_ini(self, filename):
-        config = ConfigParser.RawConfigParser()
-        sect = 'RUNTIME'
-        if os.path.exists('Tools.ini'):
-            config.readfp(open(filename))
-        if not config.has_section(sect):
-            config.add_section(sect)
-        if not config.has_option(sect, 'type'):
-            config.set(sect, 'type', 'VSXXXX')
-        if not config.has_option(sect, 'VSStudio'):
-            config.set(sect, 'VSStudio', self.vs_version)
-        if not config.has_option(sect, 'Source'):
-            config.set(sect, 'Source', self.source)
-        if not config.has_option(sect, 'svn_binary'):
-            config.set(sect, 'svn_binary', self.svn_binary)
-        if not config.has_option(sect, 'vs_path7'):
-            config.set(sect, 'vs_path7', self.vs_path7)
-        if not config.has_option(sect, 'vs_path8'):
-            config.set(sect, 'vs_path8', self.vs_path8)
-        if not config.has_option(sect, 'vs_path9'):
-            config.set(sect, 'vs_path9', self.vs_path9)
-        if not config.has_option(sect, 'innosetup_path'):
-            config.set(sect, 'innosetup_path', self.innosetup_path)
-
-        # Writing our configuration file to 'Tools.ini'
-        with open(filename, 'w') as configfile:
-            config.write(configfile)
-
-    def read_ini(self, filename):
-        config = ConfigParser.RawConfigParser()
-        if not os.path.exists(filename):
-            # If the config file didn't exist, we create a new file and ask
-            # user to edit the config and re-run the script. This is because
-            # our defaults probably don't match user's environment.
-            self.create_ini(filename)
-            print 'New configuration file created: ' + filename
-            print 'Please edit the file to match your configuration and re-run the script.'
-            sys.exit()
-
-        config.readfp(open(filename))
-        self.svn_binary = config.get('RUNTIME', 'svn_binary')
-        self.vs_path7 = config.get('RUNTIME', 'vs_path7')
-        self.vs_path8 = config.get('RUNTIME', 'vs_path8')
-        self.vs_path9 = config.get('RUNTIME', 'vs_path9')
-        self.innosetup_path = config.get('RUNTIME', 'innosetup_path')
-        self.source = config.get('RUNTIME', 'Source') 
-        self.vs_version = config.getint('RUNTIME', 'VSStudio')
-
-        if self.vs_version ==2003:
-            self.vs_path =self.vs_path7
-        elif self.vs_version ==2005:
-            self.vs_path =self.vs_path8
-        elif self.vs_version ==2008:
-            self.vs_path =self.vs_path9
+import ToolSettings
+import UpgradeProjects
 
 # global settings class instance
-prog = settings()
+prog = ToolSettings.ToolSettings()
 
 def get_vs_ide_bin():
     """Gets a full path to the Visual Studio IDE executable to run."""
@@ -188,51 +113,33 @@ def cleanup_build():
         print 'Skipping folder %s' % winmerge_temp
     
     try:
-        print 'Remove ANSI files'
-        if os.path.exists('build/mergerelease/WinMerge.exe'):
-            os.remove('build/mergerelease/WinMerge.exe')
-        if os.path.exists('build/mergerelease/ShellExtension.dll'):
-            os.remove('build/mergerelease/ShellExtension.dll')
-        if os.path.exists('build/mergerelease/MergeLang.dll'):
-            os.remove('build/mergerelease/MergeLang.dll')
-
         print 'Remove Unicode files'
         if os.path.exists('build/mergeunicoderelease/WinMergeU.exe'):
             os.remove('build/mergeunicoderelease/WinMergeU.exe')
-        if os.path.exists('build/mergeunicoderelease/ShellExtensionU.dll'):
-            os.remove('build/mergeunicoderelease/ShellExtensionU.dll')
         if os.path.exists('build/mergeunicoderelease/MergeLang.dll'):
             os.remove('build/mergeunicoderelease/MergeLang.dll')
+
+        print 'Remove ShellExtension files'
+        if os.path.exists('build/ShellExtension'):
+            shutil.rmtree('build/ShellExtension', True)
 
         print 'Remove expat files'
         if os.path.exists('build/expat'):
             shutil.rmtree('build/expat', True)
-        if os.path.exists('build/mergerelease/libexpat.dll'):
-            os.remove('build/mergerelease/libexpat.dll')
         if os.path.exists('build/mergeunicoderelease/libexpat.dll'):
             os.remove('build/mergeunicoderelease/libexpat.dll')
 
         print 'Remove pcre files'
         if os.path.exists('build/pcre'):
             shutil.rmtree('build/pcre', True)
-        if os.path.exists('build/mergerelease/pcre.dll'):
-            os.remove('build/mergerelease/pcre.dll')
         if os.path.exists('build/mergeunicoderelease/pcre.dll'):
             os.remove('build/mergeunicoderelease/pcre.dll')
 
         if os.path.exists('build/scew'):
             shutil.rmtree('build/scew', True)
 
-        print 'Remove heksedit files'
-        if os.path.exists('build/heksedit'):
-            shutil.rmtree('build/heksedit', True)
-        if os.path.exists('build/mergerelease/heksedit.dll'):
-            os.remove('build/mergerelease/heksedit.dll')
-        if os.path.exists('build/mergerelease/hekseditU.dll'):
-            os.remove('build/mergerelease/hekseditU.dll')
-
         if os.path.exists('build/Manual'):
-            shutil.rmtree('build/Manual',True)
+            shutil.rmtree('build/Manual', True)
 
     except EnvironmentError, einst:
         print 'Error deleting files: '
@@ -262,9 +169,16 @@ def setup_translations():
     # Scripts must be run from the directory where they reside
     curdir = os.getcwd()
     os.chdir('Src/Languages')
-    call(['cscript', '/nologo', 'CreateMasterPotFile.vbs'])
-    call(['cscript', '/nologo', 'UpdatePoFilesFromPotFile.vbs'])
+    retval = call(['cscript', '/nologo', 'CreateMasterPotFile.vbs'])
+    if retval == 0:
+        retval = call(['cscript', '/nologo', 'UpdatePoFilesFromPotFile.vbs'])
     os.chdir(curdir)
+
+    if retval == 0:
+        return True
+    else:
+        print 'ERROR: Updating translations failed!'
+        return False
 
 def get_and_create_dist_folder(folder):
     """Formats a folder name for version-specific distribution folder
@@ -292,10 +206,16 @@ def svn_export(dist_src_folder):
 
     print 'Exporting sources to ' + dist_src_folder
     print 'Exporting from: ' + prog.source
+    retval = 0
     if prog.source == 'workspace':
-        call([prog.svn_binary, 'export', '--non-interactive', '.', dist_src_folder])
+        retval = call([prog.svn_binary, 'export', '--non-interactive', '.', dist_src_folder])
     else:
-        call([prog.svn_binary, 'export', '--non-interactive', source_location, dist_src_folder]) 
+        retval = call([prog.svn_binary, 'export', '--non-interactive', source_location, dist_src_folder])
+    if retval == 0:
+        return True
+    else:
+        print 'Error exporting sources! SVN return value: ' + retval
+        return False
 
 def cleanup_dlls_from_plugins(dist_src_folder):
     """Remove compiled plugin dll files from source distribution folders."""
@@ -322,7 +242,7 @@ def build_libraries():
     #print solution_path
     call([vs_cmd, solution_path, '/rebuild', 'Release'], shell=True)
 
-    print 'Build scew library...'
+    print 'Build SCEW library...'
     solution_path = os.path.join(cur_path, 'Externals/scew/win32/scew.vcproj')
     #print solution_path
     call([vs_cmd, solution_path, '/rebuild', 'Release'], shell=True)
@@ -332,20 +252,15 @@ def build_libraries():
     #print solution_path
     call([vs_cmd, solution_path, '/rebuild', 'MinSizeRel'], shell=True)
 
-    print 'Build heksedit library...'
-    solution_path = os.path.join(cur_path, 'Externals/heksedit/heksedit.vcproj')
-    call([vs_cmd, solution_path, '/rebuild', 'Release'], shell=True)
-    call([vs_cmd, solution_path, '/rebuild', 'UnicodeRelease'], shell=True)
-
 def build_targets():
     """Builds all WinMerge targets."""
 
     build_libraries()
-
     vs_cmd = get_vs_ide_bin()
-
-    build_winmerge(vs_cmd)
-    build_shellext(vs_cmd)
+    ret = build_winmerge(vs_cmd)
+    if ret:
+        ret = build_shellext(vs_cmd)
+    return ret
 
 def build_winmerge(vs_cmd):
     """Builds WinMerge executable targets."""
@@ -355,20 +270,40 @@ def build_winmerge(vs_cmd):
     #print sol_path
 
     # devenv Src\Merge.dsp /rebuild Release
-    print 'Build WinMerge executables...'
-    call([vs_cmd, solution_path, '/rebuild', 'Release'], shell=True)
-    call([vs_cmd, solution_path, '/rebuild', 'UnicodeRelease'], shell=True)
+    print 'Build WinMerge executable...'
+    ret = call([vs_cmd, solution_path, '/rebuild', 'UnicodeRelease'], shell = True)
+    if ret == 0:
+        return True
+    else:
+        print 'ERROR: Failed to build Unicode release target of WinMerge!'
+        return False
 
 def build_shellext(vs_cmd):
-    """Builds 32-bit ShellExtension."""
+    '''Builds 32-bit and 64-bit ShellExtension.
+    
+    64-bit ShellExtension is build only if build_64bit is enabled in config.
+    '''
 
     cur_path = os.getcwd()
     solution_path = os.path.join(cur_path, 'ShellExtension\\ShellExtension.vcproj')
 
     # devenv Src\Merge.dsp /rebuild Release
     print 'Build ShellExtension dlls...'
-    call([vs_cmd, solution_path, '/rebuild', 'Release MinDependency'])
-    call([vs_cmd, solution_path, '/rebuild', 'Unicode Release MinDependency'])
+    ret = call([vs_cmd, solution_path, '/rebuild', 'Unicode Release MinDependency|Win32'])
+    if ret == 0:
+        if build_64bit == True:
+            ret = call([vs_cmd, solution_path, '/rebuild', 'X64 Release|x64'])
+        else:
+            return True
+    else:
+        print 'ERROR: Failed to build Unicode target of ShellExtension!'
+        return False
+
+    if ret == 0:
+        return True
+    else:
+        print 'ERROR: Failed to build 64-bit target of ShellExtension!'
+        return False
 
 def build_manual():
     """Builds manual's HTML Help (CHM) version for user install and
@@ -378,7 +313,7 @@ def build_manual():
     os.chdir('Docs/Users/Manual/build')
     print 'Build HTML Help (CHM) manual...' 
     call(['build_htmlhelp.bat'])
-    
+
     # HTML manual not build in trunk.
     #print 'Build HTML manual for Web with ads...'
     #call(['build_html.bat', 'withads'])
@@ -390,15 +325,15 @@ def build_innosetup_installer(target_folder):
 
     innosetup_exe = os.path.join(prog.innosetup_path, 'iscc.exe')
     cur_path = os.getcwd()
-
-    prog.winmerge_iss_path = os.path.join(cur_path, 'Installer\\InnoSetup\\' + prog.winmerge_iss)
+    os.chdir('Installer/InnoSetup')
 
     #output_switch = '/O"' + target_folder + '"'
 
     print 'Build Innosetup installer...'
     # Should be able to give folder for created file and Q switch to make build quiet
     #call([innosetup_exe, '/Q', output_switch, winmerge_iss])
-    call([innosetup_exe, prog.winmerge_iss_path])
+    call([innosetup_exe, 'WinMerge.iss'])
+    os.chdir(cur_path)
 
 def get_and_create_bin_folder(dist_folder, folder):
     """Formats and creates binary distribution folder."""
@@ -423,20 +358,16 @@ def create_bin_folders(bin_folder, dist_src_folder):
     os.chdir(cur_path)
 
     print 'Copying files to binary distribution folder...'
-    shutil.copy('build/mergerelease/WinMerge.exe', bin_folder)
     shutil.copy('build/mergeunicoderelease/WinMergeU.exe', bin_folder)
 
-    shutil.copy('build/mergerelease/ShellExtension.dll', bin_folder)
-    shutil.copy('build/mergeunicoderelease/ShellExtensionU.dll', bin_folder)
+    shutil.copy('build/ShellExtension/unicode release mindependency/ShellExtensionU.dll', bin_folder)
     shutil.copy('build/mergeunicoderelease/MergeLang.dll', bin_folder)
-    shutil.copy('build/shellextensionx64/ShellExtensionX64.dll', bin_folder)
+    shutil.copy('build/ShellExtension/x64 release/ShellExtensionX64.dll', bin_folder)
     shutil.copy('ShellExtension/Register.bat', bin_folder)
     shutil.copy('ShellExtension/UnRegister.bat', bin_folder)
 
     shutil.copy('build/pcre/pcre.dll', bin_folder)
     shutil.copy('build/expat/libexpat.dll', bin_folder)
-    shutil.copy('build/heksedit/heksedit.dll', bin_folder)
-    shutil.copy('build/heksedit/hekseditU.dll', bin_folder)
 
     copy_po_files(lang_folder)
     filter_orig = os.path.join(dist_src_folder, 'Filters')
@@ -469,22 +400,6 @@ def copy_po_files(dest_folder):
             file_name, file_ext = os.path.splitext(cur_file)
             if (file_ext == '.po'):
                 shutil.copy(fullpath, dest_folder)
-
-def get_and_create_runtimes_folder(dist_folder, version):
-    """Formats and creates runtimes distribution folder."""
-
-    runtimes_folder = os.path.join(dist_folder, 'Runtimes-' + version)
-    print 'Create runtimes distribution folder: ' + runtimes_folder
-    os.mkdir(runtimes_folder)
-    return runtimes_folder
-
-def create_runtime_folder(runtimes_folder):
-    """Copy runtime files to distribution folder."""
-
-    shutil.copy('Installer/Runtimes/mfc71.dll', runtimes_folder)
-    shutil.copy('Installer/Runtimes/mfc71u.dll', runtimes_folder)
-    shutil.copy('Installer/Runtimes/msvcp71.dll', runtimes_folder)
-    shutil.copy('Installer/Runtimes/msvcr71.dll', runtimes_folder)
 
 def find_winmerge_root():
     """Find WinMerge tree root folder from where to run rest of the script.
@@ -521,12 +436,19 @@ def check_tools():
         print vs_cmd
         print 'Please check script configuration.'
         return False
+    
+    innosetup_exe = os.path.join(prog.innosetup_path, 'iscc.exe')
+    if not os.path.exists(innosetup_exe):
+        print 'InnoSetup executable could not be found from:'
+        print innosetup_exe
+        print 'Please check script configuration.'
+        return False
 
-    pathhhc = os.path.join(prog.rootpath, 'Docs/Users/Manual/build/hhc/hhc.exe')
-    folderdtd = os.path.join(prog.rootpath, 'Docs/Users/Manual/build/dtd')
-    foldersaxon = os.path.join(prog.rootpath, 'Docs/Users/Manual/build/saxon')
-    folderxerc = os.path.join(prog.rootpath, 'Docs/Users/Manual/build/xerces')
-    folderxsl = os.path.join(prog.rootpath, 'Docs/Users/Manual/build/xsl')
+    pathhhc = os.path.join(root_path, 'Docs/Users/Manual/build/hhc/hhc.exe')
+    folderdtd = os.path.join(root_path, 'Docs/Users/Manual/build/dtd')
+    foldersaxon = os.path.join(root_path, 'Docs/Users/Manual/build/saxon')
+    folderxerc = os.path.join(root_path, 'Docs/Users/Manual/build/xerces')
+    folderxsl = os.path.join(root_path, 'Docs/Users/Manual/build/xsl')
 
     if not os.path.exists(pathhhc) or not os.path.exists(folderdtd) or \
             not os.path.exists(foldersaxon) or not os.path.exists(folderxerc) or \
@@ -539,14 +461,14 @@ def check_tools():
     return True
 
 def check_x64shellext():
-    """Checks that 64-bit ShellExtension is compiled prior to running this
+    '''Checks that 64-bit ShellExtension is compiled prior to running this
     script.
 
-    This is due to the fact we can't compile 64-bit ShellExtension without some
-    environment tweaks, so it won't work (currently) from this script. And the
-    ShellExtension must be compiled separately.
-    """
-    if not os.path.exists('build/shellextensionx64/ShellExtensionX64.dll'):
+    If we haven't enabled building 64-bit targets we must ensure the 64-bit
+    ShellExtension is already compiled.
+    '''
+
+    if not os.path.exists('build/shellextension/x64 release/ShellExtensionX64.dll'):
         print 'ERROR: cannot create a release:'
         print 'You must compile 64-bit ShellExtension (ShellExtensionX64.dll)'
         print 'before running this script!'
@@ -554,49 +476,48 @@ def check_x64shellext():
     else:
         return True
 
-def usage():
-    """Print script usage information."""
+def update_project_files(root_path):
+    '''Upgrade project/solution files for the VS version used.'''
 
-    print 'WinMerge release script.'
-    print 'Usage: create_release [-h] [-f file] [-v n] [-c] [-l]'
-    print '  where:'
-    print '    -h, --help print this help'
-    print '    -v n, --version=n set release version'
-    print '    -c, --cleanup clean up build files (temp files, libraries, executables)'
-    print '    -l, --libraries build libraries (expat, scew, pcre) only'
-    print '    -f file, --file=filename set the version number ini file'
-    print '  For example: create_release -f versions.ini'
-    print '  If no version number (-v) or INI file (-f) given, 0.0.0.0 will be'
-    print '    used as version number.'
+    print 'Update VS project/solution files for used VS version...'
+    UpgradeProjects.tools.read_ini('Tools.ini')
+    UpgradeProjects.upgrade_projects(root_path)
 
 def main(argv):
     global prog
     ver_file = ''
-    if len(argv) > 0:
-        opts, args = getopt.getopt(argv, "hclv:f:", [ "help", "cleanup", "libraries",
-                                                    "version=", "file="])
-        
-        for opt, arg in opts:
-            if opt in ("-h", "--help"):
-                usage()
-                sys.exit()
-            if opt in ("-v", "--version"):
-                prog.version = arg
-                print "Start building WinMerge release version " + prog.version
-            if opt in ("-c", "--cleanup"):
-                if cleanup_build() == True:
-                    print 'Cleanup done.'
-                sys.exit()
-            if opt in ("-l", "--libraries"):
-                build_libraries()
-                sys.exit()
-            if opt in ("-f", "--file"):
-                ver_file = arg
-        
-    if ver_file == '' and prog.version == '':
+    
+    parser = optparse.OptionParser()
+    parser.add_option('--version', '-v', action = 'store',
+            help = 'Set global version number to use.')
+    parser.add_option('--cleanup', '-c', action = 'store_true',
+            help = 'Clean up build files (temp files, libraries, executables).')
+    parser.add_option('--libraries', '-l', action = 'store_true',
+            help = 'Build libraries (hekxedit, rawio32) only.')
+    parser.add_option('--file', '-f', action = 'store',
+            help = 'Set the version number ini file.')
+    options, arguments = parser.parse_args()
+
+    if options.version:
+        prog_version = options.version
+        print 'Start building WinMerge release version ' + prog_version
+
+    if options.cleanup:
+        if cleanup_build() == True:
+            print 'Cleanup done.'
+        sys.exit()
+
+    if options.libraries:
+        build_libraries()
+        sys.exit()
+
+    if options.file:
+        ver_file = options.file
+
+    if ver_file == '' and prog_version == '':
         print 'WARNING: No version number or INI file given, using default'
         print '    version number of 0.0.0.0 where applicable in this script.'
-        prog.version = '0.0.0.0'
+        prog_version = '0.0.0.0'
 
     # Check we are running from correct folder (and go to root if found)
     if find_winmerge_root() == False:
@@ -609,17 +530,17 @@ def main(argv):
     # Now read settings from Tools.ini
     prog.read_ini('Tools.ini')
     print 'Compiler: ' + prog.vs_path
-    print 'Path:' + os.getcwd()
+    print 'Path: ' + os.getcwd()
 
     # Remember the rootfolder
-    prog.rootpath = os.getcwd()
+    root_path = os.getcwd()
 
     # Check all required tools are found (script configuration)
     if check_tools() == False:
         sys.exit()
 
-    # Check 64-bit ShellExtension is compiled
-    if check_x64shellext() == False:
+    # Check 64-bit ShellExtension is compiled if not building 64-bit
+    if build_64bit == False and check_x64shellext() == False:
         sys.exit()
 
     # Create the distribution folder if it doesn't exist
@@ -638,19 +559,24 @@ def main(argv):
     if len(ver_file) > 0:
         version_read = get_product_version(ver_file)
         if len(version_read) > 0:
-            prog.version = version_read
+            prog_version = version_read
         set_resource_version(ver_file)
 
-    version_folder = 'WinMerge-' + prog.version
+    version_folder = 'WinMerge-' + prog_version
     dist_folder = get_and_create_dist_folder(version_folder)
     if dist_folder == '':
         sys.exit(1)
     dist_src_folder = get_src_dist_folder(dist_folder, version_folder)
-    svn_export(dist_src_folder)
+    if svn_export(dist_src_folder) == False:
+        sys.exit(1)
 
-    setup_translations()
+    if setup_translations() == False:
+        sys.exit(1)
 
-    build_targets()
+    update_project_files(root_path)
+
+    if build_targets() == False:
+        sys.exit(1)
     build_manual()
     build_innosetup_installer(dist_folder)
 
@@ -660,9 +586,6 @@ def main(argv):
     # Do the cleanup after creating binary distrib folders, as some files
     # and folders are copied from source folders to binary folders.
     cleanup_dlls_from_plugins(dist_src_folder)
-
-    runtimes_folder = get_and_create_runtimes_folder(dist_folder, prog.version)
-    create_runtime_folder(runtimes_folder)
 
     print 'WinMerge release script ready!'
 

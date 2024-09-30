@@ -1,34 +1,29 @@
 /** 
  * @file  PropTextColors.h
  *
- * @brief Declaration file for CPropTextColors propertyheet
+ * @brief Declaration file for PropTextColors propertyheet
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PropTextColors.h 3366 2006-07-14 06:50:32Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: PropTextColors.h 7501 2011-01-03 13:29:00Z gerundt $
 
 #if !defined(PropTextColors_h_included)
 #define PropTextColors_h_included
 
 #include "ColorButton.h"
-#include "IOptionsPanel.h"
+#include "OptionsPanel.h"
 
 class COptionsMgr;
 class SyntaxColors;
 
-
-/////////////////////////////////////////////////////////////////////////////
-// CPropTextColors dialog
-
 /** @brief Property page for colors options; used in options property sheet */
-class CPropTextColors : public CPropertyPage, public IOptionsPanel
+class PropTextColors : public OptionsPanel
 {
 
 // Construction
 public:
 
-	CPropTextColors(COptionsMgr *optionsMgr, SyntaxColors *pColors);
-	virtual ~CPropTextColors();
+	PropTextColors(COptionsMgr *optionsMgr, SyntaxColors *pColors);
 
 // Implement IOptionsPanel
 	virtual void ReadOptions();
@@ -39,9 +34,8 @@ private:
 
 	SyntaxColors *m_pTempColors;
 	COLORREF m_cCustColors[COLORINDEX_COUNT];
-	COptionsMgr * m_pOptionsMgr;
 
-	//{{AFX_DATA(CPropTextColors)
+	//{{AFX_DATA(PropTextColors)
 	enum { IDD = IDD_PROPPAGE_COLORS_TEXT };
 	CColorButton    m_btnDefaultStandardColors;
 	CColorButton    m_btnWhitespaceBackground;
@@ -60,7 +54,7 @@ private:
 
 	// Overrides
 	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(CPropTextColors)
+	//{{AFX_VIRTUAL(PropTextColors)
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
@@ -79,7 +73,7 @@ protected:
 	void EnableColorButtons(BOOL bEnable);
 
 	// Generated message map functions
-	//{{AFX_MSG(CPropTextColors)
+	//{{AFX_MSG(PropTextColors)
 	afx_msg void OnWhitespaceBackgroundColor();
 	afx_msg void OnRegularBackgroundColor();
 	afx_msg void OnRegularTextColor();

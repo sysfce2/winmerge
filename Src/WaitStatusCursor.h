@@ -4,7 +4,7 @@
  *  @brief Declaration WaitStatusCursor classes.
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: WaitStatusCursor.h 5373 2008-05-26 09:05:30Z kimmov $
+// $Id: WaitStatusCursor.h 7460 2010-12-07 18:27:07Z gerundt $
 
 #ifndef WaitStatusCursor_included_h
 #define WaitStatusCursor_included_h
@@ -43,7 +43,7 @@ protected:
 	void Create(HINSTANCE hinst, LPCTSTR lpCursorName, LPCTSTR m_msg);
 
 private:
-	int posInStack;
+	INT_PTR posInStack;
 	bool m_ended;
 
 	/**

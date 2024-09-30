@@ -25,7 +25,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirDoc.cpp 6564 2009-03-11 16:05:46Z kimmov $
+// $Id: DirDoc.cpp 7436 2010-11-21 13:06:27Z gerundt $
 //
 
 #include "StdAfx.h"
@@ -293,19 +293,12 @@ void CDirDoc::LoadLineFilterList()
 	char * regexp_str;
 	FilterList::EncodingType type;
 
-#ifdef UNICODE
 	regexp_str = UCS2UTF8_ConvertToUtf8(filters.c_str());
 	type = FilterList::ENC_UTF8;
-#else
-	regexp_str = (char *) filters.c_str();
-	type = FilterList::ENC_ANSI;
-#endif
 
 	m_pCtxt->m_pFilterList->AddRegExp(regexp_str, type);
 
-#ifdef UNICODE
 	UCS2UTF8_Dealloc(regexp_str);
-#endif
 }
 
 /**
@@ -313,7 +306,8 @@ void CDirDoc::LoadLineFilterList()
  */
 void CDirDoc::Rescan()
 {
-	if (!m_pCtxt) return;
+	if (!m_pCtxt)
+		return;
 
 	CDirFrame *pf = m_pDirView->GetParentFrame();
 
@@ -435,15 +429,15 @@ BOOL CDirDoc::IsShowable(const DIFFITEM & di)
 			// users see files appearing/disappearing without clear logic.		
 			if (GetOptionsMgr()->GetBool(OPT_TREE_MODE))
 			{
-			// result filters
-			if (di.diffcode.isResultError() && !GetMainFrame()->m_bShowErrors)
-				return FALSE;
+				// result filters
+				if (di.diffcode.isResultError() && !GetMainFrame()->m_bShowErrors)
+					return FALSE;
 
-			// result filters
-			if (di.diffcode.isResultSame() && !GetOptionsMgr()->GetBool(OPT_SHOW_IDENTICAL))
-				return FALSE;
-			if (di.diffcode.isResultDiff() && !GetOptionsMgr()->GetBool(OPT_SHOW_DIFFERENT))
-				return FALSE;
+				// result filters
+				if (di.diffcode.isResultSame() && !GetOptionsMgr()->GetBool(OPT_SHOW_IDENTICAL))
+					return FALSE;
+				if (di.diffcode.isResultDiff() && !GetOptionsMgr()->GetBool(OPT_SHOW_DIFFERENT))
+					return FALSE;
 			}
 		}
 	}

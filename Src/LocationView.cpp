@@ -27,7 +27,7 @@
  */
 
 // ID line follows -- this is updated by SVN
-// $Id: LocationView.cpp 6314 2009-01-11 20:21:06Z kimmov $
+// $Id: LocationView.cpp 7472 2010-12-08 12:28:29Z gerundt $
 
 #include "StdAfx.h"
 #include <vector>
@@ -118,6 +118,9 @@ BEGIN_MESSAGE_MAP(CLocationView, CView)
 	ON_WM_SIZE()
 	ON_WM_VSCROLL()
 	ON_WM_ERASEBKGND()
+	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE, OnUpdateFileSave)
+	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_LEFT, OnUpdateFileSaveLeft)
+	ON_UPDATE_COMMAND_UI(ID_FILE_SAVE_RIGHT, OnUpdateFileSaveRight)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -669,7 +672,6 @@ bool CLocationView::GotoLocation(const CPoint& point, bool bRealLine)
 	GetClientRect(rc);
 
 	int line = -1;
-	int lineOther = -1;
 	int bar = IsInsideBar(rc, point);
 	if (bar == BAR_LEFT || bar == BAR_RIGHT)
 	{
@@ -895,16 +897,13 @@ void CLocationView::DrawVisibleAreaRect(CDC *pClientDC, int nTopLine, int nBotto
 
 	CRect rc;
 	GetClientRect(rc);
-	const double hTotal = rc.Height() - (2 * Y_OFFSET); // Height of draw area
 	const int nbLines = min(m_view[MERGE_VIEW_LEFT]->GetSubLineCount(),
 			m_view[MERGE_VIEW_RIGHT]->GetSubLineCount());
 
 	int nTopCoord = static_cast<int>(Y_OFFSET +
 			(static_cast<double>(nTopLine * m_lineInPix)));
-	int nLeftCoord = INDICATOR_MARGIN;
 	int nBottomCoord = static_cast<int>(Y_OFFSET +
 			(static_cast<double>(nBottomLine * m_lineInPix)));
-	int nRightCoord = rc.Width() - INDICATOR_MARGIN;
 	
 	double xbarBottom = min(nbLines / m_pixInLines + Y_OFFSET, rc.Height() - Y_OFFSET);
 	int barBottom = (int)xbarBottom;
@@ -923,12 +922,12 @@ void CLocationView::DrawVisibleAreaRect(CDC *pClientDC, int nTopLine, int nBotto
 			// Make sure locationbox has min hight
 			if ((nBottomCoord - nTopCoord) < INDICATOR_MIN_HEIGHT)
 			{
-				int iPos = (INDICATOR_MIN_HEIGHT - (nBottomCoord - nTopCoord) )/2;
-				nTopCoord -= iPos;
-				nBottomCoord +=iPos;
+				// If we have a high number of lines, it may be better
+				// to keep the topline, otherwise the cursor can 
+				// jump up and down unexpected
+				nBottomCoord = nTopCoord + INDICATOR_MIN_HEIGHT;
 			}
 		}
-
 	}
 
 	// Store current values for later use (to check if area changes)
@@ -1073,4 +1072,43 @@ void CLocationView::DrawDiffMarker(CDC* pDC, int yCoord)
 
 	pDC->SelectObject(pOldBrush);
 	pDC->SelectObject(oldObj);
+}
+
+/**
+ * @brief Called when "Save" item is updated
+ */
+void CLocationView::OnUpdateFileSave(CCmdUI* pCmdUI)
+{
+	CMergeDoc *pd = GetDocument();
+
+	if (pd->m_ptBuf[0]->IsModified() || pd->m_ptBuf[1]->IsModified())
+		pCmdUI->Enable(true);
+	else
+		pCmdUI->Enable(false);
+}
+
+/**
+ * @brief Called when "Save left (as...)" item is updated
+ */
+void CLocationView::OnUpdateFileSaveLeft(CCmdUI* pCmdUI)
+{
+	CMergeDoc *pd = GetDocument();
+
+	if (!pd->m_ptBuf[0]->GetReadOnly() && pd->m_ptBuf[0]->IsModified())
+		pCmdUI->Enable(true);
+	else
+		pCmdUI->Enable(false);
+}
+
+/**
+ * @brief Called when "Save right (as...)" item is updated
+ */
+void CLocationView::OnUpdateFileSaveRight(CCmdUI* pCmdUI)
+{
+	CMergeDoc *pd = GetDocument();
+
+	if (!pd->m_ptBuf[1]->GetReadOnly() && pd->m_ptBuf[1]->IsModified())
+		pCmdUI->Enable(true);
+	else
+		pCmdUI->Enable(false);
 }

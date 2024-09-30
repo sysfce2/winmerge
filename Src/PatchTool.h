@@ -20,7 +20,7 @@
  * @brief Declaration file for PatchTool class
  */
 // ID line follows -- this is updated by SVN
-// $Id: PatchTool.h 5786 2008-08-11 03:28:03Z marcelgosselin $
+// $Id: PatchTool.h 7550 2011-06-26 13:52:49Z sdottaka $
 
 #ifndef _PATCHTOOL_H_
 #define _PATCHTOOL_H_
@@ -42,6 +42,15 @@ struct PATCHFILES
 	time_t ltime; /**< Left time */
 	time_t rtime; /**< Right time */
 	PATCHFILES() : ltime(0), rtime(0) {};
+	/**
+	 * @brief Swap diff sides.
+	 */
+	void swap_sides()
+	{
+		std::swap(lfile, rfile);
+		std::swap(pathLeft, pathRight);
+		std::swap(ltime, rtime);
+	}
 };
 
 /** 

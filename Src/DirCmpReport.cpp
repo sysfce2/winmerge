@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirCmpReport.cpp 5652 2008-07-21 16:16:54Z jtuc $
+// $Id: DirCmpReport.cpp 7529 2011-05-24 16:05:52Z sdottaka $
 //
 
 #include "stdafx.h"
@@ -364,8 +364,8 @@ void DirCmpReport::GenerateXmlHeader()
 {
 	WriteString(_T("")); // @todo xml declaration
 	WriteString(_T("<WinMergeDiffReport version=\"1\">\n"));
-	WriteString(Fmt(_T("<left>%s</left>\n"), m_rootPaths.GetLeft()));
-	WriteString(Fmt(_T("<right>%s</right>\n"), m_rootPaths.GetRight()));
+	WriteString(Fmt(_T("<left>%s</left>\n"), m_rootPaths.GetLeft().c_str()));
+	WriteString(Fmt(_T("<right>%s</right>\n"), m_rootPaths.GetRight().c_str()));
 	WriteString(Fmt(_T("<time>%s</time>\n"), GetCurrentTimeString().c_str()));
 
 	// Add column headers

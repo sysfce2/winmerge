@@ -25,7 +25,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirFrame.cpp 4739 2007-11-12 20:41:16Z jtuc $
+// $Id: DirFrame.cpp 7331 2010-10-21 07:06:13Z gerundt $
 
 #include "stdafx.h"
 #include "Merge.h"
@@ -148,6 +148,20 @@ void CDirFrame::SetStatus(LPCTSTR szStatus)
 void CDirFrame::SetFilterStatusDisplay(LPCTSTR szFilter)
 {
 	m_wndStatusBar.SetPaneText(PANE_FILTER, szFilter);
+}
+
+/**
+ * @brief Handle translation of default messages on the status bar
+ */
+void CDirFrame::GetMessageString(UINT nID, CString& rMessage) const
+{
+	// load appropriate string
+	const String s = theApp.LoadString(nID);
+	if (!AfxExtractSubString(rMessage, &*s.begin(), 0))
+	{
+		// not found
+		TRACE1("Warning: no message line prompt for ID 0x%04X.\n", nID);
+	}
 }
 
 /**

@@ -1,32 +1,29 @@
 /** 
  * @file  PropColors.h
  *
- * @brief Declaration file for CPropMergeColors propertyheet
+ * @brief Declaration file for PropMergeColors propertyheet
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PropColors.h 4588 2007-10-05 11:35:46Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: PropColors.h 7501 2011-01-03 13:29:00Z gerundt $
 
 #if !defined(AFX_PROPCOLORS_H__9C0A0F92_CDD6_40FE_BEFC_101B1E22FFDD__INCLUDED_)
 #define AFX_PROPCOLORS_H__9C0A0F92_CDD6_40FE_BEFC_101B1E22FFDD__INCLUDED_
 
 
 #include "ColorButton.h"
-#include "IOptionsPanel.h"
+#include "OptionsPanel.h"
 
 class COptionsMgr;
 
 const int CustomColorsAmount = 16;
 
-/////////////////////////////////////////////////////////////////////////////
-// CPropMergeColors dialog
-
 /** @brief Property page for colors options; used in options property sheet */
-class CPropMergeColors : public CPropertyPage, public IOptionsPanel
+class PropMergeColors : public OptionsPanel
 {
 // Construction
 public:
-	CPropMergeColors(COptionsMgr *optionsMgr);
+	PropMergeColors(COptionsMgr *optionsMgr);
 
 // Implement IOptionsPanel
 	virtual void ReadOptions();
@@ -34,7 +31,7 @@ public:
 	
 // Dialog Data
 private:
-	//{{AFX_DATA(CPropMergeColors)
+	//{{AFX_DATA(PropMergeColors)
 	enum { IDD = IDD_PROPPAGE_COLORS_WINMERGE };
 	CColorButton	m_cTrivialDeleted;
 	CColorButton	m_cTrivial;
@@ -80,7 +77,7 @@ private:
 
 	// Overrides
 	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(CPropMergeColors)
+	//{{AFX_VIRTUAL(PropMergeColors)
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
@@ -100,7 +97,7 @@ protected:
 	COLORREF m_cCustColors[CustomColorsAmount];
 
 	// Generated message map functions
-	//{{AFX_MSG(CPropMergeColors)
+	//{{AFX_MSG(PropMergeColors)
 	afx_msg void OnDifferenceColor();
 	afx_msg void OnDifferenceDeletedColor();
 	afx_msg void OnSelDifferenceDeletedColor();
@@ -123,9 +120,6 @@ protected:
 	afx_msg void OnDefaults();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-
-private:
-	COptionsMgr * m_pOptionsMgr;
 };
 
 //{{AFX_INSERT_LOCATION}}

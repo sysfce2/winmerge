@@ -25,7 +25,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: ChildFrm.cpp 5446 2008-06-07 12:14:19Z jtuc $
+// $Id: ChildFrm.cpp 7419 2010-11-12 08:13:22Z gerundt $
 
 #include "stdafx.h"
 #include "Merge.h"
@@ -310,8 +310,8 @@ int CChildFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndStatusBar.SetPaneText(PANE_LEFT_RO, sText.c_str(), TRUE); 
 	m_wndStatusBar.SetPaneText(PANE_RIGHT_RO, sText.c_str(), TRUE);
 
-	m_hIdentical = AfxGetApp()->LoadIcon(IDI_EQUALFILE);
-	m_hDifferent = AfxGetApp()->LoadIcon(IDI_NOTEQUALFILE);
+	m_hIdentical = AfxGetApp()->LoadIcon(IDI_EQUALTEXTFILE);
+	m_hDifferent = AfxGetApp()->LoadIcon(IDI_NOTEQUALTEXTFILE);
 
 	return 0;
 }
@@ -326,7 +326,7 @@ int CChildFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
  */
 BOOL CChildFrame::EnsureValidDockState(CDockState& state) 
 {
-	for (int i = state.m_arrBarInfo.GetSize()-1 ; i >= 0; i--) 
+	for (int i = (int) state.m_arrBarInfo.GetSize()-1 ; i >= 0; i--) 
 	{
 		BOOL barIsCorrect = TRUE;
 		CControlBarInfo* pInfo = (CControlBarInfo*)state.m_arrBarInfo[i];
@@ -767,6 +767,8 @@ void CChildFrame::UpdateResources()
 {
 	m_leftStatus.UpdateResources();
 	m_rightStatus.UpdateResources();
+	m_wndLocationBar.UpdateResources();
+	m_wndDetailBar.UpdateResources();
 }
 
 /**

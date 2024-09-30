@@ -8,7 +8,7 @@
  *  @brief Implementation of methods of CDirView that copy/move/delete files
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirActions.cpp 6535 2009-03-05 16:13:21Z kimmov $
+// $Id: DirActions.cpp 7548 2011-06-26 13:33:32Z sdottaka $
 
 // It would be nice to make this independent of the UI (CDirView)
 // but it needs access to the list of selected items.
@@ -1309,8 +1309,8 @@ void CDirView::GetItemFileNames(int sel, String& strLeft, String& strRight) cons
 	UINT_PTR diffpos = GetItemKey(sel);
 	if (diffpos == (UINT_PTR)SPECIAL_ITEM_POS)
 	{
-		strLeft.empty();
-		strRight.empty();
+		strLeft.erase();
+		strRight.erase();
 	}
 	else
 	{
@@ -1568,8 +1568,7 @@ BOOL CDirView::RenameOnSameDir(LPCTSTR szOldFileName, LPCTSTR szNewFileName)
 		String sFullName;
 
 		SplitFilename(szOldFileName, &sFullName, NULL, NULL);
-		sFullName += _T('\\');
-		sFullName += szNewFileName;
+		sFullName = paths_ConcatPath(sFullName, szNewFileName);
 
 		// No need to rename if new file already exist.
 		if ((sFullName.compare(szOldFileName)) ||

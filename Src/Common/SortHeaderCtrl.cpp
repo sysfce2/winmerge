@@ -4,12 +4,11 @@
  *  @brief Implementation of CSortHeaderCtrl
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: SortHeaderCtrl.cpp 5911 2008-09-07 03:30:21Z marcelgosselin $
+// $Id: SortHeaderCtrl.cpp 7335 2010-10-21 21:19:24Z gerundt $
 //////////////////////////////////////////////////////////////////////
 
 #include "StdAfx.h"
 #include "SortHeaderCtrl.h"
-#include "dllver.h"
 
 #ifndef HDF_SORTUP
 #define HDF_SORTUP              0x0400
@@ -60,7 +59,7 @@ int CSortHeaderCtrl::SetSortImage(int nCol, BOOL bAsc)
 	}
 
 	GetItem( nCol, &hditem );
-	if (GetDllVersion(_T("comctl32.dll")) >= PACKVERSION(6,00))
+	if (SendMessage(CCM_GETVERSION) >= 6)
 	{
 		// We can use HDF_SORTUP and HDF_SORTDOWN flag to draw a sort arrow on the header.
 		hditem.fmt &= ~(HDF_SORTUP | HDF_SORTDOWN);

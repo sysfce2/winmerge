@@ -89,10 +89,13 @@ DATE:		BY:					DESCRIPTION:
 2007-06-16	Jochen Neubeck		FIX [1723263] "Zip --> Both" operation...
 2007-12-22	Jochen Neubeck		Fix Merge7z UI lang for new translation system
 								Change recommended version of 7-Zip to 4.57
+2010-05-16	Jochen Neubeck		Read 7-Zip version from 7z.dll (which has long
+								ago replaced the various format and codec DLLs)
+								Change recommended version of 7-Zip to 4.65
 */
 
 // ID line follows -- this is updated by SVN
-// $Id: 7zCommon.cpp 5363 2008-05-24 09:18:17Z jtuc $
+// $Id: 7zCommon.cpp 7424 2010-11-15 13:25:49Z gerundt $
 
 #include "stdafx.h"
 #include "OptionsDef.h"
@@ -102,7 +105,7 @@ DATE:		BY:					DESCRIPTION:
 #include "MainFrm.h"
 #include "7zCommon.h"
 //#include "ExternalArchiveFormat.h"
-#include "markdown.h"
+#include "version.h"
 #include <afxinet.h>
 #include <shlwapi.h>
 #include <paths.h>
@@ -212,7 +215,7 @@ protected:
 /**
  * @brief Recommended version of 7-Zip.
  */
-const DWORD C7ZipMismatchException::m_dwVer7zRecommended = DWORD MAKELONG(57,4);
+const DWORD C7ZipMismatchException::m_dwVer7zRecommended = DWORD MAKELONG(65,4);
 
 /**
  * @brief Registry key for C7ZipMismatchException's ReportError() popup.
@@ -646,20 +649,11 @@ DWORD NTAPI VersionOf7z(BOOL bLocal)
 		DWORD size = sizeof path;
 		SHGetValue(HKEY_LOCAL_MACHINE, szSubKey, szValue, &type, path, &size);
 	}
-	PathAppend(path, _T("7zip_pad.xml"));
-	CMarkdown::String version
-	(
-		CMarkdown::File(path)
-		.Move("XML_DIZ_INFO").Pop()
-		.Move("Program_Info").Pop()
-		.Move("Program_Version").GetInnerText()
-	);
-	DWORD ver = (WORD)StrToIntA(version.A) << 16;
-	if (LPSTR p = StrChrA(version.A, '.'))
-	{
-		ver |= (WORD)StrToIntA(p + 1);
-	}
-	return ver;
+	PathAppend(path, _T("7z.dll"));
+	DWORD versionMS = 0;
+	DWORD versionLS = 0;
+	CVersionInfo(path).GetFixedFileVersion(versionMS, versionLS);
+	return versionMS;
 }
 
 /**
@@ -741,7 +735,7 @@ interface Merge7z *Merge7z::Proxy::operator->()
  */
 Merge7z::Proxy Merge7z =
 {
-	0, 0, DllBuild_Merge7z,
+	{ 0, 0, DllBuild_Merge7z },
 	"Merge7z%u%02u"DECORATE_U".dll",
 	"Merge7z"
 };
@@ -911,8 +905,8 @@ Merge7z::Envelope *CDirView::DirItemEnumerator::Enum(Item &item)
 	envelope->FullPath = sFilename;
 	envelope->FullPath.insert(0, _T("\\"));
 	envelope->FullPath.insert(0, m_bRight ?
-		di.getRightFilepath(pDoc->GetRightBasePath()) :
-		di.getLeftFilepath(pDoc->GetLeftBasePath()));
+		di.GetRightFilepath(pDoc->GetRightBasePath()) :
+		di.GetLeftFilepath(pDoc->GetLeftBasePath()));
 
 	UINT32 Recurse = item.Mask.Recurse;
 
@@ -930,7 +924,7 @@ Merge7z::Envelope *CDirView::DirItemEnumerator::Enum(Item &item)
 					// Folder is not implied by some other file, and has
 					// not been enumerated so far, so enumerate it now!
 					envelope->Name = di.left.path;
-					envelope->FullPath = di.getLeftFilepath(pDoc->GetLeftBasePath());
+					envelope->FullPath = di.GetLeftFilepath(pDoc->GetLeftBasePath());
 					implied = PVOID(2); // Don't enumerate same folder twice!
 					isSideLeft = false;
 					Recurse = 0;
@@ -949,7 +943,7 @@ Merge7z::Envelope *CDirView::DirItemEnumerator::Enum(Item &item)
 					// Folder is not implied by some other file, and has
 					// not been enumerated so far, so enumerate it now!
 					envelope->Name = di.right.path;
-					envelope->FullPath = di.getRightFilepath(pDoc->GetRightBasePath());
+					envelope->FullPath = di.GetRightFilepath(pDoc->GetRightBasePath());
 					implied = PVOID(2); // Don't enumerate same folder twice!
 					isSideRight = false;
 					Recurse = 0;
@@ -1105,7 +1099,7 @@ void CDirView::DirItemEnumerator::CollectFiles(CString &strBuffer)
 		{
 			cchBuffer +=
 			(
-				m_bRight ? di.getRightFilepath(sLeftRootPath) : di.getLeftFilepath(sRightRootPath)
+				m_bRight ? di.GetRightFilepath(sLeftRootPath) : di.GetLeftFilepath(sRightRootPath)
 			).length() + (m_bRight ? di.right.filename : di.left.filename).length() + 2;
 		}
 	}
@@ -1119,7 +1113,7 @@ void CDirView::DirItemEnumerator::CollectFiles(CString &strBuffer)
 			(
 				pchBuffer,
 				_T("%s\\%s"),
-				m_bRight ? di.getRightFilepath(sLeftRootPath).c_str() : di.getLeftFilepath(sRightRootPath).c_str(),
+				m_bRight ? di.GetRightFilepath(sLeftRootPath).c_str() : di.GetLeftFilepath(sRightRootPath).c_str(),
 				m_bRight ? di.right.filename.c_str() : di.left.filename.c_str()
 			) + 1;
 		}

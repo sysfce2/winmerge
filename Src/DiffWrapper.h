@@ -22,7 +22,7 @@
  * @date  Created: 2003-08-22
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffWrapper.h 5795 2008-08-13 04:12:20Z marcelgosselin $
+// $Id: DiffWrapper.h 7515 2011-01-30 13:35:56Z jtuc $
 
 #ifndef _DIFFWRAPPER_H
 #define _DIFFWRAPPER_H
@@ -41,6 +41,7 @@ class FilterCommentsManager;
 struct FilterCommentsSet;
 class MovedLines;
 class FilterList;
+enum OP_TYPE;
 
 /** @enum COMPARE_TYPE
  * @brief Different foldercompare methods.
@@ -157,13 +158,13 @@ public:
 	void SetPatchOptions(const PATCHOPTIONS *options);
 	void SetDetectMovedBlocks(bool bDetectMovedBlocks);
 	bool GetDetectMovedBlocks() { return (m_pMovedLines != NULL); }
-	BOOL SetAppendFiles(BOOL bAppendFiles);
+	void SetAppendFiles(BOOL bAppendFiles);
 	void SetPaths(const String &filepath1, const String &filepath2, BOOL tempPaths);
 	void SetAlternativePaths(const String &altPath1, const String &altPath2);
 	void SetCodepage(int codepage) { m_codepage = codepage; }
 	BOOL RunFileDiff();
 	void GetDiffStatus(DIFFSTATUS *status);
-	void AddDiffRange(UINT begin0, UINT end0, UINT begin1, UINT end1, BYTE op);
+	void AddDiffRange(UINT begin0, UINT end0, UINT begin1, UINT end1, OP_TYPE op);
 	void FixLastDiffRange(int leftBufferLines, int rightBufferLines, BOOL left);
 	MovedLines * GetMovedLines() { return m_pMovedLines; }
 	void SetCompareFiles(const String &OriginalFile1, const String &OriginalFile2);

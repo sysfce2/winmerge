@@ -4,11 +4,13 @@
  *  @brief Declaration of generic named property classes
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: varprop.h 5373 2008-05-26 09:05:30Z kimmov $
+// $Id: varprop.h 7328 2010-10-20 20:40:36Z gerundt $
 //////////////////////////////////////////////////////////////////////
 
 #ifndef varprop_h_included
 #define varprop_h_included
+
+#include "UnicodeString.h"
 
 namespace varprop
 {

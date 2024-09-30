@@ -25,7 +25,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: MergeDoc.cpp 6750 2009-05-14 14:34:10Z kimmov $
+// $Id: MergeDoc.cpp 7569 2011-10-24 06:29:38Z jtuc $
 
 #include "StdAfx.h"
 #include <shlwapi.h>		// PathCompactPathEx()
@@ -54,7 +54,6 @@
 #include "DiffFileInfo.h"
 #include "SaveClosingDlg.h"
 #include "DiffList.h"
-#include "dllver.h"
 #include "codepage.h"
 #include "paths.h"
 #include "OptionsMgr.h"
@@ -63,6 +62,7 @@
 #include "FileOrFolderSelect.h"
 #include "LineFiltersList.h"
 #include "TempFile.h"
+#include "MergeCmdLineInfo.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -83,7 +83,7 @@ static LPCTSTR crlfs[] =
 	_T ("\x0d")      //  Macintosh style
 };
 
-static void SaveBuffForDiff(CDiffTextBuffer & buf, LPCTSTR filepath);
+static void SaveBuffForDiff(CDiffTextBuffer & buf, CDiffTextBuffer & buf2, LPCTSTR filepath);
 static void UnescapeControlChars(CString &s);
 
 /////////////////////////////////////////////////////////////////////////////
@@ -335,14 +335,14 @@ void CMergeDoc::Serialize(CArchive& ar)
  * (the plugins are optional, not the conversion)
  * @todo Show SaveToFile() errors?
  */
-static void SaveBuffForDiff(CDiffTextBuffer & buf, LPCTSTR filepath)
+static void SaveBuffForDiff(CDiffTextBuffer & buf, CDiffTextBuffer & buf2, LPCTSTR filepath)
 {
 	ASSERT(buf.m_nSourceEncoding == buf.m_nDefaultEncoding);  
 	int orig_codepage = buf.getCodepage();
 	ucr::UNICODESET orig_unicoding = buf.getUnicoding();
 
 	// If file was in Unicode
-	if (orig_unicoding!=ucr::NONE)
+	if ((orig_unicoding != ucr::NONE) || (buf2.getUnicoding() != ucr::NONE))
 	{
 	// we subvert the buffer's memory of the original file encoding
 		buf.setUnicoding(ucr::UCS2LE);  // write as UCS-2LE (for preprocessing)
@@ -436,7 +436,7 @@ int CMergeDoc::Rescan(BOOL &bBinary, BOOL &bIdentical,
 		LangFormatString1(msg, IDS_FILE_DISAPPEARED, m_filePaths.GetRight().c_str());
 		AfxMessageBox(msg);
 		BOOL bSaveResult = FALSE;
-		bool ok = DoSaveAs(m_filePaths.GetRight().c_str(), bSaveResult, 0);
+		bool ok = DoSaveAs(m_filePaths.GetRight().c_str(), bSaveResult, 1);
 		if (!ok || !bSaveResult)
 		{
 			return RESCAN_FILE_ERR;
@@ -450,6 +450,7 @@ int CMergeDoc::Rescan(BOOL &bBinary, BOOL &bIdentical,
 		if (AfxMessageBox(msg, MB_YESNO | MB_ICONWARNING) == IDYES)
 		{
 			ReloadDoc(0);
+			return RESCAN_OK;
 		}
 	}
 	else if (rightFileChanged == FileChanged)
@@ -459,6 +460,7 @@ int CMergeDoc::Rescan(BOOL &bBinary, BOOL &bIdentical,
 		if (AfxMessageBox(msg, MB_YESNO | MB_ICONWARNING) == IDYES)
 		{
 			ReloadDoc(1);
+			return RESCAN_OK;
 		}
 	}
 
@@ -484,8 +486,8 @@ int CMergeDoc::Rescan(BOOL &bBinary, BOOL &bIdentical,
 	// output buffers to temp files (in UTF-8 if TCHAR=wchar_t or buffer was Unicode)
 	if (bBinary == FALSE)
 	{
-		SaveBuffForDiff(*m_ptBuf[0], m_tempFiles[0].GetPath().c_str());
-		SaveBuffForDiff(*m_ptBuf[1], m_tempFiles[1].GetPath().c_str());
+		SaveBuffForDiff(*m_ptBuf[0], *m_ptBuf[1], m_tempFiles[0].GetPath().c_str());
+		SaveBuffForDiff(*m_ptBuf[1], *m_ptBuf[0], m_tempFiles[1].GetPath().c_str());
 	}
 
 	// Set up DiffWrapper
@@ -680,18 +682,20 @@ void CMergeDoc::ShowRescanError(int nRescanResult, BOOL bIdentical)
 		{
 			UINT nFlags = MB_ICONINFORMATION | MB_DONT_DISPLAY_AGAIN;
 
-			// Show the "files are identical" error message even if the user
-			// requested not to show it again. It is better than to close
-			// the application without a warning.
-			if (GetMainFrame()->m_bExitIfNoDiff)
+			if (GetMainFrame()->m_bExitIfNoDiff == MergeCmdLineInfo::Exit)
 			{
+				// Show the "files are identical" for basic "exit no diff" flag
+				// If user don't want to see the message one uses the quiet version
+				// of the "exit no diff".
 				nFlags &= ~MB_DONT_DISPLAY_AGAIN;
 			}
 
-			LangMessageBox(IDS_FILESSAME, nFlags);
+			if (GetMainFrame()->m_bExitIfNoDiff != MergeCmdLineInfo::ExitQuiet)
+				LangMessageBox(IDS_FILESSAME, nFlags);
 
 			// Exit application if files are identical.
-			if (GetMainFrame()->m_bExitIfNoDiff)
+			if (GetMainFrame()->m_bExitIfNoDiff == MergeCmdLineInfo::Exit ||
+				GetMainFrame()->m_bExitIfNoDiff == MergeCmdLineInfo::ExitQuiet)
 			{
 				GetMainFrame()->PostMessage(WM_COMMAND, ID_APP_EXIT);
 			}
@@ -775,9 +779,8 @@ void CMergeDoc::CopyMultipleList(int srcPane, int dstPane, int firstDiff, int la
 	// Note we don't care about m_nDiffs count to become zero,
 	// because we don't rescan() so it does not change
 
-	SetCurrentDiff(lastDiff);
 	bool bGroupWithPrevious = false;
-	if (!ListCopy(srcPane, dstPane, -1, bGroupWithPrevious))
+	if (!ListCopy(srcPane, dstPane, lastDiff, bGroupWithPrevious))
 		return; // sync failure
 
 	// copy from bottom up is more efficient
@@ -785,10 +788,9 @@ void CMergeDoc::CopyMultipleList(int srcPane, int dstPane, int firstDiff, int la
 	{
 		if (m_diffList.IsDiffSignificant(i))
 		{
-			SetCurrentDiff(i);
 			// Group merge with previous (merge undo data to one action)
 			bGroupWithPrevious = true;
-			if (!ListCopy(srcPane, dstPane, -1, bGroupWithPrevious))
+			if (!ListCopy(srcPane, dstPane, i, bGroupWithPrevious))
 				return; // sync failure
 		}
 	}
@@ -807,10 +809,10 @@ void CMergeDoc::CopyMultipleList(int srcPane, int dstPane, int firstDiff, int la
  * @param [in] dr Difference to check.
  * @return TRUE if difference lines match, FALSE otherwise.
  */
-bool CMergeDoc::SanityCheckDiff(DIFFRANGE dr)
+bool CMergeDoc::SanityCheckDiff(DIFFRANGE dr) const
 {
-	int cd_dbegin = dr.dbegin0;
-	int cd_dend = dr.dend0;
+	const int cd_dbegin = dr.dbegin0;
+	const int cd_dend = dr.dend0;
 
 	// Must ensure line number is in range before getting line flags
 	if (cd_dend >= m_ptBuf[0]->GetLineCount())
@@ -890,9 +892,9 @@ bool CMergeDoc::ListCopy(int srcPane, int dstPane, int nDiff /* = -1*/,
 		CDiffTextBuffer& sbuf = *m_ptBuf[srcPane];
 		CDiffTextBuffer& dbuf = *m_ptBuf[dstPane];
 		BOOL bSrcWasMod = sbuf.IsModified();
-		int cd_dbegin = srcPane == 0 ? cd.dbegin0 : cd.dbegin1;
-		int cd_dend = srcPane == 0 ? cd.dend0 : cd.dend1;
-		int cd_blank = srcPane == 0 ? cd.blank0 : cd.blank1;
+		const int cd_dbegin = srcPane == 0 ? cd.dbegin0 : cd.dbegin1;
+		const int cd_dend = srcPane == 0 ? cd.dend0 : cd.dend1;
+		const int cd_blank = srcPane == 0 ? cd.blank0 : cd.blank1;
 		bool bInSync = SanityCheckDiff(cd);
 
 		if (!bInSync)
@@ -1162,8 +1164,7 @@ bool CMergeDoc::DoSave(LPCTSTR szPath, BOOL &bSaveSuccess, int nBuffer)
 		nSaveErrorCode = SAVE_NO_FILENAME;
 
 	// Handle unnamed buffers
-	if ((m_nBufferType[nBuffer] == BUFFER_UNNAMED) ||
-		(m_nBufferType[nBuffer] == BUFFER_UNNAMED))
+	if (m_nBufferType[nBuffer] == BUFFER_UNNAMED)
 			nSaveErrorCode = SAVE_NO_FILENAME;
 
 	String sError;
@@ -1353,7 +1354,6 @@ void CMergeDoc::SetCurrentDiff(int nDiff)
  */
 static void UnescapeControlChars(CString &s)
 {
-	int n = s.GetLength();
 	LPTSTR p = s.LockBuffer();
 	LPTSTR q = p;
 	while ((*p = *q) != _T('\0'))
@@ -1439,6 +1439,7 @@ void CMergeDoc::FlushAndRescan(BOOL bForced /* =FALSE */)
 	// Show possible error after updating screen
 	if (nRescanResult != RESCAN_SUPPRESSED)
 		ShowRescanError(nRescanResult, bIdentical);
+	m_LastRescan = COleDateTime::GetCurrentTime();
 }
 
 /**
@@ -2316,6 +2317,17 @@ OPENRESULTS_TYPE CMergeDoc::OpenDocs(FileLocation filelocLeft, FileLocation file
 			pRightDetail->SetTextType(sextR.c_str());
 		}
 
+		// If textypes of the files aren't recogzined by their extentions,
+		// try to recognize them using their first lines 
+		if (!bLeftTyped && !bRightTyped)
+		{
+			CString sFirstLine;
+			m_ptBuf[0]->GetLine(0, sFirstLine);
+			bLeftTyped = pLeft->SetTextTypeByContent(sFirstLine);
+			m_ptBuf[1]->GetLine(0, sFirstLine);
+			bRightTyped = pRight->SetTextTypeByContent(sFirstLine);
+		}
+
 		// If other side didn't have recognized texttype, apply recognized
 		// type to unrecognized one. (comparing file.cpp and file.bak applies
 		// cpp file type to .bak file.
@@ -2367,7 +2379,7 @@ OPENRESULTS_TYPE CMergeDoc::OpenDocs(FileLocation filelocLeft, FileLocation file
 
 		// Exit if files are identical should only work for the first
 		// comparison and must be disabled afterward.
-		GetMainFrame()->m_bExitIfNoDiff = FALSE;
+		GetMainFrame()->m_bExitIfNoDiff = MergeCmdLineInfo::Disabled;
 	}
 	else
 	{
@@ -2503,7 +2515,7 @@ OPENRESULTS_TYPE CMergeDoc::ReloadDoc(int index)
 	}
 
 	BOOL bBinary = FALSE;
-	nRescanResult = Rescan(bBinary, bIdentical);
+	nRescanResult = Rescan(bBinary, bIdentical, TRUE);
 
 	// Open filed if rescan succeed and files are not binaries
 	if (nRescanResult == RESCAN_OK)
@@ -2582,7 +2594,7 @@ OPENRESULTS_TYPE CMergeDoc::ReloadDoc(int index)
 
 		// Exit if files are identical should only work for the first
 		// comparison and must be disabled afterward.
-		GetMainFrame()->m_bExitIfNoDiff = FALSE;
+		GetMainFrame()->m_bExitIfNoDiff = MergeCmdLineInfo::Disabled;
 	}
 	else
 	{
@@ -2816,17 +2828,16 @@ void CMergeDoc::SwapFiles()
 	m_pDetailView[1]->SetDlgCtrlID(nLeftDetailViewId);
 
 	// Swap buffers and so on
-    swap(m_ptBuf[0], m_ptBuf[1]);
-    swap(m_pView[0], m_pView[1]);
-    swap(m_pDetailView[0], m_pDetailView[1]);
-    swap(m_pSaveFileInfo[0], m_pSaveFileInfo[1]);
-    swap(m_pRescanFileInfo[0], m_pRescanFileInfo[1]);
-    swap(m_nBufferType[0], m_nBufferType[1]);
-    swap(m_bEditAfterRescan[0], m_bEditAfterRescan[1]);
+	swap(m_ptBuf[0], m_ptBuf[1]);
+	swap(m_pView[0], m_pView[1]);
+	swap(m_pDetailView[0], m_pDetailView[1]);
+	swap(m_pSaveFileInfo[0], m_pSaveFileInfo[1]);
+	swap(m_pRescanFileInfo[0], m_pRescanFileInfo[1]);
+	swap(m_nBufferType[0], m_nBufferType[1]);
+	swap(m_bEditAfterRescan[0], m_bEditAfterRescan[1]);
 	m_strDesc[0].swap(m_strDesc[1]);
 
 	m_filePaths.Swap();
-	
 	m_diffList.Swap();
 
 	m_ptBuf[0]->m_nThisPane = 0;

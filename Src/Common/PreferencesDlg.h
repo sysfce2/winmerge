@@ -8,7 +8,7 @@
  * WinMerge.
  */
 // ID line follows -- this is updated by SVN
-// $Id: PreferencesDlg.h 6359 2009-01-22 19:12:53Z kimmov $
+// $Id: PreferencesDlg.h 7523 2011-05-22 14:40:23Z sdottaka $
 
 
 #if !defined(AFX_PREFERENCESDLG_H__C3FCC72A_6C69_49A6_930D_D5C94EC31298__INCLUDED_)
@@ -30,6 +30,7 @@
 #include "PropArchive.h"
 #include "PropBackups.h"
 #include "PropShell.h"
+#include "PropCompareFolder.h"
 
 #include "PropertyPageHost.h"
 
@@ -58,18 +59,19 @@ protected:
 
 	CPropertyPageHost m_pphost;
 	
-	CPropGeneral m_pageGeneral;
-	CPropCompare m_pageCompare;
-	CPropEditor m_pageEditor;
-	CPropVss m_pageVss;	
-	CPropRegistry m_pageSystem;
-	CPropCodepage m_pageCodepage;
-	CPropMergeColors m_pageMergeColors;
-	CPropTextColors m_pageTextColors;
-	CPropSyntaxColors m_pageSyntaxColors;
-	CPropArchive m_pageArchive;
-	CPropBackups m_pageBackups;
+	PropGeneral m_pageGeneral;
+	PropCompare m_pageCompare;
+	PropEditor m_pageEditor;
+	PropVss m_pageVss;	
+	PropRegistry m_pageSystem;
+	PropCodepage m_pageCodepage;
+	PropMergeColors m_pageMergeColors;
+	PropTextColors m_pageTextColors;
+	PropSyntaxColors m_pageSyntaxColors;
+	PropArchive m_pageArchive;
+	PropBackups m_pageBackups;
 	PropShell m_pageShell;
+	PropCompareFolder m_pageCompareFolder;
 
 	SyntaxColors *m_pSyntaxColors;
 
@@ -99,6 +101,7 @@ protected:
 protected:
 	void AddPage(CPropertyPage* pPage, UINT nResourceID);
 	void AddPage(CPropertyPage* pPage, LPCTSTR szPath);
+	void AddPage(CPropertyPage* pPage, UINT nTopHeading, UINT nSubHeading);
 	void SetActivePage(int nPage);
 	CString GetItemPath(HTREEITEM hti);
 	void ReadOptions(BOOL bUpdate = FALSE);

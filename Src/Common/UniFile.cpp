@@ -9,7 +9,7 @@
  *  Classes include memory-mapped reader class and Stdio replacement class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: UniFile.cpp 5917 2008-09-07 12:59:22Z marcelgosselin $
+// $Id: UniFile.cpp 7480 2010-12-27 16:08:47Z gerundt $
 
 /* The MIT License
 Copyright (c) 2003 Perry Rapp
@@ -52,7 +52,7 @@ static void Append(String &strBuffer, LPCTSTR pchTail, int cchTail,
  */
 UniFile::UniError::UniError()
 {
-	 ClearError();
+	ClearError();
 }
 
 /**
@@ -78,7 +78,7 @@ void UniFile::UniError::ClearError()
  * @brief Get the error string.
  * @return Error string.
  */
-String UniFile::UniError::GetError()
+String UniFile::UniError::GetError() const
 {
 	String sError;
 	if (apiname.empty())
@@ -195,11 +195,11 @@ void UniLocalFile::LastErrorCustom(LPCTSTR desc)
 /////////////
 
 UniMemFile::UniMemFile()
-: m_handle(INVALID_HANDLE_VALUE)
-, m_hMapping(INVALID_HANDLE_VALUE)
-, m_base(NULL)
-, m_data(NULL)
-, m_current(NULL)
+		: m_handle(INVALID_HANDLE_VALUE)
+		, m_hMapping(INVALID_HANDLE_VALUE)
+		, m_base(NULL)
+		, m_data(NULL)
+		, m_current(NULL)
 {
 }
 
@@ -349,30 +349,30 @@ bool UniMemFile::ReadBom()
 	if (!IsOpen())
 		return false;
 
-	unsigned char * lpByte = m_base;
+	PBYTE lpByte = m_base;
 	m_current = m_data = m_base;
 	m_charsize = 1;
 	bool unicode = false;
 	bool bom = false;
-	
+
 	m_unicoding = ucr::DetermineEncoding(lpByte, m_filesize, &bom);
 	switch (m_unicoding)
 	{
-		case ucr::UCS2LE:
-		case ucr::UCS2BE:
-			m_charsize = 2;
-			m_data = lpByte + 2;
-			unicode = true;
-			break;
-		case ucr::UTF8:
-			if (bom)
-				m_data = lpByte + 3;
-			else
-				m_data = lpByte;
-			unicode = true;
-			break;
-		default:
-			break;
+	case ucr::UCS2LE:
+	case ucr::UCS2BE:
+		m_charsize = 2;
+		m_data = lpByte + 2;
+		unicode = true;
+		break;
+	case ucr::UTF8:
+		if (bom)
+			m_data = lpByte + 3;
+		else
+			m_data = lpByte;
+		unicode = true;
+		break;
+	default:
+		break;
 	}
 
 	m_bom = bom;
@@ -425,9 +425,9 @@ bool UniMemFile::ReadString(String & line, bool * lossy)
 static void Append(String &strBuffer, LPCTSTR pchTail,
 		int cchTail, int cchBufferMin)
 {
-	int cchBuffer = strBuffer.capacity();
-	int cchHead = strBuffer.length();
-	int cchLength = cchHead + cchTail;
+	size_t cchBuffer = strBuffer.capacity();
+	size_t cchHead = strBuffer.length();
+	size_t cchLength = cchHead + cchTail;
 	while (cchBuffer < cchLength)
 	{
 		ASSERT((cchBufferMin & cchBufferMin - 1) == 0); // must be a power of 2
@@ -443,7 +443,7 @@ static void Append(String &strBuffer, LPCTSTR pchTail,
 /**
  * @brief Record occurrence of binary zero to stats
  */
-static void RecordZero(UniFile::txtstats & txstats, int offset)
+static void RecordZero(UniFile::txtstats & txstats, INT64 offset)
 {
 	++txstats.nzeros;
 	if (txstats.first_zero == -1)
@@ -456,17 +456,16 @@ static void RecordZero(UniFile::txtstats & txstats, int offset)
  * @param [out] line Line read.
  * @param [out] eol EOL bytes read (if any).
  * @param [out] lossy TRUE if there were lossy encoding.
- * @return TRUE if there is more lines to read, TRUE when last line is read.
+ * @return true if there is more lines to read, false when last line is read.
  */
 bool UniMemFile::ReadString(String & line, String & eol, bool * lossy)
 {
 	line.erase();
 	eol.erase();
 	LPCTSTR pchLine = (LPCTSTR)m_current;
-	
+
 	// shortcut methods in case file is in the same encoding as our Strings
-	
-#ifdef _UNICODE
+
 	if (m_unicoding == ucr::UCS2LE)
 	{
 		int cchLine = 0;
@@ -477,7 +476,7 @@ bool UniMemFile::ReadString(String & line, String & eol, bool * lossy)
 		while (m_current - m_base + 1 < m_filesize)
 		{
 			wchar_t wch = *(wchar_t *)m_current;
-			int wch_offset = (m_current - m_base);
+			INT64 wch_offset = (m_current - m_base);
 			m_current += 2;
 			if (wch == '\n' || wch == '\r')
 			{
@@ -512,85 +511,42 @@ bool UniMemFile::ReadString(String & line, String & eol, bool * lossy)
 		line.assign(pchLine, cchLine);
 		return true;
 	}
-#else
-	if (m_unicoding == ucr::NONE && EqualCodepages(m_codepage, getDefaultCodepage()))
-	{
-		int cchLine = 0;
-		// If there aren't any bytes left in the file, return FALSE to indicate EOF
-		if (m_current - m_base >= m_filesize)
-			return false;
-		// Loop through chars, watching for eol chars or zero
-		while (m_current - m_base < m_filesize)
-		{
-			char ch = *m_current;
-			int ch_offset = (m_current - m_base);
-			++m_current;
-			if (ch == '\n' || ch == '\r')
-			{
-				eol += ch;
-				if (ch == '\r')
-				{
-					if (m_current - m_base < m_filesize && *m_current == '\n')
-					{
-						eol += '\n';
-						++m_current;
-						++m_txtstats.ncrlfs;
-					}
-					else
-					{
-						++m_txtstats.ncrs;
-					}
-				}
-				else
-				{
-					++m_txtstats.nlfs;
-				}
-				++m_lineno;
-				line.assign(pchLine, cchLine);
-				return true;
-			}
-			if (!ch)
-			{
-				RecordZero(m_txtstats, ch_offset);
-			}
-			++cchLine;
-		}
-		line.assign(pchLine, cchLine);
-		return true;
-	}
-#endif
 
-	if (m_current - m_base + (m_charsize-1) >= m_filesize)
+	if (m_current - m_base + (m_charsize - 1) >= m_filesize)
 		return false;
 
 	// Handle 8-bit strings in line chunks because of multibyte codings (eg, 936)
 	if (m_unicoding == ucr::NONE)
 	{
-		bool eof=true;
-		LPBYTE eolptr=0;
-		for (eolptr = m_current; (eolptr - m_base + (m_charsize-1) < m_filesize); ++eolptr)
+		bool eof = true;
+		LPBYTE eolptr = 0;
+		for (eolptr = m_current; (eolptr - m_base + (m_charsize - 1) < m_filesize); ++eolptr)
 		{
 			if (*eolptr == '\n' || *eolptr == '\r')
 			{
-				eof=false;
+				eof = false;
 				break;
 			}
 			if (*eolptr == 0)
 			{
-				int offset = (eolptr - m_base);
+				INT64 offset = (eolptr - m_base);
 				RecordZero(m_txtstats, offset);
 			}
 		}
-		line = ucr::maketstring((LPCSTR)m_current, eolptr-m_current, m_codepage, lossy);
+		bool success = ucr::maketstring(line, (LPCSTR)m_current, eolptr - m_current, m_codepage, lossy);
+		if (!success)
+		{
+			return false;
+		}
 		if (lossy && *lossy)
 			++m_txtstats.nlosses;
 		if (!eof)
 		{
-			eol += (TCHAR)*eolptr;
+			eol += (TCHAR) * eolptr;
 			++m_lineno;
 			if (*eolptr == '\r')
 			{
-				if (eolptr - m_base + (m_charsize-1) < m_filesize && eolptr[1] == '\n')
+				if (eolptr - m_base + (m_charsize - 1) < m_filesize && eolptr[1] == '\n')
 				{
 					eol += '\n';
 					++m_txtstats.ncrlfs;
@@ -606,11 +562,11 @@ bool UniMemFile::ReadString(String & line, String & eol, bool * lossy)
 		return !eof;
 	}
 
-	while (m_current - m_base + (m_charsize-1) < m_filesize)
+	while (m_current - m_base + (m_charsize - 1) < m_filesize)
 	{
-		UINT ch=0;
-		UINT utf8len=0;
-		bool doneline=false;
+		UINT ch = 0;
+		UINT utf8len = 0;
+		bool doneline = false;
 
 		if (m_unicoding == ucr::UTF8)
 		{
@@ -627,7 +583,7 @@ bool UniMemFile::ReadString(String & line, String & eol, bool * lossy)
 			else if (utf8len < 1 || utf8len > 4)
 			{
 				ch = '?';
-				utf8len=1;
+				utf8len = 1;
 			}
 			else
 			{
@@ -662,7 +618,7 @@ bool UniMemFile::ReadString(String & line, String & eol, bool * lossy)
 			{
 				// For UTF-8, this ch will be wrong if character is non-ASCII
 				// but we only check it against \n here, so it doesn't matter
-				UINT ch = ucr::get_unicode_char(m_current+m_charsize, (ucr::UNICODESET)m_unicoding);
+				UINT ch = ucr::get_unicode_char(m_current + m_charsize, (ucr::UNICODESET)m_unicoding);
 				if (ch == '\n')
 				{
 					crlf = true;
@@ -688,7 +644,7 @@ bool UniMemFile::ReadString(String & line, String & eol, bool * lossy)
 		}
 		else if (!ch)
 		{
-			int offset = (m_current - m_base);
+			INT64 offset = (m_current - m_base);
 			RecordZero(m_txtstats, offset);
 		}
 		// always advance to next character
@@ -725,8 +681,8 @@ bool UniMemFile::WriteString(const String & line)
 /////////////
 
 UniStdioFile::UniStdioFile()
-: m_fp(0)
-, m_data(0)
+		: m_fp(0)
+		, m_data(0)
 {
 	m_pucrbuff = new ucr::buffer(128);
 }
@@ -734,7 +690,7 @@ UniStdioFile::UniStdioFile()
 UniStdioFile::~UniStdioFile()
 {
 	Close();
-	delete (ucr::buffer *)m_pucrbuff;
+	delete(ucr::buffer *)m_pucrbuff;
 	m_pucrbuff = 0;
 }
 
@@ -781,11 +737,11 @@ bool UniStdioFile::OpenCreate(LPCTSTR filename)
 }
 bool UniStdioFile::OpenCreateUtf8(LPCTSTR filename)
 {
-	if (!OpenCreate(filename)) 
+	if (!OpenCreate(filename))
 		return false;
 	SetUnicoding(ucr::UTF8);
 	return true;
-	
+
 }
 bool UniStdioFile::Open(LPCTSTR filename, LPCTSTR mode)
 {
@@ -800,7 +756,7 @@ bool UniStdioFile::Open(LPCTSTR filename, LPCTSTR mode)
 bool UniStdioFile::DoOpen(LPCTSTR filename, LPCTSTR mode)
 {
 	Close();
-	
+
 	m_filepath = filename;
 	m_filename = filename; // TODO: Make canonical ?
 
@@ -861,30 +817,30 @@ bool UniStdioFile::ReadBom()
 	if (buff == NULL)
 		return false;
 
-	int bytes = fread(buff, 1, max_size, m_fp);
+	size_t bytes = fread(buff, 1, max_size, m_fp);
 	m_data = 0;
 	m_charsize = 1;
 	bool unicode = false;
 	bool bom = false;
-	
+
 	m_unicoding = ucr::DetermineEncoding(buff, bytes, &bom);
 	switch (m_unicoding)
 	{
-		case ucr::UCS2LE:
-		case ucr::UCS2BE:
-			m_charsize = 2;
-			m_data = 2;
-			unicode = true;
-			break;
-		case ucr::UTF8:
-			if (bom)
-				m_data = 3;
-			else
-				m_data = 0;
-			unicode = true;
-			break;
-		default:
-			break;
+	case ucr::UCS2LE:
+	case ucr::UCS2BE:
+		m_charsize = 2;
+		m_data = 2;
+		unicode = true;
+		break;
+	case ucr::UTF8:
+		if (bom)
+			m_data = 3;
+		else
+			m_data = 0;
+		unicode = true;
+		break;
+	default:
+		break;
 	}
 
 	delete[] buff;
@@ -961,28 +917,24 @@ int UniStdioFile::WriteBom()
 bool UniStdioFile::WriteString(const String & line)
 {
 	// shortcut the easy cases
-#ifdef _UNICODE
 	if (m_unicoding == ucr::UCS2LE)
-#else
-	if (m_unicoding == ucr::NONE && EqualCodepages(m_codepage, getDefaultCodepage()))
-#endif
 	{
-		unsigned int bytes = line.length() * sizeof(TCHAR);
-		unsigned int wbytes = fwrite(line.c_str(), 1, bytes, m_fp);
+		size_t bytes = line.length() * sizeof(TCHAR);
+		size_t wbytes = fwrite(line.c_str(), 1, bytes, m_fp);
 		if (wbytes != bytes)
 			return false;
 		return true;
 	}
 
 	ucr::buffer * buff = (ucr::buffer *)m_pucrbuff;
-	ucr::UNICODESET unicoding1=ucr::NONE;
-	int codepage1=0;
+	ucr::UNICODESET unicoding1 = ucr::NONE;
+	int codepage1 = 0;
 	ucr::getInternalEncoding(&unicoding1, &codepage1); // What String & TCHARs represent
 	const unsigned char * src = (const UCHAR *)line.c_str();
-	int srcbytes = line.length() * sizeof(TCHAR);
+	size_t srcbytes = line.length() * sizeof(TCHAR);
 	bool lossy = ucr::convert(unicoding1, codepage1, src, srcbytes, (ucr::UNICODESET)m_unicoding, m_codepage, buff);
 	// TODO: What to do about lossy conversion ?
-	unsigned int wbytes = fwrite(buff->ptr, 1, buff->size, m_fp);
+	size_t wbytes = fwrite(buff->ptr, 1, buff->size, m_fp);
 	if (wbytes != buff->size)
 		return false;
 	return true;

@@ -30,7 +30,7 @@
  */
 
 // ID line follows -- this is updated by SVN
-// $Id: MergeCmdLineInfo.h 5862 2008-08-29 20:38:41Z jtuc $
+// $Id: MergeCmdLineInfo.h 7417 2010-11-11 11:06:50Z gerundt $
 
 /** 
  * @brief WinMerge's command line handler.
@@ -44,15 +44,23 @@ public:
 
 public:
 
+	enum ExitNoDiff
+	{
+		Disabled, /**< Don't exit. */
+		Exit, /**< Exit and show message. */
+		ExitQuiet, /**< Exit and don't show message. */
+	};
+
 	int m_nCmdShow; /**< Initial state of the application's window. */
 
 	bool m_bClearCaseTool; /**< Running as Rational ClearCase external tool. */
 	bool m_bEscShutdown; /**< Pressing ESC will close the application */
-	bool m_bExitIfNoDiff; /**< Exit after telling the user that files are identical. */
+	ExitNoDiff m_bExitIfNoDiff; /**< Exit if files are identical. */
 	bool m_bRecurse; /**< Include sub folder in directories compare. */
 	bool m_bNonInteractive; /**< Suppress user's notifications. */
 	bool m_bSingleInstance; /**< Allow only one instance of WinMerge executable. */
 	bool m_bShowUsage; /**< Show a brief reminder to command line arguments. */
+	int  m_nCodepage;  /**< Codepage. */
 
 	DWORD m_dwLeftFlags; /**< Left side file's behavior options. */
 	DWORD m_dwRightFlags; /**< Right side file's behavior options. */

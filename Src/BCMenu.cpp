@@ -129,12 +129,7 @@ CString BCMenuData::GetString(void)//returns the menu text in ANSI or UNICODE
 	CString strText;
 	if (m_szMenuText)
     {
-#ifdef UNICODE
 		strText = m_szMenuText;
-#else
-		USES_CONVERSION;
-		strText=W2A(m_szMenuText);     //SK:  see MFC Tech Note 059
-#endif    
     }
 	return strText;
 }
@@ -987,18 +982,6 @@ void BCMenu::MeasureItem( LPMEASUREITEMSTRUCT lpMIS )
 		if (Win32s!=g_Shell)
 			VERIFY(::GetTextExtentPoint32W(pDC->m_hDC,lpstrText,
 			wcslen(lpstrText),&size)); //SK should also work on 95
-#ifndef UNICODE //can't be UNICODE for Win32s
-		else{//it's Win32suckx
-			RECT rect;
-			rect.left=rect.top=0;
-			size.cy=DrawText(pDC->m_hDC,(LPCTSTR)lpstrText,
-				wcslen(lpstrText),&rect,
-				DT_SINGLELINE|DT_LEFT|DT_VCENTER|DT_CALCRECT);
-			//+3 makes at least three pixels space to the menu border
-			size.cx=rect.right-rect.left+3;
-			size.cx += 3*(size.cx/wcslen(lpstrText));
-		}
-#endif    
 		
 		CSize t = CSize(size);
 		if(IsNewShell())
@@ -1472,11 +1455,7 @@ BCMenuData *BCMenu::NewODMenu(UINT pos,UINT nFlags,UINT nID,CString string)
 	mdata = new BCMenuData;
 	mdata->menuIconNormal = -1;
 	mdata->xoffset=-1;
-#ifdef UNICODE
 	mdata->SetWideString((LPCTSTR)string);//SK: modified for dynamic allocation
-#else
-	mdata->SetAnsiString(string);
-#endif
 	mdata->nFlags = nFlags;
 	mdata->nID = nID;
 	
@@ -1897,11 +1876,7 @@ void BCMenu::InsertSpaces(void)
 				t=pDC->GetTextExtent(lpstrText,_tcslen(lpstrText));
 			}
 			newstring+=string.Mid(j);
-#ifdef UNICODE      
 			m_MenuList[i]->SetWideString(newstring);//SK: modified for dynamic allocation
-#else
-			m_MenuList[i]->SetAnsiString(newstring);
-#endif
 		}
 	}
 	pDC->SelectObject (pFont);              // Select old font in
@@ -2042,11 +2017,7 @@ void BCMenu::SynchronizeMenu(void)
 			if(!mdata)mdata=NewODMenu(j,
 				(state&0xFF)|MF_BYPOSITION|MF_POPUP|MF_OWNERDRAW,submenu,string);
 			else if(string.GetLength()>0)
-#ifdef UNICODE
 				mdata->SetWideString(string);  //SK: modified for dynamic allocation
-#else
-			mdata->SetAnsiString(string);
-#endif
 		}
 		else if(state&MF_SEPARATOR){
 			mdata=FindMenuList(0);
@@ -2063,11 +2034,7 @@ void BCMenu::SynchronizeMenu(void)
 			else{
 				mdata->nFlags=state|MF_BYPOSITION|MF_OWNERDRAW;
 				if(string.GetLength()>0)
-#ifdef UNICODE
 					mdata->SetWideString(string);//SK: modified for dynamic allocation
-#else
-				mdata->SetAnsiString(string);
-#endif
 				
 				ModifyMenu(j,mdata->nFlags,nID,(LPCTSTR)mdata);
 			}
@@ -2237,35 +2204,33 @@ void BCMenu::GetFadedBitmap(CBitmap &bmp)
 void BCMenu::GetTransparentBitmap(CBitmap &bmp)
 {
 	CDC ddc;
-	COLORREF bgcol,col,newcol;
 	BITMAP BitMap;
 
 	bmp.GetBitmap(&BitMap);
 	ddc.CreateCompatibleDC(NULL);
 	CBitmap * pddcOldBmp = ddc.SelectObject(&bmp);
 
-	// use this to get the background color, takes into account color shifting
-	CDC ddc2;
-	CBrush brush;
-	CBitmap bmp2;
-	ddc2.CreateCompatibleDC(NULL);
-	bmp2.CreateCompatibleBitmap(&ddc,BitMap.bmWidth,BitMap.bmHeight);
-	col=RGB(255,0,255); // Original was RGB(192,192,192)
-	brush.CreateSolidBrush(col);
-	CBitmap * pddcOldBmp2 = ddc2.SelectObject(&bmp2);
-	CRect rect(0,0,BitMap.bmWidth,BitMap.bmHeight);
-	ddc2.FillRect(rect,&brush);
-	bgcol=ddc2.GetPixel(1,1);
-	brush.DeleteObject();
-	ddc2.SelectObject(pddcOldBmp2);
-	newcol=GetSysColor(COLOR_3DFACE);
+	CDC ddcMask;
+	CBitmap bmpMask;
+	ddcMask.CreateCompatibleDC(NULL);
+	bmpMask.CreateBitmap(BitMap.bmWidth, BitMap.bmHeight, 1, 1, NULL);
+	CBitmap * pddcMaskOldBmp = ddcMask.SelectObject(&bmpMask);
 
-	for(int i=0;i<BitMap.bmWidth;++i){
-		for(int j=0;j<BitMap.bmHeight;++j){
-			col=ddc.GetPixel(i,j);
-			if(col==bgcol)ddc.SetPixel(i,j,newcol);
-		}
-	}
+	/* Generate mask */
+	ddc.SetBkColor(RGB(255, 0, 255));
+	ddcMask.BitBlt(0, 0, BitMap.bmWidth, BitMap.bmHeight, &ddc, 0, 0, SRCCOPY);
+
+	/* Remove transparent areas from bmp */
+	ddc.SetBkColor(RGB(0, 0, 0));
+	ddc.SetTextColor(RGB(255, 255, 255));
+	ddc.BitBlt(0, 0, BitMap.bmWidth, BitMap.bmHeight, &ddcMask, 0, 0, SRCAND);
+
+	/* Fill transparent areas with COLOR_3DFACE */
+	ddc.SetBkColor(GetSysColor(COLOR_3DFACE));
+	ddc.SetTextColor(RGB(0, 0, 0));
+	ddc.BitBlt(0, 0, BitMap.bmWidth, BitMap.bmHeight, &ddcMask, 0, 0, SRCPAINT);
+
+	ddcMask.SelectObject(pddcMaskOldBmp);
 	ddc.SelectObject(pddcOldBmp);
 }
 
@@ -3040,11 +3005,7 @@ BOOL BCMenu::SetMenuText(UINT id, CString string, UINT nFlags/*= MF_BYPOSITION*/
 	{
 		UINT numMenuItems = m_MenuList.GetUpperBound();
 		if(id<=numMenuItems){
-#ifdef UNICODE
 			m_MenuList[id]->SetWideString((LPCTSTR)string);
-#else
-			m_MenuList[id]->SetAnsiString(string);
-#endif
 			returnflag=TRUE;
 		}
 	}

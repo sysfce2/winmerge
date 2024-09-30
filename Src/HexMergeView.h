@@ -23,7 +23,7 @@
  * @brief Declaration of CHexMergeDoc class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: HexMergeView.h 6166 2008-12-14 18:25:09Z jtuc $
+// $Id: HexMergeView.h 7278 2010-09-24 06:25:00Z jtuc $
 
 class IMergeEditStatus;
 class CHexMergeDoc;
@@ -47,6 +47,7 @@ protected: // create from serialization only
 public:
 	HRESULT LoadFile(LPCTSTR);
 	HRESULT SaveFile(LPCTSTR);
+	IHexEditorWindow *GetInterface() const { return m_pif; }
 	IHexEditorWindow::Status *GetStatus();
 	BYTE *GetBuffer(int);
 	int GetLength();

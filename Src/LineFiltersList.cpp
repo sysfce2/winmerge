@@ -4,7 +4,7 @@
  * @brief Implementation for LineFiltersList class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: LineFiltersList.cpp 5761 2008-08-08 04:54:52Z marcelgosselin $
+// $Id: LineFiltersList.cpp 7499 2011-01-02 13:55:55Z gerundt $
 
 // Disable VC6's "identifier was truncated..." warning. It is meaningless.
 #if _MSC_VER == 1200
@@ -105,7 +105,7 @@ String LineFiltersList::GetAsString() const
  * @return Filter item from the index. If the index is beyond table limit,
  *  return the last item in the list.
  */
-const LineFilterItem & LineFiltersList::GetAt(int ind) const
+const LineFilterItem & LineFiltersList::GetAt(size_t ind) const
 {
 	if (ind < m_items.size())
 		return *m_items[ind];
@@ -166,7 +166,7 @@ void LineFiltersList::Initialize(COptionsMgr *pOptionsMgr)
 
 	m_pOptionsMgr = pOptionsMgr;
 
-    unsigned int count = m_items.size();
+	size_t count = m_items.size();
 	valuename += _T("/Values");
 	m_pOptionsMgr->InitOption(valuename.c_str(), static_cast<int>(count));
 	count = m_pOptionsMgr->GetInt(valuename.c_str());
@@ -197,7 +197,7 @@ void LineFiltersList::SaveFilters()
 
 	unsigned int count = m_items.size();
 	valuename += _T("/Values");
-	m_pOptionsMgr->SetInt(valuename.c_str(), count);
+	m_pOptionsMgr->SaveOption(valuename.c_str(), count);
 
 	for (unsigned int i = 0; i < count; i++)
 	{

@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropShell.cpp 6359 2009-01-22 19:12:53Z kimmov $
+// $Id: PropShell.cpp 7529 2011-05-24 16:05:52Z sdottaka $
 
 #include "stdafx.h"
 #include "resource.h"
@@ -14,6 +14,7 @@
 #include "RegKey.h"
 #include "OptionsDef.h"
 #include "OptionsMgr.h"
+#include "OptionsPanel.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -34,8 +35,8 @@ static LPCTSTR f_RegValueEnabled = _T("ContextMenuEnabled");
 static LPCTSTR f_RegValuePath = _T("Executable");
 
 
-PropShell::PropShell(COptionsMgr *optionsMgr) : CPropertyPage(PropShell::IDD)
-, m_pOptionsMgr(optionsMgr)
+PropShell::PropShell(COptionsMgr *optionsMgr) 
+: OptionsPanel(optionsMgr, PropShell::IDD)
 , m_bEnableShellContextMenu(FALSE)
 , m_bContextAdded(FALSE)
 , m_bContextAdvanced(FALSE)
@@ -80,7 +81,7 @@ END_MESSAGE_MAP()
 void PropShell::ReadOptions()
 {
 	GetContextRegValues();
-	m_bEnableShellContextMenu = m_pOptionsMgr->GetBool(OPT_DIRVIEW_ENABLE_SHELL_CONTEXT_MENU);
+	m_bEnableShellContextMenu = GetOptionsMgr()->GetBool(OPT_DIRVIEW_ENABLE_SHELL_CONTEXT_MENU);
 }
 
 /** 
@@ -88,7 +89,7 @@ void PropShell::ReadOptions()
  */
 void PropShell::WriteOptions()
 {
-	m_pOptionsMgr->SaveOption(OPT_DIRVIEW_ENABLE_SHELL_CONTEXT_MENU, m_bEnableShellContextMenu);
+	GetOptionsMgr()->SaveOption(OPT_DIRVIEW_ENABLE_SHELL_CONTEXT_MENU, m_bEnableShellContextMenu);
 	SaveMergePath(); // saves context menu settings as well
 }
 
@@ -102,7 +103,7 @@ void PropShell::GetContextRegValues()
 	{
 		CString msg;
 		msg.Format(_T("Failed to open registry key HKCU/%s:\n\t%d : %s"),
-			f_RegDir, retVal, GetSysError(retVal));
+			f_RegDir, retVal, GetSysError(retVal).c_str());
 		LogErrorString(msg);
 		return;
 	}
@@ -140,7 +141,7 @@ void PropShell::SaveMergePath()
 	{
 		CString msg;
 		msg.Format(_T("Failed to open registry key HKCU/%s:\n\t%d : %s"),
-			f_RegDir, retVal, GetSysError(retVal));
+			f_RegDir, retVal, GetSysError(retVal).c_str());
 		LogErrorString(msg);
 		return;
 	}
@@ -151,7 +152,7 @@ void PropShell::SaveMergePath()
 	{
 		CString msg;
 		msg.Format(_T("Failed to set registry value %s:\n\t%d : %s"),
-			f_RegValuePath, retVal, GetSysError(retVal));
+			f_RegValuePath, retVal, GetSysError(retVal).c_str());
 		LogErrorString(msg);
 	}
 
@@ -177,7 +178,7 @@ void PropShell::SaveMergePath()
 	{
 		CString msg;
 		msg.Format(_T("Failed to set registry value %s to %d:\n\t%d : %s"),
-			f_RegValueEnabled, dwContextEnabled, retVal, GetSysError(retVal));
+			f_RegValueEnabled, dwContextEnabled, retVal, GetSysError(retVal).c_str());
 		LogErrorString(msg);
 	}
 }

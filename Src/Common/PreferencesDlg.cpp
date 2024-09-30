@@ -8,7 +8,7 @@
  * WinMerge.
  */
 // ID line follows -- this is updated by SVN
-// $Id: PreferencesDlg.cpp 6810 2009-06-02 04:41:46Z kimmov $
+// $Id: PreferencesDlg.cpp 7523 2011-05-22 14:40:23Z sdottaka $
 
 #include "StdAfx.h"
 #include "resource.h"
@@ -58,6 +58,7 @@ CPreferencesDlg::CPreferencesDlg(COptionsMgr *regOptions, SyntaxColors *colors,
 , m_pageBackups(regOptions)
 , m_pageVss(regOptions)
 , m_pageShell(regOptions)
+, m_pageCompareFolder(regOptions)
 {
 	UNREFERENCED_PARAMETER(nMenuID);
 }
@@ -100,11 +101,12 @@ BOOL CPreferencesDlg::OnInitDialog()
 	// For example "General" creates top-level "General" page
 	// and "General>Colors" creates "Colors" sub-page for "General"
 	AddPage(&m_pageGeneral, IDS_OPTIONSPG_GENERAL);
-	AddPage(&m_pageCompare, IDS_OPTIONSPG_COMPARE);
+	AddPage(&m_pageCompare, IDS_OPTIONSPG_COMPARE, IDS_OPTIONSPG_GENCOMPARE);
+	AddPage(&m_pageCompareFolder, IDS_OPTIONSPG_COMPARE, IDS_OPTIONSPG_FOLDERCOMPARE);
 	AddPage(&m_pageEditor, IDS_OPTIONSPG_EDITOR);
-	AddPage(&m_pageMergeColors, IDS_OPTIONSPG_COLORS);
-	AddPage(&m_pageTextColors, IDS_OPTIONSPG_TEXTCOLORS);
-	AddPage(&m_pageSyntaxColors, IDS_OPTIONSPG_SYNTAXCOLORS);
+	AddPage(&m_pageMergeColors, IDS_OPTIONSPG_COLORS, IDS_OPTIONSPG_MERGECOLORS);
+	AddPage(&m_pageSyntaxColors, IDS_OPTIONSPG_COLORS, IDS_OPTIONSPG_SYNTAXCOLORS);
+	AddPage(&m_pageTextColors, IDS_OPTIONSPG_COLORS, IDS_OPTIONSPG_TEXTCOLORS);
 	AddPage(&m_pageArchive, IDS_OPTIONSPG_ARCHIVE);
 	AddPage(&m_pageSystem, IDS_OPTIONSPG_SYSTEM);
 	AddPage(&m_pageBackups, IDS_OPTIONSPG_BACKUPS);
@@ -148,6 +150,14 @@ void CPreferencesDlg::OnHelpButton()
 void CPreferencesDlg::AddPage(CPropertyPage* pPage, UINT nResourceID)
 {
 	String sPath = theApp.LoadString(nResourceID);
+	AddPage(pPage, sPath.c_str());
+}
+
+void CPreferencesDlg::AddPage(CPropertyPage* pPage, UINT nTopHeading, UINT nSubHeading)
+{
+	String sPath = theApp.LoadString(nTopHeading);
+	sPath += _T(">");
+	sPath += theApp.LoadString(nSubHeading);
 	AddPage(pPage, sPath.c_str());
 }
 
@@ -252,6 +262,7 @@ void CPreferencesDlg::ReadOptions(BOOL bUpdate)
 	m_pageSyntaxColors.ReadOptions();
 	m_pageSystem.ReadOptions();
 	m_pageCompare.ReadOptions();
+	m_pageCompareFolder.ReadOptions();
 	m_pageEditor.ReadOptions();
 	m_pageCodepage.ReadOptions();
 	m_pageVss.ReadOptions();
@@ -267,6 +278,7 @@ void CPreferencesDlg::ReadOptions(BOOL bUpdate)
 		SafeUpdatePage(&m_pageSyntaxColors, FALSE);
 		SafeUpdatePage(&m_pageSystem, FALSE);
 		SafeUpdatePage(&m_pageCompare, FALSE);
+		SafeUpdatePage(&m_pageCompareFolder, FALSE);
 		SafeUpdatePage(&m_pageEditor, FALSE);
 		SafeUpdatePage(&m_pageCodepage, FALSE);
 		SafeUpdatePage(&m_pageVss, FALSE);
@@ -284,6 +296,7 @@ void CPreferencesDlg::SaveOptions()
 	m_pageGeneral.WriteOptions();
 	m_pageSystem.WriteOptions();
 	m_pageCompare.WriteOptions();
+	m_pageCompareFolder.WriteOptions();
 	m_pageEditor.WriteOptions();
 	m_pageMergeColors.WriteOptions();
 	m_pageTextColors.WriteOptions();

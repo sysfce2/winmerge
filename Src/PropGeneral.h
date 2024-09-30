@@ -1,37 +1,34 @@
 /**
  * @file  PropGeneral.h
  *
- * @brief Declaration of CPropGeneral class
+ * @brief Declaration of PropGeneral class
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropGeneral.h 6359 2009-01-22 19:12:53Z kimmov $
+// $Id: PropGeneral.h 7501 2011-01-03 13:29:00Z gerundt $
 
 #if !defined(AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_)
 #define AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_
 
-#include "IOptionsPanel.h"
+#include "OptionsPanel.h"
 
 class COptionsMgr;
-
-/////////////////////////////////////////////////////////////////////////////
-// CPropGeneral dialog
 
 /**
  * @brief Class for General options -propertypage.
  */
-class CPropGeneral : public CPropertyPage, public IOptionsPanel
+class PropGeneral : public OptionsPanel
 {
 // Construction
 public:
-	CPropGeneral(COptionsMgr *optionsMgr);
-	~CPropGeneral();
+	PropGeneral(COptionsMgr *optionsMgr);
+	~PropGeneral();
 
 // Implement IOptionsPanel
 	virtual void ReadOptions();
 	virtual void WriteOptions();
 
 // Dialog Data
-	//{{AFX_DATA(CPropGeneral)
+	//{{AFX_DATA(PropGeneral)
 	enum { IDD = IDD_PROPPAGE_GENERAL };
 	BOOL  m_bScroll;
 	BOOL  m_bDisableSplash;
@@ -49,7 +46,7 @@ public:
 
 // Overrides
 	// ClassWizard generate virtual function overrides
-	//{{AFX_VIRTUAL(CPropGeneral)
+	//{{AFX_VIRTUAL(PropGeneral)
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
@@ -59,13 +56,10 @@ protected:
 	virtual BOOL OnInitDialog();
 
 	// Generated message map functions
-	//{{AFX_MSG(CPropGeneral)
+	//{{AFX_MSG(PropGeneral)
 	afx_msg void OnResetAllMessageBoxes();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-
-private:
-	COptionsMgr *m_pOptionsMgr;
 };
 
 //{{AFX_INSERT_LOCATION}}

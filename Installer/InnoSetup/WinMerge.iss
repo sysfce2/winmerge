@@ -1,8 +1,8 @@
 ; ID line follows -- this is updated by SVN
-; $Id: WinMerge.iss 6494M 2009-06-09 11:24:12Z (local) $
+; $Id: WinMerge.iss 7580M 2013-02-02 21:37:16Z (local) $
 ;
 ;           Programmed by:  Christian Blackburn, Christian List, Kimmo Varis,
-;                 Purpose:  The is the Inno Setup installation script for distributing our WinmMerge application.
+;                 Purpose:  The is the Inno Setup installation script for distributing our WinMerge application.
 ; Tools Needed To Compile:  Inno Setup 5.1.7+ (http://www.jrsoftware.org/isdl.php), Inno Setup QuickStart Pack 5.1.7+(http://www.jrsoftware.org/isdl.php)
 ;                           note: the versions of Inno Setup and the QuickStart Pack should be identical to ensure proper function
 ;Directly Dependant Files:  Because this is an installer. It would be difficult to list and maintain each of the files referenced
@@ -45,8 +45,13 @@
 ; Not yet possible (Limited by Inno Setup):
 ; #  While uninstalling prompt the user as to whether or not they'd like to remove their WinMerge preferences too?
 
-#define AppVersion "2.12.4"
+#define AppVersion "2.14.0"
 #define FriendlyAppVersion Copy(GetFileVersion(SourcePath + "\..\..\Build\MergeUnicodeRelease\WinMergeU.exe"), 1, 5)
+
+; Runtime files installers
+#define RuntimesX86Installer "..\..\..\Runtimes\vcredist_x86.exe"
+#define RuntimesX64Installer "..\..\..\Runtimes\vcredist_x64.exe"
+
 
 [Setup]
 AppName=WinMerge
@@ -80,6 +85,9 @@ OutputBaseFilename=WinMerge-{#AppVersion}-Setup
 ;This must be admin to install C++ Runtimes and shell extension
 PrivilegesRequired=admin
 
+;Windows 2000 or later required
+MinVersion=0,5.0
+
 UninstallDisplayIcon={app}\{code:ExeName}
 
 ;Artwork References
@@ -111,6 +119,7 @@ AlwaysShowComponentsList=true
 Name: English; MessagesFile: Languages\English.isl
 
 ;Localizations:
+Name: Basque; MessagesFile: Languages\Basque.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Basque.txt
 Name: Bulgarian; MessagesFile: Languages\Bulgarian.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Bulgarian.txt
 Name: Catalan; MessagesFile: Languages\Catalan.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Catalan.txt
 Name: Chinese_Simplified; MessagesFile: Languages\Chinese_Simplified.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-ChineseSimplified.txt
@@ -128,16 +137,18 @@ Name: Italian; MessagesFile: Languages\Italian.isl
 Name: Japanese; MessagesFile: Languages\Japanese.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Japanese.txt
 Name: Korean; MessagesFile: Languages\Korean.isl
 Name: Norwegian; MessagesFile: Languages\Norwegian.isl
+Name: Persian; MessagesFile: Languages\Persian.isl
 Name: Polish; MessagesFile: Languages\Polish.isl
 Name: Portuguese; MessagesFile: Languages\Portuguese.isl
 Name: PortugueseBrazilian; MessagesFile: Languages\Brazilian_Portuguese.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Brazilian.txt
-Name: Romanian; MessagesFile: Languages\Romanian.isl
+Name: Romanian; MessagesFile: Languages\Romanian.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Romanian.txt
 Name: Russian; MessagesFile: Languages\Russian.isl
+Name: Serbian; MessagesFile: Languages\Serbian.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Serbian.txt
 Name: Slovak; MessagesFile: Languages\Slovak.isl
 Name: Slovenian; MessagesFile: Languages\Slovenian.isl
 Name: Spanish; MessagesFile: Languages\Spanish.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Spanish.txt
 Name: Swedish; MessagesFile: Languages\Swedish.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Swedish.txt
-Name: Turkish; MessagesFile: Languages\Turkish.isl
+Name: Turkish; MessagesFile: Languages\Turkish.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Turkish.txt
 Name: Ukrainian; MessagesFile: Languages\Ukrainian.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Ukrainian.txt
 
 
@@ -164,6 +175,9 @@ Name: Plugins; Description: {cm:Plugins}; Flags: disablenouninstallwarning; Type
 
 ;Language components
 Name: Languages; Description: {cm:Languages}; Flags: disablenouninstallwarning
+Name: Languages\Basque; Description: {cm:BasqueLanguage}; Flags: disablenouninstallwarning; Types: full; Languages: not Basque
+Name: Languages\Basque; Description: {cm:BasqueLanguage}; Flags: disablenouninstallwarning; Types: full typical compact; Languages: Basque
+
 Name: Languages\Bulgarian; Description: {cm:BulgarianLanguage}; Flags: disablenouninstallwarning; Types: full; Languages: not Bulgarian
 Name: Languages\Bulgarian; Description: {cm:BulgarianLanguage}; Flags: disablenouninstallwarning; Types: full typical compact; Languages: Bulgarian
 
@@ -215,6 +229,9 @@ Name: Languages\Korean; Description: {cm:KoreanLanguage}; Flags: disablenouninst
 Name: Languages\Norwegian; Description: {cm:NorwegianLanguage}; Flags: disablenouninstallwarning; Types: full; Languages: not Norwegian
 Name: Languages\Norwegian; Description: {cm:NorwegianLanguage}; Flags: disablenouninstallwarning; Types: full typical compact; Languages: Norwegian
 
+Name: Languages\Persian; Description: {cm:PersianLanguage}; Flags: disablenouninstallwarning; Types: full; Languages: not Persian
+Name: Languages\Persian; Description: {cm:PersianLanguage}; Flags: disablenouninstallwarning; Types: full typical compact; Languages: Persian
+
 Name: Languages\Polish; Description: {cm:PolishLanguage}; Flags: disablenouninstallwarning; Types: full; Languages: not Polish
 Name: Languages\Polish; Description: {cm:PolishLanguage}; Flags: disablenouninstallwarning; Types: full typical compact; Languages: Polish
 
@@ -229,6 +246,9 @@ Name: Languages\Romanian; Description: {cm:RomanianLanguage}; Flags: disablenoun
 
 Name: Languages\Russian; Description: {cm:RussianLanguage}; Flags: disablenouninstallwarning; Types: full; Languages: not Russian
 Name: Languages\Russian; Description: {cm:RussianLanguage}; Flags: disablenouninstallwarning; Types: full typical compact; Languages: Russian
+
+Name: Languages\Serbian; Description: {cm:SerbianLanguage}; Flags: disablenouninstallwarning; Types: full; Languages: not Serbian
+Name: Languages\Serbian; Description: {cm:SerbianLanguage}; Flags: disablenouninstallwarning; Types: full typical compact; Languages: Serbian
 
 Name: Languages\Slovak; Description: {cm:SlovakLanguage}; Flags: disablenouninstallwarning; Types: full; Languages: not Slovak
 Name: Languages\Slovak; Description: {cm:SlovakLanguage}; Flags: disablenouninstallwarning; Types: full typical compact; Languages: Slovak
@@ -256,7 +276,7 @@ Name: TortoiseCVS; Description: {cm:IntegrateTortoiseCVS}; GroupDescription: {cm
 Name: TortoiseSVN; Description: {cm:IntegrateTortoiseSVN}; GroupDescription: {cm:OptionalFeatures}; Check: TortoiseSVNInstalled; MinVersion: 0,5.0.2195sp3
 Name: ClearCase; Description: {cm:IntegrateClearCase}; GroupDescription: {cm:OptionalFeatures}; Check: ClearCaseInstalled
 Name: desktopicon; Description: {cm:CreateDesktopIcon}; GroupDescription: {cm:AdditionalIcons}; Flags: unchecked
-Name: quicklaunchicon; Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}
+Name: quicklaunchicon; Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}; OnlyBelowVersion: 0,6.1
 
 [InstallDelete]
 ; Diff.txt is a file left over from previous versions of WinMerge (before version 2.0), we just delete it to be nice.
@@ -293,11 +313,13 @@ Name: {app}\Languages\MergeItalian.lang; Type: files; Check: not IsComponentSele
 Name: {app}\Languages\MergeJapanese.lang; Type: files; Check: not IsComponentSelected('Japanese')
 Name: {app}\Languages\MergeKorean.lang; Type: files; Check: not IsComponentSelected('Korean')
 Name: {app}\Languages\MergeNorwegian.lang; Type: files; Check: not IsComponentSelected('Norwegian')
+Name: {app}\Languages\MergePersian.lang; Type: files; Check: not IsComponentSelected('Persian')
 Name: {app}\Languages\MergePolish.lang; Type: files; Check: not IsComponentSelected('Polish')
 Name: {app}\Languages\MergePortuguese.lang; Type: files; Check: not IsComponentSelected('Portuguese')
 Name: {app}\Languages\MergeSlovak.lang; Type: files; Check: not IsComponentSelected('Slovak')
 Name: {app}\Languages\MergeSpanish.lang; Type: files; Check: not IsComponentSelected('Spanish')
 Name: {app}\Languages\MergeRussian.lang; Type: files; Check: not IsComponentSelected('Russian')
+Name: {app}\Languages\MergeSerbian.lang; Type: files; Check: not IsComponentSelected('Serbian')
 Name: {app}\Languages\MergeSwedish.lang; Type: files; Check: not IsComponentSelected('Swedish')
 Name: {app}\Languages\MergeTurkish.lang; Type: files; Check: not IsComponentSelected('Turkish')
 Name: {app}\MergePlugins\list.txt; Type: files; Check: not IsComponentSelected('Plugins')
@@ -311,6 +333,9 @@ Name: {commonappdata}\Microsoft\Internet Explorer\Quick Launch\WinMerge.lnk; Typ
 
 ;This removes the desktop icon in case the user chooses not to install it after previously having it installed
 Name: {commondesktop}\WinMerge.lnk; Type: files; Check: not IsTaskSelected('DesktopIcon')
+
+;Removes the Uninstall icon from the start menu...
+Name: {group}\{cm:UninstallProgram,WinMerge}.lnk; Type: files;
 
 ;Remove ANSI executable link from start menu for NT-based Windows versions
 ;This was installed earlier, but not anymore.
@@ -343,26 +368,20 @@ Name: {app}; Flags: uninsalwaysuninstall
 
 
 [Files]
-; Select the proper executable for different Windows versions
-; For Windows 05/98/ME ANSI executable is installed (WinMerge.exe)
-; For Windows NT4/2000/XP/2003/Vista the Unicode executable is installed (WinMergeU.exe)
-Source: ..\..\Build\MergeUnicodeRelease\WinMergeU.exe; DestDir: {app}; Flags: promptifolder; MinVersion: 0, 4; Components: Core
-Source: ..\..\Build\MergeRelease\WinMerge.exe; DestDir: {app}; Flags: promptifolder; OnlyBelowVersion: 0, 4; Components: Core
+; WinMerge itself
+Source: ..\..\Build\MergeUnicodeRelease\WinMergeU.exe; DestDir: {app}; Flags: promptifolder; Components: Core
 
 ; List of installed files
 Source: ..\..\Docs\Users\Files.txt; DestDir: {app}; Flags: promptifolder; Components: Core
 
-; Microsoft runtime libraries (C-runtime, MFC)
-Source: ..\Runtimes\mfc71.dll; DestDir: {sys}; Flags: restartreplace uninsneveruninstall sharedfile; OnlyBelowVersion: 0, 4; Components: Core
-Source: ..\Runtimes\mfc71u.dll; DestDir: {sys}; Flags: restartreplace uninsneveruninstall sharedfile; MinVersion: 0, 4; Components: Core
-Source: ..\Runtimes\msvcr71.dll; DestDir: {sys}; Flags: restartreplace uninsneveruninstall sharedfile; Components: Core
-Source: ..\Runtimes\msvcp71.dll; DestDir: {sys}; Flags: restartreplace uninsneveruninstall sharedfile; Components: Core
+; Microsoft runtime libraries installer (C-runtimes, MFC)
+Source: {#RuntimesX86Installer}; DestDir: {tmp}; Flags: ignoreversion; Components: Core; AfterInstall: RuntimesInstaller
+Source: {#RuntimesX64Installer}; DestDir: {tmp}; Flags: ignoreversion; Components: Core; Check: IsWin64; AfterInstall: RuntimesX64Installer
 
 ; Shell extension
-Source: ..\..\Build\MergeRelease\ShellExtension.dll; DestDir: {app}; Flags: regserver uninsrestartdelete restartreplace promptifolder; MinVersion: 4, 0; Check: not IsWin64
-Source: ..\..\Build\MergeUnicodeRelease\ShellExtensionU.dll; DestDir: {app}; Flags: regserver uninsrestartdelete restartreplace promptifolder; MinVersion: 0, 4; Check: not IsWin64
+Source: ..\..\Build\ShellExtension\unicode release mindependency\ShellExtensionU.dll; DestDir: {app}; Flags: regserver uninsrestartdelete restartreplace promptifolder; Check: not IsWin64
 ; 64-bit version of ShellExtension
-Source: ..\..\Build\ShellExtensionX64\ShellExtensionX64.dll; DestDir: {app}; Flags: regserver uninsrestartdelete restartreplace promptifolder 64bit; MinVersion: 0,5.01.2600; Check: IsWin64
+Source: ..\..\Build\ShellExtension\x64 release\ShellExtensionX64.dll; DestDir: {app}; Flags: regserver uninsrestartdelete restartreplace promptifolder 64bit; MinVersion: 0,5.01.2600; Check: IsWin64
 
 ; Expat dll
 Source: ..\..\Build\expat\libexpat.dll; DestDir: {app}; Flags: promptifolder; Components: Core
@@ -373,11 +392,9 @@ Source: ..\..\Build\pcre\pcre.dll; DestDir: {app}; Flags: promptifolder; Compone
 ; MergeLang.dll - translation helper dll
 Source: ..\..\Build\MergeUnicodeRelease\MergeLang.dll; DestDir: {app}; Flags: promptifolder; Components: Core
 
-; Binary file editor
-Source: ..\..\Build\heksedit\heksedit.dll; DestDir: {app}; Flags: promptifolder; OnlyBelowVersion: 0, 4; Components: Core
-Source: ..\..\Build\heksedit\hekseditU.dll; DestDir: {app}; Flags: promptifolder; MinVersion: 0, 4; Components: Core
-
 ; Language files
+Source: ..\..\Src\Languages\Basque.po; DestDir: {app}\Languages; Components: Languages\Basque; Flags: ignoreversion comparetimestamp
+Source: ..\..\Docs\Users\Languages\ReadMe-Basque.txt; DestDir: {app}\Docs; Components: Languages\Basque
 Source: ..\..\Src\Languages\Brazilian.po; DestDir: {app}\Languages; Components: Languages\PortugueseBrazilian; Flags: ignoreversion comparetimestamp
 Source: ..\..\Docs\Users\Languages\ReadMe-Brazilian.txt; DestDir: {app}\Docs; Components: Languages\PortugueseBrazilian
 Source: ..\..\Src\Languages\Bulgarian.po; DestDir: {app}\Languages; Components: Languages\Bulgarian; Flags: ignoreversion comparetimestamp
@@ -407,11 +424,14 @@ Source: ..\..\Src\Languages\Japanese.po; DestDir: {app}\Languages; Components: L
 Source: ..\..\Docs\Users\Languages\ReadMe-Japanese.txt; DestDir: {app}\Docs; Components: Languages\Japanese
 Source: ..\..\Src\Languages\Korean.po; DestDir: {app}\Languages; Components: Languages\Korean; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Norwegian.po; DestDir: {app}\Languages; Components: Languages\Norwegian; Flags: ignoreversion comparetimestamp
+Source: ..\..\Src\Languages\Persian.po; DestDir: {app}\Languages; Components: Languages\Persian; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Polish.po; DestDir: {app}\Languages; Components: Languages\Polish; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Portuguese.po; DestDir: {app}\Languages; Components: Languages\Portuguese; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Romanian.po; DestDir: {app}\Languages; Components: Languages\Romanian; Flags: ignoreversion comparetimestamp
 Source: ..\..\Docs\Users\Languages\ReadMe-Romanian.txt; DestDir: {app}\Docs; Components: Languages\Romanian
 Source: ..\..\Src\Languages\Russian.po; DestDir: {app}\Languages; Components: Languages\Russian; Flags: ignoreversion comparetimestamp
+Source: ..\..\Src\Languages\Serbian.po; DestDir: {app}\Languages; Components: Languages\Serbian; Flags: ignoreversion comparetimestamp
+Source: ..\..\Docs\Users\Languages\ReadMe-Serbian.txt; DestDir: {app}\Docs; Components: Languages\Serbian
 Source: ..\..\Src\Languages\Slovak.po; DestDir: {app}\Languages; Components: Languages\Slovak; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Slovenian.po; DestDir: {app}\Languages; Components: Languages\Slovenian; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Spanish.po; DestDir: {app}\Languages; Components: Languages\Spanish; Flags: ignoreversion comparetimestamp
@@ -419,6 +439,7 @@ Source: ..\..\Docs\Users\Languages\ReadMe-Spanish.txt; DestDir: {app}\Docs; Comp
 Source: ..\..\Src\Languages\Swedish.po; DestDir: {app}\Languages; Components: Languages\Swedish; Flags: ignoreversion comparetimestamp
 Source: ..\..\Docs\Users\Languages\ReadMe-Swedish.txt; DestDir: {app}\Docs; Components: Languages\Swedish
 Source: ..\..\Src\Languages\Turkish.po; DestDir: {app}\Languages; Components: Languages\Turkish; Flags: ignoreversion comparetimestamp
+Source: ..\..\Docs\Users\Languages\ReadMe-Turkish.txt; DestDir: {app}\Docs; Components: Languages\Turkish
 Source: ..\..\Src\Languages\Ukrainian.po; DestDir: {app}\Languages; Components: Languages\Ukrainian; Flags: ignoreversion comparetimestamp
 Source: ..\..\Docs\Users\Languages\ReadMe-Ukrainian.txt; DestDir: {app}\Docs; Components: Languages\Ukrainian
 
@@ -444,10 +465,10 @@ Source: ..\..\Plugins\dlls\*.dll; DestDir: {app}\MergePlugins; Flags: promptifol
 Name: {group}\WinMerge; Filename: {app}\{code:ExeName}
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe.txt; IconFileName: {win}\NOTEPAD.EXE
 Name: {group}\{cm:UsersGuide}; Filename: {app}\Docs\WinMerge.chm
-Name: {group}\{cm:UninstallProgram,WinMerge}; Filename: {uninstallexe}
 Name: {group}\{cm:ProgramOnTheWeb,WinMerge}; Filename: http://winmerge.org/
 
 ;Link to translated ReadMe in Start Menu
+Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Basque.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Basque
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Brazilian.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: PortugueseBrazilian
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Bulgarian.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Bulgarian
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Catalan.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Catalan
@@ -460,8 +481,10 @@ Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Galician.txt; IconFileNam
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Greek.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Greek
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Japanese.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Japanese
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Romanian.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Romanian
+Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Serbian.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Serbian
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Spanish.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Spanish
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Swedish.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Swedish
+Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Turkish.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Turkish
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Ukrainian.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Ukrainian
 
 ;Desktop Icon
@@ -500,6 +523,7 @@ Root: HKCR; SubKey: Directory\Shell\WinMerge\command; ValueType: none; Flags: de
 Root: HKCR; SubKey: Directory\Shell\WinMerge; ValueType: none; Flags: deletekey noerror
 
 ;Adds "Start Menu" --> "Run" Support for WinMerge
+;TODO: Deinstall WinMerge.exe paths?
 Root: HKLM; Subkey: Software\Microsoft\Windows\CurrentVersion\App Paths\WinMerge.exe; ValueType: none; Flags: uninsdeletekey
 Root: HKLM; Subkey: Software\Microsoft\Windows\CurrentVersion\App Paths\WinMergeU.exe; ValueType: none; Flags: uninsdeletekey
 Root: HKLM; SubKey: SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\WinMerge.exe; ValueType: string; ValueName: ; ValueData: {app}\{code:ExeName}
@@ -529,10 +553,11 @@ Root: HKCU; SubKey: Software\TortoiseCVS\Prefs\External Merge Application; Value
 Root: HKCU; SubKey: Software\TortoiseCVS\Prefs\External Merge2 Params; ValueType: string; ValueName: _; ValueData: """%mine"" ""%yours"""; Flags: uninsdeletevalue dontcreatekey; Tasks: TortoiseCVS
 
 ;Set WinMerge as TortoiseSVN diff tool
-Root: HKCU; SubKey: Software\TortoiseSVN; ValueType: string; ValueName: Diff; ValueData: {app}\{code:ExeName} -e -x -ub -dl %bname -dr %yname %base %mine; Flags: uninsdeletevalue; Tasks: TortoiseSVN
+Root: HKCU; SubKey: Software\TortoiseSVN; ValueType: string; ValueName: Diff; ValueData: {app}\{code:ExeName} -e -ub -dl %bname -dr %yname %base %mine; Flags: uninsdeletevalue; Tasks: TortoiseSVN
 
 ;Whatever the user chooses at the [Select Setup Language] dialog should also determine what language WinMerge will start up in
 ;(unless the user already has a startup language specified)
+Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $0000042d; Flags: deletevalue; Languages: Basque
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000402; Flags: deletevalue; Languages: Bulgarian
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000403; Flags: deletevalue; Languages: Catalan
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000804; Flags: deletevalue; Languages: Chinese_Simplified
@@ -543,18 +568,23 @@ Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; 
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000413; Flags: deletevalue; Languages: Dutch
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000409; Flags: deletevalue; Languages: English
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $0000040c; Flags: deletevalue; Languages: French
+Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000456; Flags: deletevalue; Languages: Galician
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000407; Flags: deletevalue; Languages: German
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000408; Flags: deletevalue; Languages: Greek
+Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $0000040e; Flags: deletevalue; Languages: Hungarian
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000410; Flags: deletevalue; Languages: Italian
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000411; Flags: deletevalue; Languages: Japanese
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000412; Flags: deletevalue; Languages: Korean
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000414; Flags: deletevalue; Languages: Norwegian
+Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000429; Flags: deletevalue; Languages: Persian
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000415; Flags: deletevalue; Languages: Polish
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000816; Flags: deletevalue; Languages: Portuguese
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000416; Flags: deletevalue; Languages: PortugueseBrazilian
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000418; Flags: deletevalue; Languages: Romanian
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000419; Flags: deletevalue; Languages: Russian
+Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000c1a; Flags: deletevalue; Languages: Serbian
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $0000041b; Flags: deletevalue; Languages: Slovak
+Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000424; Flags: deletevalue; Languages: Slovenian
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $00000c0a; Flags: deletevalue; Languages: Spanish
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $0000041D; Flags: deletevalue; Languages: Swedish
 Root: HKLM; SubKey: Software\Thingamahoochie\WinMerge\Locale; ValueType: dword; ValueName: LanguageId; ValueData: $0000041f; Flags: deletevalue; Languages: Turkish
@@ -581,6 +611,39 @@ Name: {app}; Type: dirifempty
 
 
 [Code]
+
+{Runs the runtime file installer}
+{Command line used is documented in:
+http://blogs.msdn.com/b/astebner/archive/2006/08/23/715755.aspx
+http://blogs.msdn.com/astebner/archive/2007/02/07/update-regarding-silent-install-of-the-vc-8-0-runtime-vcredist-packages.aspx
+}
+procedure RuntimesInstaller();
+var
+    ResultCode: Integer;
+begin
+    Exec(ExpandConstant('{tmp}\vcredist_x86.exe'), '/q:a /c:"msiexec /i vcredist.msi /qn /l*v ' + GetTempDir() + '\vcredist_x86.log"', ExpandConstant('{tmp}'), SW_SHOW, ewWaitUntilTerminated, ResultCode)
+    if ResultCode <> 0 then
+      begin
+        Exec(ExpandConstant('{tmp}\vcredist_x86.exe'), '/q:a /c:"VCREDI~3.EXE /q:a /c:""msiexec /i vcredist.msi /qn"" "', ExpandConstant('{tmp}'), SW_SHOW, ewWaitUntilTerminated, ResultCode)
+      end
+end;
+
+{Runs the runtime file installer for X64}
+{Command line used is documented in:
+http://blogs.msdn.com/b/astebner/archive/2006/08/23/715755.aspx
+http://blogs.msdn.com/astebner/archive/2007/02/07/update-regarding-silent-install-of-the-vc-8-0-runtime-vcredist-packages.aspx
+}
+procedure RuntimesX64Installer();
+var
+    ResultCode: Integer;
+begin
+    Exec(ExpandConstant('{tmp}\vcredist_x64.exe'), '/q:a /c:"msiexec /i vcredist.msi /qn /l*v ' + GetTempDir() + '\vcredist_x64.log"', ExpandConstant('{tmp}'), SW_SHOW, ewWaitUntilTerminated, ResultCode)
+    if ResultCode <> 0 then
+      begin
+        Exec(ExpandConstant('{tmp}\vcredist_x64.exe'), '/q:a /c:"VCREDI~2.EXE /q:a /c:""msiexec /i vcredist.msi /qn"" "', ExpandConstant('{tmp}'), SW_SHOW, ewWaitUntilTerminated, ResultCode)
+      end
+end;
+
 {Determines whether or not the user chose to create a start menu}
 Function GroupCreated(): boolean;
 Var
@@ -614,11 +677,7 @@ End;
 {Returns the appropriate name of the .EXE being installed}
 Function ExeName(Unused: string): string;
 Begin
-
-  If UsingWinNT() = True Then
-	 Result := 'WinMergeU.exe'
-  Else
-    Result := 'WinMerge.exe';
+  Result := 'WinMergeU.exe';
 End;
 
 Function FixVersion(strInput: string): string;
@@ -752,7 +811,7 @@ begin
 
       {Stops analyzing the version number since we already know it's inadequate and returns False (inadequate)}
       exit;
-    end
+    end;
 
 
   {Starts detecting the Minor version of the Version Installed}

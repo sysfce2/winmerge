@@ -12,9 +12,7 @@ WinMerge Folder Structure
      - Languages
      - Manual
  - Externals
-   - cppunit
    - expat
-   - heksedit
    - pcre
    - scew
  - Filters
@@ -22,7 +20,6 @@ WinMerge Folder Structure
    - InnoSetup
      - Art
      - Languages
-   - Runtimes
  - Plugins
    - dlls
    - Src_Delphi
@@ -44,8 +41,7 @@ WinMerge Folder Structure
    - selftests
  - Tools
    - diff2winmerge
-   - MakePatchDirs
- - Web
+   - Scripts
 
 
 WinMerge/ArchiveSupport/
@@ -82,14 +78,8 @@ WinMerge/Docs/Users/Manual/
 WinMerge/Externals/
  - External code modules WinMerge uses
 
-WinMerge/Externals/cppunit/
- - CppUnit unit-testing suite for C++ <http://cppunit.sourceforge.net/>
-
 WinMerge/Externals/expat/
  - Expat XML parser <http://expat.sourceforge.net/>
-
-WinMerge/Externals/heksedit/
- - Frhed binary file editor's heksedit component <http://frhed.sourceforge.net/>
 
 WinMerge/Externals/pcre/
  - PCRE - Perl Compatible Regular Expression <http://www.pcre.org/>
@@ -111,9 +101,6 @@ WinMerge/Installer/InnoSetup/Art/
 
 WinMerge/Installer/InnoSetup/Languages/
  - Installer translations
-
-WinMerge/Installer/Runtimes/
- - Libraries for WinMerge added to install package
 
 WinMerge/Plugins/
  - Plugins files. Also plugins documentation at the moment.
@@ -170,17 +157,8 @@ WinMerge/Testing/selftests/
  - Tests using Perl run WinMerge executable to test compare functionality.
 
 WinMerge/Tools/
- - Tools needed/used with WinMerge development (e.g. language file compiler).
+ - Tools needed/used with WinMerge development.
 
 WinMerge/Tools/diff2winmerge/
  - Commandline wrapper for WinMerge executable, offers
    diffutils -style commandline switches (needed by Perl selftests).
-
-WinMerge/Tools/MakePatchDirs/
- - Source files for MakePatchDirs, a program to generate original &
-   altered directories
- - Used to create patches to WinMerge source tree, for upload to
-   sourceforge patch board
-
-WinMerge/Web/
- - Homepages.

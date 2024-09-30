@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: coretools.cpp 5901 2008-09-06 02:48:07Z marcelgosselin $
+// $Id: coretools.cpp 7504 2011-01-03 14:54:32Z gerundt $
 
 #include <windows.h>
 #include <tchar.h>
@@ -91,6 +91,17 @@ int tcssubptr(LPCTSTR start, LPCTSTR end)
 	return cnt;
 }
 
+size_t linelen(const char *string)
+{
+	size_t stringlen = 0;
+	while (char c = string[stringlen])
+	{
+		if (c == '\r' || c == '\n')
+			break;
+		++stringlen;
+	}
+	return stringlen;
+}
 
 void GetLocalDrives(LPTSTR letters)
 {
@@ -186,13 +197,7 @@ BOOL FileExtMatches(LPCTSTR filename, LPCTSTR ext)
  */
 bool IsSlashOrColon(LPCTSTR pszChar, LPCTSTR begin)
 {
-#ifdef _UNICODE
 		return (*pszChar == '/' || *pszChar == ':' || *pszChar == '\\');
-#else
-		// Avoid 0x5C (ASCII backslash) byte occurring as trail byte in MBCS
-		return (*pszChar == '/' || *pszChar == ':' 
-			|| (*pszChar == '\\' && !_ismbstrail((unsigned char *)begin, (unsigned char *)pszChar)));
-#endif
 }
 
 /**
@@ -232,7 +237,7 @@ void SplitFilename(LPCTSTR pathLeft, String* pPath, String* pFile, String* pExt)
 			if (pPath)
 			{
 				// Grab directory (omit trailing slash)
-				int len = pszChar - pathLeft;
+				size_t len = pszChar - pathLeft;
 				if (*pszChar == ':')
 					++len; // Keep trailing colon ( eg, C:filename.txt)
 				*pPath = pathLeft;
@@ -260,7 +265,7 @@ endSplit:
 
 	if (pFile && pExt && extptr)
 	{
-		int extlen = pend - extptr;
+		size_t extlen = pend - extptr;
 		pFile->erase(pFile->length() - extlen);
 	}
 }
@@ -269,8 +274,8 @@ endSplit:
 void SplitViewName(LPCTSTR s, String * path, String * name, String * ext)
 {
 	String sViewName(s);
-	int nOffset = sViewName.find(_T("@@"));
-	if (nOffset != std::string::npos)
+	size_t nOffset = sViewName.find(_T("@@"));
+	if (nOffset != String::npos)
 	{
 		sViewName.erase(nOffset);
 		SplitFilename(sViewName.c_str(), path, name, ext);
@@ -751,7 +756,7 @@ void GetDecoratedCmdLine(String sCmdLine, String &sDecoratedCmdLine,
 {
 	BOOL pathEndFound = FALSE;
 	BOOL addQuote = FALSE;
-	int prevPos = 0;
+	size_t prevPos = 0;
 
 	sDecoratedCmdLine.erase();
 	sExecutable.erase();
@@ -765,7 +770,7 @@ void GetDecoratedCmdLine(String sCmdLine, String &sDecoratedCmdLine,
 		sCmdLine.erase(clpos, clpos - sCmdLine.length());
 
 	std::string::size_type pos = sCmdLine.find(_T(" "));
-	if (pos != std::string.npos)
+	if (pos != String::npos)
 	{
 		// First space was before switch, we don't need "s
 		// (executable path didn't contain spaces)
@@ -785,7 +790,7 @@ void GetDecoratedCmdLine(String sCmdLine, String &sDecoratedCmdLine,
 			prevPos = pos;
 			pos = sCmdLine.find(_T(" "), prevPos + 1);
 
-			if (pos != std::string.npos)
+			if (pos != String::npos)
 			{
 				if (sCmdLine[pos + 1] == '/' || sCmdLine[pos + 1] == '-')
 				{
@@ -800,7 +805,7 @@ void GetDecoratedCmdLine(String sCmdLine, String &sDecoratedCmdLine,
 
 		if (addQuote)
 		{
-			if (pos != std::string.npos)
+			if (pos != String::npos)
 			{
 				sExecutable = sCmdLine.substr(0, pos);
 				sDecoratedCmdLine += sExecutable;

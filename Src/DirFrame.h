@@ -24,7 +24,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirFrame.h 2744 2005-11-17 22:09:05Z kimmov $
+// $Id: DirFrame.h 7331 2010-10-21 07:06:13Z gerundt $
 
 #if !defined(AFX_DIRFRAME_H__95565903_35C4_11D1_BAA7_00A024706EDC__INCLUDED_)
 #define AFX_DIRFRAME_H__95565903_35C4_11D1_BAA7_00A024706EDC__INCLUDED_
@@ -57,6 +57,7 @@ public:
 	void SetSharedMenu(HMENU hMenu) { m_hMenuShared = hMenu; };
 
 // Overrides
+	virtual void GetMessageString(UINT nID, CString& rMessage) const;
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CDirFrame)
 	public:

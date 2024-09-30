@@ -23,7 +23,7 @@
  * @brief Declaration of CMergeDoc class
  */
 // ID line follows -- this is updated by SVN
-// $Id: MergeDoc.h 6750 2009-05-14 14:34:10Z kimmov $
+// $Id: MergeDoc.h 7494 2011-01-02 13:26:21Z gerundt $
 
 #if !defined(AFX_MERGEDOC_H__BBCD4F90_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MERGEDOC_H__BBCD4F90_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -162,7 +162,7 @@ public:
 	bool Undo();
 	void CopyAllList(int srcPane, int dstPane);
 	void CopyMultipleList(int srcPane, int dstPane, int firstDiff, int lastDiff);
-	bool SanityCheckDiff(DIFFRANGE dr);
+	bool SanityCheckDiff(DIFFRANGE dr) const;
 	bool ListCopy(int srcPane, int dstPane, int nDiff = -1, bool bGroupWithPrevious = false);
 	bool TrySaveAs(CString &strPath, int &nLastErrorCode, String & sError,
 		int nBuffer, PackingInfo * pInfoTempUnpacker);

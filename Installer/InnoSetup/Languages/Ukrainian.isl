@@ -332,6 +332,7 @@
 
    ;Localization Components
    Languages=Languages
+   BasqueLanguage=Basque menus and dialogs
    BulgarianLanguage=ћеню ≥ д≥алогов≥ в≥кна болгарською мовою
    CatalanLanguage=ћеню ≥ д≥алогов≥ в≥кна каталонською мовою
    ChineseSimplifiedLanguage=ћеню ≥ д≥алогов≥ в≥кна звичайною китайською мовою
@@ -349,11 +350,13 @@
    JapaneseLanguage=ћеню ≥ д≥алогов≥ в≥кна €понською мовою
    KoreanLanguage=ћеню ≥ д≥алогов≥ в≥кна корейською мовою
    NorwegianLanguage=ћеню ≥ д≥алогов≥ в≥кна норвежською мовою
+   PersianLanguage=Persian menus and dialogs
    PolishLanguage=ћеню ≥ д≥алогов≥ в≥кна полською мовою
    PortugueseBrazilLanguage=ћеню ≥ д≥алогов≥ в≥кна португальською (бразильською) мовою
    PortugueseLanguage=ћеню ≥ д≥алогов≥ в≥кна португальською мовою
    RomanianLanguage=ћеню ≥ д≥алогов≥ в≥кна румунською мовою
    RussianLanguage=ћеню ≥ д≥алогов≥ в≥кна рос≥йською мовою
+   SerbianLanguage=Serbian menus and dialogs
    SlovakLanguage=ћеню ≥ д≥алогов≥ в≥кна словацькою мовою
    SlovenianLanguage=Slovenian menus and dialogs
    SpanishLanguage=ћеню ≥ д≥алогов≥ в≥кна ≥спанською мовою

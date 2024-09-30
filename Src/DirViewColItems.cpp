@@ -6,7 +6,7 @@
  * @date  Created: 2003-08-19
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirViewColItems.cpp 6561 2009-03-10 20:26:23Z sdottaka $
+// $Id: DirViewColItems.cpp 7436 2010-11-21 13:06:27Z gerundt $
 
 
 #include "stdafx.h"
@@ -23,11 +23,7 @@
 #include "coretools.h"
 
 // shlwapi.h prior to VC6SP6 might lack definition of StrIsIntlEqual
-#ifdef UNICODE
 #define StrIsIntlEqual StrIsIntlEqualW
-#else
-#define StrIsIntlEqual StrIsIntlEqualA
-#endif
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -277,12 +273,12 @@ static String ColStatusGet(const CDiffContext *pCtxt, const void *p)
 	else if (di.diffcode.isSideLeftOnly())
 	{
 		s = theApp.LoadString(IDS_LEFT_ONLY_IN_FMT);
-		string_replace(s, _T("%1"), di.getLeftFilepath(pCtxt->GetNormalizedLeft()).c_str());
+		string_replace(s, _T("%1"), di.GetLeftFilepath(pCtxt->GetNormalizedLeft()).c_str());
 	}
 	else if (di.diffcode.isSideRightOnly())
 	{
 		s = theApp.LoadString(IDS_RIGHT_ONLY_IN_FMT);
-		string_replace(s, _T("%1"), di.getRightFilepath(pCtxt->GetNormalizedRight()).c_str());
+		string_replace(s, _T("%1"), di.GetRightFilepath(pCtxt->GetNormalizedRight()).c_str());
 	}
 	else if (di.diffcode.isResultSame())
 	{

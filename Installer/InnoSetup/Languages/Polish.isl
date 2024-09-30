@@ -325,6 +325,7 @@ Plugins=Wtyczki
 
 ;Localization Components
 Languages=Jêzyki
+BasqueLanguage=Basque menus and dialogs
 BulgarianLanguage=Bu³garski interfejs
 CatalanLanguage=Kataloñski interfejs
 ChineseSimplifiedLanguage=Chiñski (uproszczony) interfejs
@@ -342,11 +343,13 @@ ItalianLanguage=W³oski interfejs
 JapaneseLanguage=Japoñski interfejs
 KoreanLanguage=Koreañski interfejs
 NorwegianLanguage=Norweski interfejs
+PersianLanguage=Persian menus and dialogs
 PolishLanguage=Polski interfejs
 PortugueseBrazilLanguage=Portugalski (Brazylijski) interfejs
 PortugueseLanguage=Portugalski interfejs
 RomanianLanguage=Rumuñski interfejs
 RussianLanguage=Rosyjski interfejs
+SerbianLanguage=Serbian menus and dialogs
 SlovakLanguage=S³owacki interfejs
 SlovenianLanguage=S³oweñski interfejs
 SpanishLanguage=Hiszpañski interfejs

@@ -1,10 +1,10 @@
-/** 
+/**
  * @file  ByteCompare.h
  *
  * @brief Declaration file for ByteCompare
  */
 // ID line follows -- this is updated by SVN
-// $Id: ByteCompare.h 5907 2008-09-07 03:00:54Z marcelgosselin $
+// $Id: ByteCompare.h 7327 2010-10-20 20:25:08Z gerundt $
 
 #ifndef _BYTE_COMPARE_H_
 #define _BYTE_COMPARE_H_
@@ -20,6 +20,11 @@ struct file_data;
 namespace CompareEngines
 {
 
+/**
+ * @brief A quick compare -compare method implementation class.
+ * This compare method compares files in small blocks. Code assumes block size
+ * is in range of 32-bit int-type.
+ */
 class ByteCompare
 {
 public:

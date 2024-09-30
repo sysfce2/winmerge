@@ -6,7 +6,7 @@ Option Explicit
 ' Released under the "GNU General Public License"
 '
 ' ID line follows -- this is updated by SVN
-' $Id: GetTranslationsStatus.vbs 6147 2008-12-04 23:31:51Z gerundt $
+' $Id: GetTranslationsStatus.vbs 7302 2010-10-15 07:18:48Z gerundt $
 
 Const ForReading = 1
 Const SvnWebUrlLanguages = "http://winmerge.svn.sourceforge.net/viewvc/winmerge/trunk/Src/Languages/"
@@ -83,7 +83,6 @@ Class CStatus
   Public Count, Translated, Untranslated, Fuzzy
   Public PoRevisionDate, PotCreationDate
   Public Translators
-  Private Translator
   
   Private Sub Class_Initialize
     Count = 0
@@ -96,6 +95,8 @@ Class CStatus
   End Sub
   
   Public Sub AddTranslator(ByVal sTranslator, ByVal bMaintainer)
+    Dim Translator
+    
     Set Translator = New CTranslator
     Translator.Maintainer = bMaintainer
     Translator.Mail = Trim(GetRegExpSubMatch(sTranslator, "<(.*)>"))

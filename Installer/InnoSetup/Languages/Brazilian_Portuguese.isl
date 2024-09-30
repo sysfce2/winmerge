@@ -334,6 +334,7 @@ Plugins=Plugins
 
 ;Localization Components
 Languages=Idiomas
+BasqueLanguage=Basque menus and dialogs
 BulgarianLanguage=Menus e diálogos búlgaros
 CatalanLanguage=Menus e diálogos catalãos
 ChineseSimplifiedLanguage=Menus e diálogos chineses	(simplificados)
@@ -351,11 +352,13 @@ ItalianLanguage=Menus e diálogos italianos
 JapaneseLanguage=Menus e diálogos japoneses
 KoreanLanguage=Menus e diálogos coreanos
 NorwegianLanguage=Menus e diálogos noruegueses
+PersianLanguage=Persian menus and dialogs
 PolishLanguage=Menus e diálogos poloneses
 PortugueseBrazilLanguage=Menus e diálogos portugueses (brasileiros)
 PortugueseLanguage=Menus e diálogos portugueses
 RomanianLanguage=Menus e diálogos romenos
 RussianLanguage=Menus e diálogos russos
+SerbianLanguage=Serbian menus and dialogs
 SlovakLanguage=Menus e diálogos eslovacos
 SlovenianLanguage=Slovenian menus and dialogs
 SpanishLanguage=Menus e diálogos espanhóis

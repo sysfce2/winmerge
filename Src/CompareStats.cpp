@@ -4,9 +4,11 @@
  * @brief Implementation of CompareStats class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: CompareStats.cpp 4993 2008-02-04 10:06:53Z kimmov $
+// $Id: CompareStats.cpp 7343 2010-10-22 18:22:59Z gerundt $
 
-#include "stdafx.h"
+#include <windows.h>
+#include <assert.h>
+#include <crtdbg.h>
 #include "DiffItem.h"
 #include "CompareStats.h"
 
@@ -53,7 +55,7 @@ void CompareStats::AddItem(int code)
 	int index = static_cast<int>(res);
 	m_counts[index] += 1;
 	++m_nComparedItems;
-	ASSERT(m_nComparedItems <= m_nTotalItems);
+	assert(m_nComparedItems <= m_nTotalItems);
 	LeaveCriticalSection(&m_csProtect);
 }
 

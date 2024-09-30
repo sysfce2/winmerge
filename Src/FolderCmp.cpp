@@ -4,13 +4,13 @@
  * @brief Implementation file for FolderCmp
  */
 // ID line follows -- this is updated by SVN
-// $Id: FolderCmp.cpp 6831 2009-06-09 09:32:19Z kimmov $
+// $Id: FolderCmp.cpp 7492 2011-01-01 13:40:57Z gerundt $
 
 #include "StdAfx.h"
+#include <assert.h>
 #include "DiffUtils.h"
 #include "ByteCompare.h"
 #include "LogFile.h"
-#include "Merge.h"
 #include "paths.h"
 #include "FilterList.h"
 #include "DiffContext.h"
@@ -21,8 +21,10 @@
 #include "FolderCmp.h"
 #include "ByteComparator.h"
 #include "codepage_detect.h"
+#include "TimeSizeCompare.h"
 
 using CompareEngines::ByteCompare;
+using CompareEngines::TimeSizeCompare;
 
 static void GetComparePaths(CDiffContext * pCtxt, const DIFFITEM &di, String & left, String & right);
 static bool Unpack(String & filepathTransformed,
@@ -31,6 +33,7 @@ static bool Unpack(String & filepathTransformed,
 FolderCmp::FolderCmp()
 : m_pDiffUtilsEngine(NULL)
 , m_pByteCompare(NULL)
+, m_pTimeSizeCompare(NULL)
 , m_ndiffs(CDiffContext::DIFFS_UNKNOWN)
 , m_ntrivialdiffs(CDiffContext::DIFFS_UNKNOWN)
 {
@@ -40,9 +43,10 @@ FolderCmp::~FolderCmp()
 {
 	delete m_pDiffUtilsEngine;
 	delete m_pByteCompare;
+	delete m_pTimeSizeCompare;
 }
 
-bool FolderCmp::RunPlugins(CDiffContext * pCtxt, PluginsContext * plugCtxt, CString &errStr)
+bool FolderCmp::RunPlugins(CDiffContext * pCtxt, PluginsContext * plugCtxt, String &errStr)
 {
 	// For user chosen plugins, define bAutomaticUnpacker as false and use the chosen infoHandler
 	// but how can we receive the infoHandler ? DirScan actually only 
@@ -71,7 +75,7 @@ bool FolderCmp::RunPlugins(CDiffContext * pCtxt, PluginsContext * plugCtxt, CStr
 	}
 
 	// we use the same plugins for both files, so they must be defined before second file
-	ASSERT(plugCtxt->infoUnpacker->bToBeScanned == FALSE);
+	assert(plugCtxt->infoUnpacker->bToBeScanned == FALSE);
 
 	if (!Unpack(plugCtxt->filepathUnpacked2, filteredFilenames.c_str(), plugCtxt->infoUnpacker))
 	{
@@ -100,7 +104,7 @@ bool FolderCmp::RunPlugins(CDiffContext * pCtxt, PluginsContext * plugCtxt, CStr
 	}
 
 	// we use the same plugins for both files, so they must be defined before second file
-	ASSERT(plugCtxt->infoPrediffer->bToBeScanned == FALSE);
+	assert(plugCtxt->infoPrediffer->bToBeScanned == FALSE);
 
 	if (!m_diffFileData.Filepath_Transform(m_diffFileData.m_FileLocation[1],
 			plugCtxt->filepathUnpacked2, plugCtxt->filepathTransformed2,
@@ -134,17 +138,13 @@ void FolderCmp::CleanupAfterPlugins(PluginsContext *plugCtxt)
 {
 	// delete the temp files after comparison
 	if (plugCtxt->filepathTransformed1 != plugCtxt->filepathUnpacked1)
-		VERIFY(::DeleteFile(plugCtxt->filepathTransformed1.c_str()) ||
-				GetLog()->DeleteFileFailed(plugCtxt->filepathTransformed1.c_str()));
+		::DeleteFile(plugCtxt->filepathTransformed1.c_str());
 	if (plugCtxt->filepathTransformed2 != plugCtxt->filepathUnpacked2)
-		VERIFY(::DeleteFile(plugCtxt->filepathTransformed2.c_str()) ||
-				GetLog()->DeleteFileFailed(plugCtxt->filepathTransformed2.c_str()));
+		::DeleteFile(plugCtxt->filepathTransformed2.c_str());
 	if (plugCtxt->filepathUnpacked1 != plugCtxt->origFileName1)
-		VERIFY(::DeleteFile(plugCtxt->filepathUnpacked1.c_str()) ||
-				GetLog()->DeleteFileFailed(plugCtxt->filepathUnpacked1.c_str()));
+		::DeleteFile(plugCtxt->filepathUnpacked1.c_str());
 	if (plugCtxt->filepathUnpacked2 != plugCtxt->origFileName2)
-		VERIFY(::DeleteFile(plugCtxt->filepathUnpacked2.c_str()) ||
-				GetLog()->DeleteFileFailed(plugCtxt->filepathUnpacked2.c_str()));
+		::DeleteFile(plugCtxt->filepathUnpacked2.c_str());
 }
 
 /**
@@ -178,7 +178,7 @@ UINT FolderCmp::prepAndCompareTwoFiles(CDiffContext * pCtxt, DIFFITEM &di)
 		// Run plugins
 		if (pCtxt->m_bPluginsEnabled)
 		{
-			CString errStr;
+			String errStr;
 			bool pluginsOk = RunPlugins(pCtxt, &plugCtxt, errStr);
 			if (!pluginsOk)
 			{
@@ -276,56 +276,14 @@ UINT FolderCmp::prepAndCompareTwoFiles(CDiffContext * pCtxt, DIFFITEM &di)
 		di.left.m_textStats = m_diffFileData.m_textStats0;
 		di.right.m_textStats = m_diffFileData.m_textStats1;
 	}
-	else if (pCtxt->m_nCompMethod == CMP_DATE ||
-		pCtxt->m_nCompMethod == CMP_DATE_SIZE)
+	else if (nCompMethod == CMP_DATE || nCompMethod == CMP_DATE_SIZE || nCompMethod == CMP_SIZE)
 	{
-		// Compare by modified date
-		// Check that we have both filetimes
-		if (di.left.mtime != 0 && di.right.mtime != 0)
-		{
-			__int64 nTimeDiff = di.left.mtime - di.right.mtime;
-			// Remove sign
-			nTimeDiff = (nTimeDiff > 0 ? nTimeDiff : -nTimeDiff);
-			if (pCtxt->m_bIgnoreSmallTimeDiff)
-			{
-				// If option to ignore small timediffs (couple of seconds)
-				// is set, decrease absolute difference by allowed diff
-				nTimeDiff -= SmallTimeDiff;
-			}
-			if (nTimeDiff <= 0)
-				code = DIFFCODE::SAME;
-			else
-				code = DIFFCODE::DIFF;
-		}
-		else
-		{
-			// Filetimes for item(s) could not be read. So we have to
-			// set error status, unless we have DATE_SIZE -compare
-			// when we have still hope for size compare..
-			if (pCtxt->m_nCompMethod == CMP_DATE_SIZE)
-				code = DIFFCODE::SAME;
-			else
-				code = DIFFCODE::CMPERR;
-		}
-		
-		// This is actual CMP_DATE_SIZE method..
-		// If file sizes differ mark them different
-		if (pCtxt->m_nCompMethod == CMP_DATE_SIZE)
-		{
-			if (di.left.size != di.right.size)
-			{
-				code &= ~DIFFCODE::SAME;
-				code = DIFFCODE::DIFF;
-			}
-		}
-	}
-	else if (pCtxt->m_nCompMethod == CMP_SIZE)
-	{
-		// Compare by size
-		if (di.left.size == di.right.size)
-			code = DIFFCODE::SAME;
-		else
-			code = DIFFCODE::DIFF;
+		if (m_pTimeSizeCompare == NULL)
+			m_pTimeSizeCompare = new TimeSizeCompare();
+
+		m_pTimeSizeCompare->SetAdditionalOptions(!!pCtxt->m_bIgnoreSmallTimeDiff);
+		code = m_pTimeSizeCompare->CompareFiles(nCompMethod, di);
+
 	}
 	else
 	{
@@ -346,24 +304,23 @@ UINT FolderCmp::prepAndCompareTwoFiles(CDiffContext * pCtxt, DIFFITEM &di)
 	return code;
 }
 
-
 /**
  * @brief Get actual compared paths from DIFFITEM.
+ * @param [in] pCtx Pointer to compare context.
+ * @param [in] di DiffItem from which the paths are created.
+ * @param [out] left Gets the left compare path.
+ * @param [out] right Gets the right compare path.
  * @note If item is unique, same path is returned for both.
  */
 void GetComparePaths(CDiffContext * pCtxt, const DIFFITEM &di, String & left, String & right)
 {
-	static const TCHAR backslash[] = _T("\\");
-
 	if (!di.diffcode.isSideRightOnly())
 	{
 		// Compare file to itself to detect encoding
 		left = pCtxt->GetNormalizedLeft();
-		if (!paths_EndsWithSlash(left.c_str()))
-			left += backslash;
 		if (!di.left.path.empty())
-			left += di.left.path + backslash;
-		left += di.left.filename;
+			left = paths_ConcatPath(left, di.left.path);
+		left = paths_ConcatPath(left, di.left.filename);
 		if (di.diffcode.isSideLeftOnly())
 			right = left;
 	}
@@ -371,11 +328,9 @@ void GetComparePaths(CDiffContext * pCtxt, const DIFFITEM &di, String & left, St
 	{
 		// Compare file to itself to detect encoding
 		right = pCtxt->GetNormalizedRight();
-		if (!paths_EndsWithSlash(right.c_str()))
-			right += backslash;
 		if (!di.right.path.empty())
-			right += di.right.path + backslash;
-		right += di.right.filename;
+			right = paths_ConcatPath(right, di.right.path);
+		right = paths_ConcatPath(right, di.right.filename);
 		if (di.diffcode.isSideRightOnly())
 			left = right;
 	}

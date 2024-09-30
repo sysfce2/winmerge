@@ -26,7 +26,7 @@
  * @date  Created: 2003-11-24
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: multiformatText.cpp 6501 2009-02-25 13:37:09Z kimmov $
+// $Id: multiformatText.cpp 7390 2010-10-31 14:55:42Z jtuc $
 
 #include "StdAfx.h"
 #include "unicoder.h"
@@ -113,7 +113,7 @@ void storageForPlugins::ValidateNewFile()
 		if (!::DeleteFile(m_tempFilenameDst.c_str()))
 		{
 			LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s")
-				, m_tempFilenameDst.c_str(), GetSysError(GetLastError())));
+				, m_tempFilenameDst.c_str(), GetSysError(GetLastError()).c_str()));
 		}
 		// we may reuse the temp filename
 		// tempFilenameDst.Empty();
@@ -126,7 +126,7 @@ void storageForPlugins::ValidateNewFile()
 			if (!::DeleteFile(m_filename.c_str()))
 			{
 				LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s")
-					, m_filename.c_str(), GetSysError(GetLastError())));
+					, m_filename.c_str(), GetSysError(GetLastError()).c_str()));
 			}
 			::MoveFile(m_tempFilenameDst.c_str(), m_filename.c_str());
 		}

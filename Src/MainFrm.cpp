@@ -24,7 +24,7 @@
  * @brief Implementation of the CMainFrame class
  */
 // ID line follows -- this is updated by SVN
-// $Id: MainFrm.cpp 6785 2009-05-26 10:57:25Z kimmov $
+// $Id: MainFrm.cpp 7500 2011-01-03 13:07:18Z gerundt $
 
 #include "StdAfx.h"
 #include <vector>
@@ -74,6 +74,7 @@
 #include "FileOrFolderSelect.h"
 #include "PropBackups.h"
 #include "PluginsListDlg.h"
+#include "MergeCmdLineInfo.h"
 
 /*
  One source file must compile the stubs for multimonitor
@@ -189,6 +190,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_SETCURSOR()
 	ON_COMMAND_RANGE(ID_UNPACK_MANUAL, ID_UNPACK_AUTO, OnPluginUnpackMode)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_UNPACK_MANUAL, ID_UNPACK_AUTO, OnUpdatePluginUnpackMode)
+	ON_COMMAND_RANGE(ID_PREDIFFER_MANUAL, ID_PREDIFFER_AUTO, OnPluginPrediffMode)
+	ON_UPDATE_COMMAND_UI_RANGE(ID_PREDIFFER_MANUAL, ID_PREDIFFER_AUTO, OnUpdatePluginPrediffMode)
 	ON_UPDATE_COMMAND_UI(ID_RELOAD_PLUGINS, OnUpdateReloadPlugins)
 	ON_COMMAND(ID_RELOAD_PLUGINS, OnReloadPlugins)
 	ON_COMMAND(ID_HELP_GETCONFIG, OnSaveConfigData)
@@ -272,7 +275,7 @@ CMainFrame::CMainFrame()
 , m_bFirstTime(TRUE)
 , m_bEscShutdown(FALSE)
 , m_bClearCaseTool(FALSE)
-, m_bExitIfNoDiff(FALSE)
+, m_bExitIfNoDiff(MergeCmdLineInfo::Disabled)
 , m_bShowErrors(TRUE)
 , m_CheckOutMulti(FALSE)
 , m_bVCProjSync(FALSE)
@@ -284,8 +287,7 @@ CMainFrame::CMainFrame()
 
 	InitializeSourceControlMembers();
 	g_bUnpackerMode = theApp.GetProfileInt(_T("Settings"), _T("UnpackerMode"), PLUGIN_MANUAL);
-	// uncomment this when the GUI allows to toggle the mode
-//	g_bPredifferMode = theApp.GetProfileInt(_T("Settings"), _T("PredifferMode"), PLUGIN_MANUAL);
+	g_bPredifferMode = theApp.GetProfileInt(_T("Settings"), _T("PredifferMode"), PLUGIN_MANUAL);
 
 	m_pSyntaxColors = new SyntaxColors();
 	if (m_pSyntaxColors)
@@ -355,11 +357,7 @@ protected:
 
 static StatusDisplay myStatusDisplay;
 
-#ifdef _UNICODE
 const TCHAR CMainFrame::szClassName[] = _T("WinMergeWindowClassW");
-#else
-const TCHAR CMainFrame::szClassName[] = _T("WinMergeWindowClassA");
-#endif
 /**
  * @brief Change MainFrame window class name
  *        see http://support.microsoft.com/kb/403825/ja
@@ -712,49 +710,6 @@ int CMainFrame::ShowMergeDoc(CDirDoc * pDirDoc,
 		FileLocationGuessEncodings(filelocRight, bGuessEncoding);
 	}
 
-	if (!IsUnicodeBuild())
-	{
-		// In ANSI (8-bit) build, character loss can occur in merging
-		// if the two buffers use different encodings
-		if (filelocLeft.encoding.m_unicoding == ucr::NONE
-			&& filelocRight.encoding.m_unicoding == ucr::NONE
-			&& filelocLeft.encoding.m_codepage != filelocRight.encoding.m_codepage)
-		{
-			CString msg;
-			msg.Format(theApp.LoadString(IDS_SUGGEST_IGNORECODEPAGE).c_str(), filelocLeft.encoding.m_codepage, filelocRight.encoding.m_codepage);
-			int msgflags = MB_YESNO | MB_ICONWARNING | MB_DONT_ASK_AGAIN;
-			// Two files with different codepages
-			// Warn and propose to use the default codepage for both
-			int userChoice = AfxMessageBox(msg, msgflags);
-			if (userChoice == IDYES)
-			{
-				if (filelocLeft.encoding.m_codepage != getDefaultCodepage())
-				{
-					filelocLeft.encoding.SetCodepage(getDefaultCodepage());
-					filelocLeft.encoding.m_bom = false;
-					filelocLeft.encoding.m_guessed = false;
-				}
-				if (filelocRight.encoding.m_codepage != getDefaultCodepage())
-				{
-					filelocRight.encoding.SetCodepage(getDefaultCodepage());
-					filelocRight.encoding.m_bom = false;
-					filelocRight.encoding.m_guessed = false;
-				}
-			}
-		}
-		else if (filelocLeft.encoding.m_unicoding != filelocRight.encoding.m_unicoding)
-		{
-			String leftEncoding = filelocLeft.encoding.GetName();
-			String rightEncoding = filelocRight.encoding.GetName();
-			CString msg;
-			msg.Format(theApp.LoadString(IDS_DIFFERENT_UNICODINGS).c_str(), leftEncoding.c_str(), rightEncoding.c_str());
-			int msgflags = MB_OK | MB_ICONWARNING | MB_DONT_ASK_AGAIN;
-			// Two files with different codepages
-			// Warn and propose to use the default codepage for both
-			AfxMessageBox(msg, msgflags);
-		}
-	}
-
 	// Note that OpenDocs() takes care of closing compare window when needed.
 	BOOL bLeftRO = (dwLeftFlags & FFILEOPEN_READONLY) > 0;
 	BOOL bRightRO = (dwRightFlags & FFILEOPEN_READONLY) > 0;
@@ -1081,6 +1036,9 @@ BOOL CMainFrame::DoFileOpen(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*
 
 	CString strLeft = pszLeft;
 	CString strRight = pszRight;
+	g_bUnpackerMode = theApp.GetProfileInt(_T("Settings"), _T("UnpackerMode"), PLUGIN_MANUAL);
+	g_bPredifferMode = theApp.GetProfileInt(_T("Settings"), _T("PredifferMode"), PLUGIN_MANUAL);
+
 	PackingInfo infoUnpacker;
 
 	BOOL bROLeft = dwLeftFlags & FFILEOPEN_READONLY;
@@ -1332,13 +1290,13 @@ BOOL CMainFrame::CreateBackup(BOOL bFolder, LPCTSTR pszPath)
 
 		// Determine backup folder
 		if (GetOptionsMgr()->GetInt(OPT_BACKUP_LOCATION) ==
-			CPropBackups::FOLDER_ORIGINAL)
+			PropBackups::FOLDER_ORIGINAL)
 		{
 			// Put backups to same folder than original file
 			bakPath = path;
 		}
 		else if (GetOptionsMgr()->GetInt(OPT_BACKUP_LOCATION) ==
-			CPropBackups::FOLDER_GLOBAL)
+			PropBackups::FOLDER_GLOBAL)
 		{
 			// Put backups to global folder defined in options
 			bakPath = GetOptionsMgr()->GetString(OPT_BACKUP_GLOBALFOLDER);
@@ -1349,9 +1307,6 @@ BOOL CMainFrame::CreateBackup(BOOL bFolder, LPCTSTR pszPath)
 		{
 			_RPTF0(_CRT_ERROR, "Unknown backup location!");
 		}
-
-		if (!paths_EndsWithSlash(bakPath.c_str()))
-			bakPath += _T("\\");
 
 		BOOL success = FALSE;
 		if (GetOptionsMgr()->GetBool(OPT_BACKUP_ADD_BAK))
@@ -1380,7 +1335,9 @@ BOOL CMainFrame::CreateBackup(BOOL bFolder, LPCTSTR pszPath)
 			< MAX_PATH)
 		{
 			success = TRUE;
-			bakPath += filename;
+			if (!paths_EndsWithSlash(bakPath.c_str()))
+				bakPath += _T("\\");
+			bakPath = paths_ConcatPath(bakPath, filename);
 			bakPath += _T(".");
 			bakPath += ext;
 		}
@@ -2073,12 +2030,12 @@ void CMainFrame::OnToolsGeneratePatch()
 			if (bValidFiles)
 			{
 				// Format full paths to files (leftFile/rightFile)
-				String leftFile = item.getLeftFilepath(pDoc->GetLeftBasePath());
+				String leftFile = item.GetLeftFilepath(pDoc->GetLeftBasePath());
 				if (!leftFile.empty())
-					leftFile += _T("\\") + item.left.filename;
-				String rightFile = item.getRightFilepath(pDoc->GetRightBasePath());
+					leftFile = paths_ConcatPath(leftFile, item.left.filename);
+				String rightFile = item.GetRightFilepath(pDoc->GetRightBasePath());
 				if (!rightFile.empty())
-					rightFile += _T("\\") + item.right.filename;
+					rightFile = paths_ConcatPath(rightFile, item.right.filename);
 
 				// Format relative paths to files in folder compare
 				String leftpatch = item.left.path;
@@ -2230,7 +2187,32 @@ void CMainFrame::OnUpdatePluginUnpackMode(CCmdUI* pCmdUI)
 	if (pCmdUI->m_nID == ID_UNPACK_AUTO)
 		pCmdUI->SetRadio(PLUGIN_AUTO == g_bUnpackerMode);
 }
+void CMainFrame::OnPluginPrediffMode(UINT nID )
+{
+	switch (nID)
+	{
+	case ID_PREDIFFER_MANUAL:
+		g_bPredifferMode = PLUGIN_MANUAL;
+		break;
+	case ID_PREDIFFER_AUTO:
+		g_bPredifferMode = PLUGIN_AUTO;
+		break;
+	}
+	theApp.WriteProfileInt(_T("Settings"), _T("PredifferMode"), g_bPredifferMode);
+}
 
+void CMainFrame::OnUpdatePluginPrediffMode(CCmdUI* pCmdUI) 
+{
+	if (GetOptionsMgr()->GetBool(OPT_PLUGINS_ENABLED))
+		pCmdUI->Enable(TRUE);
+	else
+		pCmdUI->Enable(FALSE);
+
+	if (pCmdUI->m_nID == ID_PREDIFFER_MANUAL)
+		pCmdUI->SetRadio(PLUGIN_MANUAL == g_bPredifferMode);
+	if (pCmdUI->m_nID == ID_PREDIFFER_AUTO)
+		pCmdUI->SetRadio(PLUGIN_AUTO == g_bPredifferMode);
+}
 /**
  * @brief Called when "Reload Plugins" item is updated
  */
@@ -2367,7 +2349,7 @@ LoadConfigIntSetting(int * cfgval, COptionsMgr * options, const CString & name, 
 	}
 	else
 	{
-		options->SetInt(name, *cfgval);
+		options->Set(name, *cfgval);
 	}
 }
 
@@ -2386,7 +2368,7 @@ LoadConfigBoolSetting(BOOL * cfgval, COptionsMgr * options, const CString & name
 	}
 	else
 	{
-		options->SetBool(name, !!(*cfgval));
+		options->Set(name, !!(*cfgval));
 	}
 }
 
@@ -2405,7 +2387,7 @@ LoadConfigBoolSetting(bool * cfgval, COptionsMgr * options, const CString & name
 	}
 	else
 	{
-		options->SetBool(name, !!(*cfgval));
+		options->Set(name, !!(*cfgval));
 	}
 }
 
@@ -3419,17 +3401,10 @@ BOOL CMainFrame::OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult)
 		// this is the command id, not the button index
 		AfxExtractSubString(strTipText, strFullText.c_str(), 1, '\n');
 	}
-#ifndef _UNICODE
-	if (pNMHDR->code == TTN_NEEDTEXTA)
-		lstrcpyn(pTTTA->szText, strTipText, countof(pTTTA->szText));
-	else
-		_mbstowcsz(pTTTW->szText, strTipText, countof(pTTTW->szText));
-#else
 	if (pNMHDR->code == TTN_NEEDTEXTA)
 		_wcstombsz(pTTTA->szText, strTipText, countof(pTTTA->szText));
 	else
 		lstrcpyn(pTTTW->szText, strTipText, countof(pTTTW->szText));
-#endif
 	*pResult = 0;
 
 	// bring the tooltip window above other popup windows

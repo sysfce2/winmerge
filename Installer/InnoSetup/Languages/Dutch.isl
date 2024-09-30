@@ -313,6 +313,7 @@ Plugins=Plugins
 
 ;Localization Components
 Languages=Talen
+BasqueLanguage=Basque menus and dialogs
 BulgarianLanguage=Bulgaarse menu’s en vensters
 CatalanLanguage=Catalaanse menu’s en vensters
 ChineseSimplifiedLanguage=Chinese (versimpeld) menu’s en vensters
@@ -330,11 +331,13 @@ ItalianLanguage=Italiaanse menu’s en vensters
 JapaneseLanguage=Japanse menu’s en vensters
 KoreanLanguage=Koreaanse menu’s en vensters
 NorwegianLanguage=Noorse menu’s en vensters
+PersianLanguage=Persian menus and dialogs
 PolishLanguage=Poolse menu’s en vensters
 PortugueseBrazilLanguage=Portugese (Braziliaanse) menu’s en vensters
 PortugueseLanguage=Portugese menu’s en vensters
 RomanianLanguage=Roemeense menu’s en vensters
 RussianLanguage=Russische menu’s en vensters
+SerbianLanguage=Serbian menus and dialogs
 SlovakLanguage=Slovaakse menu’s en vensters
 SlovenianLanguage=Sloveense menu’s en vensters
 SpanishLanguage=Spaanse menu’s en vensters

@@ -19,8 +19,11 @@
  *
  * @brief Declaration file ProjectFile class
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: ProjectFile.h 4619 2007-10-14 08:50:20Z jtuc $
+// ID line follows -- this is updated by CVS
+// $Id: ProjectFile.h 7376 2010-10-28 14:35:21Z kimmov $
+
+#ifndef _PROJECT_FILE_H_
+#define _PROJECT_FILE_H_
 
 #include <scew/scew.h>
 
@@ -79,3 +82,5 @@ private:
 	BOOL m_bLeftReadOnly; /**< Is left path opened as read-only */
 	BOOL m_bRightReadOnly; /**< Is right path opened as read-only */
 };
+
+#endif // #ifdef _PROJECT_FILE_H_

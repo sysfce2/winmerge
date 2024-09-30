@@ -20,12 +20,11 @@
  * @brief Implementation file for FileFilterHelper class
  */
 // ID line follows -- this is updated by SVN
-// $Id: FileFilterHelper.cpp 6080 2008-11-09 22:23:10Z kimmov $
+// $Id: FileFilterHelper.cpp 7485 2010-12-28 21:05:18Z gerundt $
 
 #include "stdafx.h"
 #include "Ucs2Utf8.h"
 #include "UnicodeString.h"
-#include "MainFrm.h"
 #include "FilterList.h"
 #include "DirItem.h"
 #include "FileFilterMgr.h"
@@ -210,22 +209,13 @@ void FileFilterHelper::SetMask(LPCTSTR strMask)
 	char * regexp_str;
 	FilterList::EncodingType type;
 
-#ifdef UNICODE
 	regexp_str = UCS2UTF8_ConvertToUtf8(regExp);
 	type = FilterList::ENC_UTF8;
-#else
-	regexp_str = regExp.LockBuffer();
-	type = FilterList::ENC_ANSI;
-#endif
 
 	m_pMaskFilter->RemoveAllFilters();
 	m_pMaskFilter->AddRegExp(regexp_str, type);
 
-#ifdef UNICODE
 	UCS2UTF8_Dealloc(regexp_str);
-#else
-	regExp.UnlockBuffer();
-#endif
 }
 
 /**
@@ -254,7 +244,7 @@ BOOL FileFilterHelper::includeFile(LPCTSTR szFileName)
 			strFileName = strFileName + _T('.');
 
 		char * name_utf = UCS2UTF8_ConvertToUtf8(strFileName);
-		bool match = m_pMaskFilter->Match(name_utf);
+		bool match = m_pMaskFilter->Match(strlen(name_utf), name_utf);
 		UCS2UTF8_Dealloc(name_utf);
 		return match;
 	}
@@ -290,15 +280,6 @@ BOOL FileFilterHelper::includeDir(LPCTSTR szDirName)
 
 		return m_fileFilterMgr->TestDirNameAgainstFilter(m_currentFilter, strDirName);
 	}
-}
-
-/**
- * @brief Open filter file to external editor for modifying.
- * @param [in] szFileFilterterPath Path of filter file to edit.
- */
-void FileFilterHelper::EditFileFilter(LPCTSTR szFileFilterPath)
-{
-	CMainFrame::OpenFileToExternalEditor(szFileFilterPath);
 }
 
 /**

@@ -1,13 +1,22 @@
 @echo off
 
-REM $Id: PreLink.bat 6184 2008-12-17 20:06:15Z kimmov $
+REM $Id: PreLink.bat 7386 2010-10-31 13:18:46Z gerundt $
 
 set info=echo *
 
 REM _ACP_ATLPROV was introduced in VC7. If not set, assume VC6.
 REM _MSDEV_BLD_ENV_ was removed in VC8. Don't care about it if _ACP_ATLPROV is set.
+REM _ACP_ATLPROV is set by VS2005/VS2008 when compiling in IDE. But it is NOT
+REM set when calling devenv from command line.
 
-if "%_ACP_ATLPROV%" == "" goto _MSDEV_BLD_ENV_(%_MSDEV_BLD_ENV_%)
+REM This detects if the script is called from VS2003 or from IDE
+if NOT "%_ACP_ATLPROV%" == "" goto IDEBuild
+
+REM This detects if the script is called from VS2005/VS2008 cmd line env
+if "%VCBuildHelper_Command%" == "" goto _MSDEV_BLD_ENV_(%_MSDEV_BLD_ENV_%)
+
+:IDEBuild
+
 set msdev=rem
 set devenv=devenv
 goto Configure
@@ -40,68 +49,14 @@ mkdir ..\Build\pcre
 mkdir ..\Build\heksedit
 goto %1
 
-:.\..\BuildTmp\MergeDebug
-%info% ANSI/Debug
-mkdir ..\Build\MergeDebug
-
-REM Build heksedit
-cd %2\..\..\..\Externals\heksedit
-%msdev% "heksedit.dsp" /make "heksedit - Win32 Debug"
-%devenv% "heksedit.vcproj" /build "Debug"
-cd %2\..\..\heksedit\Debug
-copy heksedit.dll %2\..\
-copy heksedit.dll ..\
-mkdir %2\..\heksedit.lng
-copy heksedit.lng\*.* %2\..\heksedit.lng
-
-goto Debug
-
 :.\..\BuildTmp\MergeUnicodeDebug
 %info% UNICODE/Debug
 mkdir ..\Build\MergeUnicodeDebug
-
-REM Build heksedit
-cd %2\..\..\..\Externals\heksedit
-%msdev% "heksedit.dsp" /make "heksedit - Win32 UnicodeDebug"
-%devenv% "heksedit.vcproj" /build "UnicodeDebug"
-cd %2\..\..\heksedit\Debug
-copy hekseditU.dll %2\..\
-copy hekseditU.dll ..\
-mkdir %2\..\heksedit.lng
-copy heksedit.lng\*.* %2\..\heksedit.lng
-
 goto Debug
-
-:.\..\BuildTmp\MergeRelease
-%info% ANSI/Release
-mkdir ..\Build\MergeRelease
-
-REM Build heksedit
-cd %2\..\..\..\Externals\heksedit
-%msdev% "heksedit.dsp" /make "heksedit - Win32 Release"
-%devenv% "heksedit.vcproj" /build "Release"
-cd %2\..\..\heksedit\Release
-copy heksedit.dll %2\..\
-copy heksedit.dll ..\
-mkdir %2\..\heksedit.lng
-copy heksedit.lng\*.* %2\..\heksedit.lng
-
-goto Release
 
 :.\..\BuildTmp\MergeUnicodeRelease
 %info% UNICODE/Release
 mkdir ..\Build\MergeUnicodeRelease
-
-REM Build heksedit
-cd %2\..\..\..\Externals\heksedit
-%msdev% "heksedit.dsp" /make "heksedit - Win32 UnicodeRelease"
-%devenv% "heksedit.vcproj" /build "UnicodeRelease"
-cd %2\..\..\heksedit\Release
-copy hekseditU.dll %2\..\
-copy hekseditU.dll ..\
-mkdir %2\..\heksedit.lng
-copy heksedit.lng\*.* %2\..\heksedit.lng
-
 goto Release
 
 :Debug
@@ -125,10 +80,8 @@ REM Build PCRE
 cd %2\..\..\..\Externals\pcre\Win32
 %msdev% "pcre.dsp" /make "pcre - Win32 Debug"
 %devenv% "pcre.vcproj" /build "Debug"
-cd %2\..\..\pcre
-copy Debug\pcre.dll 
-copy Debug\pcre.lib
-copy pcre.dll %2\..\
+copy Debug\pcre.dll %2\..\..\pcre
+copy Debug\pcre.lib %2\..\..\pcre
 
 goto Common
 
@@ -155,10 +108,8 @@ REM Build PCRE
 cd %2\..\..\..\Externals\pcre\Win32
 %msdev% "pcre.dsp" /make "pcre - Win32 Release"
 %devenv% "pcre.vcproj" /build "MinSizeRel"
-cd %2\..\..\pcre
-copy MinSizeRel\pcre.dll
-copy MinSizeRel\pcre.lib
-copy pcre.dll %2\..\
+copy MinSizeRel\pcre.dll %2\..\..\pcre
+copy MinSizeRel\pcre.lib %2\..\..\pcre
 
 goto Common
 

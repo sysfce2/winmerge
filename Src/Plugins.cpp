@@ -24,7 +24,7 @@
  *  @brief Support for VBS Scriptlets, VB ActiveX DLL, VC++ COM DLL
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: Plugins.cpp 5755 2008-08-08 02:24:18Z marcelgosselin $
+// $Id: Plugins.cpp 7436 2010-11-21 13:06:27Z gerundt $
 
 #include "StdAfx.h"
 #include <afxmt.h>
@@ -287,13 +287,8 @@ void PluginInfo::LoadFilterString()
 		int erroroffset = 0;
 		char regexString[200] = {0};
 		int regexLen = 0;
-#ifdef UNICODE
 		regexLen = TransformUcs2ToUtf8((LPCTSTR)sPiece, _tcslen(sPiece),
 			regexString, sizeof(regexString));
-#else
-		strcpy(regexString, (LPCTSTR)sPiece);
-		regexLen = strlen(regexString);
-#endif
 
 		pcre *regexp = pcre_compile(regexString, 0, &errormsg, &erroroffset, NULL);
 		if (regexp)
@@ -454,7 +449,6 @@ static int LoadPlugin(PluginInfo & plugin, const CString & scriptletFilepath, LP
 
 
 	// get optional property PluginDescription
-	if (SearchScriptForDefinedProperties(lpDispatch, L"PluginDescription"))
 	if (SearchScriptForDefinedProperties(lpDispatch, L"PluginDescription"))
 	{
 		h = ::invokeW(lpDispatch, &ret, L"PluginDescription", opGet[0], NULL);

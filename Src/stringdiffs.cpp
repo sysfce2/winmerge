@@ -5,12 +5,13 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: stringdiffs.cpp 6358 2009-01-22 18:49:30Z kimmov $
+// $Id: stringdiffs.cpp 7436 2010-11-21 13:06:27Z gerundt $
 
 #include "StdAfx.h"
 #include <vector>
 #include <mbctype.h>
 #include "UnicodeString.h"
+#include "string_util.h"
 #include "stringdiffs.h"
 #include "CompareOptions.h"
 #include "stringdiffsi.h"
@@ -494,11 +495,7 @@ matchchar(TCHAR ch1, TCHAR ch2, bool casitive)
 /** Does character introduce a multicharacter character? */
 static inline bool IsLeadByte(TCHAR ch)
 {
-#ifdef UNICODE
 	return false;
-#else
-	return _getmbcp() && IsDBCSLeadByte(ch);
-#endif
 }
 
 /**

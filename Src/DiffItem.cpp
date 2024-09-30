@@ -4,17 +4,11 @@
  *  @brief Implementation of DIFFITEM
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: DiffItem.cpp 5654 2008-07-22 14:27:09Z sdottaka $
+// $Id: DiffItem.cpp 7425 2010-11-15 13:32:36Z gerundt $
 
-#include "stdafx.h"
+#include <windows.h>
 #include "DiffItem.h"
 #include "paths.h"
-
-#ifdef _DEBUG
-#undef THIS_FILE
-static char THIS_FILE[]=__FILE__;
-#define new DEBUG_NEW
-#endif
 
 DIFFITEM DIFFITEM::emptyitem;
 
@@ -30,7 +24,7 @@ DIFFITEM::~DIFFITEM()
 }
 
 /** @brief Return path to left file, including all but file name */
-String DIFFITEM::getLeftFilepath(const String &sLeftRoot) const
+String DIFFITEM::GetLeftFilepath(const String &sLeftRoot) const
 {
 	String sPath;
 	if (!diffcode.isSideRightOnly())
@@ -41,7 +35,7 @@ String DIFFITEM::getLeftFilepath(const String &sLeftRoot) const
 }
 
 /** @brief Return path to right file, including all but file name */
-String DIFFITEM::getRightFilepath(const String &sRightRoot) const
+String DIFFITEM::GetRightFilepath(const String &sRightRoot) const
 {
 	String sPath;
 	if (!diffcode.isSideLeftOnly())

@@ -20,7 +20,7 @@
  * @brief Declaration file for patch creation dialog
  */
 // ID line follows -- this is updated by SVN
-// $Id: PatchDlg.h 5786 2008-08-11 03:28:03Z marcelgosselin $
+// $Id: PatchDlg.h 7550 2011-06-26 13:52:49Z sdottaka $
 
 #if !defined(AFX_PATCHDLG_H__AB3CE671_1328_11D7_B088_005004D9D386__INCLUDED_)
 #define AFX_PATCHDLG_H__AB3CE671_1328_11D7_B088_005004D9D386__INCLUDED_
@@ -43,18 +43,18 @@ class CPatchDlg : public CDialog
 // Construction
 public:
 	CPatchDlg(CWnd* pParent = NULL);   // standard constructor
-	
+
 	// Functions to add and get selected files (as PATCHFILEs)
 	void AddItem(const PATCHFILES& pf);
 	int GetItemCount();
-    const PATCHFILES& GetItemAt(int position);
+	const PATCHFILES& GetItemAt(int position);
 	void ClearItems();
 
 // Dialog Data
 	//{{AFX_DATA(CPatchDlg)
 	enum { IDD = IDD_GENERATE_PATCH };
 	CComboBox m_comboStyle;
-	CComboBox m_comboContext;
+	CSuperComboBox m_comboContext;
 	BOOL m_caseSensitive;
 	CSuperComboBox m_ctlFile1;
 	CSuperComboBox m_ctlFile2;
@@ -82,12 +82,13 @@ public:
 // Implementation
 protected:
 
-    std::vector<PATCHFILES> m_fileList; /**< Source files to create patch from */
-	
+	std::vector<PATCHFILES> m_fileList; /**< Source files to create patch from */
+
 	void ChangeFile(const CString &sFile, BOOL bLeft);
 	void UpdateSettings();
 	void LoadSettings();
 	void SaveSettings();
+	void Swap();
 
 	// Generated message map functions
 	//{{AFX_MSG(CPatchDlg)

@@ -4,7 +4,7 @@
  *  @brief Implementation of UniMarkdownFile class.
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: UniMarkdownFile.cpp 6089 2008-11-16 15:27:10Z jtuc $
+// $Id: UniMarkdownFile.cpp 7431 2010-11-18 13:52:36Z gerundt $
 
 #include "StdAfx.h"
 #include "UnicodeString.h"
@@ -138,7 +138,8 @@ void UniMarkdownFile::Move()
 String UniMarkdownFile::maketstring(LPCSTR lpd, UINT len)
 {
 	bool lossy = false;
-	String s = ucr::maketstring(lpd, len, m_codepage, &lossy);
+	String s;
+	ucr::maketstring(s, lpd, len, m_codepage, &lossy);
 	if (lossy)
 		++m_txtstats.nlosses;
 	return s;
@@ -193,7 +194,6 @@ bool UniMarkdownFile::ReadString(String &line, String &eol, bool *lossy)
 		{
 			while (m_current < m_base + m_filesize && isspace(*m_current))
 			{
-				LPBYTE current = m_current;
 				BYTE eol = *m_current++;
 				if (eol == '\r' || eol == '\n')
 				{

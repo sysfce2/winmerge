@@ -4,7 +4,7 @@
  * @brief Implements the Language Selection dialog class (which contains the language data)
  */
 // ID line follows -- this is updated by SVN
-// $Id: LanguageSelect.cpp 5911 2008-09-07 03:30:21Z marcelgosselin $
+// $Id: LanguageSelect.cpp 7334 2010-10-21 20:47:08Z gerundt $
 
 #include "StdAfx.h"
 #include "OptionsDef.h"
@@ -978,7 +978,6 @@ void CLanguageSelect::TranslateMenu(HMENU h) const
 	while (i > 0)
 	{
 		--i;
-		UINT id = 0;
 		MENUITEMINFO mii;
 		mii.cbSize = sizeof mii;
 		mii.fMask = MIIM_STATE|MIIM_ID|MIIM_SUBMENU|MIIM_DATA;
@@ -1088,10 +1087,6 @@ void CLanguageSelect::ReloadMenu()
 		HMENU hNewDirMenu = pMainFrame->NewDirViewMenu();
 		if (hNewDefaultMenu && hNewMergeMenu && hNewDirMenu)
 		{
-			CMenu* pOldDefaultMenu = CMenu::FromHandle(pMainFrame->m_hMenuDefault);
-			CMenu* hOldMergeMenu = CMenu::FromHandle(pApp->m_pDiffTemplate->m_hMenuShared);
-			CMenu* hOldDirMenu = CMenu::FromHandle(pApp->m_pDirTemplate->m_hMenuShared);
-
 			// Note : for Windows98 compatibility, use FromHandle and not Attach/Detach
 			CMenu * pNewDefaultMenu = CMenu::FromHandle(hNewDefaultMenu);
 			CMenu * pNewMergeMenu = CMenu::FromHandle(hNewMergeMenu);

@@ -332,6 +332,7 @@ Plugins=Programtillegg
 
 ;Localization Components
 Languages=Språk
+BasqueLanguage=Basque menus and dialogs
 BulgarianLanguage=Bulgarske menyer og dialoger
 CatalanLanguage=Katalanske menyer og dialoger
 ChineseSimplifiedLanguage=Kinesiske (forenklet) menyer og dialoger
@@ -349,11 +350,13 @@ ItalianLanguage=Italienske menyer og dialoger
 JapaneseLanguage=Japanske menyer og dialoger
 KoreanLanguage=Koreanske menyer og dialoger
 NorwegianLanguage=Norske menyer og dialoger
+PersianLanguage=Persian menus and dialogs
 PolishLanguage=Polske menyer og dialoger
 PortugueseBrazilLanguage=Portugisiske (Brasilianske) menyer og dialoger
 PortugueseLanguage=Portugisiske menyer og dialoger
 RomanianLanguage=Romanian menus and dialogs
 RussianLanguage=Russiske menyer og dialoger
+SerbianLanguage=Serbian menus and dialogs
 SlovakLanguage=Slovakiske menyer og dialoger
 SlovenianLanguage=Slovenian menus and dialogs
 SpanishLanguage=Spanske menyer og dialoger

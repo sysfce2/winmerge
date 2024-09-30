@@ -24,7 +24,7 @@
  * @brief Implementation of the COpenDlg class
  */
 // ID line follows -- this is updated by SVN
-// $Id: OpenDlg.cpp 6064 2008-11-04 20:23:08Z kimmov $
+// $Id: OpenDlg.cpp 7438 2010-11-21 13:34:25Z gerundt $
 
 #include "stdafx.h"
 #include <sys/types.h>
@@ -58,7 +58,7 @@ const UINT CHECKFILES_TIMEOUT = 1000; // milliseconds
 static const TCHAR EMPTY_EXTENSION[] = _T(".*");
 
 /** @brief Location for Open-dialog specific help to open. */
-static TCHAR OpenDlgHelpLocation[] = _T("::/htmlhelp/OpenPaths.html");
+static TCHAR OpenDlgHelpLocation[] = _T("::/htmlhelp/Open_paths.html");
 
 /////////////////////////////////////////////////////////////////////////////
 // COpenDlg dialog
@@ -402,9 +402,10 @@ void COpenDlg::UpdateButtonStates()
 		bProject = TRUE;
 
 	// Enable buttons as appropriate
-	PATH_EXISTENCE pathsType = GetPairComparability(m_strLeft, m_strRight);
 	if (GetOptionsMgr()->GetBool(OPT_VERIFY_OPEN_PATHS))
 	{
+		PATH_EXISTENCE pathsType = GetPairComparability(m_strLeft, m_strRight);
+
 		if (bProject)
 		{
 			m_ctlOk.EnableWindow(TRUE);
@@ -417,31 +418,31 @@ void COpenDlg::UpdateButtonStates()
 			m_ctlUnpacker.EnableWindow(pathsType == IS_EXISTING_FILE);
 			m_ctlSelectUnpacker.EnableWindow(pathsType == IS_EXISTING_FILE);
 		}
+
+		if (!bProject)
+		{
+			if (paths_DoesPathExist(m_strLeft) == DOES_NOT_EXIST)
+				bLeftInvalid = TRUE;
+			if (paths_DoesPathExist(m_strRight) == DOES_NOT_EXIST)
+				bRightInvalid = TRUE;
+		}
+
+		if (bLeftInvalid && bRightInvalid)
+			SetStatus(IDS_OPEN_BOTHINVALID);
+		else if (bLeftInvalid)
+			SetStatus(IDS_OPEN_LEFTINVALID);
+		else if (bRightInvalid)
+			SetStatus(IDS_OPEN_RIGHTINVALID);
+		else if (!bLeftInvalid && !bRightInvalid && pathsType == DOES_NOT_EXIST)
+			SetStatus(IDS_OPEN_MISMATCH);
+		else
+			SetStatus(IDS_OPEN_FILESDIRS);
+
+		if (pathsType == IS_EXISTING_FILE || bProject)
+			SetUnpackerStatus(0);	//Empty field
+		else
+			SetUnpackerStatus(IDS_OPEN_UNPACKERDISABLED);
 	}
-
-	if (!bProject)
-	{
-		if (paths_DoesPathExist(m_strLeft) == DOES_NOT_EXIST)
-			bLeftInvalid = TRUE;
-		if (paths_DoesPathExist(m_strRight) == DOES_NOT_EXIST)
-			bRightInvalid = TRUE;
-	}
-
-	if (bLeftInvalid && bRightInvalid)
-		SetStatus(IDS_OPEN_BOTHINVALID);
-	else if (bLeftInvalid)
-		SetStatus(IDS_OPEN_LEFTINVALID);
-	else if (bRightInvalid)
-		SetStatus(IDS_OPEN_RIGHTINVALID);
-	else if (!bLeftInvalid && !bRightInvalid && pathsType == DOES_NOT_EXIST)
-		SetStatus(IDS_OPEN_MISMATCH);
-	else
-		SetStatus(IDS_OPEN_FILESDIRS);
-
-	if (pathsType == IS_EXISTING_FILE || bProject)
-		SetUnpackerStatus(0);	//Empty field
-	else
-		SetUnpackerStatus(IDS_OPEN_UNPACKERDISABLED);
 }
 
 /**

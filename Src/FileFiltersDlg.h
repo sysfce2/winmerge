@@ -20,7 +20,7 @@
  * @brief Declaration file for File Filters dialog
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: FileFiltersDlg.h 3487 2006-08-22 15:08:45Z kimmov $
+// $Id: FileFiltersDlg.h 7485 2010-12-28 21:05:18Z gerundt $
 
 #if !defined(AFX_FILTERSDLG_H__6180CBC3_99BB_4C85_B0EA_BA85D219285E__INCLUDED_)
 #define AFX_FILTERSDLG_H__6180CBC3_99BB_4C85_B0EA_BA85D219285E__INCLUDED_
@@ -63,6 +63,7 @@ private:
 	void AddToGrid(int filterIndex);
 	bool IsFilterItemNone(int item) const;
 	void UpdateFiltersList();
+	void EditFileFilter(LPCTSTR path);
 
 // Overrides
 	// ClassWizard generated virtual function overrides

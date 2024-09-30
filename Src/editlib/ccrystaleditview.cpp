@@ -64,7 +64,7 @@
  * @brief Implementation of the CCrystalEditView class
  */
 // ID line follows -- this is updated by SVN
-// $Id: ccrystaleditview.cpp 5910 2008-09-07 03:27:29Z marcelgosselin $
+// $Id: ccrystaleditview.cpp 7452 2010-12-06 06:56:28Z gerundt $
 
 
 #include "StdAfx.h"
@@ -76,6 +76,7 @@
 #include "registry.h"
 #include "cs2cs.h"
 #include "chcondlg.h"
+#include "string_util.h"
 
 #ifndef __AFXPRIV_H__
 #pragma message("Include <afxpriv.h> in your stdafx.h to avoid this message")
@@ -494,7 +495,7 @@ OnChar (UINT nChar, UINT nRepCnt, UINT nFlags)
             ptCursorPos = GetCursorPos ();
           ASSERT_VALIDTEXTPOS (ptCursorPos);
           LPCTSTR pszText = m_pTextBuffer->GetDefaultEol();
-          int cchText = _tcslen(pszText);
+          int cchText = (int) _tcslen(pszText);
 
           int x, y;
           m_pTextBuffer->InsertText (this, ptCursorPos.y, ptCursorPos.x, pszText, cchText, y, x, CE_ACTION_TYPING);  //  [JRT]
@@ -520,7 +521,7 @@ OnChar (UINT nChar, UINT nRepCnt, UINT nFlags)
       if (QueryEditable () && m_pTextBuffer != NULL)
         {
           m_pTextBuffer->BeginUndoGroup (m_bMergeUndo);
-		  m_bMergeUndo = true;
+          m_bMergeUndo = true;
 
           CPoint ptSelStart, ptSelEnd;
           GetSelection (ptSelStart, ptSelEnd);
@@ -728,7 +729,7 @@ OnEditTab ()
       for (int L = nStartLine; L <= nEndLine; L++)
         {
           int x, y;
-          m_pTextBuffer->InsertText (this, L, 0, pszText, _tcslen(pszText), y, x, CE_ACTION_INDENT);  //  [JRT]
+          m_pTextBuffer->InsertText (this, L, 0, pszText, (int) _tcslen(pszText), y, x, CE_ACTION_INDENT);  //  [JRT]
 
         }
       m_bHorzScrollBarLocked = FALSE;
@@ -795,12 +796,12 @@ OnEditTab ()
 
       // [JRT]:
       m_pTextBuffer->DeleteText (this, ptSelStart.y, ptSelStart.x, ptSelEnd.y, ptSelEnd.x, CE_ACTION_TYPING);
-      m_pTextBuffer->InsertText( this, ptSelStart.y, ptSelStart.x, pszText, _tcslen(pszText), y, x, CE_ACTION_TYPING );
+      m_pTextBuffer->InsertText( this, ptSelStart.y, ptSelStart.x, pszText, (int) _tcslen(pszText), y, x, CE_ACTION_TYPING );
     }
   // No selection, add tab
   else
     {
-      m_pTextBuffer->InsertText (this, ptCursorPos.y, ptCursorPos.x, pszText, _tcslen(pszText), y, x, CE_ACTION_TYPING);  //  [JRT]
+      m_pTextBuffer->InsertText (this, ptCursorPos.y, ptCursorPos.x, pszText, (int) _tcslen(pszText), y, x, CE_ACTION_TYPING);  //  [JRT]
     }
 
   ptCursorPos.x = x;
@@ -963,8 +964,7 @@ OnUpdateEditSwitchOvrmode (CCmdUI * pCmdUI)
 DROPEFFECT CEditDropTargetImpl::
 OnDragEnter (CWnd * pWnd, COleDataObject * pDataObject, DWORD dwKeyState, CPoint point)
 {
-  UINT fmt = GetClipTcharTextFormat();
-  if (!pDataObject->IsDataAvailable (fmt))
+  if (!pDataObject->IsDataAvailable (CF_UNICODETEXT))
     {
       m_pOwner->HideDropIndicator ();
       return DROPEFFECT_NONE;
@@ -1002,8 +1002,7 @@ OnDragOver (CWnd * pWnd, COleDataObject * pDataObject, DWORD dwKeyState, CPoint 
   //  if ((pDataObject->IsDataAvailable( CF_TEXT ) ) ||       // If Text Available
   //          ( pDataObject -> IsDataAvailable( xxx ) ) ||    // Or xxx Available
   //          ( pDataObject -> IsDataAvailable( yyy ) ) )     // Or yyy Available
-  UINT fmt = GetClipTcharTextFormat();      // CF_TEXT or CF_UNICODETEXT
-  if (pDataObject->IsDataAvailable (fmt))   // If Text Available
+  if (pDataObject->IsDataAvailable (CF_UNICODETEXT))   // If Text Available
 
     {
       bDataSupported = true;    // Set Flag
@@ -1044,8 +1043,7 @@ OnDrop (CWnd * pWnd, COleDataObject * pDataObject, DROPEFFECT dropEffect, CPoint
   //  if( ( pDataObject -> IsDataAvailable( CF_TEXT ) ) ||    // If Text Available
   //          ( pDataObject -> IsDataAvailable( xxx ) ) ||    // Or xxx Available
   //          ( pDataObject -> IsDataAvailable( yyy ) ) )     // Or yyy Available
-  UINT fmt = GetClipTcharTextFormat();      // CF_TEXT or CF_UNICODETEXT
-  if (pDataObject->IsDataAvailable (fmt))   // If Text Available
+  if (pDataObject->IsDataAvailable (CF_UNICODETEXT))   // If Text Available
 
     {
       bDataSupported = true;    // Set Flag
@@ -1118,8 +1116,7 @@ DoDragScroll (const CPoint & point)
 BOOL CCrystalEditView::
 DoDropText (COleDataObject * pDataObject, const CPoint & ptClient)
 {
-  UINT fmt = GetClipTcharTextFormat();      // CF_TEXT or CF_UNICODETEXT
-  HGLOBAL hData = pDataObject->GetGlobalData (fmt);
+  HGLOBAL hData = pDataObject->GetGlobalData (CF_UNICODETEXT);
   if (hData == NULL)
     return FALSE;
 
@@ -1133,8 +1130,8 @@ DoDropText (COleDataObject * pDataObject, const CPoint & ptClient)
       return FALSE;
     }
 
-  SIZE_T cbData = ::GlobalSize (hData);
-  int cchText = cbData / sizeof(TCHAR) - 1;
+  UINT cbData = (UINT) ::GlobalSize (hData);
+  UINT cchText = cbData / sizeof(TCHAR) - 1;
   if (cchText < 0)
     return FALSE;
   LPTSTR pszText = (LPTSTR)::GlobalLock (hData);
@@ -1576,7 +1573,7 @@ bracetype (TCHAR c)
 {
   static LPCTSTR braces = _T("{}()[]<>");
   LPCTSTR pos = _tcschr (braces, c);
-  return pos ? pos - braces + 1 : 0;
+  return pos ? (int) (pos - braces) + 1 : 0;
 }
 
 int

@@ -4,7 +4,7 @@
  *  @brief Implementation of DiffItemList
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: DiffItemList.cpp 6137 2008-12-01 17:14:54Z kimmov $
+// $Id: DiffItemList.cpp 7488 2010-12-30 17:02:52Z gerundt $
 
 #include <windows.h>
 #include <assert.h>
@@ -26,9 +26,11 @@ DiffItemList::~DiffItemList()
 }
 
 /**
- * @brief Add new diffitem to structured DIFFITEM tree
+ * @brief Add new diffitem to structured DIFFITEM tree.
+ * @param [in] parent Parent item, or NULL if no parent.
+ * @return Pointer to the added item.
  */
-DIFFITEM &DiffItemList::AddDiff(DIFFITEM *parent)
+DIFFITEM* DiffItemList::AddDiff(DIFFITEM *parent)
 {
 	DIFFITEM *p = new DIFFITEM;
 	if (parent)
@@ -36,7 +38,7 @@ DIFFITEM &DiffItemList::AddDiff(DIFFITEM *parent)
 	else
 		m_root.Append(p);
 	p->parent = parent;
-	return *p;
+	return p;
 }
 
 /**

@@ -4,7 +4,7 @@
  *  @brief Declaration of DiffItemList
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffItemList.h 6136 2008-12-01 17:04:25Z kimmov $
+// $Id: DiffItemList.h 7488 2010-12-30 17:02:52Z gerundt $
 
 #ifndef _DIFF_ITEM_LIST_H_
 #define _DIFF_ITEM_LIST_H_
@@ -24,7 +24,7 @@ public:
 	DiffItemList();
 	~DiffItemList();
 	// add & remove differences
-	DIFFITEM &AddDiff(DIFFITEM *parent);
+	DIFFITEM *AddDiff(DIFFITEM *parent);
 	void RemoveDiff(UINT_PTR diffpos);
 	void RemoveAll();
 

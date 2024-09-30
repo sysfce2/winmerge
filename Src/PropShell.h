@@ -4,17 +4,17 @@
  * @brief Declaration of Shell options dialog class
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropShell.h 6359 2009-01-22 19:12:53Z kimmov $
+// $Id: PropShell.h 7501 2011-01-03 13:29:00Z gerundt $
 
 #ifndef _PROP_SHELL_H_
 #define _PROP_SHELL_H_
 
-#include "IOptionsPanel.h"
+#include "OptionsPanel.h"
 
 /**
  * @brief Class for Shell options -propertypage.
  */
-class PropShell : public CPropertyPage, public IOptionsPanel
+class PropShell : public OptionsPanel
 {
 // Construction
 public:
@@ -47,10 +47,6 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 	void SaveMergePath();
-
-private:
-	COptionsMgr *m_pOptionsMgr;
-
 };
 
 #endif // _PROP_SHELL_H_

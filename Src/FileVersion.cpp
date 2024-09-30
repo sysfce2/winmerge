@@ -4,9 +4,11 @@
  * @brief Implementation for FileVersion
  */
 // ID line follows -- this is updated by SVN
-// $Id: FileVersion.cpp 5350 2008-05-21 13:30:03Z kimmov $
+// $Id: FileVersion.cpp 7346 2010-10-22 18:51:38Z gerundt $
 
-#include "stdafx.h"
+#include <windows.h>
+#include <tchar.h>
+#include "coretypes.h"
 #include "UnicodeString.h"
 #include "FileVersion.h"
 
@@ -56,8 +58,8 @@ void FileVersion::SetFileVersion(DWORD versionMS, DWORD versionLS)
 void FileVersion::SetProductVersion(DWORD versionMS, DWORD versionLS)
 {
 	m_bProductVersionSet = TRUE;
-	m_fileVersionMS = versionMS;
-	m_fileVersionLS = versionLS;
+	m_productVersionMS = versionMS;
+	m_productVersionLS = versionLS;
 }
 
 /**

@@ -1,20 +1,17 @@
 /** 
  * @file  PropCompare.h
  *
- * @brief Declaration of CPropCompare propertysheet
+ * @brief Declaration of PropCompare propertysheet
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropCompare.h 5040 2008-02-13 15:12:13Z kimmov $
+// $Id: PropCompare.h 7523 2011-05-22 14:40:23Z sdottaka $
 
 #ifndef _PROPPAGE_COMPARE_H_
 #define _PROPPAGE_COMPARE_H_
 
-#include "IOptionsPanel.h"
+#include "OptionsPanel.h"
 
 class COptionsMgr;
-
-/////////////////////////////////////////////////////////////////////////////
-// CPropCompare dialog
 
 /**
  * @brief Property page to set compare options for WinMerge.
@@ -33,35 +30,32 @@ class COptionsMgr;
  *
  * @author Tim Musschoot, several modifications by others
  */
-class CPropCompare : public CPropertyPage, public IOptionsPanel
+class PropCompare : public OptionsPanel
 {
 // Construction
 public:
-	CPropCompare(COptionsMgr *optionsMgr);
+	PropCompare(COptionsMgr *optionsMgr);
 
 // Implement IOptionsPanel
 	virtual void ReadOptions();
 	virtual void WriteOptions();
 
 // Dialog Data
-	//{{AFX_DATA(CPropCompare)
+	//{{AFX_DATA(PropCompare)
 	enum { IDD = IDD_PROPPAGE_COMPARE };
-	int     m_compareMethod;
 	BOOL    m_bIgnoreEol;
 	BOOL    m_bIgnoreCase;
 	BOOL    m_bIgnoreBlankLines;
 	int     m_nIgnoreWhite;
 	BOOL    m_bMovedBlocks;
 	BOOL    m_bMatchSimilarLines;
-	BOOL    m_bStopAfterFirst;
 	BOOL    m_bFilterCommentsLines;
-	BOOL    m_bIgnoreSmallTimeDiff;
 	//}}AFX_DATA
 
 
 // Overrides
 	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(CPropCompare)
+	//{{AFX_VIRTUAL(PropCompare)
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
@@ -69,15 +63,11 @@ public:
 // Implementation
 protected:
 	// Generated message map functions
-	//{{AFX_MSG(CPropCompare)
+	//{{AFX_MSG(PropCompare)
 	afx_msg BOOL OnInitDialog();
 	afx_msg void OnDefaults();
-	afx_msg void OnCbnSelchangeComparemethodcombo();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-
-private:
-	COptionsMgr * m_pOptionsMgr;
 };
 
 //{{AFX_INSERT_LOCATION}}

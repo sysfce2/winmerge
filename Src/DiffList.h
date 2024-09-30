@@ -20,12 +20,25 @@
  * @brief Declaration file for DiffList class
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffList.h 6369 2009-01-23 15:42:56Z kimmov $
+// $Id: DiffList.h 7514 2011-01-30 13:21:00Z jtuc $
 
 #ifndef _DIFFLIST_H_
 #define _DIFFLIST_H_
 
 #include <vector>
+
+/**
+ * @brief Operations in diffranges.
+ * DIFFRANGE structs op-member can have these values
+ */
+enum OP_TYPE
+{
+	OP_NONE = 0,
+	OP_LEFTONLY,
+	OP_DIFF,
+	OP_RIGHTONLY,
+	OP_TRIVIAL
+};
 
 /**
  * @brief One difference defined by linenumbers.
@@ -50,7 +63,7 @@ struct DIFFRANGE
 	UINT dend1;		/**< Synchronised (ghost lines added) last diff line in file2 */
 	int blank0;		/**< Number of blank lines in file1 */
 	int blank1;		/**< Number of blank lines in file2 */
-	BYTE op;		/**< Operation done with this diff */
+	OP_TYPE op;		/**< Operation done with this diff */
 	DIFFRANGE() { memset(this, 0, sizeof(*this)); }
 	void swap_sides();
 };
@@ -103,19 +116,6 @@ struct DiffRangeInfo
 	DiffRangeInfo() { InitLinks(); }
 	DiffRangeInfo(const DIFFRANGE & di) : diffrange(di) { InitLinks(); }
 	void InitLinks() { next = prev = -1; }
-};
-
-/**
- * @brief Operations in diffranges.
- * DIFFRANGE structs op-member can have these values
- */
-enum
-{
-	OP_NONE = 0,
-	OP_LEFTONLY,
-	OP_DIFF,
-	OP_RIGHTONLY,
-	OP_TRIVIAL
 };
 
 /**

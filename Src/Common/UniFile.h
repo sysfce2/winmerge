@@ -1,4 +1,4 @@
-/** 
+/**
  *  @file   UniFile.h
  *  @author Perry Rapp, Creator, 2003-2006
  *  @date   Created: 2003-10
@@ -7,7 +7,7 @@
  *  @brief  Declaration of Unicode file classes.
  */
 // ID line follows -- this is updated by SVN
-// $Id: UniFile.h 5917 2008-09-07 12:59:22Z marcelgosselin $
+// $Id: UniFile.h 7480 2010-12-27 16:08:47Z gerundt $
 
 #ifndef UniFile_h_included
 #define UniFile_h_included
@@ -20,7 +20,7 @@
 class UniFile
 {
 public:
-	
+
 	/**
 	 * @brief A struct for error message or error code.
 	 */
@@ -33,7 +33,7 @@ public:
 		UniError();
 		bool HasError() const;
 		void ClearError();
-		String GetError();
+		String GetError() const;
 	};
 
 	virtual ~UniFile() { }
@@ -67,8 +67,8 @@ public:
 		int nlfs;
 		int ncrlfs;
 		int nzeros;
-		int first_zero; // byte offset, initially -1
-		int last_zero; // byte offset, initially -1
+		INT64 first_zero; // byte offset, initially -1
+		INT64 last_zero; // byte offset, initially -1
 		int nlosses;
 		txtstats() { clear(); }
 		void clear() { ncrs = nlfs = ncrlfs = nzeros = nlosses = 0; first_zero = -1; last_zero = -1; }

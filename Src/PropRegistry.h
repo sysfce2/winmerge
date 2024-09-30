@@ -17,20 +17,17 @@
 /**
  * @file  PropRegistry.h
  *
- * @brief Declaration file CPropRegistry
+ * @brief Declaration file PropRegistry
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropRegistry.h 6359 2009-01-22 19:12:53Z kimmov $
+// $Id: PropRegistry.h 7501 2011-01-03 13:29:00Z gerundt $
 
 #ifndef PropRegistry_h_included
 #define PropRegistry_h_included
 
-#include "IOptionsPanel.h"
+#include "OptionsPanel.h"
 
 class COptionsMgr;
-
-/////////////////////////////////////////////////////////////////////////////
-// CPropRegistry dialog
 
 /**
  * @brief Property page for system options; used in options property sheet.
@@ -39,18 +36,18 @@ class COptionsMgr;
  * It allows user to select options like whether to use Recycle Bin for
  * deleted files and External text editor.
  */
-class CPropRegistry : public CPropertyPage, public IOptionsPanel
+class PropRegistry : public OptionsPanel
 {
 // Construction
 public:
-	CPropRegistry(COptionsMgr *optionsMgr);
+	PropRegistry(COptionsMgr *optionsMgr);
 
 // Implement IOptionsPanel
 	virtual void ReadOptions();
 	virtual void WriteOptions();
 
 // Dialog Data
-	//{{AFX_DATA(CPropRegistry)
+	//{{AFX_DATA(PropRegistry)
 	enum { IDD = IDD_PROPPAGE_SYSTEM };
 	CString	m_strEditorPath;
 	BOOL	m_bUseRecycleBin;
@@ -61,7 +58,7 @@ public:
 
 	// Overrides
 	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(CPropRegistry)
+	//{{AFX_VIRTUAL(PropRegistry)
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
@@ -69,17 +66,13 @@ public:
 // Implementation methods
 protected:
 	// Generated message map functions
-	//{{AFX_MSG(CPropRegistry)
+	//{{AFX_MSG(PropRegistry)
 	virtual BOOL OnInitDialog();
 	afx_msg void OnBrowseEditor();
 	afx_msg void OnBrowseFilterPath();
 	afx_msg void OnBrowseTmpFolder();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-
-// Implementation data
-private:
-	COptionsMgr * m_pOptionsMgr; /**< Pointer to options manager */
 };
 
 //{{AFX_INSERT_LOCATION}}

@@ -1,12 +1,15 @@
-/** 
+/**
  * @file  ByteComparator.cpp
  *
  * @brief Implements ByteComparator class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: ByteComparator.cpp 6281 2009-01-04 02:43:34Z sdottaka $
+// $Id: ByteComparator.cpp 7427 2010-11-16 13:31:14Z gerundt $
 
-#include "StdAfx.h"
+//#include "StdAfx.h"
+#include <windows.h>
+#include <tchar.h>
+#include <assert.h>
 #include "ByteComparator.h"
 #include "FileTextStats.h"
 #include "CompareOptions.h"
@@ -24,7 +27,7 @@ static char THIS_FILE[] = __FILE__;
  */
 static inline bool iseolch(TCHAR ch)
 {
-	return ch=='\n' || ch=='\r';
+	return ch == '\n' || ch == '\r';
 }
 
 /**
@@ -35,7 +38,7 @@ static inline bool iseolch(TCHAR ch)
  */
 static inline bool iswsch(TCHAR ch)
 {
-	return ch==' ' || ch=='\t';
+	return ch == ' ' || ch == '\t';
 }
 
 /**
@@ -50,7 +53,7 @@ static inline bool iswsch(TCHAR ch)
  * @param [in] offset Byte offset in whole file (among several buffers).
  */
 static void TextScan(FileTextStats & stats, LPCSTR ptr, LPCSTR end, bool eof,
-	bool crflag, __int64 offset)
+		bool crflag, __int64 offset)
 {
 	LPCSTR start = ptr; // remember for recording zero-byte offsets
 
@@ -67,7 +70,7 @@ static void TextScan(FileTextStats & stats, LPCSTR ptr, LPCSTR end, bool eof,
 			++stats.ncrs;
 		}
 	}
-	for ( ; ptr < end; ++ptr)
+	for (; ptr < end; ++ptr)
 	{
 		char ch = *ptr;
 		if (ch == 0)
@@ -80,7 +83,7 @@ static void TextScan(FileTextStats & stats, LPCSTR ptr, LPCSTR end, bool eof,
 		}
 		else if (ch == '\r')
 		{
-			if (ptr+1 < end)
+			if (ptr + 1 < end)
 			{
 				if (ptr[1] == '\n')
 				{
@@ -119,17 +122,17 @@ namespace CompareEngines
  */
 ByteComparator::ByteComparator(const QuickCompareOptions * options)
 // settings
-: m_ignore_case(options->m_bIgnoreCase)
-, m_ignore_eol_diff(options->m_bIgnoreEOLDifference)
-, m_ignore_blank_lines(options->m_bIgnoreBlankLines)
+		: m_ignore_case(options->m_bIgnoreCase)
+		, m_ignore_eol_diff(options->m_bIgnoreEOLDifference)
+		, m_ignore_blank_lines(options->m_bIgnoreBlankLines)
 // state
-, m_wsflag(false)
-, m_eol0(false)
-, m_eol1(false)
-, m_cr0(false)
-, m_cr1(false)
-, m_bol0(true)
-, m_bol1(true)
+		, m_wsflag(false)
+		, m_eol0(false)
+		, m_eol1(false)
+		, m_cr0(false)
+		, m_cr1(false)
+		, m_bol0(true)
+		, m_bol1(true)
 {
 	if (options->m_ignoreWhitespace == WHITESPACE_IGNORE_CHANGE)
 		m_ignore_space_change = true;
@@ -183,16 +186,16 @@ ByteComparator::COMP_RESULT ByteComparator::CompareBuffers(
 			// skip over all whitespace
 			while (ptr0 < end0 && iswsch(*ptr0))
 			{
-				m_bol0=false;
+				m_bol0 = false;
 				++ptr0;
 			}
 			// skip over all whitespace
 			while (ptr1 < end1 && iswsch(*ptr1))
 			{
-				m_bol1=false;
+				m_bol1 = false;
 				++ptr1;
 			}
-			if ( (ptr0 == end0 && !eof0) || (ptr1 == end1 && !eof1) )
+			if ((ptr0 == end0 && !eof0) || (ptr1 == end1 && !eof1))
 			{
 				goto need_more;
 			}
@@ -200,9 +203,9 @@ ByteComparator::COMP_RESULT ByteComparator::CompareBuffers(
 		if (m_ignore_space_change)
 		{
 			// Skip over whitespace change
-			// Also skip whitespace on one side if 
+			// Also skip whitespace on one side if
 			//  either end of line or end of file on other
-			
+
 			// Handle case of whitespace on side0
 			// (First four cases)
 			if (ptr0 < end0 && iswsch(*ptr0))
@@ -215,16 +218,16 @@ ByteComparator::COMP_RESULT ByteComparator::CompareBuffers(
 					{
 						// whitespace on both sides
 						m_wsflag = true;
-						m_bol0=false;
+						m_bol0 = false;
 						++ptr0;
-						m_bol1=false;
+						m_bol1 = false;
 						++ptr1;
 					}
 					else if (iseolch(*ptr1))
 					{
 						// whitespace on side 0 (end of line on side 1)
 						m_wsflag = true;
-						m_bol0=false;
+						m_bol0 = false;
 						++ptr0;
 					}
 				}
@@ -240,7 +243,7 @@ ByteComparator::COMP_RESULT ByteComparator::CompareBuffers(
 					{
 						// Whitespace on side0, eof on side1
 						m_wsflag = true;
-						m_bol0=false;
+						m_bol0 = false;
 						++ptr0;
 					}
 				}
@@ -259,13 +262,13 @@ ByteComparator::COMP_RESULT ByteComparator::CompareBuffers(
 						// "whitespace on both sides"
 						// should not come here, it should have been
 						// handled above
-						ASSERT(!iswsch(*ptr0));
+						assert(!iswsch(*ptr0));
 
 						if (iseolch(*ptr0))
 						{
 							// whitespace on side 1 (eol on side 0)
 							m_wsflag = true;
-							m_bol1=false;
+							m_bol1 = false;
 							++ptr1;
 						}
 					}
@@ -281,7 +284,7 @@ ByteComparator::COMP_RESULT ByteComparator::CompareBuffers(
 						{
 							// Whitespace on side1, eof on side0
 							m_wsflag = true;
-							m_bol1=false;
+							m_bol1 = false;
 							++ptr1;
 						}
 					}
@@ -293,16 +296,16 @@ ByteComparator::COMP_RESULT ByteComparator::CompareBuffers(
 				// skip over consecutive whitespace
 				while (ptr0 < end0 && iswsch(*ptr0))
 				{
-					m_bol0=false;
+					m_bol0 = false;
 					++ptr0;
 				}
 				// skip over consecutive whitespace
 				while (ptr1 < end1 && iswsch(*ptr1))
 				{
-					m_bol1=false;
+					m_bol1 = false;
 					++ptr1;
 				}
-				if ( (ptr0 == end0 && !eof0) || (ptr1 == end1 && !eof1) )
+				if ((ptr0 == end0 && !eof0) || (ptr1 == end1 && !eof1))
 				{
 					// if run out of buffer on either side
 					// must fetch more, to continue skipping whitespace
@@ -327,7 +330,7 @@ ByteComparator::COMP_RESULT ByteComparator::CompareBuffers(
 					// m_bol1 not used because m_ignore_eol_diff
 					++ptr1;
 				}
-				if ( (ptr0 == end0 && !eof0) || (ptr1 == end1 && !eof1) )
+				if ((ptr0 == end0 && !eof0) || (ptr1 == end1 && !eof1))
 				{
 					goto need_more;
 				}
@@ -339,7 +342,7 @@ ByteComparator::COMP_RESULT ByteComparator::CompareBuffers(
 
 				if (m_cr0 || m_cr1)
 				{
-					// these flags mean possible split CR/LF 
+					// these flags mean possible split CR/LF
 					goto need_more;
 				}
 				if (m_eol0 || m_eol1)
@@ -373,16 +376,16 @@ ByteComparator::COMP_RESULT ByteComparator::CompareBuffers(
 						++ptr1;
 					}
 				}
-				if ( (ptr0 == end0 && !eof0) || (ptr1 == end1 && !eof1) )
+				if ((ptr0 == end0 && !eof0) || (ptr1 == end1 && !eof1))
 				{
 					goto need_more;
 				}
 			}
 		}
 
-		if ( ptr0 == end0 || ptr1 == end1)
+		if (ptr0 == end0 || ptr1 == end1)
 		{
-			if ( ptr0 == end0 && ptr1 == end1)
+			if (ptr0 == end0 && ptr1 == end1)
 			{
 				if (!eof0 || !eof1)
 					goto need_more;
@@ -391,9 +394,9 @@ ByteComparator::COMP_RESULT ByteComparator::CompareBuffers(
 			}
 			else
 			{
-				if (!eof0 || !eof1)
+				// we are at the end on one side?
+				if (!eof0 && !eof1)
 				{
-					result = RESULT_DIFF;
 					goto need_more;
 				}
 				else
@@ -428,7 +431,7 @@ need_more:
 		else
 			return NEED_MORE_0;
 	}
-	else if(ptr1 == end1 && !eof1)
+	else if (ptr1 == end1 && !eof1)
 	{
 		return NEED_MORE_1;
 	}

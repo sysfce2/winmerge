@@ -22,20 +22,18 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: UnicodeString.h 6063 2008-11-04 20:07:22Z kimmov $
+// $Id: UnicodeString.h 7447 2010-11-24 07:58:17Z gerundt $
 
 #ifndef _UNICODE_STRING_
 #define _UNICODE_STRING_
 
 #include <string>
 
-#ifdef _UNICODE
 #define std_tchar(type) std::w##type
-#else
-#define std_tchar(type) std::type
-#endif // _UNICODE
 
 typedef std_tchar(string) String;
+
+String string_makelower(const String &str);
 
 void string_replace(String &target, const String &find, const String &replace);
 
@@ -44,5 +42,10 @@ int string_compare_nocase(const String &str1, const String &str2);
 
 // Trimming
 String string_trim_ws(const String & str);
+String string_trim_ws_begin(const String & str);
+String string_trim_ws_end(const String & str);
+
+// Formatting
+String string_format(const TCHAR *fmt, ...);
 
 #endif // _UNICODE_STRING_
