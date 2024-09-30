@@ -3,8 +3,8 @@
  *
  *  @brief Implementation of DIFFITEM
  */ 
-// RCS ID line follows -- this is updated by CVS
-// $Id: DiffItem.cpp 3059 2006-02-13 03:10:29Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: DiffItem.cpp 5019 2008-02-10 11:50:33Z jtuc $
 
 #include "stdafx.h"
 #include "DiffItem.h"
@@ -16,6 +16,43 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+/**
+ * @brief Copy constructor.
+ * @param [in] di Object to copy.
+ */
+DIFFITEM::DIFFITEM(const DIFFITEM& di)
+{
+	diffcode = di.diffcode;
+	left = di.left;
+	right = di.right;
+	nsdiffs = di.nsdiffs;
+	nidiffs = di.nidiffs;
+	errorDesc = di.errorDesc;
+	customFlags1 = di.customFlags1;
+	empty = di.empty;
+}
+
+/**
+ * @brief Assignment operator override.
+ * @param [in] di Object to copy.
+ * @return Copy of given object.
+ */
+DIFFITEM& DIFFITEM::operator=(const DIFFITEM& di)
+{
+	if (this != &di)
+	{
+		diffcode = di.diffcode;
+		left = di.left;
+		right = di.right;
+		nsdiffs = di.nsdiffs;
+		nidiffs = di.nidiffs;
+		errorDesc = di.errorDesc;
+		customFlags1 = di.customFlags1;
+		empty = di.empty;
+	}
+	return *this;
+}
+
 /** @brief Make and return a diffitem with no data */
 DIFFITEM DIFFITEM::MakeEmptyDiffItem() // static
 {
@@ -25,23 +62,23 @@ DIFFITEM DIFFITEM::MakeEmptyDiffItem() // static
 }
 
 /** @brief Return path to left file, including all but file name */
-CString DIFFITEM::getLeftFilepath(const CString &sLeftRoot) const
+String DIFFITEM::getLeftFilepath(const String &sLeftRoot) const
 {
-	CString sPath;
-	if (!isSideRight())
+	String sPath;
+	if (!diffcode.isSideRightOnly())
 	{
-		sPath = paths_ConcatPath(sLeftRoot, sLeftSubdir);
+		sPath = paths_ConcatPath(sLeftRoot, left.path);
 	}
 	return sPath;
 }
 
 /** @brief Return path to right file, including all but file name */
-CString DIFFITEM::getRightFilepath(const CString &sRightRoot) const
+String DIFFITEM::getRightFilepath(const String &sRightRoot) const
 {
-	CString sPath;
-	if (!isSideLeft())
+	String sPath;
+	if (!diffcode.isSideLeftOnly())
 	{
-		sPath = paths_ConcatPath(sRightRoot, sRightSubdir);
+		sPath = paths_ConcatPath(sRightRoot, right.path);
 	}
 	return sPath;
 }

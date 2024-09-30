@@ -4,10 +4,10 @@
  *  @date   Created: 2003-10
  *  @date   Edited:  2006-02-20 (Perry Rapp)
  *
- *  @brief  Declaration of Memory-Mapped Unicode enabled file class
+ *  @brief  Declaration of Unicode file classes.
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: UniFile.h 3945 2006-12-11 22:12:20Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: UniFile.h 4968 2008-01-27 22:15:16Z kimmov $
 
 #ifndef UniFile_h_included
 #define UniFile_h_included
@@ -15,6 +15,8 @@
 #ifndef sbuffer_h_included
 #include "sbuffer.h"
 #endif
+
+#include "unicoder.h"
 
 /**
  * @brief Interface to file classes in this module
@@ -32,31 +34,28 @@ public:
 		UniError() { ClearError(); }
 	};
 
+	virtual ~UniFile() { }
 	virtual bool OpenReadOnly(LPCTSTR filename) = 0;
-
 	virtual void Close() = 0;
-
 	virtual bool IsOpen() const = 0;
 
-	virtual CString GetFullyQualifiedPath() const = 0;
-
+	virtual String GetFullyQualifiedPath() const = 0;
 	virtual const UniError & GetLastUniError() const = 0;
 
 	virtual bool ReadBom() = 0;
+	virtual bool HasBom() = 0;
+	virtual void SetBom(bool bom) = 0;
 
 	virtual int GetUnicoding() const = 0;
 	virtual void SetUnicoding(int unicoding) = 0;
-
 	virtual int GetCodepage() const = 0;
 	virtual void SetCodepage(int codepage) = 0;
 
 public:
 	virtual BOOL ReadString(CString & line, bool * lossy) = 0;
 	virtual BOOL ReadString(CString & line, CString & eol, bool * lossy) = 0;
-
 	virtual int GetLineNumber() const = 0;
 	virtual __int64 GetPosition() const = 0;
-
 	virtual BOOL WriteString(const CString & line) = 0;
 
 	struct txtstats
@@ -85,18 +84,15 @@ public:
 	UniLocalFile();
 	void Clear();
 
-	virtual CString GetFullyQualifiedPath() const { return m_filepath; }
-
+	virtual String GetFullyQualifiedPath() const { return m_filepath; }
 	virtual const UniError & GetLastUniError() const { return m_lastError; }
 
 	virtual int GetUnicoding() const { return m_unicoding; }
 	virtual void SetUnicoding(int unicoding) { m_unicoding = unicoding; }
-
 	virtual int GetCodepage() const { return m_codepage; }
 	virtual void SetCodepage(int codepage) { m_codepage = codepage; }
 
 	virtual int GetLineNumber() const { return m_lineno; }
-
 	virtual const txtstats & GetTxtStats() const { return m_txtstats; }
 
 protected:
@@ -107,15 +103,15 @@ protected:
 protected:
 	int m_statusFetched; // 0 not fetched, -1 error, +1 success
 	__int64 m_filesize;
-	CString m_filepath;
-	CString m_filename;
+	String m_filepath;
+	String m_filename;
 	int m_lineno; // current 0-based line of m_current
 	UniError m_lastError;
-	bool m_readbom; // whether have tested for BOM
 	int m_unicoding; // enum UNICODESET in unicoder.h
 	int m_charsize; // 2 for UCS-2, else 1
 	int m_codepage; // only valid if m_unicoding==ucr::NONE;
 	txtstats m_txtstats;
+	bool m_bom; /**< Did the file have a BOM when reading? */
 };
 
 /**
@@ -123,6 +119,7 @@ protected:
  */
 class UniMemFile : public UniLocalFile
 {
+	friend class UniMarkdownFile;
 public:
 	UniMemFile();
 	virtual ~UniMemFile() { Close(); }
@@ -132,19 +129,17 @@ public:
 	virtual bool OpenReadOnly(LPCTSTR filename);
 	virtual bool Open(LPCTSTR filename);
 	virtual bool Open(LPCTSTR filename, DWORD dwOpenAccess, DWORD dwOpenShareMode, DWORD dwOpenCreationDispostion, DWORD dwMappingProtect, DWORD dwMapViewAccess);
-
 	void Close();
-
 	virtual bool IsOpen() const;
 
 	virtual bool ReadBom();
+	virtual bool HasBom();
+	virtual void SetBom(bool bom);
 
 public:
 	virtual BOOL ReadString(CString & line, bool * lossy);
 	virtual BOOL ReadString(CString & line, CString & eol, bool * lossy);
-
 	virtual __int64 GetPosition() const { return m_current - m_base; }
-
 	virtual BOOL WriteString(const CString & line);
 
 // Implementation methods
@@ -177,12 +172,13 @@ public:
 	virtual bool OpenCreate(LPCTSTR filename);
 	virtual bool OpenCreateUtf8(LPCTSTR filename);
 	virtual bool Open(LPCTSTR filename, LPCTSTR mode);
-
 	void Close();
 
 	virtual bool IsOpen() const;
 
 	virtual bool ReadBom();
+	virtual bool HasBom();
+	virtual void SetBom(bool bom);
 
 protected:
 	virtual BOOL ReadString(CString & line, bool * lossy);

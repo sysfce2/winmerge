@@ -7,8 +7,8 @@
  *
  *  @brief Implementation of Unicode enabled file classes (Memory-mapped reader class, and Stdio replacement class)
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: UniFile.cpp 3945 2006-12-11 22:12:20Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: UniFile.cpp 4968 2008-01-27 22:15:16Z kimmov $
 
 /* The MIT License
 Copyright (c) 2003 Perry Rapp
@@ -49,11 +49,11 @@ void UniLocalFile::Clear()
 	m_filepath = _T("");
 	m_filename = _T("");
 	m_lineno = -1;
-	m_readbom = false;
 	m_unicoding = ucr::NONE;
 	m_charsize = 1;
 	m_codepage = getDefaultCodepage();
 	m_txtstats.clear();
+	m_bom = false;
 }
 
 /**
@@ -71,11 +71,22 @@ bool UniLocalFile::DoGetFileStatus()
 	m_statusFetched = -1;
 	m_lastError.ClearError();
 
-	m_filepath = paths_GetLongPath(m_filepath);
+	m_filepath = paths_GetLongPath(m_filepath.c_str());
 
-	if (_tstati64(m_filepath, &fstats) == 0)
+	if (_tstati64(m_filepath.c_str(), &fstats) == 0)
 	{
 		m_filesize = fstats.st_size;
+		if (m_filesize == 0)
+		{
+			// if m_filesize equals zero, the file size is really zero or the file is a symbolic link.
+			// use GetCompressedFileSize() to get the file size of the symbolic link target whether the file is symbolic link or not.
+			// if the file is not symbolic link, GetCompressedFileSize() will return zero.
+			// NOTE: GetCompressedFileSize() returns error for pre-W2K windows versions
+			DWORD dwFileSizeLow, dwFileSizeHigh;
+			dwFileSizeLow = GetCompressedFileSize(m_filepath.c_str(), &dwFileSizeHigh);
+			if (GetLastError() == 0)
+				m_filesize = ((__int64)dwFileSizeHigh << 32) + dwFileSizeLow;
+		}
 		m_statusFetched = 1;
 
 		return true;
@@ -200,7 +211,7 @@ bool UniMemFile::DoOpen(LPCTSTR filename, DWORD dwOpenAccess, DWORD dwOpenShareM
 	m_filename = filename;
 	m_filepath = m_filename; // TODO: Make canonical ?
 
-	m_handle = CreateFile(m_filename, dwOpenAccess, dwOpenShareMode, NULL, dwOpenCreationDispostion, 0, 0);
+	m_handle = CreateFile(m_filename.c_str(), dwOpenAccess, dwOpenShareMode, NULL, dwOpenCreationDispostion, 0, 0);
 	if (m_handle == INVALID_HANDLE_VALUE)
 	{
 		LastError(_T("CreateFile"), GetLastError());
@@ -262,37 +273,56 @@ bool UniMemFile::DoOpen(LPCTSTR filename, DWORD dwOpenAccess, DWORD dwOpenShareM
  */
 bool UniMemFile::ReadBom()
 {
-	if (!IsOpen()) return false;
+	if (!IsOpen())
+		return false;
 
 	unsigned char * lpByte = m_base;
 	m_current = m_data = m_base;
 	m_charsize = 1;
-	if (m_filesize >= 2)
+	bool unicode = false;
+	bool bom = false;
+	
+	m_unicoding = ucr::DetermineEncoding(lpByte, m_filesize, &bom);
+	switch (m_unicoding)
 	{
-		if (lpByte[0] == 0xFF && lpByte[1] == 0xFE)
-		{
-			m_unicoding = ucr::UCS2LE;
+		case ucr::UCS2LE:
+		case ucr::UCS2BE:
 			m_charsize = 2;
-			m_data = lpByte+2;
-		}
-		else if (lpByte[0] == 0xFE && lpByte[1] == 0xFF)
-		{
-			m_unicoding = ucr::UCS2BE;
-			m_charsize = 2;
-			m_data = lpByte+2;
-		}
+			m_data = lpByte + 2;
+			unicode = true;
+			break;
+		case ucr::UTF8:
+			if (bom)
+				m_data = lpByte + 3;
+			else
+				m_data = lpByte;
+			unicode = true;
+			break;
+		default:
+			break;
 	}
-	if (m_filesize >=3)
-	{
-		if (lpByte[0] == 0xEF && lpByte[1] == 0xBB && lpByte[2] == 0xBF)
-		{
-			m_unicoding = ucr::UTF8;
-			m_data = lpByte+3;
-		}
-	}
-	m_readbom = true;
+
+	m_bom = bom;
 	m_current = m_data;
-	return (m_data != m_base);
+	return unicode;
+}
+
+/**
+ * @brief Returns if file has a BOM bytes.
+ * @return true if file has BOM bytes, false otherwise.
+ */
+bool UniMemFile::HasBom()
+{
+	return m_bom;
+}
+
+/**
+ * @brief Sets if file has BOM or not.
+ * @param [in] true to have a BOM in file, false to not to have.
+ */
+void UniMemFile::SetBom(bool bom)
+{
+	m_bom = bom;
 }
 
 /**
@@ -391,8 +421,6 @@ BOOL UniMemFile::ReadString(CString & line, CString & eol, bool * lossy)
 			if (!wch)
 			{
 				RecordZero(m_txtstats, wch_offset);
-				CopyMemory(line.GetBufferSetLength(cchLine), pchLine, cchLine * sizeof(TCHAR));
-				return TRUE;
 			}
 			++cchLine;
 		}
@@ -438,8 +466,6 @@ BOOL UniMemFile::ReadString(CString & line, CString & eol, bool * lossy)
 			if (!ch)
 			{
 				RecordZero(m_txtstats, ch_offset);
-				CopyMemory(line.GetBufferSetLength(cchLine), pchLine, cchLine * sizeof(TCHAR));
-				return TRUE;
 			}
 			++cchLine;
 		}
@@ -576,7 +602,6 @@ BOOL UniMemFile::ReadString(CString & line, CString & eol, bool * lossy)
 		}
 		else if (!ch)
 		{
-			doneline = true;
 			int offset = (m_current - m_base);
 			RecordZero(m_txtstats, offset);
 		}
@@ -642,7 +667,6 @@ void UniStdioFile::Close()
 	// preserve m_filename
 	m_data = 0;
 	m_lineno = -1;
-	m_readbom = false;
 	// preserve m_unicoding
 	// preserve m_charsize
 	// preserve m_codepage
@@ -700,7 +724,7 @@ bool UniStdioFile::DoOpen(LPCTSTR filename, LPCTSTR mode)
 	// But we don't care since size is set to 0 anyway.
 	GetFileStatus();
 
-	m_fp = _tfopen(m_filepath, mode);
+	m_fp = _tfopen(m_filepath.c_str(), mode);
 	if (!m_fp)
 		return false;
 
@@ -742,38 +766,67 @@ void UniStdioFile::LastErrorCustom(LPCTSTR desc)
  */
 bool UniStdioFile::ReadBom()
 {
-	if (!IsOpen()) return false;
+	if (!IsOpen())
+		return false;
 
 	fseek(m_fp, 0, SEEK_SET);
 
-	// Need three bytes for BOM
-	unsigned char buff[4];
-	int bytes = fread(buff, 1, 3, m_fp);
-	unsigned char * lpByte = (unsigned char *)buff;
+	// Read 8 KB at max for get enough data determining UTF-8 without BOM.
+	const int max_size = 8 * 1024;
+	unsigned char* buff = new unsigned char[max_size];
+	if (buff == NULL)
+		return false;
 
+	int bytes = fread(buff, 1, max_size, m_fp);
 	m_data = 0;
 	m_charsize = 1;
-	if (bytes >= 2 && lpByte[0] == 0xFF && lpByte[1] == 0xFE)
+	bool unicode = false;
+	bool bom = false;
+	
+	m_unicoding = ucr::DetermineEncoding(buff, bytes, &bom);
+	switch (m_unicoding)
 	{
-		m_unicoding = ucr::UCS2LE;
-		m_charsize = 2;
-		m_data = 2;
+		case ucr::UCS2LE:
+		case ucr::UCS2BE:
+			m_charsize = 2;
+			m_data = 2;
+			unicode = true;
+			break;
+		case ucr::UTF8:
+			if (bom)
+				m_data = 3;
+			else
+				m_data = 0;
+			unicode = true;
+			break;
+		default:
+			break;
 	}
-	else if (bytes >= 2 && lpByte[0] == 0xFE && lpByte[1] == 0xFF)
-	{
-		m_unicoding = ucr::UCS2BE;
-		m_charsize = 2;
-		m_data = 2;
-	}
-	else if (bytes >= 3 && lpByte[0] == 0xEF && lpByte[1] == 0xBB && lpByte[2] == 0xBF)
-	{
-		m_unicoding = ucr::UTF8;
-		m_data = 3;
-	}
+
+	delete[] buff;
 	fseek(m_fp, (long)m_data, SEEK_SET);
-	m_readbom = true;
-	return (m_data != 0);
+	m_bom = bom;
+	return unicode;
 }
+
+/**
+ * @brief Returns if file has a BOM bytes.
+ * @return true if file has BOM bytes, false otherwise.
+ */
+bool UniStdioFile::HasBom()
+{
+	return m_bom;
+}
+
+/**
+ * @brief Sets if file has BOM or not.
+ * @param [in] true to have a BOM in file, false to not to have.
+ */
+void UniStdioFile::SetBom(bool bom)
+{
+	m_bom = bom;
+}
+
 
 BOOL UniStdioFile::ReadString(CString & line, bool * lossy)
 {
@@ -814,7 +867,7 @@ int UniStdioFile::WriteBom()
 		fwrite(bom, 1, 2, m_fp);
 		m_data = 2;
 	}
-	else if (m_unicoding == ucr::UTF8)
+	else if (m_unicoding == ucr::UTF8 && m_bom)
 	{
 		unsigned char bom[] = "\xEF\xBB\xBF";
 		fseek(m_fp, 0, SEEK_SET);

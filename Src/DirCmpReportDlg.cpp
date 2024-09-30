@@ -4,8 +4,8 @@
  * @brief Implementation file for DirCmpReport dialog
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DirCmpReportDlg.cpp 3850 2006-11-26 11:29:07Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: DirCmpReportDlg.cpp 4636 2007-10-16 16:56:52Z jtuc $
 //
 
 #include "stdafx.h"
@@ -14,6 +14,7 @@
 #include "DirReportTypes.h"
 #include "paths.h"
 #include "FileOrFolderSelect.h"
+#include "Merge.h"
 
 IMPLEMENT_DYNAMIC(DirCmpReportDlg, CDialog)
 
@@ -86,6 +87,7 @@ static ReportTypeInfo f_types[] = {
  */
 BOOL DirCmpReportDlg::OnInitDialog()
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
 
 	m_ctlReportFile.LoadState(_T("ReportFiles"));
@@ -93,7 +95,7 @@ BOOL DirCmpReportDlg::OnInitDialog()
 	for (int i = 0; i < sizeof(f_types) / sizeof(f_types[0]); ++i)
 	{
 		const ReportTypeInfo & info = f_types[i];
-		int ind = m_ctlStyle.InsertString(i, LoadResString(info.idDisplay));
+		int ind = m_ctlStyle.InsertString(i, theApp.LoadString(info.idDisplay).c_str());
 		m_ctlStyle.SetItemData(ind, info.reportType);
 
 	}
@@ -113,16 +115,13 @@ void DirCmpReportDlg::OnBtnClickReportBrowse()
 {
 	UpdateData(TRUE);
 
-	CString title = LoadResString(IDS_SAVE_AS_TITLE);
 	CString folder = m_sReportFile;
 	int filterid = f_types[m_ctlStyle.GetCurSel()].browseFilter;
 
 	CString chosenFilepath;
-	if (SelectFile(GetSafeHwnd(), chosenFilepath, folder, title,
+	if (SelectFile(GetSafeHwnd(), chosenFilepath, folder, IDS_SAVE_AS_TITLE,
 			filterid, FALSE))
 	{
-		CString name;
-		SplitFilename(chosenFilepath, &folder, &name, NULL);
 		m_sReportFile = chosenFilepath;
 		m_ctlReportFile.SetWindowText(chosenFilepath);
 	}
@@ -148,7 +147,7 @@ void DirCmpReportDlg::OnOK()
 
 	if (m_sReportFile.IsEmpty() && !m_bCopyToClipboard)
 	{
-		AfxMessageBox(IDS_MUST_SPECIFY_OUTPUT, MB_ICONSTOP);
+		LangMessageBox(IDS_MUST_SPECIFY_OUTPUT, MB_ICONSTOP);
 		m_ctlReportFile.SetFocus();
 		return;
 	}
@@ -157,7 +156,7 @@ void DirCmpReportDlg::OnOK()
 	{
 		if (paths_DoesPathExist(m_sReportFile) == IS_EXISTING_FILE)
 		{
-			int overWrite = AfxMessageBox(IDS_REPORT_FILEOVERWRITE,
+			int overWrite = LangMessageBox(IDS_REPORT_FILEOVERWRITE,
 					MB_YESNO | MB_ICONWARNING | MB_DONT_ASK_AGAIN,
 					IDS_DIFF_FILEOVERWRITE);
 			if (overWrite == IDNO)

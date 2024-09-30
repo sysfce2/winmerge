@@ -3,8 +3,8 @@
  *
  *  @brief Declarations of CDiffContext and diff structures
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DiffContext.h 3230 2006-04-26 17:40:19Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: DiffContext.h 5051 2008-02-18 20:39:13Z kimmov $
 
 #if !defined(AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_)
 #define AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_
@@ -28,25 +28,25 @@ class IDiffFilter;
 struct DIFFITEM;
 class CompareStats;
 class IAbortable;
-
-// Interface for reporting current file, as diff traverses file tree
-class IDiffStatus
-{
-public:
-	virtual void rptFile(BYTE code)=0;
-};
+class FilterList;
+class CompareOptions;
+struct DIFFOPTIONS;
 
 /** Interface to a provider of plugin info */
 class IPluginInfos
 {
 public:
-	virtual void FetchPluginInfos(const CString& filteredFilenames, 
+	virtual void FetchPluginInfos(LPCTSTR filteredFilenames, 
                                       PackingInfo ** infoUnpacker, 
                                       PrediffingInfo ** infoPrediffer) = 0;
 };
 
 /**
- * @brief Directory compare context.
+ * The folder compare context.
+ * This class holds data of the current folder compare. There are paths
+ * to compare, filters used, compare options etc. And compare results list
+ * is also contained in this class. Many compare classes and functions have
+ * a pointer to instance of this class. 
  *
  * @note If you add new member variables, remember to copy values in
  * CDiffContext::CDiffContext(..,CDiffContext) constructor!
@@ -54,8 +54,16 @@ public:
 class CDiffContext : public DiffItemList
 {
 public:
+	/** @brief Special values for difference counts. */
+	enum
+	{
+		DIFFS_UNKNOWN = -1, /**< Difference count unknown (generally). */
+		DIFFS_UNKNOWN_QUICKCOMPARE = -9, /**< Unknown because of quick-compare method. */
+	};
+
 	CDiffContext(LPCTSTR pszLeft, LPCTSTR pszRight);
 	CDiffContext(LPCTSTR pszLeft, LPCTSTR pszRight, CDiffContext& src);
+	~CDiffContext();
 
 	// add & remove differences
 	virtual void AddDiff(const DIFFITEM & di);
@@ -70,37 +78,99 @@ public:
 	 * Normalized paths are preferred to use - short paths are expanded
 	 * and trailing slashes removed (except from root path).
 	 */
-	CString GetLeftPath() const { return m_paths.GetLeft(FALSE); }
-	CString GetRightPath() const { return m_paths.GetRight(FALSE); }
-	CString GetNormalizedLeft() const { return m_paths.GetLeft(); }
-	CString GetNormalizedRight() const { return m_paths.GetRight(); }
+	/**
+	 * Get left-side compare path.
+	 * @return full path in left-side.
+	 */
+	String GetLeftPath() const { return m_paths.GetLeft(FALSE); }
+	/**
+	 * Get right-side compare path.
+	 * @return full path in right-side.
+	 */
+	String GetRightPath() const { return m_paths.GetRight(FALSE); }
+	/**
+	 * Get left-side compare path in normalized form.
+	 * @return full path in left-side.
+	 */
+	String GetNormalizedLeft() const { return m_paths.GetLeft(); }
+	/**
+	 * Get right-side compare path in normalized form.
+	 * @return full path in left-side.
+	 */	String GetNormalizedRight() const { return m_paths.GetRight(); }
 	//@}
 
 	// change an existing difference
 	BOOL UpdateInfoFromDiskHalf(DIFFITEM & di, BOOL bLeft);
 	void UpdateStatusFromDisk(POSITION diffpos, BOOL bLeft, BOOL bRight);
 
+	BOOL CreateCompareOptions(int compareMethod, const DIFFOPTIONS & options);
+	CompareOptions * GetCompareOptions(int compareMethod);
+
 	// retrieve or manufacture plugin info for specified file comparison
-	void FetchPluginInfos(const CString& filteredFilenames, PackingInfo ** infoUnpacker, PrediffingInfo ** infoPrediffer);
+	void FetchPluginInfos(LPCTSTR filteredFilenames,
+		PackingInfo ** infoUnpacker, PrediffingInfo ** infoPrediffer);
 
+	//@{
+	/**
+	 * @name Compare aborting interface.
+	 * These functions handle compare aborting using IAbortable interface.
+	 */
 	bool ShouldAbort() const;
-	void SetAbortable(IAbortable * piAbortable) { m_piAbortable = piAbortable; }
-	const IAbortable * GetAbortable() const { return m_piAbortable; }
 
-	IDiffFilter * m_piFilterGlobal;
+	/**
+	 * Set pointer to IAbortable interface.
+	 * This function sets pointer to interface used to abort the compare when
+	 * user wants to.
+	 * @param [in] piAbortable Pointer to interface.
+	 */
+	void SetAbortable(IAbortable * piAbortable) { m_piAbortable = piAbortable; }
+
+	/**
+	 * Returns a pointer to current IAbortable interface.
+	 * This function returns a pointer to interface used to abort the compare.
+	 * @return Pointer to current IAbortable interface.
+	 */
+	const IAbortable * GetAbortable() const { return m_piAbortable; }
+	//@}
+
+	IDiffFilter * m_piFilterGlobal; /**< Interface for file filtering. */
 	IPluginInfos * m_piPluginInfos;
-	HWND m_hDirFrame; /**< Handle to a folder compare frame */
 	BOOL m_bGuessEncoding;
-	int m_nCompMethod; /**< Compare method */
+
+	/**
+	 * The main compare method used.
+	 * This is the main compare method set when compare is started. There
+	 * can be temporary switches to other method (e.g. for large file) but
+	 * this main method must be set back for next file.
+	 */
+	int m_nCompMethod;
 	BOOL m_bIgnoreSmallTimeDiff; /**< Ignore small timedifferences when comparing by date */
 	CompareStats *m_pCompareStats; /**< Pointer to compare statistics */
-	BOOL m_bStopAfterFirstDiff; /**< Optimize compare by stopping after first difference? */
-	int m_nQuickCompareLimit; /**< Bigger files are always compared with quick compare */
+
+	/**
+	 * Optimize compare by stopping after first difference.
+	 * In some compare methods (currently quick compare) we can stop the
+	 * compare right after finding the first difference. This speeds up the
+	 * compare, but also causes compare statistics to be inaccurate.
+	 */
+	BOOL m_bStopAfterFirstDiff;
+
+	/**
+	 * Threshold size for switching to quick compare.
+	 * When diffutils compare is selected, files bigger (in bytes) than this
+	 * value are compared using Quick compare. This is because diffutils simply
+	 * cannot compare large files. And large files are usually binary files.
+	 */
+	int m_nQuickCompareLimit;
+	FilterList * m_pFilterList; /**< Filter list for line filters */
+	CRITICAL_SECTION m_criticalSect; /**< Critical section protecting list access. */
 
 private:
 	CList<DIFFITEM,DIFFITEM&> *m_pList; /**< Pointer to list, used to access list */
+	DIFFOPTIONS *m_pOptions; /**< Generalized compare options. */
+	CompareOptions *m_pCompareOptions; /**< Per compare method compare options. */
 	PathContext m_paths; /**< (root) paths for this context */
-	IAbortable *m_piAbortable;
+	IAbortable *m_piAbortable; /**< Interface for aborting the compare. */
 };
 
 #endif // !defined(AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_)

@@ -5,8 +5,8 @@
  *
  * @date  Created: 2003-08-19
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DirViewColHandler.cpp 3825 2006-11-21 20:09:16Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: DirViewColHandler.cpp 4624 2007-10-14 18:50:24Z kimmov $
 
 
 #include "stdafx.h"
@@ -31,17 +31,23 @@ static char THIS_FILE[] = __FILE__;
 
 
 /**
- * @brief Get text for specified column (forwards to specific column handler)
+ * @brief Get text for specified column.
+ * This function retrieves the text for the specified colum. Text is
+ * retrieved by using column-specific handler functions.
+ * @param [in] pCtxt Compare context.
+ * @param [in] col Column number.
+ * @param [in] di Difference data.
+ * @return Text for the specified column.
  */
-CString
-CDirView::ColGetTextToDisplay(const CDiffContext *pCtxt, int col, const DIFFITEM & di)
+String CDirView::ColGetTextToDisplay(const CDiffContext *pCtxt, int col,
+		const DIFFITEM & di)
 {
 	// Custom properties have custom get functions
 	const DirColInfo * pColInfo = DirViewColItems_GetDirColInfo(col);
 	if (!pColInfo)
 	{
 		ASSERT(0); // fix caller, should not ask for nonexistent columns
-		return "???";
+		return _T("???");
 	}
 	ColGetFncPtrType fnc = pColInfo->getfnc;
 	SIZE_T offset = pColInfo->offset;
@@ -49,10 +55,17 @@ CDirView::ColGetTextToDisplay(const CDiffContext *pCtxt, int col, const DIFFITEM
 }
 
 /**
- * @brief Sort two items on specified column (forwards to specific column handler)
+ * @brief Sort two items on specified column.
+ * This function determines order of two items in specified column. Order
+ * is determined by column-specific functions.
+ * @param [in] pCtxt Compare context.
+ * @param [in] col Column number to sort.
+ * @param [in] ldi Left difference item data.
+ * @param [in] rdi Right difference item data.
+ * @return Order of items.
  */
-int
-CDirView::ColSort(const CDiffContext *pCtxt, int col, const DIFFITEM & ldi, const DIFFITEM &rdi) const
+int CDirView::ColSort(const CDiffContext *pCtxt, int col, const DIFFITEM & ldi,
+		const DIFFITEM & rdi) const
 {
 	// Custom properties have custom sort functions
 	const DirColInfo * pColInfo = DirViewColItems_GetDirColInfo(col);
@@ -61,11 +74,20 @@ CDirView::ColSort(const CDiffContext *pCtxt, int col, const DIFFITEM & ldi, cons
 		ASSERT(0); // fix caller, should not ask for nonexistent columns
 		return 0;
 	}
-	ColSortFncPtrType fnc = pColInfo->sortfnc;
 	SIZE_T offset = pColInfo->offset;
 	const void * arg1 = reinterpret_cast<const char *>(&ldi) + offset;
 	const void * arg2 = reinterpret_cast<const char *>(&rdi) + offset;
-	return (*fnc)(pCtxt, arg1, arg2);
+	if (ColSortFncPtrType fnc = pColInfo->sortfnc)
+	{
+		return (*fnc)(pCtxt, arg1, arg2);
+	}
+	if (ColGetFncPtrType fnc = pColInfo->getfnc)
+	{
+		String p = (*fnc)(pCtxt, arg1);
+		String q = (*fnc)(pCtxt, arg2);
+		return lstrcmpi(p.c_str(), q.c_str());
+	}
+	return 0;
 }
 
 /**
@@ -88,11 +110,10 @@ void CDirView::NameColumn(int id, int subitem)
 	int phys = ColLogToPhys(subitem);
 	if (phys>=0)
 	{
-		CString s;
-		VERIFY(s.LoadString(id));
+		String s = theApp.LoadString(id);
 		LV_COLUMN lvc;
 		lvc.mask = LVCF_TEXT;
-		lvc.pszText = (LPTSTR)((LPCTSTR)s);
+		lvc.pszText = const_cast<LPTSTR>(s.c_str());
 		m_pList->SetColumn(m_colorder[subitem], &lvc);
 	}
 }
@@ -172,7 +193,7 @@ void CDirView::UpdateDiffItemStatus(UINT nIdx)
 	GetListCtrl().RedrawItems(nIdx, nIdx);
 }
 
-static CString rgDispinfoText[2]; // used in function below
+static String rgDispinfoText[2]; // used in function below
 
 /**
  * @brief Allocate a text buffer to assign to NMLVDISPINFO::item::pszText
@@ -183,10 +204,10 @@ static CString rgDispinfoText[2]; // used in function below
  *	latter case, you must not change or delete the string until the corresponding
  *	item text is deleted or two additional LVN_GETDISPINFO messages have been sent.
  */
-static LPTSTR NTAPI AllocDispinfoText(const CString &s)
+static LPTSTR NTAPI AllocDispinfoText(const String &s)
 {
 	static int i = 0;
-	LPCTSTR pszText = rgDispinfoText[i] = s;
+	LPCTSTR pszText = (rgDispinfoText[i] = s).c_str();
 	i ^= 1;
 	return (LPTSTR)pszText;
 }
@@ -199,7 +220,7 @@ void CDirView::ReflectGetdispinfo(NMLVDISPINFO *pParam)
 	int nIdx = pParam->item.iItem;
 	int i = ColPhysToLog(pParam->item.iSubItem);
 	POSITION key = GetItemKey(nIdx);
-	if (key == (POSITION) SPECIAL_ITEM_POS)
+	if (key == SPECIAL_ITEM_POS)
 	{
 		if (IsColName(i))
 		{
@@ -213,21 +234,22 @@ void CDirView::ReflectGetdispinfo(NMLVDISPINFO *pParam)
 	const DIFFITEM &di = GetDocument()->GetDiffRefByKey(key);
 	if (pParam->item.mask & LVIF_TEXT)
 	{
-		CString s = ColGetTextToDisplay(&ctxt, i, di);
+		String s = ColGetTextToDisplay(&ctxt, i, di);
 		// Add '*' to newer time field
 		if (di.left.mtime != 0 || di.right.mtime != 0)
 		{
 			if ((IsColLmTime(i) && di.left.mtime > di.right.mtime) ||
 				(IsColRmTime(i) && di.left.mtime < di.right.mtime))
 			{
-				s.Insert(0, _T("* "));
+				s.insert(0, _T("* "));
 			}
 		}
 		// Don't show result for folderitems appearing both sides
 		if ((IsColStatus(i) || IsColStatusAbbr(i)) &&
-			di.isDirectory() && !di.isSideLeft() && !di.isSideRight())
+			di.diffcode.isDirectory() && !di.diffcode.isSideLeftOnly() &&
+			!di.diffcode.isSideRightOnly())
 		{
-			s.Empty();
+			s.erase();
 		}
 		pParam->item.pszText = AllocDispinfoText(s);
 	}
@@ -366,23 +388,19 @@ void CDirView::ClearColumnOrders()
 /**
  * @brief Return display name of column
  */
-CString CDirView::GetColDisplayName(int col) const
+String CDirView::GetColDisplayName(int col) const
 {
 	const DirColInfo * colinfo = DirViewColItems_GetDirColInfo(col);
-	CString s;
-	s.LoadString(colinfo->idName);
-	return s;
+	return theApp.LoadString(colinfo->idName);
 }
 
 /**
  * @brief Return description of column
  */
-CString CDirView::GetColDescription(int col) const
+String CDirView::GetColDescription(int col) const
 {
 	const DirColInfo * colinfo = DirViewColItems_GetDirColInfo(col);
-	CString s;
-	s.LoadString(colinfo->idDesc);
-	return s;
+	return theApp.LoadString(colinfo->idDesc);
 }
 
 /**
@@ -428,7 +446,7 @@ void CDirView::OnEditColumns()
 	for (int col=0; col<GetListCtrl().GetHeaderCtrl()->GetItemCount(); ++col)
 	{
 		int l = ColPhysToLog(col);
-		dlg.AddColumn(GetColDisplayName(l), GetColDescription(l), l, col);
+		dlg.AddColumn(GetColDisplayName(l).c_str(), GetColDescription(l).c_str(), l, col);
 	}
 	// Now add all the columns not currently displayed
 	int l=0;
@@ -436,7 +454,7 @@ void CDirView::OnEditColumns()
 	{
 		if (ColLogToPhys(l)==-1)
 		{
-			dlg.AddColumn(GetColDisplayName(l), GetColDescription(l), l);
+			dlg.AddColumn(GetColDisplayName(l).c_str(), GetColDescription(l).c_str(), l);
 		}
 	}
 
@@ -444,7 +462,7 @@ void CDirView::OnEditColumns()
 	for (l = 0; l < m_numcols; ++l)
 	{
 		int phy = GetColDefaultOrder(l);
-		dlg.AddDefColumn(GetColDisplayName(l), l, phy);
+		dlg.AddDefColumn(GetColDisplayName(l).c_str(), l, phy);
 	}
 
 	if (dlg.DoModal() != IDOK)

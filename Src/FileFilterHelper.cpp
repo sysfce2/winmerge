@@ -19,14 +19,15 @@
  *
  * @brief Implementation file for FileFilterHelper class
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: FileFilterHelper.cpp 3423 2006-08-02 19:36:12Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: FileFilterHelper.cpp 4619 2007-10-14 08:50:20Z jtuc $
 
 #include "stdafx.h"
-#include "FileInfo.h"
+#include "Ucs2Utf8.h"
+#include "FilterList.h"
+#include "DirItem.h"
 #include "FileFilterMgr.h"
 #include "FileFilterHelper.h"
-#include "RegExp.h"
 #include "Coretools.h"
 #include "paths.h"
 
@@ -40,9 +41,10 @@ static char THIS_FILE[] = __FILE__;
  * @brief Constructor, creates new filtermanager.
  */
 FileFilterHelper::FileFilterHelper()
+: m_pMaskFilter(NULL)
+, m_bUseMask(TRUE)
 {
 	m_fileFilterMgr = new FileFilterMgr;
-	m_bUseMask = TRUE;
 }
 
 /** 
@@ -51,6 +53,7 @@ FileFilterHelper::FileFilterHelper()
 FileFilterHelper::~FileFilterHelper()
 {
 	delete m_fileFilterMgr;
+	delete m_pMaskFilter;
 }
 
 /** 
@@ -115,7 +118,7 @@ void FileFilterHelper::GetFileFilters(FILEFILTER_INFOLIST * filters, CString & s
  * @param [in] filterPath Path to filterfile.
  * @sa FileFilterHelper::GetFileFilterPath()
  */
-CString FileFilterHelper::GetFileFilterName(CString filterPath) const
+CString FileFilterHelper::GetFileFilterName(LPCTSTR filterPath) const
 {
 	FILEFILTER_INFOLIST filters;
 	CString selected;
@@ -138,7 +141,7 @@ CString FileFilterHelper::GetFileFilterName(CString filterPath) const
  * @param [in] filterName Name of filter.
  * @sa FileFilterHelper::GetFileFilterName()
  */
-CString FileFilterHelper::GetFileFilterPath(CString filterName) const
+CString FileFilterHelper::GetFileFilterPath(LPCTSTR filterName) const
 {
 	FILEFILTER_INFOLIST filters;
 	CString selected;
@@ -171,20 +174,58 @@ void FileFilterHelper::SetUserFilterPath(const CString & filterPath)
 
 /** 
  * @brief Select between mask and filterfile.
+ * @param [in] bUseMask If TRUE we use mask instead of filter files.
  */
 void FileFilterHelper::UseMask(BOOL bUseMask)
 {
 	m_bUseMask = bUseMask;
+	if (m_bUseMask)
+	{
+		if (m_pMaskFilter == NULL)
+		{
+			m_pMaskFilter = new FilterList;
+		}
+	}
+	else
+	{
+		delete m_pMaskFilter;
+		m_pMaskFilter = NULL;
+	}
 }
 
 /** 
- * @brief Set filemask ("*.h *.cpp")
+ * @brief Set filemask for filtering.
+ * @param [in] strMask Mask to set (e.g. *.cpp;*.h).
  */
 void FileFilterHelper::SetMask(LPCTSTR strMask)
 {
+	if (!m_bUseMask)
+	{
+		_RPTF0(_CRT_ERROR, "Filter mask tried to set when masks disabled!");
+		return;
+	}
 	m_sMask = strMask;
 	CString regExp = ParseExtensions(strMask);
-	m_rgx.RegComp(regExp);
+
+	char * regexp_str;
+	FilterList::EncodingType type;
+
+#ifdef UNICODE
+	regexp_str = UCS2UTF8_ConvertToUtf8(regExp);
+	type = FilterList::ENC_UTF8;
+#else
+	regexp_str = regExp.LockBuffer();
+	type = FilterList::ENC_ANSI;
+#endif
+
+	m_pMaskFilter->RemoveAllFilters();
+	m_pMaskFilter->AddRegExp(regexp_str, type);
+
+#ifdef UNICODE
+	UCS2UTF8_Dealloc(regexp_str);
+#else
+	regExp.UnlockBuffer();
+#endif
 }
 
 /**
@@ -197,6 +238,12 @@ BOOL FileFilterHelper::includeFile(LPCTSTR szFileName)
 {
 	if (m_bUseMask)
 	{
+		if (m_pMaskFilter == NULL)
+		{
+			_RPTF0(_CRT_ERROR, "Use mask set, but no filter rules for mask!");
+			return TRUE;
+		}
+
 		// preprend a backslash if there is none
 		CString strFileName = szFileName;
 		strFileName.MakeLower();
@@ -205,7 +252,11 @@ BOOL FileFilterHelper::includeFile(LPCTSTR szFileName)
 		// append a point if there is no extension
 		if (strFileName.Find(_T('.')) == -1)
 			strFileName = strFileName + _T('.');
-		return (! m_rgx.RegFind(strFileName));
+
+		char * name_utf = UCS2UTF8_ConvertToUtf8(strFileName);
+		bool match = m_pMaskFilter->Match(name_utf);
+		UCS2UTF8_Dealloc(name_utf);
+		return match;
 	}
 	else
 	{
@@ -268,14 +319,14 @@ void FileFilterHelper::EditFileFilter(LPCTSTR szFileFilterPath)
  * "C:\Documents and Settings\User\My Documents\WinMergeFilters\*.flt"
  */
 void FileFilterHelper::LoadFileFilterDirPattern(FILEFILTER_FILEMAP & patternsLoaded,
-		const CString & sPattern)
+		LPCTSTR szPattern)
 {
 	int n=0;
-	if (!patternsLoaded.Lookup(sPattern, n))
+	if (!patternsLoaded.Lookup(szPattern, n))
 	{
-		m_fileFilterMgr->LoadFromDirectory(sPattern, FileFilterExt);
+		m_fileFilterMgr->LoadFromDirectory(szPattern, FileFilterExt);
 	}
-	patternsLoaded[sPattern] = ++n;
+	patternsLoaded[szPattern] = ++n;
 }
 
 /** 
@@ -318,7 +369,7 @@ CString FileFilterHelper::ParseExtensions(CString extensions)
 	{
 		strParsed = _T("^");
 		strPattern.MakeLower();
-		strParsed += strPattern + _T("$");
+		strParsed = strPattern; //+ _T("$");
 	}
 	return strParsed;
 }
@@ -362,17 +413,21 @@ BOOL FileFilterHelper::SetFilter(CString filter)
 	// If filter is empty string set default filter
 	if (filter.IsEmpty())
 	{
-		SetMask(_T("*.*"));
 		UseMask(TRUE);
+		SetMask(_T("*.*"));
 		SetFileFilterPath(_T(""));
 		return FALSE;
 	}
 
+	// Remove leading and trailing whitespace characters from the string.
+	filter.TrimLeft();
+	filter.TrimRight();
+
 	// Star means we have a file extension mask
 	if (filter[0] == '*')
 	{
-		SetMask(filter);
 		UseMask(TRUE);
+		SetMask(filter);
 		SetFileFilterPath(_T(""));
 	}
 	else
@@ -380,14 +435,14 @@ BOOL FileFilterHelper::SetFilter(CString filter)
 		CString path = GetFileFilterPath(filter);
 		if (!path.IsEmpty())
 		{
-			SetFileFilterPath(path);
 			UseMask(FALSE);
+			SetFileFilterPath(path);
 		}
 		// If filter not found with given name, use default filter
 		else
 		{
-			SetMask(_T("*.*"));
 			UseMask(TRUE);
+			SetMask(_T("*.*"));
 			SetFileFilterPath(_T(""));
 			return FALSE;
 		}
@@ -405,19 +460,19 @@ BOOL FileFilterHelper::SetFilter(CString filter)
 void FileFilterHelper::ReloadUpdatedFilters()
 {
 	FILEFILTER_INFOLIST filters;
-	FileInfo fileInfo;
-	FileInfo *fileInfoStored = NULL;
-	FileFilterInfo * filter = NULL;
+	DirItem fileInfo;
+	DirItem *fileInfoStored = NULL;
+	FileFilterInfo filter;
 	CString selected;
 
 	GetFileFilters(&filters, selected);
 	for (int i = 0; i < filters.GetSize(); i++)
 	{
-		filter = &filters.GetAt(i);
-		CString path = filter->fullpath;
-		fileInfoStored = &filter->fileinfo;
+		filter = filters.GetAt(i);
+		CString path = filter.fullpath;
+		fileInfoStored = &filter.fileinfo;
 
-		fileInfo.Update(path);
+		fileInfo.Update((LPCTSTR)path);
 		if (fileInfo.mtime != fileInfoStored->mtime ||
 			fileInfo.size != fileInfoStored->size)
 		{
@@ -435,21 +490,6 @@ void FileFilterHelper::ReloadUpdatedFilters()
 }
 
 /**
- * @ brief Returns true if directory exists or successfully created
- * Tries to create multiple directories if needed
- */
-static bool
-EnsureDirectoryExists(const CString & sPath)
-{
-	// paths_CanUse will 
-	if (paths_CreateIfNeeded(sPath))
-		return true;
-	else
-		return false;
-
-}
-
-/**
  * @brief Load any known file filters
  * @todo Preserve filter selection? How?
  */
@@ -463,14 +503,14 @@ void FileFilterHelper::LoadAllFileFilters()
 
 	// Program application directory
 	m_sGlobalFilterPath = GetModulePath() + _T("\\Filters");
-	LoadFileFilterDirPattern(patternsLoaded, m_sGlobalFilterPath + _T("\\*") + FileFilterExt);
-	LoadFileFilterDirPattern(patternsLoaded, m_sUserSelFilterPath + _T("\\*") + FileFilterExt);
+	LoadFileFilterDirPattern(patternsLoaded, (m_sGlobalFilterPath + _T("\\*") + FileFilterExt).c_str());
+	LoadFileFilterDirPattern(patternsLoaded, (m_sUserSelFilterPath + _T("\\*") + FileFilterExt).c_str());
 }
 
 /**
  * @brief Return path to global filters (& create if needed), or empty if cannot create
  */
-CString FileFilterHelper::GetGlobalFilterPathWithCreate() const
+String FileFilterHelper::GetGlobalFilterPathWithCreate() const
 {
 	return paths_EnsurePathExist(m_sGlobalFilterPath);
 }
@@ -478,7 +518,7 @@ CString FileFilterHelper::GetGlobalFilterPathWithCreate() const
 /**
  * @brief Return path to user filters (& create if needed), or empty if cannot create
  */
-CString FileFilterHelper::GetUserFilterPathWithCreate() const
+String FileFilterHelper::GetUserFilterPathWithCreate() const
 {
 	return paths_EnsurePathExist(m_sUserSelFilterPath);
 }

@@ -19,8 +19,8 @@
  *
  * @brief CConfigLog implementation
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: ConfigLog.cpp 4653 2007-10-21 19:51:25Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: ConfigLog.cpp 5202 2008-03-27 23:09:52Z kimmov $
 
 #include "stdafx.h"
 #ifndef UNICODE
@@ -37,7 +37,7 @@
 #include "codepage.h"
 #include "7zcommon.h"
 #include "CompareOptions.h"
-
+#include "Environment.h"
 
 // Static function declarations
 static bool LoadYesNoFromConfig(CfgSettings * cfgSettings, LPCTSTR name, BOOL * pbflag);
@@ -83,9 +83,9 @@ void CConfigLog::WritePluginsInLogFile(LPCWSTR transformationEvent, CStdioFile &
 	{
 		PluginInfo & plugin = piPluginArray->ElementAt(iPlugin);
 		file.WriteString(_T("\n  "));
-		file.WriteString(plugin.name);
+		file.WriteString(plugin.name.c_str());
 		file.WriteString(_T(" ["));
-		file.WriteString(plugin.filepath);
+		file.WriteString(plugin.filepath.c_str());
 		file.WriteString(_T("]"));
 	}
 }
@@ -376,7 +376,7 @@ BOOL CConfigLog::DoFile(bool writing, CString &sError)
 		m_sFileName = _T("WinMerge.txt");
 
 		// Get path to $temp/WinMerge.txt
-		m_sFileName.Insert(0, paths_GetTempPath());
+		m_sFileName.Insert(0, env_GetTempPath());
 
 		if (!m_file.Open(m_sFileName, CFile::modeCreate | CFile::modeWrite))
 		{
@@ -412,14 +412,45 @@ BOOL CConfigLog::DoFile(bool writing, CString &sError)
 	FileWriteString(_T("\n Build config: "));
 	FileWriteString(text);
 
+	LPCTSTR szCmdLine = ::GetCommandLine();
+	ASSERT(szCmdLine != NULL);
+
+	// Skip the quoted executable file name.
+	if (szCmdLine != NULL)
+	{
+		szCmdLine = _tcschr(szCmdLine, '"');
+		if (szCmdLine != NULL)
+		{
+			szCmdLine += 1; // skip the opening quote.
+			szCmdLine = _tcschr(szCmdLine, '"');
+			if (szCmdLine != NULL)
+			{
+				szCmdLine += 1; // skip the closing quote.
+			}
+		}
+	}
+
+	// The command line include a space after the executable file name,
+	// which mean that empty command line will have length of one.
+	if (lstrlen(szCmdLine) < 2)
+	{
+		szCmdLine = _T(" none");
+	}
+
+	FileWriteString(_T("\n Command Line: "));
+	FileWriteString(szCmdLine);
+
 	FileWriteString(_T("\n Windows: "));
 	text = GetWindowsVer();
 	FileWriteString(text);
 
 	FileWriteString(_T("\n"));
 	WriteVersionOf1(m_file, 1, _T("COMCTL32.dll"));
+	WriteVersionOf1(m_file, 1, _T("shlwapi.dll"));
+	WriteVersionOf1(m_file, 1, _T("MergeLang.dll"));
 	WriteVersionOf1(m_file, 1, _T("ShellExtension.dll"));
 	WriteVersionOf1(m_file, 1, _T("ShellExtensionU.dll"));
+	WriteVersionOf1(m_file, 1, _T("ShellExtensionX64.dll"));
 
 // WinMerge settings
 	FileWriteString(_T("\nWinMerge configuration:\n"));

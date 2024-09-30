@@ -20,7 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // SelectUnpackerDlg.cpp : implementation file
 //
-// $Id: SelectUnpackerDlg.cpp 1069 2004-03-08 19:41:21Z kimmov $
+// $Id: SelectUnpackerDlg.cpp 4737 2007-11-11 12:43:23Z jtuc $
 //
 
 #include "stdafx.h"
@@ -52,12 +52,12 @@ void CSelectUnpackerDlg::Initialize()
 	noPlugin = new PluginInfo;
 	noPlugin->lpDispatch = NULL;
 	noPlugin->filters = NULL;
-	VERIFY(noPlugin->name.LoadString(IDS_USERCHOICE_NONE));
+	noPlugin->name = theApp.LoadString(IDS_USERCHOICE_NONE);
 	automaticPlugin = new PluginInfo;
 	automaticPlugin->lpDispatch = NULL;
 	automaticPlugin->filters = NULL;
-	VERIFY(automaticPlugin->name.LoadString(IDS_USERCHOICE_AUTOMATIC));
-	VERIFY(automaticPlugin->description.LoadString(ID_UNPACK_AUTO));
+	automaticPlugin->name = theApp.LoadString(IDS_USERCHOICE_AUTOMATIC);
+	automaticPlugin->description = theApp.LoadString(ID_UNPACK_AUTO).c_str();
 
 	m_pPlugin = noPlugin;
 
@@ -192,6 +192,7 @@ void CSelectUnpackerDlg::OnOK()
 
 BOOL CSelectUnpackerDlg::OnInitDialog() 
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
 
 	m_bNoExtensionCheck = AfxGetApp()->GetProfileInt(_T("Plugins"), _T("UnpackDontCheckExtension"), FALSE);
@@ -213,14 +214,14 @@ void CSelectUnpackerDlg::prepareListbox()
 				|| m_bNoExtensionCheck 
 			  || pPlugin->TestAgainstRegList(m_filteredFilenames))
 		{
-			m_cboUnpackerName.AddString(pPlugin->name);
+			m_cboUnpackerName.AddString(pPlugin->name.c_str());
 			if (pPlugin == m_pPlugin)
 				sel = m_cboUnpackerName.GetCount()-1;
 		}
 	}
 
 	if (sel == -1)
-		m_cboUnpackerName.SelectString(-1, noPlugin->name);
+		m_cboUnpackerName.SelectString(-1, noPlugin->name.c_str());
 	else
 		m_cboUnpackerName.SetCurSel(sel);
 
@@ -254,7 +255,7 @@ void CSelectUnpackerDlg::OnSelchangeUnpackerName()
 		for (int j = 0 ; j < m_UnpackerPlugins.GetSize() ; j++)
 		{
 			pPlugin = static_cast<PluginInfo*> (m_UnpackerPlugins.GetAt(j));
-			if (m_strPluginName == pPlugin->name)
+			if (m_strPluginName == pPlugin->name.c_str())
 			{
 				m_pPlugin = pPlugin;
 				break;
@@ -262,7 +263,7 @@ void CSelectUnpackerDlg::OnSelchangeUnpackerName()
 		}
 	}
 
-	m_strPluginName = m_pPlugin->name;
+	m_strPluginName = m_pPlugin->name.c_str();
 	m_strDescription = m_pPlugin->description;
 	m_strExtensions = m_pPlugin->filtersText;
 

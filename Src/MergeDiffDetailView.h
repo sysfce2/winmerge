@@ -5,7 +5,7 @@
  * @brief Declaration of CMergeDiffDetailView class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: MergeDiffDetailView.h 3937 2006-12-10 14:33:16Z galh $
+// $Id: MergeDiffDetailView.h 3938 2006-12-10 14:36:06Z galh $
 //
 //////////////////////////////////////////////////////////////////////
 #ifndef __MERGEDIFFDETAILVIEW_H__

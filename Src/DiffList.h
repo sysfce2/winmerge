@@ -20,7 +20,7 @@
  * @brief Declaration file for DiffList class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffList.h 3292 2006-05-24 20:14:04Z kimmov $
+// $Id: DiffList.h 3936 2006-12-10 14:26:56Z sdottaka $
 
 #ifndef _DIFFLIST_H_
 #define _DIFFLIST_H_
@@ -50,6 +50,40 @@ struct DIFFRANGE
 	int blank1;		/**< Number of blank lines in file2 */
 	BYTE op;		/**< Operation done with this diff */
 	DIFFRANGE() { memset(this, 0, sizeof(*this)); }
+};
+
+/**
+ * @brief Relation from left side (0) to right side (1) of a DIFFRANGE
+ *
+ * Map lines from file1 to file2
+ */
+struct DiffMap : public CArray<int, int>
+{
+	enum { BAD_MAP_ENTRY = -999999999, GHOST_MAP_ENTRY = 888888888 };
+
+	// boilerplate ctr, copy ctr
+	DiffMap() { }
+	DiffMap(const DiffMap & src) { *this = src; }
+	// Simple copy assignment
+	DiffMap & operator=(const DiffMap & src)
+	{
+		this->SetSize(src.GetSize());
+		for (int i=0; i<this->GetSize(); ++i)
+			this->SetAt(i, src.GetAt(i));
+		return *this;
+	}
+	/**
+	 * @brief Put DiffMap into known. starting, unfilled state
+	 */
+	void InitDiffMap(int nlines)
+	{
+		SetSize(nlines);
+		for (int i=0; i<nlines; ++i)
+		{
+			// sentry value so we can check later that we set them all
+			SetAt(i, BAD_MAP_ENTRY);
+		}
+	}
 };
 
 /**

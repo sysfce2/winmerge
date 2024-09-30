@@ -4,9 +4,10 @@
  * @brief Implementation of the dialog used to select codepages
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: LoadSaveCodepageDlg.cpp 3059 2006-02-13 03:10:29Z elsapo $
+// $Id: LoadSaveCodepageDlg.cpp 4700 2007-11-03 08:41:13Z jtuc $
 
 #include "stdafx.h"
+#include "Merge.h"
 #include "resource.h"
 #include "LoadSaveCodepageDlg.h"
 #include "dlgutil.h"
@@ -75,6 +76,7 @@ END_MESSAGE_MAP()
  */
 BOOL CLoadSaveCodepageDlg::OnInitDialog() 
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
 
 	dlgutil_SetMainIcon(this);

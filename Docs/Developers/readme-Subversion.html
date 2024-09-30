@@ -6,10 +6,23 @@
   <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
   <style type="text/css">
   <!--
+    body {
+      font-family: Verdana,Helvetica,Arial,sans-serif;
+      font-size: small;
+    }
+    code,pre {
+      font-family: "Courier New",Courier,monospace;
+      font-size: 1em;
+    }
     h3 {
       padding: 2px;
       border-left: 4px solid #FFCC00;
       border-bottom: 1px solid #FFCC00;
+    }
+    h4 {
+      padding: 2px;
+      border-left: 8px solid #FF9933;
+      border-bottom: 1px solid #FF9933;
     }
   -->
   </style>
@@ -22,7 +35,7 @@
 <p>We used <a href="http://www.sourceforge.net/">SourceForge.net</a>'s CVS service for years.
 It served us pretty well. In 2006 SourceForge made Subversion also available as
 service. And after short discussion WinMerge developers agreed to switch to Subversion.
-It fits better to our needs than CVS. So we switched from CVS to subversio in August 2006.
+It fits better to our needs than CVS. So we switched from CVS to Subversion in August 2006.
 </p>
 <h4>But CVS is better! I Want to use CVS!</h4>
 <p>We decided subversion is better for us. We keep using Subversion for now on.</p>
@@ -31,10 +44,10 @@ It fits better to our needs than CVS. So we switched from CVS to subversio in Au
 visible in our project page.</p>
 
 <h3>Web access</h3>
-<p>Easiest way to browse our sourcecode is through web. SourceForge.net utilizes
+<p>Easiest way to browse our source code is through web. SourceForge.net utilizes
 <a href="http://viewvc.tigris.org/">ViewVC</a> to access CVS/Subversion repositories via Web.
-WinMerge Subversion repository is available at: <a href="http://svn.sourceforge.net/viewvc/winmerge/">
-http://svn.sourceforge.net/viewvc/winmerge/</a>.
+WinMerge Subversion repository is available at: <a href="http://winmerge.svn.sourceforge.net/viewvc/winmerge/">
+http://winmerge.svn.sourceforge.net/viewvc/winmerge/</a>.
 </p>
 
 <h3>Subversion client programs</h3>
@@ -52,7 +65,7 @@ http://svn.sourceforge.net/viewvc/winmerge/</a>.
 <h3>Subversion documentation</h3>
 <p><a href="http://svnbook.red-bean.com/">The Subversion Book</a> is the definite guide to Subversion.
 Please try to find some time to look at it. There are also many Subversion and SVN resources available
-in the net. Just listing couple of them here:
+in the net. Just listing couple of them here:</p>
 <ul>
   <li>
     <a href="http://http://en.wikipedia.org/wiki/Subversion_(software)/">Wikipedia article</a> about
@@ -64,25 +77,25 @@ in the net. Just listing couple of them here:
   </li>
 </ul>
 
-</p>
-
 <h3>Repository URLs</h3>
 <p>WinMerge Subversion repository URL is:<br>
-<code>https://winmerge.svn.sourceforge.net/svnroot/winmerge</code>
+<code><a href="tsvn:https://winmerge.svn.sourceforge.net/svnroot/winmerge">https://winmerge.svn.sourceforge.net/svnroot/winmerge</a></code>
 </p>
 <p>Using above URL will checkout all branches and tags also. WinMerge development happens in
 <i>trunk</i> and URL is:<br>
-<code>https://winmerge.svn.sourceforge.net/svnroot/winmerge/trunk</code>
+<code><a href="tsvn:https://winmerge.svn.sourceforge.net/svnroot/winmerge/trunk">https://winmerge.svn.sourceforge.net/svnroot/winmerge/trunk</a></code>
 </p>
 <p>Branches are in separate folder:<br>
-<code>https://winmerge.svn.sourceforge.net/svnroot/winmerge/branches</code><br>
-Current branches are:
+<code><a href="tsvn:https://winmerge.svn.sourceforge.net/svnroot/winmerge/branches">https://winmerge.svn.sourceforge.net/svnroot/winmerge/branches</a></code>
+</p>
+<p>Current branches are:</p>
 <ul>
   <li>2.6 release branch<br>
-  <code>https://winmerge.svn.sourceforge.net/svnroot/winmerge/branches/R2_6</code></li>
+  <code><a href="tsvn:https://winmerge.svn.sourceforge.net/svnroot/winmerge/branches/R2_6">https://winmerge.svn.sourceforge.net/svnroot/winmerge/branches/R2_6</a></code></li>
+  <li>2.8 release branch<br>
+  <code><a href="tsvn:https://winmerge.svn.sourceforge.net/svnroot/winmerge/branches/R2_8">https://winmerge.svn.sourceforge.net/svnroot/winmerge/branches/R2_8</a></code></li>
 </ul>
-Old branches (2.0 - 2.4 releases) are in CVS repository.
-</p>
+<p>Old branches (2.0 - 2.4 releases) are in CVS repository.</p>
 
 <h3>Quick intro to using TortoiseSVN</h3>
 <h4>Checkout</h4>

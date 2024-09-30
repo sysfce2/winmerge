@@ -23,8 +23,8 @@
  * @brief Declaration file for CMergeEditView
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: MergeEditView.h 4539 2007-09-15 10:55:17Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: MergeEditView.h 5048 2008-02-18 14:11:50Z kimmov $
 
 #if !defined(AFX_MERGEEDITVIEW_H__0CE31CFD_4BEE_4378_ADB4_B7C9F50A9F53__INCLUDED_)
 #define AFX_MERGEEDITVIEW_H__0CE31CFD_4BEE_4378_ADB4_B7C9F50A9F53__INCLUDED_
@@ -119,9 +119,6 @@ private:
 	*/
 	BOOL fTimerWaitingForIdle;
 	COLORSETTINGS m_cachedColors; /**< Cached color settings */
-	BOOL m_bSyntaxHighlight; /**< Cached setting for syntax highlight */
-	BOOL m_bWordDiffHighlight; /**< Cached setting for word diff highlight */
-	BOOL m_bCloseWithEsc; /**< Cached setting for closing windows with ESC */
 
 	/// active prediffer ID : helper to check the radio button
 	int m_CurrentPredifferID;
@@ -160,16 +157,27 @@ public:
 		, COLORREF & crBkgnd, COLORREF & crText, BOOL & bDrawWhitespace);
 	void WMGoto() { OnWMGoto(); };
 	void GotoLine(UINT nLine, BOOL bRealLine, int pane);
-	int GetTopLine() { return m_nTopLine; };
-	int GetScreenLines() { return CCrystalTextView::GetScreenLines(); };
+	int GetTopLine() { return m_nTopLine; }
+	int GetScreenLines() { return CCrystalTextView::GetScreenLines(); }
+	int GetTopSubLine() { return m_nTopSubLine; }
+	int GetSubLines(int nLineIndex) { return CCrystalTextView::GetSubLines(nLineIndex); }
+	virtual int GetSubLineCount() { return CCrystalTextView::GetSubLineCount(); }
+	virtual int GetSubLineIndex(int nLineIndex) { return CCrystalTextView::GetSubLineIndex(nLineIndex); }
+	virtual void GetLineBySubLine(int nSubLineIndex, int &nLine, int &nSubLine) {
+		CCrystalTextView::GetLineBySubLine(nSubLineIndex, nLine, nSubLine);
+	}
 	virtual int GetEmptySubLines( int nLineIndex );
+	virtual void InvalidateSubLineIndexCache( int nLineIndex );
 	void RepaintLocationPane();
-	void SlavePrint(CDC* pDC, CPrintInfo* pInfo);
 	bool SetPredifferByName(const CString & prediffer);
 	void SetPredifferByMenu(UINT nID);
 	void DocumentsLoaded();
 	void SetLocationView(HWND hView, const CLocationView * pView = NULL);
 	void UpdateLocationViewPosition(int nTopLine = -1, int nBottomLine = -1);
+	virtual void RecalcPageLayouts(CDC * pdc, CPrintInfo * pInfo);
+	virtual void GetPrintHeaderText(int nPageNum, CString & text);
+	virtual void PrintHeader(CDC * pdc, int nPageNum);
+	virtual void PrintFooter(CDC * pdc, int nPageNum);
 
 	// to customize the mergeview menu
 	static HMENU createScriptsSubmenu(HMENU hMenu);
@@ -178,6 +186,7 @@ public:
 	bool IsInitialized() const;
 	BOOL IsCursorInDiff() const;
 	BOOL IsDiffVisible(int nDiff);
+	void ZoomText(short amount);
 
 	// Overrides
 	// ClassWizard generated virtual function overrides
@@ -188,6 +197,8 @@ public:
 	virtual void OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView);
 	virtual void OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	virtual void OnBeginPrinting (CDC * pDC, CPrintInfo * pInfo);
+	virtual void OnEndPrinting (CDC * pDC, CPrintInfo * pInfo);
 	virtual void OnPrint(CDC* pDC, CPrintInfo* pInfo);
 	//}}AFX_VIRTUAL
 
@@ -197,7 +208,7 @@ protected:
 	virtual void OnUpdateSibling (CCrystalTextView * pUpdateSource, BOOL bHorz);
 	virtual void OnUpdateCaret();
 	BOOL MergeModeKeyDown(MSG* pMsg);
-	int FindPrediffer(const CString & prediffer) const;
+	int FindPrediffer(LPCTSTR prediffer) const;
 	BOOL IsDiffVisible(const DIFFRANGE& diff, int nLinesBelow = 0);
 
 	// Generated message map functions
@@ -270,6 +281,7 @@ protected:
 	afx_msg void OnUpdateMergingMode(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateMergingStatus(CCmdUI* pCmdUI);
 	afx_msg void OnWindowClose();
+	afx_msg void OnHScroll (UINT nSBCode, UINT nPos, CScrollBar * pScrollBar);
 	afx_msg void OnVScroll (UINT nSBCode, UINT nPos, CScrollBar * pScrollBar);
 	afx_msg void OnEditCopyLineNumbers();
 	afx_msg void OnUpdateEditCopyLinenumbers(CCmdUI* pCmdUI);
@@ -287,8 +299,20 @@ protected:
 	afx_msg void OnUpdateNoEditScripts(CCmdUI* pCmdUI);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnHelp();
+	afx_msg void OnViewMargin();
+	afx_msg void OnUpdateViewMargin(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateViewChangeScheme(CCmdUI *pCmdUI);
+	afx_msg void OnChangeScheme(UINT nID);
+	afx_msg void OnUpdateChangeScheme(CCmdUI* pCmdUI);
+	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
+	afx_msg void OnViewZoomIn();
+	afx_msg void OnViewZoomOut();
+	afx_msg void OnViewZoomNormal();
+	afx_msg void OnUpdateStatusLeftEncoding(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateStatusRightEncoding(CCmdUI* pCmdUI);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+public:
 };
 
 #ifndef _DEBUG  // debug version in DiffView.cpp

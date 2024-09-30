@@ -4,7 +4,7 @@
  * @brief Implementation of CPropMergeColors propertysheet
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropColors.cpp 3126 2006-03-04 02:36:46Z elsapo $
+// $Id: PropColors.cpp 4588 2007-10-05 11:35:46Z jtuc $
 
 #include "stdafx.h"
 #include "merge.h"
@@ -83,6 +83,15 @@ BEGIN_MESSAGE_MAP(CPropMergeColors, CDialog)
 	ON_BN_CLICKED(IDC_SEL_WORDDIFFERENCE_TEXT_COLOR, OnSelWordDifferenceTextColor)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
+
+/** 
+ * @brief Called before propertysheet is drawn.
+ */
+BOOL CPropMergeColors::OnInitDialog()
+{
+	theApp.TranslateDialog(m_hWnd);
+	return CPropertyPage::OnInitDialog();
+}
 
 /** 
  * @brief Reads options values from storage to UI.

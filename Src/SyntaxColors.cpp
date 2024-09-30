@@ -4,7 +4,7 @@
  * @brief Implementation for SyntaxColors class.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: SyntaxColors.cpp 3154 2006-03-10 18:24:58Z elsapo $
+// $Id: SyntaxColors.cpp 4167 2007-03-16 22:05:46Z kimmov $
 
 #include "stdafx.h"
 #include "SyntaxColors.h"
@@ -186,12 +186,11 @@ void SyntaxColors::SetBold(UINT index, BOOL bold)
 void SyntaxColors::Initialize(COptionsMgr *pOptionsMgr)
 {
 	ASSERT(pOptionsMgr);
-	CString valuename;
+	CString valuename(DefColorsPath);
 
 	m_pOptionsMgr = pOptionsMgr;
 
 	int count = COLORINDEX_COUNT;
-	valuename = DefColorsPath;
 	valuename += _T("/Values");
 	m_pOptionsMgr->InitOption(valuename, count);
 
@@ -238,11 +237,10 @@ void SyntaxColors::Initialize(COptionsMgr *pOptionsMgr)
 void SyntaxColors::SaveToRegistry()
 {
 	ASSERT(m_pOptionsMgr);
-	CString valuename;
+	CString valuename(DefColorsPath);
 
 	int count = COLORINDEX_COUNT;
-	valuename = DefColorsPath + '/';
-	valuename += _T("Values");
+	valuename += _T("/Values");
 	m_pOptionsMgr->SetInt(valuename, count);
 
 	for (unsigned int i = COLORINDEX_NONE; i < COLORINDEX_LAST; i++)

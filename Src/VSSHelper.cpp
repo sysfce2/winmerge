@@ -19,14 +19,16 @@
  *
  * @brief Implementation file for VSSHelper class
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: VSSHelper.cpp 2895 2006-01-02 19:01:21Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: VSSHelper.cpp 4855 2008-01-04 15:55:30Z kimmov $
 
 
 #include "stdafx.h"
+#include "UnicodeString.h"
 #include "VSSHelper.h"
 #include "coretools.h"
 #include "paths.h"
+#include "Environment.h"
 
 CString VSSHelper::GetProjectBase()
 {
@@ -58,23 +60,24 @@ BOOL VSSHelper::ReLinkVCProj(CString strSavePath, CString * psError)
 	BOOL bVCPROJ = FALSE;
 
 	int nerr;
-	CString tempPath = paths_GetTempPath(&nerr);
-	if (tempPath.IsEmpty())
+	String tempPath = env_GetTempPath(&nerr);
+	if (tempPath.empty())
 	{
 		LogErrorString(Fmt(_T("CMainFrame::ReLinkVCProj() - couldn't get temppath: %s")
 			, GetSysError(nerr)));
 		return FALSE;
 	}
-	CString tempFile = paths_GetTempFileName(tempPath, _T("_LT"), &nerr);
-	if (tempFile.IsEmpty())
+	String tempFile = env_GetTempFileName(tempPath.c_str(), _T("_LT"), &nerr);
+	if (tempFile.empty())
 	{
 		LogErrorString(Fmt(_T("CMainFrame::ReLinkVCProj() - couldn't get tempfile: %s")
 			, GetSysError(nerr)));
 		return FALSE;
 	}
 
-	CString strExt;
-	SplitFilename(strSavePath, NULL, NULL, &strExt);
+	String ext;
+	SplitFilename(strSavePath, NULL, NULL, &ext);
+	CString strExt(ext.c_str());
 	if (strExt.CompareNoCase(_T("vcproj")) == 0 || strExt.CompareNoCase(_T("sln")) == 0)
 	{
 		GetFullVSSPath(strSavePath, bVCPROJ);
@@ -90,7 +93,7 @@ BOOL VSSHelper::ReLinkVCProj(CString strSavePath, CString * psError)
                 OPEN_EXISTING,             // existing file only 
                 FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,     // normal file 
                 NULL);
-		tfile = CreateFile(tempFile,
+		tfile = CreateFile(tempFile.c_str(),
                 GENERIC_ALL,              // open for writing
                 FILE_SHARE_READ,           // share for reading 
                 NULL,                      // no security 
@@ -106,17 +109,17 @@ BOOL VSSHelper::ReLinkVCProj(CString strSavePath, CString * psError)
 				msg.Format(_T("CMainFrame::ReLinkVCProj() ")
 					_T("- failed to open file: %s"), strSavePath);
 				LogErrorString(msg);
-				AfxFormatString2(msg, IDS_ERROR_FILEOPEN,
+				LangFormatString2(msg, IDS_ERROR_FILEOPEN,
 						GetSysError(GetLastError()), strSavePath);
 				*psError = msg;
 			}
 			if (tfile == INVALID_HANDLE_VALUE)
 			{
 				msg.Format(_T("CMainFrame::ReLinkVCProj() ")
-					_T("- failed to open temporary file: %s"), tempFile);
+					_T("- failed to open temporary file: %s"), tempFile.c_str());
 				LogErrorString(msg);
-				AfxFormatString2(msg, IDS_ERROR_FILEOPEN,
-						GetSysError(GetLastError()), tempFile);
+				LangFormatString2(msg, IDS_ERROR_FILEOPEN,
+						GetSysError(GetLastError()), tempFile.c_str());
 				*psError = msg;
 			}
 			return FALSE;
@@ -158,19 +161,19 @@ BOOL VSSHelper::ReLinkVCProj(CString strSavePath, CString * psError)
 
 		if (succeed)
 		{
-			if (!CopyFile(tempFile, strSavePath, FALSE))
+			if (!CopyFile(tempFile.c_str(), strSavePath, FALSE))
 			{
 				*psError = GetSysError(GetLastError());
-				DeleteFile(tempFile);
+				DeleteFile(tempFile.c_str());
 				return FALSE;
 			}
 			else
-				DeleteFile(tempFile);
+				DeleteFile(tempFile.c_str());
 		}
 		else
 		{
 			CString msg;
-			AfxFormatString2(msg, IDS_ERROR_FILEOPEN,
+			LangFormatString2(msg, IDS_ERROR_FILEOPEN,
 					strSavePath, GetSysError(GetLastError()));
 			*psError = msg;
 			return FALSE;
@@ -181,13 +184,13 @@ BOOL VSSHelper::ReLinkVCProj(CString strSavePath, CString * psError)
 
 void VSSHelper::GetFullVSSPath(CString strSavePath, BOOL & bVCProj)
 {
-	CString strExt;
-	CString spath;
-
-	SplitFilename(strSavePath, NULL, NULL, &strExt);
+	String ext;
+	String path;
+	SplitFilename(strSavePath, &path, NULL, &ext);
+	CString spath(path.c_str());
+	CString strExt(ext.c_str()); 
 	if (strExt.CompareNoCase(_T("vcproj")))
 		bVCProj = TRUE;
-	SplitFilename(strSavePath, &spath, NULL, NULL);
 
 	strSavePath.Replace('/', '\\');
 	m_strVssProjectBase.Replace('/', '\\');
@@ -214,7 +217,8 @@ void VSSHelper::GetFullVSSPath(CString strSavePath, BOOL & bVCProj)
 			m_strVssProjectFull.Delete(0, 2);
 	}
 
-	SplitFilename(m_strVssProjectFull, &spath, NULL, NULL);
+	SplitFilename(m_strVssProjectFull, &path, NULL, NULL);
+	spath = path.c_str();
 	if (m_strVssProjectBase[m_strVssProjectBase.GetLength() - 1] != '\\')
 		m_strVssProjectBase += "\\";
 

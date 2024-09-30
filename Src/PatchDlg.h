@@ -19,35 +19,19 @@
  *
  * @brief Declaration file for patch creation dialog
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PatchDlg.h 3197 2006-04-05 15:01:32Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: PatchDlg.h 5067 2008-02-22 15:48:03Z kimmov $
 
 #if !defined(AFX_PATCHDLG_H__AB3CE671_1328_11D7_B088_005004D9D386__INCLUDED_)
 #define AFX_PATCHDLG_H__AB3CE671_1328_11D7_B088_005004D9D386__INCLUDED_
 
-
 #include "resource.h"
 #include "SuperComboBox.h"
 
+struct PATCHFILES;
+
 /////////////////////////////////////////////////////////////////////////////
 // PatchDlg dialog
-
-/** 
- * @brief Files used for patch creating.
- * Stores paths of two files used to create a patch. Left side file
- * is considered as "original" file and right side file as "changed" file.
- * Times are for printing filetimes to patch file.
- */
-struct PATCHFILES
-{
-	CString lfile; /**< Left file */
-	CString pathLeft; /**< Left path added to patch file */
-	CString rfile; /**< Right file */
-	CString pathRight; /**< Right path added to patch file */
-	time_t ltime; /**< Left time */
-	time_t rtime; /**< Right time */
-	PATCHFILES() : ltime(0), rtime(0) {};
-};
 
 /** 
  * @brief Dialog class for Generate Patch -dialog.
@@ -103,6 +87,7 @@ protected:
 	CList<PATCHFILES, PATCHFILES&> m_fileList; /**< Source files to create patch from */
 	
 	void ChangeFile(const CString &sFile, BOOL bLeft);
+	void UpdateSettings();
 	void LoadSettings();
 	void SaveSettings();
 

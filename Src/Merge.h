@@ -23,8 +23,8 @@
  * @brief main header file for the MERGE application
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: Merge.h 3850 2006-11-26 11:29:07Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: Merge.h 4696 2007-11-03 07:55:34Z jtuc $
 
 #if !defined(AFX_MERGE_H__BBCD4F88_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MERGE_H__BBCD4F88_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -35,13 +35,15 @@
 
 #include "resource.h"       // main symbols
 #include "MergeDoc.h"
-
+#include "OptionsMgr.h"
 #include "FileFilterHelper.h"
 
 struct FileFilter;
 class CAssureScriptsForThread;
 class CMainFrame;
 class CLanguageSelect;
+class MergeCmdLineInfo;
+class CLogFile;
 
 /////////////////////////////////////////////////////////////////////////////
 // CMergeApp:
@@ -63,13 +65,28 @@ public:
 	FileFilterHelper m_globalFileFilter;
 
 	WORD GetLangId() const;
+	void SetIndicators(CStatusBar &, const UINT *, int) const;
+	void TranslateMenu(HMENU) const;
+	void TranslateDialog(HWND) const;
+	String LoadString(UINT) const;
+	std::wstring LoadDialogCaption(LPCTSTR) const;
 
 	CMergeApp();
 	~CMergeApp();
 
 public:
+	void AddToRecentProjectsMRU(LPCTSTR sPathName);
 	void SetNeedIdleTimer();
 	void SetLastCompareResult(int nResult) { m_nLastCompareResult = nResult; }
+	CString GetDefaultEditor();
+	CString GetDefaultFilterUserPath(BOOL bCreate = FALSE);
+
+	COptionsMgr * GetMergeOptionsMgr() { return static_cast<COptionsMgr *> (m_pOptions); }
+	void OptionsInit();
+	void ResetOptions() { OptionsInit(); }
+	void SetFontDefaults();
+
+	CLogFile * GetMergeLog() { return m_pLog; }
 
 // Implementation
 protected:
@@ -86,22 +103,17 @@ protected:
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	void InitializeFileFilters();
-
-	// In MergeArgs.cpp
-	void ParseArgs(int argc, TCHAR *argv[], CMainFrame* pMainFrame, CStringArray & files, UINT & nFiles, BOOL & recurse,
-		DWORD & dwLeftFlags, DWORD & dwRightFlags, CString & prediffer);
- 	void ParseCCaseArgs(int argc, TCHAR *argv[], CMainFrame* pMainFrame, CStringArray & files, UINT & nFiles,
- 		DWORD & dwLeftFlags, DWORD & dwRightFlags);
-	void ParseArgsAndDoOpen(int argc, TCHAR *argv[], CMainFrame* pMainFrame);
-	CString GetUsageDescription();
+	BOOL ParseArgsAndDoOpen(MergeCmdLineInfo& cmdInfo, CMainFrame* pMainFrame);
+	void SetOptionsFromCmdLine(const MergeCmdLineInfo& cmdInfo);
 	// End MergeArgs.cpp
 
-	bool LoadAndOpenProjectFile(const CString & sFilepath);
-	bool IsProjectFile(const CString & filepath) const;
+	bool LoadAndOpenProjectFile(LPCTSTR sFilepath);
+	bool IsProjectFile(LPCTSTR filepath) const;
 
 	void ReloadMenu();
 
 	//{{AFX_MSG(CMergeApp)
+	afx_msg BOOL OnOpenRecentFile(UINT nID);
 	afx_msg void OnAppAbout();
 	afx_msg void OnViewLanguage();
 	afx_msg void OnUpdateViewLanguage(CCmdUI* pCmdUI);
@@ -109,13 +121,17 @@ protected:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 private:
+	CRegOptionsMgr *m_pOptions;
 	CAssureScriptsForThread * m_mainThreadScripts;
+	CLogFile * m_pLog;
 	int m_nLastCompareResult;
-	bool m_bNoninteractive;
-	bool m_bShowUsage;
+	bool m_bNonInteractive;
 };
 
 extern CMergeApp theApp;
+
+COptionsMgr * GetOptionsMgr();
+CLogFile * GetLog();
 
 /////////////////////////////////////////////////////////////////////////////
 CMergeDoc *GetDoc();

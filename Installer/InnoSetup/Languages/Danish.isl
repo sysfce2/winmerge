@@ -9,7 +9,7 @@
 ; Setup adds the periods automatically (appending a period would result in
 ; two periods being displayed).
 ;
-; ID: Danish.isl,v 5.1.0 2005/04/05 17:05:00 Thomas Vedel, veco@veco.dk
+; ID: Danish.isl,v 5.1.11 2007/02/27 21:23:00 Thomas Vedel, veco@veco.dk
 
 [LangOptions]
 LanguageName=Dansk
@@ -274,7 +274,7 @@ ErrorReplacingExistingFile=En fejl opstod ved forsøg på at overskrive den eksist
 ErrorRestartReplace=Genstart/Erstat fejlede:
 ErrorRenamingTemp=En fejl opstod ved forsøg på at omdøbe en fil i modtagemappen:
 ErrorRegisterServer=Kan ikke registrere DLL/OCX: %1
-ErrorRegisterServerMissingExport=Funktionen DllRegisterServer, der er nødvendig, for at filen kan registreres, findes ikke i filen
+ErrorRegSvr32Failed=RegSvr32 fejlede med exit kode %1
 ErrorRegisterTypeLib=Kan ikke registrere typebiblioteket: %1
 
 ; *** Post-installation errors
@@ -331,7 +331,6 @@ CustomInstallation=Custom Installation
 ;Components
 AppCoreFiles=WinMerge Core Files
 ApplicationRuntimes=Application Runtimes
-UsersGuide=User's Guide
 Filters=Filters
 Plugins=Plugins
 
@@ -341,23 +340,29 @@ BulgarianLanguage=Bulgarian menus and dialogs
 CatalanLanguage=Catalan menus and dialogs
 ChineseSimplifiedLanguage=Chinese (Simplified) menus and dialogs
 ChineseTraditionalLanguage=Chinese (Traditional) menus and dialogs
+CroatianLanguage=Croatian menus and dialogs
 CzechLanguage=Czech menus and dialogs
 DanishLanguage=Danish menus and dialogs
 DutchLanguage=Dutch menus and dialogs
 FrenchLanguage=French menus and dialogs
 GermanLanguage=German menus and dialogs
+GreekLanguage=Greek menus and dialogs
 HungarianLanguage=Hungarian menus and dialogs
 ItalianLanguage=Italian menus and dialogs
 JapaneseLanguage=Japanese menus and dialogs
 KoreanLanguage=Korean menus and dialogs
 NorwegianLanguage=Norwegian menus and dialogs
 PolishLanguage=Polish menus and dialogs
-PortugueseLanguage=Portuguese (Brazilian) menus and dialogs
+PortugueseBrazilLanguage=Portuguese (Brazilian) menus and dialogs
+PortugueseLanguage=Portuguese menus and dialogs
+RomanianLanguage=Romanian menus and dialogs
 RussianLanguage=Russian menus and dialogs
 SlovakLanguage=Slovak menus and dialogs
+SlovenianLanguage=Slovenian menus and dialogs
 SpanishLanguage=Spanish menus and dialogs
 SwedishLanguage=Swedish menus and dialogs
 TurkishLanguage=Turkish menus and dialogs
+UkrainianLanguage=Ukrainian menus and dialogs
 
 ;Tasks
 ExplorerContextMenu=&Enable Explorer context menu integration

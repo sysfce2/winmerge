@@ -19,10 +19,12 @@
  *
  * @brief Implementation of FileActionScript and related classes
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: FileActionScript.cpp 4785 2007-11-21 22:03:31Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: FileActionScript.cpp 5061 2008-02-20 19:18:20Z kimmov $
 
 #include "stdafx.h"
+#include "UnicodeString.h"
+#include "Merge.h"
 #include "OptionsDef.h"
 #include "MainFrm.h"
 #include "FileActionScript.h"
@@ -37,6 +39,7 @@ FileActionScript::FileActionScript()
 , m_bHasCopyOperations(FALSE)
 , m_bHasMoveOperations(FALSE)
 , m_bHasDelOperations(FALSE)
+, m_hParentWindow(NULL)
 {
 	m_pCopyOperations = new CShellFileOp();
 	m_pMoveOperations = new CShellFileOp();
@@ -55,11 +58,11 @@ FileActionScript::~FileActionScript()
 
 /**
  * @brief Set parent window used for showing MessageBoxes.
- * @param [in] pWnd Pointer to parent window.
+ * @param [in] hWnd Handle to parent window.
  */
-void FileActionScript::SetParentWindow(CWnd * pWnd)
+void FileActionScript::SetParentWindow(HWND hWnd)
 {
-	m_pParentWindow = pWnd;
+	m_hParentWindow = hWnd;
 }
 
 /**
@@ -72,7 +75,7 @@ void FileActionScript::UseRecycleBin(BOOL bUseRecycleBin)
 }
 
 /**
- * @brief Return amount of actions (copy, move, etc)  in script.
+ * @brief Return amount of actions (copy, move, etc) in script.
  * @return Amount of actions.
  */
 int FileActionScript::GetActionItemCount() const
@@ -86,7 +89,7 @@ int FileActionScript::GetActionItemCount() const
  * @param [in,out] bApplyToAll Apply user selection to all (selected)files?
  * @return One of CreateScriptReturn values.
  */
-int FileActionScript::VCSCheckOut(const CString &path, BOOL &bApplyToAll)
+int FileActionScript::VCSCheckOut(const String &path, BOOL &bApplyToAll)
 {
 	CString strErr;
 	int retVal = SCRIPT_SUCCESS;
@@ -95,7 +98,7 @@ int FileActionScript::VCSCheckOut(const CString &path, BOOL &bApplyToAll)
 		return retVal;
 
 	// TODO: First param is not used!
-	int nRetVal = GetMainFrame()->SyncFileToVCS(_T(""), path, bApplyToAll, &strErr);
+	int nRetVal = GetMainFrame()->SyncFileToVCS(path.c_str(), bApplyToAll, &strErr);
 	if (nRetVal == -1)
 	{
 		retVal = SCRIPT_FAIL; // So we exit without file operations done
@@ -138,25 +141,41 @@ int FileActionScript::CreateOperationsScripts()
 	POSITION pos = m_actions.GetHeadPosition();
 	while (pos != NULL && bContinue == TRUE)
 	{
-		// Handle VCS checkout first
 		BOOL bSkip = FALSE;
 		const FileActionItem act = m_actions.GetNext(pos);
 		if (act.atype == FileAction::ACT_COPY && !act.dirflag)
 		{
-			int retVal = VCSCheckOut(act.dest, bApplyToAll);
-			if (retVal == SCRIPT_USERCANCEL)
-				bContinue = FALSE;
-			else if (retVal == SCRIPT_USERSKIP)
-				bSkip = TRUE;
-			else if (retVal == SCRIPT_FAIL)
-				bContinue = FALSE;
+			// Handle VCS checkout
+			// Before we can write over destination file, we must unlock
+			// (checkout) it. This also notifies VCS system that the file
+			// has been modified.
+			if (GetOptionsMgr()->GetInt(OPT_VCS_SYSTEM) != VCS_NONE)
+			{
+				int retVal = VCSCheckOut(act.dest, bApplyToAll);
+				if (retVal == SCRIPT_USERCANCEL)
+					bContinue = FALSE;
+				else if (retVal == SCRIPT_USERSKIP)
+					bSkip = TRUE;
+				else if (retVal == SCRIPT_FAIL)
+					bContinue = FALSE;
+			}
+
+			if (bContinue)
+			{
+				if (!GetMainFrame()->CreateBackup(TRUE, act.dest.c_str()))
+				{
+					String strErr = theApp.LoadString(IDS_ERROR_BACKUP);
+					AfxMessageBox(strErr.c_str(), MB_OK | MB_ICONERROR);
+					bContinue = FALSE;
+				}
+			}
 		}
 
 		if (act.atype == FileAction::ACT_COPY &&
 			bSkip == FALSE && bContinue == TRUE)
 		{
-			m_pCopyOperations->AddSourceFile(act.src);
-			m_pCopyOperations->AddDestFile(act.dest);
+			m_pCopyOperations->AddSourceFile(act.src.c_str());
+			m_pCopyOperations->AddDestFile(act.dest.c_str());
 			m_bHasCopyOperations = TRUE;
 		}
 	}
@@ -168,7 +187,7 @@ int FileActionScript::CreateOperationsScripts()
 	}
 	
 	if (m_bHasCopyOperations)
-		m_pCopyOperations->SetOperationFlags(operation, m_pParentWindow, operFlags);
+		m_pCopyOperations->SetOperationFlags(operation, m_hParentWindow, operFlags);
 
 	// Move operations next
 	operation = FO_MOVE;
@@ -182,13 +201,13 @@ int FileActionScript::CreateOperationsScripts()
 		const FileActionItem act = m_actions.GetNext(pos);
 		if (act.atype == FileAction::ACT_MOVE)
 		{
-			m_pMoveOperations->AddSourceFile(act.src);
-			m_pMoveOperations->AddDestFile(act.dest);
+			m_pMoveOperations->AddSourceFile(act.src.c_str());
+			m_pMoveOperations->AddDestFile(act.dest.c_str());
 			m_bHasMoveOperations = TRUE;
 		}
 	}
 	if (m_bHasMoveOperations)
-		m_pMoveOperations->SetOperationFlags(operation, m_pParentWindow, operFlags);
+		m_pMoveOperations->SetOperationFlags(operation, m_hParentWindow, operFlags);
 
 	// Delete operations last
 	operation = FO_DELETE;
@@ -202,14 +221,14 @@ int FileActionScript::CreateOperationsScripts()
 		const FileActionItem act = m_actions.GetNext(pos);
 		if (act.atype == FileAction::ACT_DEL)
 		{
-			m_pDelOperations->AddSourceFile(act.src);
-			if (!act.dest.IsEmpty())
-				m_pDelOperations->AddSourceFile(act.dest);
+			m_pDelOperations->AddSourceFile(act.src.c_str());
+			if (!act.dest.empty())
+				m_pDelOperations->AddSourceFile(act.dest.c_str());
 			m_bHasDelOperations = TRUE;
 		}
 	}
 	if (m_bHasDelOperations)
-		m_pDelOperations->SetOperationFlags(operation, m_pParentWindow, operFlags);
+		m_pDelOperations->SetOperationFlags(operation, m_hParentWindow, operFlags);
 	return SCRIPT_SUCCESS;
 }
 
@@ -237,7 +256,7 @@ BOOL FileActionScript::Run()
 			{
 				const FileActionItem &act = m_actions.GetNext(pos);
 				if (act.dirflag)
-					paths_CreateIfNeeded(act.dest);
+					paths_CreateIfNeeded(act.dest.c_str());
 			}
 
 			bFileOpSucceed = m_pCopyOperations->Go(&bOpStarted,

@@ -4,7 +4,6 @@
   $page = new Page;
   $page->printHead('WinMerge 2.0', WINMERGE_2_0);
 ?>
-<p class="important">This is an old version of WinMerge, for the latest version go to the <a href="../index.php">main site</a>.</p>
 <p>WinMerge is an Open Source visual text file differencing and merging tool for Win32 platforms. It is highly useful for determing what has changed between project versions, and then merging changes between versions.</p>
 <h2>Features</h2>
 <ul>
@@ -36,21 +35,7 @@
 <p>You can use the <a href="docs/index.html">online User's Guide</a>, or you can
 <a href="http://prdownloads.sourceforge.net/winmerge/WinMergeDocs2_0.zip">download</a> a copy.</p>
 
-<h2>Support</h2>
-<p>WinMerge is an Open Source project, that is covered
-under the <a href="http://www.gnu.org/copyleft/gpl.html">GNU Public License</a>.
-As such, your main form of support for WinMerge will be through
-subscription to the <a href="http://lists.sourceforge.net/lists/listinfo/winmerge-support">WinMerge-support mailing list</a>.
-In addition, SourceForge has bug tracking capabilities, so please report any
-bugs <a href="http://sourceforge.net/bugs/?group_id=13216">here</a>. Wish list items on the
-<a href="http://sourceforge.net/tracker/?group_id=13216&amp;atid=363216">feature request list</a> will also be considered, but we make
-absolutely no promises.</p>
-
 <p>Here is the current <a href="changes.php">change history</a>.</p>
-
-<p>Since WinMerge is an Open Source project, you may use it free of charge.
-But please consider making a <a href="http://sourceforge.net/project/project_donations.php?group_id=13216">donation</a>
-to support the continued development of WinMerge.</p>
 <?php
   $page->printFoot();
 ?>

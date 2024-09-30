@@ -24,12 +24,14 @@
  *  @brief Declaration of file transformations
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: FileTransform.h 1219 2004-04-02 13:03:48Z laoran $
+// $Id: FileTransform.h 4798 2007-11-27 17:25:34Z jtuc $
 
 #ifndef FileTransform_h
 #define FileTransform_h
 
 #include "resource.h"
+
+class UniFile;
 
 class CRegExp;
 typedef CTypedPtrList<CPtrList, CRegExp*>RegList;
@@ -37,25 +39,24 @@ typedef CTypedPtrList<CPtrList, CRegExp*>RegList;
 
 
 /**
- * @brief Modes for plugin
+ * @brief Modes for plugin (Modes for prediffing included)
  */
-enum 
+enum PLUGIN_MODE
 {
+	// Modes for unpacking
 	PLUGIN_MANUAL,
 	PLUGIN_AUTO,
+	PLUGIN_BUILTIN_XML,
+	// Modes for prediffing
+	PREDIFF_MANUAL = PLUGIN_MANUAL,
+	PREDIFF_AUTO = PLUGIN_AUTO,
 };
 
-/**
- * @brief Modes for prediffing
- */
-enum 
-{
-	PREDIFF_MANUAL,
-	PREDIFF_AUTO,
-};
+C_ASSERT(PLUGIN_MANUAL == FALSE);
+C_ASSERT(PLUGIN_AUTO == TRUE);
 
-extern BOOL g_bUnpackerMode;
-extern BOOL g_bPredifferMode;
+extern int g_bUnpackerMode;
+extern int g_bPredifferMode;
 
 
 /**
@@ -75,39 +76,31 @@ extern LPCWSTR TransformationCategories[];
 class PluginForFile
 {
 public:
-	void Initialize(BOOL bMode)
+	void Initialize(int bMode)
 	{
+		// TODO: Convert bMode to PLUGIN_MODE and fix compile errors
 		// init functions as a valid "do nothing" unpacker
 		bWithFile = FALSE;
 		// and init bAutomatic flag and name according to global variable
-		if (bMode == PLUGIN_MANUAL)
-		{			
-			pluginName.Empty();
-			bToBeScanned = FALSE;
+		if (bMode != PLUGIN_AUTO)
+		{
+			pluginName.erase();
 		}
 		else
 		{
-			VERIFY(pluginName.LoadString(IDS_USERCHOICE_AUTOMATIC));
-			bToBeScanned = TRUE;
+			pluginName = LoadResString(IDS_USERCHOICE_AUTOMATIC);
 		}
+		bToBeScanned = bMode;
 	};
-	PluginForFile(BOOL bMode) 
+	PluginForFile(PLUGIN_MODE bMode) 
 	{
 		Initialize(bMode);
 	};
-
-/*	operator=(PluginForFile * newInfo) 
-	{
-		bToBeScanned = newInfo->bToBeScanned;
-		pluginName = newInfo->pluginName;
-		bWithFile = newInfo->bWithFile;
-	}*/
-
 public:
 	/// TRUE if the plugin will be defined during the first use (through scan of all available plugins)
-	BOOL    bToBeScanned;
+	int bToBeScanned; // TODO: Convert to PLUGIN_MODE and fix compile errors
 	/// plugin name when it is defined
-	CString pluginName;
+	String pluginName;
 	/// TRUE is the plugins exchange data through a file, FALSE is the data is passed as parameter (BSTR/ARRAY)
 	BOOL    bWithFile;
 };
@@ -122,18 +115,21 @@ public:
 class PackingInfo : public PluginForFile
 {
 public:
-	PackingInfo() : PluginForFile(g_bUnpackerMode)	{ ; };
-	PackingInfo(BOOL bForcedMode) : PluginForFile(bForcedMode)	{ ; };
-/*	operator=(PackingInfo * newInfo) 
+	PackingInfo(PLUGIN_MODE bMode = (PLUGIN_MODE)g_bUnpackerMode)
+	: PluginForFile(bMode)
+	, subcode(0)
+	, pufile(0)
+	, disallowMixedEOL(false)
 	{
-		bToBeScanned = newInfo->bToBeScanned;
-		pluginName = newInfo->pluginName;
-		subcode = newInfo->subcode;
-		bWithFile = newInfo->bWithFile;
-	}*/
+	}
 public:
 	/// keep some info from unpacking for packing
 	int subcode;
+	/// text type to override syntax highlighting
+	String textType;
+	/// custom UniFile
+	UniFile *pufile;
+	bool disallowMixedEOL;
 };
 
 /**
@@ -144,8 +140,10 @@ public:
 class PrediffingInfo : public PluginForFile
 {
 public:
-	PrediffingInfo() : PluginForFile(g_bPredifferMode)	{ ; };
-	PrediffingInfo(BOOL bForcedMode) : PluginForFile(bForcedMode)	{ ; };
+	PrediffingInfo(PLUGIN_MODE bMode = (PLUGIN_MODE)g_bPredifferMode)
+	: PluginForFile(bMode)
+	{
+	}
 };
 
 
@@ -166,13 +164,13 @@ public:
  * @note Event FILE_UNPACK
  * Apply only the first correct handler
  */
-BOOL FileTransform_Unpacking(CString & filepath, CString filteredText, PackingInfo * handler, int * handlerSubcode);
+BOOL FileTransform_Unpacking(String & filepath, LPCTSTR filteredText, PackingInfo * handler, int * handlerSubcode);
 /**
  * @brief Prepare one file for loading, known handler
  *
  * @param filepath : [in, out] Most plugins change this filename
  */
-BOOL FileTransform_Unpacking(CString & filepath, const PackingInfo * handler, int * handlerSubcode);
+BOOL FileTransform_Unpacking(String & filepath, const PackingInfo * handler, int * handlerSubcode);
 /**
  * @brief Prepare one file for saving, known handler
  *
@@ -183,7 +181,7 @@ BOOL FileTransform_Unpacking(CString & filepath, const PackingInfo * handler, in
  * @note Event FILE_PACK
  * Never do Unicode conversion, it was done in SaveFromFile
  */
-BOOL FileTransform_Packing(CString & filepath, PackingInfo handler);
+BOOL FileTransform_Packing(String & filepath, PackingInfo handler);
 
 /**
  * @brief Normalize Unicode files to OLECHAR
@@ -195,7 +193,7 @@ BOOL FileTransform_Packing(CString & filepath, PackingInfo handler);
  *
  * @note Ansi files are not changed
  */
-BOOL FileTransform_NormalizeUnicode(CString & filepath, BOOL bMayOverwrite);
+BOOL FileTransform_NormalizeUnicode(String & filepath, BOOL bMayOverwrite);
 
 /**
  * @brief Prepare one file for diffing, scan all available plugins (events+filename filtering) 
@@ -208,13 +206,13 @@ BOOL FileTransform_NormalizeUnicode(CString & filepath, BOOL bMayOverwrite);
  * @note Event FILE_PREDIFF BUFFER_PREDIFF
  * Apply only the first correct handler
  */
-BOOL FileTransform_Prediffing(CString & filepath, CString filteredText, PrediffingInfo * handler, BOOL bMayOverwrite);
+BOOL FileTransform_Prediffing(String & filepath, LPCTSTR filteredText, PrediffingInfo * handler, BOOL bMayOverwrite);
 /**
  * @brief Prepare one file for diffing, known handler
  *
  * @param filepath : [in, out] Most plugins change this filename
  */
-BOOL FileTransform_Prediffing(CString & filepath, PrediffingInfo handler, BOOL bMayOverwrite);
+BOOL FileTransform_Prediffing(String & filepath, PrediffingInfo handler, BOOL bMayOverwrite);
 
 
 /**
@@ -227,7 +225,7 @@ BOOL FileTransform_Prediffing(CString & filepath, PrediffingInfo handler, BOOL b
  *
  * @todo Convert Ansi files to UTF8 if other file is unicode or uses a different codepage
  */
-BOOL FileTransform_UCS2ToUTF8(CString & filepath, BOOL bMayOverwrite);
+BOOL FileTransform_UCS2ToUTF8(String & filepath, BOOL bMayOverwrite);
 
 
 

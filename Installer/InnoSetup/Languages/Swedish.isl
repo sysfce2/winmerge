@@ -1,10 +1,10 @@
-;Stefan Bodingh
+;Hans Eriksson
 [LangOptions]
 
-;*** Inno Setup version 5.1.0+ Swedish messages ***
+;*** Inno Setup version 5.1.12+ Swedish messages ***
 ;
 ; Translated by stefan@bodingh.se
-;
+; Translated by hans.ericson@bredband.net
 ;
 LanguageName=Svenska
 LanguageID=$041D
@@ -270,7 +270,7 @@ ErrorReplacingExistingFile=Ett fel uppstod vid ett försök att ersätta den befint
 ErrorRestartReplace=ÅterstartaErsätt misslyckades:
 ErrorRenamingTemp=Ett fel uppstod vid ett försök att byta namn på en fil i installationskatalogen:
 ErrorRegisterServer=Kunde inte registrera DLL/OCX: %1
-ErrorRegisterServerMissingExport=DllRegisterServer export kunde inte hittas
+ErrorRegSvr32Failed=RegSvr32 misslyckades med felkod %1
 ErrorRegisterTypeLib=Kunde inte registrera typbibliotek: %1
 
 ; *** Post-installation errors
@@ -322,7 +322,6 @@ CustomInstallation=Anpassad Installation
 ;Components
 AppCoreFiles=WinMerge Kärnfiler
 ApplicationRuntimes=Applikationsexekuterbara filer
-UsersGuide=Användarguide
 Filters=Filter
 Plugins=Plugins
 
@@ -332,23 +331,29 @@ BulgarianLanguage=Bulgariska menyer och dialoger
 CatalanLanguage=Katalanska menyer och dialoger
 ChineseSimplifiedLanguage=Kinesiska (Förenklad) menyer och dialoger
 ChineseTraditionalLanguage=Kinesiska (Traditionell) menyer och dialoger
+CroatianLanguage=Kroatiska menyer och dialoger
 CzechLanguage=Tjeckiska menyer och dialoger
 DanishLanguage=Danska menyer och dialoger
 DutchLanguage=Nederländska menyer och dialoger
 FrenchLanguage=Franska menyer och dialoger
 GermanLanguage=Tyska menyer och dialoger
+GreekLanguage=Grekiska menyer och dialoger
 HungarianLanguage=Ungerska menyer och dialoger
 ItalianLanguage=Italienska menyer och dialoger
 JapaneseLanguage=Japanska menyer och dialoger
 KoreanLanguage=Koreanska menyer och dialoger
 NorwegianLanguage=Norska menyer och dialoger
 PolishLanguage=Polska menyer och dialoger
-PortugueseLanguage=Portugisiska (Brasiliansk) menyer och dialoger
+PortugueseBrazilLanguage=Portugisiska (Brasiliansk) menyer och dialoger
+PortugueseLanguage=Portugisiska menyer och dialoger
+RomanianLanguage=Rumänska menyer och dialoger
 RussianLanguage=Ryska menyer och dialoger
 SlovakLanguage=Slovakiska menyer och dialoger
+SlovenianLanguage=Slovenska menyer och dialoger
 SpanishLanguage=Spanska menyer och dialoger
 SwedishLanguage=Svenska menyer och dialoger
 TurkishLanguage=Turkiska menyer och dialoger
+UkrainianLanguage=Ukrainska menyer och dialoger
 
 ;Tasks
 ExplorerContextMenu=&Möjliggör integration med Explorers menyer

@@ -14,6 +14,9 @@
 LanguageName=English
 LanguageID=$0409
 LanguageCodePage=0
+
+[Messages]
+
 ; If the language you are translating to requires special font faces or
 ; sizes, uncomment any of the following entries and change them accordingly.
 ;DialogFontName=
@@ -329,7 +332,6 @@ CustomInstallation=Custom Installation
 ;Components
 AppCoreFiles=WinMerge Core Files
 ApplicationRuntimes=Application Runtimes
-UsersGuide=User's Guide
 Filters=Filters
 Plugins=Plugins
 
@@ -339,23 +341,29 @@ BulgarianLanguage=Bulgarian menus and dialogs
 CatalanLanguage=Catalan menus and dialogs
 ChineseSimplifiedLanguage=Chinese (Simplified) menus and dialogs
 ChineseTraditionalLanguage=Chinese (Traditional) menus and dialogs
+CroatianLanguage=Croatian menus and dialogs
 CzechLanguage=Czech menus and dialogs
 DanishLanguage=Danish menus and dialogs
 DutchLanguage=Dutch menus and dialogs
 FrenchLanguage=French menus and dialogs
 GermanLanguage=German menus and dialogs
+GreekLanguage=Greek menus and dialogs
 HungarianLanguage=Hungarian menus and dialogs
 ItalianLanguage=Italian menus and dialogs
 JapaneseLanguage=Japanese menus and dialogs
 KoreanLanguage=Korean menus and dialogs
 NorwegianLanguage=Norwegian menus and dialogs
 PolishLanguage=Polish menus and dialogs
-PortugueseLanguage=Portuguese (Brazilian) menus and dialogs
+PortugueseBrazilLanguage=Portuguese (Brazilian) menus and dialogs
+PortugueseLanguage=Portuguese menus and dialogs
+RomanianLanguage=Romanian menus and dialogs
 RussianLanguage=Russian menus and dialogs
 SlovakLanguage=Slovak menus and dialogs
+SlovenianLanguage=Slovenian menus and dialogs
 SpanishLanguage=Spanish menus and dialogs
 SwedishLanguage=Swedish menus and dialogs
 TurkishLanguage=Turkish menus and dialogs
+UkrainianLanguage=Ukrainian menus and dialogs
 
 ;Tasks
 ExplorerContextMenu=&Enable Explorer context menu integration

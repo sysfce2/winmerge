@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: codepage_detect.cpp 3059 2006-02-13 03:10:29Z elsapo $
+// $Id: codepage_detect.cpp 5027 2008-02-11 21:17:11Z sdottaka $
 
 #include "StdAfx.h"
 #include <shlwapi.h>
@@ -15,6 +15,7 @@
 #include "charsets.h"
 #include "markdown.h"
 #include "FileTextEncoding.h"
+#include "Utf8FileDetect.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -24,82 +25,52 @@ static char THIS_FILE[] = __FILE__;
 
 /**
  * @brief Prefixes to handle when searching for codepage names
+ * NB: prefixes ending in '-' must go first!
  */
-static LPCTSTR f_wincp_prefixes[] =
+static const char *f_wincp_prefixes[] =
 {
-	_T("WINDOWS-")
-	, _T("WINDOWS")
-	, _T("CP")
-	, _T("CP-")
-	, _T("MSDOS")
-	, _T("MSDOS-")
+	"WINDOWS-", "WINDOWS", "CP-", "CP", "MSDOS-", "MSDOS"
 };
 
 /**
- * @brief Is string non-empty and comprised entirely of numbers?
+ * @brief Eat prefix and return pointer to remaining text
  */
-static bool
-isNumeric(const CString & str)
+static const char *EatPrefix(const char *text, const char *prefix)
 {
-	if (str.IsEmpty())
-		return false;
-	for (int i=0; i<str.GetLength(); ++i)
-	{
-		TCHAR ch = str[i];
-		if (!_istascii(ch) || !_istdigit(ch))
-			return false;
-	}
-	return true;
+	if (int len = strlen(prefix))
+		if (memicmp(text, prefix, len) == 0)
+			return text + len;
+	return 0;
 }
 
 /**
  * @brief Try to to match codepage name from codepages module, & watch for f_wincp_prefixes aliases
  */
 static int
-FindEncodingIdFromNameOrAlias(CString encodingName)
+FindEncodingIdFromNameOrAlias(const char *encodingName)
 {
-	USES_CONVERSION;
-
 	// Try name as given
-	unsigned encodingId = GetEncodingIdFromName(T2CA(encodingName));
-	if (encodingId) return encodingId;
-
-	// Handle purely numeric values (codepages)
-	if (isNumeric(encodingName))
+	unsigned encodingId = GetEncodingIdFromName(encodingName);
+	if (encodingId == 0)
 	{
-		unsigned codepage = _ttoi(encodingName);
-		if (codepage)
-			encodingId = GetEncodingIdFromCodePage(codepage);
-		return encodingId;
-	}
-
-	for (int i=0; i<sizeof(f_wincp_prefixes)/sizeof(f_wincp_prefixes[0]); ++i)
-	{
-		// prefix is, eg, "WINDOWS-"
-		CString prefix = f_wincp_prefixes[i];
-		prefix.MakeUpper();
-		// check if encodingName starts with prefix
-		if (encodingName.GetLength() > prefix.GetLength())
+		// Handle purely numeric values (codepages)
+		char *ahead = 0;
+		unsigned codepage = strtol(encodingName, &ahead, 10);
+		int i = 0;
+		while (*ahead != '\0' && i < countof(f_wincp_prefixes))
 		{
-			CString encpref = encodingName.Left(prefix.GetLength());
-			encpref.MakeUpper();
-			if (prefix == encpref)
+			if (const char *remainder = EatPrefix(encodingName, f_wincp_prefixes[i]))
 			{
-				// encoding is, eg, "windows-1251"
-				CString remainder = encodingName.Mid(prefix.GetLength());
-				// remainder is, eg, "1251"
-				if (isNumeric(remainder))
-				{
-					unsigned codepage = _ttoi(remainder);
-					if (codepage)
-						encodingId = GetEncodingIdFromCodePage(codepage);
-					return encodingId;
-				}
+				codepage = strtol(remainder, &ahead, 10);
 			}
+			++i;
+		}
+		if (*ahead == '\0')
+		{
+			encodingId = GetEncodingIdFromCodePage(codepage);
 		}
 	}
-
-	return 0; // failed
+	return encodingId;
 }
 
 /**
@@ -170,17 +141,18 @@ static unsigned demoGuessEncoding_xml(const char *src, size_t len)
  */
 static unsigned demoGuessEncoding_rc(const char *src, size_t len)
 {
+	// NB: Diffutils may replace line endings by '\0'
 	unsigned cp = 0;
 	char line[80];
 	do
 	{
-		while (len && (*src == '\r' || *src == '\n'))
+		while (len && (*src == '\r' || *src == '\n' || *src == '\0'))
 		{
 			++src;
 			--len;
 		}
 		const char *base = src;
-		while (len && *src != '\r' && *src != '\n')
+		while (len && *src != '\r' && *src != '\n' && *src != '\0')
 		{
 			++src;
 			--len;
@@ -193,7 +165,7 @@ static unsigned demoGuessEncoding_rc(const char *src, size_t len)
 /**
  * @brief Try to deduce encoding for this file
  */
-static unsigned GuessEncoding_from_bytes(LPCTSTR ext, const char *src, size_t len)
+unsigned GuessEncoding_from_bytes(LPCTSTR ext, const char *src, size_t len)
 {
 	if (len > 4096)
 		len = 4096;
@@ -211,25 +183,6 @@ static unsigned GuessEncoding_from_bytes(LPCTSTR ext, const char *src, size_t le
 		cp = demoGuessEncoding_xml(src, len);
 	}
 	return cp;
-}
-
-/**
- * @brief Try to deduce encoding for this file
- */
-bool GuessEncoding_from_bytes(LPCTSTR ext, const char **data, int count, FileTextEncoding * encoding)
-{
-	if (data)
-	{
-		const char *src = data[0];
-		size_t len = data[count] - src;
-		if (unsigned cp = GuessEncoding_from_bytes(ext, src, len))
-		{
-			encoding->Clear();
-			encoding->SetCodepage(cp);
-			return true;
-		}
-	}
-	return false;
 }
 
 /**
@@ -256,6 +209,8 @@ void GuessCodepageEncoding(LPCTSTR filepath, FileTextEncoding * encoding, BOOL b
 		encoding->m_bom = true;
 		break;
 	default:
+		if (fi.pImage && !CheckForInvalidUtf8((LPBYTE)fi.pImage, 4096))
+			encoding->SetUnicoding(ucr::UTF8);
 		encoding->m_bom = false;
 		break;
 

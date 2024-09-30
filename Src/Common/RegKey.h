@@ -3,12 +3,14 @@
  *
  * @brief Declaration of CRegKeyEx C++ wrapper class for reading Windows registry
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: RegKey.h 3131 2006-03-04 17:54:58Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: RegKey.h 4507 2007-09-03 21:00:14Z kimmov $
 
+#include "UnicodeString.h"
 
-#include <winreg.h>
-
+/**
+ * @brief Class for reading/writing registry.
+ */
 class CRegKeyEx
 {
 
@@ -19,7 +21,7 @@ public:
 
 // Operations
 public:
-	HKEY GetKey()  { return m_hKey; }
+	HKEY GetKey()  { return m_hKey; }  // Only used by VssPrompt.cpp - can be removed?
 	void Close();
 	LONG Open(HKEY hKeyRoot, LPCTSTR pszPath);
 	LONG OpenWithAccess(HKEY hKeyRoot, LPCTSTR pszPath, REGSAM regsam);
@@ -40,11 +42,10 @@ public:
 	UINT ReadInt (LPCTSTR pszKey, int defval);
 	short int ReadShort (LPCTSTR pszKey, short int defval);
 	BYTE ReadByte (LPCTSTR pszKey, BYTE defval);
-	CString ReadString (LPCTSTR pszKey, LPCTSTR defval);
+	String ReadString (LPCTSTR pszKey, LPCTSTR defval);
 	void ReadChars (LPCTSTR pszKey, LPTSTR pData, DWORD dwLength, LPCTSTR defval);
 
 protected:
-	HKEY 	m_hKey;
-	TCHAR m_sPath[_MAX_PATH];
-
+	HKEY m_hKey; /**< Open key (HKLM, HKCU, etc). */
+	String m_sPath; /**< Path to actual key to open. */
 };

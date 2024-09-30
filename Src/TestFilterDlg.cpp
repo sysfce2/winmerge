@@ -3,10 +3,11 @@
  *
  * @brief Dialog for testing file filters
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: TestFilterDlg.cpp 4459 2007-08-21 17:08:44Z sdottaka $
+// ID line follows -- this is updated by SVN
+// $Id: TestFilterDlg.cpp 4700 2007-11-03 08:41:13Z jtuc $
 
 #include "stdafx.h"
+#include "Merge.h"
 #include "resource.h"
 #include "TestFilterDlg.h"
 #include "FileFilterMgr.h"
@@ -17,20 +18,18 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-/////////////////////////////////////////////////////////////////////////////
-// CTestFilterDlg dialog
-
-
+/**
+ * @brief Constructor.
+ * @param [in] pParent Parent window.
+ * @param [in] pFileFilter File filter to test.
+ * @param [in] pFilterMgr File filter manager.
+ */
 CTestFilterDlg::CTestFilterDlg(CWnd* pParent, FileFilter * pFileFilter, FileFilterMgr *pFilterMgr)
 : CDialog(CTestFilterDlg::IDD, pParent)
 , m_pFileFilter(pFileFilter)
 , m_pFileFilterMgr(pFilterMgr)
 {
-	//{{AFX_DATA_INIT(CTestFilterDlg)
-		// NOTE: the ClassWizard will add member initialization here
-	//}}AFX_DATA_INIT
 }
-
 
 void CTestFilterDlg::DoDataExchange(CDataExchange* pDX)
 {
@@ -50,8 +49,13 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CTestFilterDlg message handlers
 
-BOOL CTestFilterDlg::OnInitDialog() 
+/**
+ * @brief Initialize the dialog.
+ * @return FALSE always.
+ */
+BOOL CTestFilterDlg::OnInitDialog()
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
 
 	GetDlgItem(IDC_TEST_TEXT)->SetFocus();
@@ -63,7 +67,7 @@ BOOL CTestFilterDlg::OnInitDialog()
 	              // EXCEPTION: OCX Property Pages should return FALSE
 }
 
-/** @brief User pressed Text button */
+/** @brief User pressed Text button. */
 void CTestFilterDlg::OnTestBtn() 
 {
 	CString text;
@@ -77,7 +81,7 @@ void CTestFilterDlg::OnTestBtn()
 	AppendResult(text);
 }
 
-/** @brief user pressed <enter> key */
+/** @brief user pressed <enter> key. */
 void CTestFilterDlg::OnOK()
 {
    CWnd *pWnd = GetFocus(); 
@@ -92,7 +96,11 @@ void CTestFilterDlg::OnOK()
    }
 }
 
-/** @brief Return true if specified text passes our filter */
+/**
+ * @brief Test text against filter.
+ * @param [in] text Text to test.
+ * @return TRUE if text passes the filter, FALSE otherwise.
+ */
 BOOL CTestFilterDlg::CheckText(CString text) const
 {
 	CButton * IsDirButton = (CButton *)GetDlgItem(IDC_IS_DIRECTORY);
@@ -107,10 +115,13 @@ BOOL CTestFilterDlg::CheckText(CString text) const
 	{
 		return m_pFileFilterMgr->TestFileNameAgainstFilter(m_pFileFilter, text);
 	}
-
 }
 
-/** @brief Add text to end of edit control */
+/**
+ * @brief Add text to end of edit control.
+ * @param [in] edit Edit contror into which the text is added.
+ * @param [in] text Text to add to edit control.
+ */
 void AppendToEditBox(CEdit & edit, LPCTSTR text)
 {
 	int len = edit.GetWindowTextLength();
@@ -118,7 +129,10 @@ void AppendToEditBox(CEdit & edit, LPCTSTR text)
 	edit.ReplaceSel(text);
 }
 
-/** @brief Add new result to end of result edit box */
+/**
+ * @brief Add new result to end of result edit box.
+ * @param [in] result Result text to add.
+ */
 void CTestFilterDlg::AppendResult(CString result)
 {
 	CEdit * edit = (CEdit *)GetDlgItem(IDC_RESULTS);

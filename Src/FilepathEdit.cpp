@@ -24,9 +24,10 @@
  * @brief Implementation of the CFilepathEdit class.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: FilepathEdit.cpp 2939 2006-01-12 21:14:08Z kimmov $
+// $Id: FilepathEdit.cpp 4726 2007-11-10 08:51:28Z jtuc $
 
 #include "stdafx.h"
+#include "Merge.h"
 #include "BCMenu.h"
 #include "FilepathEdit.h"
 #include "Shlwapi.h"
@@ -53,8 +54,8 @@ END_MESSAGE_MAP()
  * slash chars.
  *
  * @param [in] pDC Pointer to draw context.
- * @param [in] nMaxWidth Maximum width of string.
- * @param [in,out] sFilePath:
+ * @param [in] maxWidth Maximum width of string.
+ * @param [in,out] sFilepath:
  * - in: string to format
  * - out: formatted string
  * @return Number of lines path is splitted to.
@@ -259,6 +260,7 @@ void CFilepathEdit::OnContextMenu(CWnd*, CPoint point)
 
 		BCMenu menu;
 		VERIFY(menu.LoadMenu(IDR_POPUP_EDITOR_HEADERBAR));
+		theApp.TranslateMenu(menu.m_hMenu);
 
 		BCMenu* pPopup = (BCMenu *) menu.GetSubMenu(0);
 		ASSERT(pPopup != NULL);

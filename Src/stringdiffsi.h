@@ -4,8 +4,8 @@
  * @brief Declaration file for class stringdiffs
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: stringdiffsi.h 2507 2005-07-24 00:19:28Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: stringdiffsi.h 4782 2007-11-21 14:28:17Z kimmov $
 
 #ifndef stringdiffsi_h_included
 #define stringdiffsi_h_included

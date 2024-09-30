@@ -3,7 +3,7 @@
   (c) 1998-2004 (W3C) MIT, ERCIM, Keio University
   See tidy.h for the copyright notice.
 
-  $Id: charsets.c 3898 2006-12-04 15:59:49Z kimmov $
+  $Id: charsets.c 3841 2006-11-23 17:54:41Z kimmov $
 
 * Changes 2005-01-09 Jochen Tucht
   This file originates from the Tidy library (tidy.sourceforge.net).

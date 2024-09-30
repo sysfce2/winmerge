@@ -8,10 +8,6 @@
 
   <itemizedlist>
     <listitem>
-      <simpara>Portuguese (Brazilian)</simpara>
-    </listitem>
-
-    <listitem>
       <simpara>Bulgarian</simpara>
     </listitem>
 
@@ -21,6 +17,10 @@
 
     <listitem>
       <simpara>Chinese (both Simplified and Traditional)</simpara>
+    </listitem>
+
+    <listitem>
+      <simpara>Croatian</simpara>
     </listitem>
 
     <listitem>
@@ -41,6 +41,10 @@
 
     <listitem>
       <simpara>German</simpara>
+    </listitem>
+
+    <listitem>
+      <simpara>Greek</simpara>
     </listitem>
 
     <listitem>
@@ -68,6 +72,18 @@
     </listitem>
 
     <listitem>
+      <simpara>Portuguese</simpara>
+    </listitem>
+
+    <listitem>
+      <simpara>Portuguese (Brazilian)</simpara>
+    </listitem>
+
+    <listitem>
+      <simpara>Romanian</simpara>
+    </listitem>
+
+    <listitem>
       <simpara>Russian</simpara>
     </listitem>
 
@@ -86,11 +102,15 @@
     <listitem>
       <simpara>Turkish</simpara>
     </listitem>
+
+    <listitem>
+      <simpara>Ukrainian</simpara>
+    </listitem>
   </itemizedlist>
 
   <note>
     <para>The translations cover interface content, including menus, dialogs,
-    tooltips, and messages -- essentially the translation of of all strings
+    tooltips, and messages -- essentially the translation of all the strings
     displayed. However, they do not provide areas outside of string
     translation; they do not handle how numbers are divided, or how words are
     alphabetized. (These issues should be addressed in the conventional
@@ -133,29 +153,30 @@
     (<guilabel>Typical Installation</guilabel>) does not install translations,
     but they can be individually selected from the list.</para>
 
-    <para>If you don't want to re-run installer, or didn't install WinMerge
-    with the installer in the first place, then WinMerge translation files are
-    available in zipped versions. To install new translation file:</para>
+    <para>If you do not want to re-run installer, or did not install WinMerge
+    with the installer in the first place, then the WinMerge translation files
+    are available in the zipped versions. To install a new translation
+    file:</para>
 
     <para><orderedlist>
         <listitem>
           <simpara>Download the zipped release from <ulink
-          url="http://sourceforge.net/project/showfiles.php?group_id=13216&amp;package_id=11403&amp;release_id=283717">WinMerge
-          download</ulink> site.</simpara>
+          url="http://winmerge.org/downloads/">WinMerge download</ulink>
+          site.</simpara>
         </listitem>
 
         <listitem>
           <simpara>If the <filename class="directory">Languages</filename>
-          subdirectory does not exist under the WinMerge directory (where
+          subfolder does not exist under the WinMerge directory (where
           <filename>WinMerge.exe</filename> and/or
           <filename>WinMergeU.exe</filename> is located) create it.</simpara>
         </listitem>
 
         <listitem>
-          <simpara>Search for <filename>Merge*.lang</filename> files, where *
-          is a language name (<filename>MergeSwedish.lang</filename> for
-          Swedish translation) in archive file. Extract that file to the
-          <filename>Languages</filename> directory.</simpara>
+          <simpara>Search for <filename>*.po</filename> files, where * is a
+          language name (<filename>Swedish.po</filename> for Swedish
+          translation) in the archive file. Extract that file to the
+          <filename>Languages</filename> subfolder.</simpara>
         </listitem>
 
         <listitem>
@@ -187,7 +208,7 @@
     <title>Submitting a new translation</title>
 
     <para>If you would like to add your language to the list, look at the
-    <ulink url="http://www.winmerge.org/developer/l10n/index.php">on-line
+    <ulink url="http://winmerge.org/translations/">on-line
     documentation</ulink> for the details on how to do it. All translations
     are not complete so it would be nice if you can help improving them.
     Translating (or improving translation) does not require you to have all

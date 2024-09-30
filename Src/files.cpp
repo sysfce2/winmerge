@@ -19,16 +19,22 @@
  *
  * @brief Code file routines
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: files.cpp 3492 2006-08-23 15:30:54Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: files.cpp 4833 2007-12-17 16:33:16Z kimmov $
 
 #include "stdafx.h"
 #include <sys/stat.h>
+#include <sys/utime.h>
+#include "UnicodeString.h"
+#include "DiffFileInfo.h"
 #include "files.h"
+#include "paths.h"
 #include "unicoder.h"
 
 /**
- * @brief Open file as memory-mapped file
+ * @brief Open file as memory-mapped file.
+ * @param [in,out] fileData Memory-mapped file's info.
+ * @return TRUE if opening succeeded, FALSE otherwise.
  */
 BOOL files_openFileMapped(MAPPEDFILEDATA *fileData)
 {
@@ -117,7 +123,11 @@ BOOL files_openFileMapped(MAPPEDFILEDATA *fileData)
 }
 
 /**
- * @brief Close memory-mapped file
+ * @brief Close memory-mapped file.
+ * @param [in, out] fileData Memory-mapped file's info.
+ * @param [in] newSize New size for the file.
+ * @param [in] flush Flush buffers before closing the file.
+ * @return TRUE if closing succeeded without errors, FALSE otherwise.
  */
 BOOL files_closeFileMapped(MAPPEDFILEDATA *fileData, DWORD newSize, BOOL flush)
 {
@@ -155,8 +165,8 @@ BOOL files_closeFileMapped(MAPPEDFILEDATA *fileData, DWORD newSize, BOOL flush)
 /**
  * @brief Checks if file is read-only on disk.
  * Optionally returns also if file exists.
- * @param [in] Full path to file to check.
- * @param [in, out] If non-NULL, returns if file exists.
+ * @param [in] file Full path to file to check.
+ * @param [in, out] fileExists If non-NULL, function returns if file exists.
  * @return TRUE if file is read-only, FALSE otherwise.
  */
 BOOL files_isFileReadOnly(const CString &file, BOOL *fileExists /*=NULL*/)
@@ -179,4 +189,17 @@ BOOL files_isFileReadOnly(const CString &file, BOOL *fileExists /*=NULL*/)
 		*fileExists = bExists;
 
 	return bReadOnly;
+}
+
+/**
+ * @brief Update file's modification time.
+ * @param [in] info Contains filename, path and file times to update.
+ */
+void files_UpdateFileTime(const DiffFileInfo & info)
+{
+	String path = paths_ConcatPath(info.path, info.filename);
+	_utimbuf times = {0};
+
+	times.modtime = info.mtime;
+	_tutime(path.c_str(), &times);
 }

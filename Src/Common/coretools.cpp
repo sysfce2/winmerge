@@ -4,31 +4,27 @@
  * @brief Common routines
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: coretools.cpp 3128 2006-03-04 03:47:22Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: coretools.cpp 5745 2008-08-06 17:10:45Z kimmov $
 
-#include "stdafx.h"
-#include <stdio.h>
+#include <windows.h>
+#include <tchar.h>
 #include <io.h>
 #include <mbctype.h> // MBCS (multibyte codepage stuff)
-#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <math.h>
-#include <winsock.h>
 #include <assert.h>
-
-#ifndef __AFXDISP_H__
-#include <afxdisp.h>
-#endif
-
+#include "UnicodeString.h"
 #include "coretools.h"
 
 #ifndef countof
 #define countof(array)  (sizeof(array)/sizeof((array)[0]))
 #endif /* countof */
 
+static String MyGetSysError(int nerr);
+static BOOL MyCreateDirectoryIfNeeded(LPCTSTR lpPathName, String * perrstr);
 
 BOOL GetFileTimes(LPCTSTR szFilename,
 				  LPSYSTEMTIME pMod,
@@ -36,8 +32,8 @@ BOOL GetFileTimes(LPCTSTR szFilename,
 				  LPSYSTEMTIME pAccess /*=NULL*/)
 {
 	WIN32_FIND_DATA ffi;
-	ASSERT(szFilename != NULL);
-	ASSERT(pMod != NULL);
+	assert(szFilename != NULL);
+	assert(pMod != NULL);
 
 	HANDLE hff = FindFirstFile(szFilename, &ffi);
 	if (hff != INVALID_HANDLE_VALUE)
@@ -61,11 +57,10 @@ BOOL GetFileTimes(LPCTSTR szFilename,
 	return FALSE;
 }
 
-long GetFileModTime(LPCTSTR szPath)
+time_t GetFileModTime(LPCTSTR szPath)
 {
 	if (!szPath || !szPath[0]) return 0;
-	struct _stat mystats;
-	memset(&mystats, 0, sizeof(mystats));
+	struct _stat mystats = {0};
 	int stat_result = _tstat(szPath, &mystats);
 	if (stat_result!=0)
 		return 0;
@@ -75,7 +70,7 @@ long GetFileModTime(LPCTSTR szPath)
 DWORD GetFileSizeEx(LPCTSTR szFilename)
 {
 	WIN32_FIND_DATA ffi;
-	ASSERT(szFilename != NULL);
+	assert(szFilename != NULL);
 
 	HANDLE hff = FindFirstFile(szFilename, &ffi);
 	if (hff != INVALID_HANDLE_VALUE)
@@ -99,50 +94,6 @@ int tcssubptr(LPCTSTR start, LPCTSTR end)
 	return cnt;
 }
 
-BOOL DoModalProcess(CWnd *pWndParent, LPCTSTR szExeFile,
-					LPCTSTR szCmdLine, LPCTSTR szWindowCaption)
-{
-	BOOL result = FALSE;
-	TCHAR temp[MAX_PATH] = {0};
-	if (GetModuleFileName(NULL, temp, MAX_PATH))
-	{
-		CString spath;
-		SplitFilename(temp, &spath, 0, 0);
-		CString stemp = spath + '\\' + szExeFile;
-		if ((int)ShellExecute(pWndParent->GetSafeHwnd(), _T("open"), stemp,
-						 szCmdLine, spath, SW_SHOWNORMAL) > 32)
-		{
-			result=TRUE;
-			if (szWindowCaption != NULL)
-			{
-				pWndParent->EnableWindow(FALSE);
-
-				CTime start = CTime::GetCurrentTime();
-				CTimeSpan span;
-				BOOL found=FALSE;
-
-				// wait for window to appear
-				while (!found)
-				{
-					span = CTime::GetCurrentTime() - start;
-					if (span.GetTotalSeconds() > 10)
-						return FALSE;
-					if (CWnd::FindWindow(NULL,szWindowCaption))
-						break;
-					Sleep(100);
-				}
-
-				// wait for window to close
-				while (CWnd::FindWindow(NULL,szWindowCaption))
-					Sleep(200);
-				pWndParent->SetForegroundWindow();
-				pWndParent->EnableWindow(TRUE);
-			}
-		}
-	}
-	return result;
-}
-
 
 void GetLocalDrives(LPTSTR letters)
 {
@@ -164,21 +115,6 @@ void GetLocalDrives(LPTSTR letters)
 		_tccpy(pout,_T("\0"));
 	}
 }
-
-CString GetCDPath()
-{
-	TCHAR drives[100];
-	CString s;
-	GetLocalDrives(drives);
-	for (TCHAR *d = drives;  *d != _T('\0'); d = _tcsinc(d))
-	{
-		s.Format(_T("%c:\\"), *d);
-		if (GetDriveType(s) == DRIVE_CDROM)
-			return s;
-	}
-	return CString("");
-}
-
 
 /*
  Commented out - can't use this file by just including
@@ -251,8 +187,7 @@ HANDLE FOPEN(LPCTSTR path, DWORD mode /*= GENERIC_READ*/, DWORD access /*= OPEN_
 	return hf;
 }
 
-void
-replace_char(LPTSTR s, int target, int repl)
+void replace_char(LPTSTR s, int target, int repl)
 {
 	TCHAR *p;
 	for (p=s; *p != _T('\0'); p = _tcsinc(p))
@@ -260,33 +195,7 @@ replace_char(LPTSTR s, int target, int repl)
 			*p = (TCHAR)repl;
 }
 
-
-CString ConvertPath2PS(LPCTSTR szPath)
-{
-	CString result(_T(""));
-	TCHAR path[_MAX_PATH] = {0};
-	_tcscpy(path,szPath);
-
-	replace_char(path, _T('\\'), _T('/'));
-	if (_tcslen(path)>2
-		&& path[1] == _T(':')
-		&& path[2] == _T('/'))
-	{
-#ifdef _UNICODE
-		result.Format(_T("%%%c%%%s"), towupper(path[0]), _tcsninc(path, 2));
-#else
-		result.Format(_T("%%%c%%%s"), toupper(path[0]), _tcsninc(path, 2));
-#endif
-	}
-	else
-		result = path;
-
-	return result;
-}
-
-
-BOOL
-FileExtMatches(LPCTSTR filename, LPCTSTR ext)
+BOOL FileExtMatches(LPCTSTR filename, LPCTSTR ext)
 {
   LPCTSTR p;
 
@@ -318,15 +227,21 @@ bool IsSlashOrColon(LPCTSTR pszChar, LPCTSTR begin)
 #endif
 }
 
-// Parse pathLeft, extract out up to three items
-//   - directory (pPath), with no trailing slash (but including trailing colon)
-//   - filename (pFile), including extension
-//   - extension (pExt), with no leading dot
-void SplitFilename(LPCTSTR pathLeft, CString* pPath, CString* pFile, CString* pExt)
+/**
+ * @brief Extract path name components from given full path.
+ * @param [in] pathLeft Original path.
+ * @param [out] pPath Folder name component of full path, excluding
+   trailing slash.
+ * @param [out] pFile File name part, excluding extension.
+ * @param [out] pExt Filename extension part, excluding leading dot.
+ */
+void SplitFilename(LPCTSTR pathLeft, String* pPath, String* pFile, String* pExt)
 {
 	LPCTSTR pszChar = pathLeft + _tcslen(pathLeft);
-	LPCTSTR pend=pszChar, extptr=0;
-	bool ext=false;
+	LPCTSTR pend = pszChar;
+	LPCTSTR extptr = 0;
+	bool ext = false;
+
 	while (pathLeft < --pszChar)
 	{
 		if (*pszChar == '.')
@@ -350,16 +265,16 @@ void SplitFilename(LPCTSTR pathLeft, CString* pPath, CString* pFile, CString* pE
 			{
 				// Grab directory (omit trailing slash)
 				int len = pszChar - pathLeft;
-				if (*pszChar == ':') ++len; // Keep trailing colon ( eg, C:filename.txt)
-				TCHAR* pszDir = pPath->GetBufferSetLength(len+1);
-				_tcsncpy(pszDir, pathLeft, len);
-				pPath->ReleaseBuffer(len);
+				if (*pszChar == ':')
+					++len; // Keep trailing colon ( eg, C:filename.txt)
+				*pPath = pathLeft;
+				pPath->erase(len); // Cut rest of path
 			}
 
 			if (pFile)
 			{
 				// Grab file
-				(*pFile) = pszChar + 1;
+				*pFile = pszChar + 1;
 			}
 
 			goto endSplit;
@@ -369,7 +284,7 @@ void SplitFilename(LPCTSTR pathLeft, CString* pPath, CString* pFile, CString* pE
 	// Never found a delimiter
 	if (pFile)
 	{
-		(*pFile) = pathLeft;
+		*pFile = pathLeft;
 	}
 
 endSplit:
@@ -378,22 +293,22 @@ endSplit:
 	if (pFile && pExt && extptr)
 	{
 		int extlen = pend - extptr;
-		(*pFile) = pFile->Left(pFile->GetLength() - extlen);
+		pFile->erase(pFile->length() - extlen);
 	}
 }
 
 // Split Rational ClearCase view name (file_name@@file_version).
-void SplitViewName(LPCTSTR s, CString * path, CString * name, CString * ext)
+void SplitViewName(LPCTSTR s, String * path, String * name, String * ext)
 {
-	CString sViewName = s;
-	int nOffset = sViewName.Find(_T("@@"));
-	if (-1 != nOffset)
+	String sViewName(s);
+	int nOffset = sViewName.find(_T("@@"));
+	if (nOffset != std::string::npos)
 	{
-		sViewName = sViewName.Left(nOffset);
-		SplitFilename(sViewName, path, name, ext);
+		sViewName.erase(nOffset);
+		SplitFilename(sViewName.c_str(), path, name, ext);
 	}
 }
-
+#ifdef _DEBUG
 // Test code for SplitFilename above
 void TestSplitFilename()
 {
@@ -406,23 +321,22 @@ void TestSplitFilename()
 		, _T("c:\\"), _T("c:"), 0, 0
 		, _T("c:\\d:"), _T("c:\\d:"), 0, 0
 	};
-	for (int i=0; i<sizeof(tests)/sizeof(tests[0]); i += 4)
+	for (int i=0; i < countof(tests); i += 4)
 	{
 		LPCTSTR dir = tests[i];
-		CString path, name, ext;
+		String path, name, ext;
 		SplitFilename(dir, &path, &name, &ext);
 		LPCTSTR szpath = tests[i+1] ? tests[i+1] : _T("");
 		LPCTSTR szname = tests[i+2] ? tests[i+2] : _T("");
 		LPCTSTR szext = tests[i+3] ? tests[i+3] : _T("");
-		ASSERT(path == szpath);
-		ASSERT(name == szname);
-		ASSERT(ext == szext);
+		assert(path == szpath);
+		assert(name == szname);
+		assert(ext == szext);
 	}
 }
+#endif
 
-
-void
-AddExtension(LPTSTR name, LPCTSTR ext)
+void AddExtension(LPTSTR name, LPCTSTR ext)
 {
 	TCHAR *p;
 
@@ -435,9 +349,7 @@ AddExtension(LPTSTR name, LPCTSTR ext)
 	}
 }
 
-
-BOOL
-GetFreeSpaceString(LPCTSTR drivespec, ULONG mode, LPTSTR s)
+BOOL GetFreeSpaceString(LPCTSTR drivespec, ULONG mode, LPTSTR s)
 {
   DWORD sectorsPerCluster,
 	  bytesPerSector,
@@ -461,8 +373,7 @@ GetFreeSpaceString(LPCTSTR drivespec, ULONG mode, LPTSTR s)
   return TRUE;
 }
 
-int
-fcmp(float a,float b)
+int fcmp(float a,float b)
 /* return -1 if a<b, 0 if a=b, or 1 if a>b */
 {
   long la,lb;
@@ -476,37 +387,30 @@ fcmp(float a,float b)
   return (la > lb);
 }
 
-
-void
-aswap(LPTSTR a,LPTSTR b)
-{
- TCHAR t[200];
- _tcscpy(t,a);
- _tcscpy(a,b);
- _tcscpy(b,t);
-}
-
-
 BOOL FindAnyFile(LPTSTR filespec, LPTSTR name)
 {
-#ifndef _UNICODE
-   struct _finddata_t c_file;
+// Use 64-bit versions with VS2003.Net and later
+#if _MSC_VER >= 1300
+	_tfinddata64_t c_file;
+	intptr_t hFile;
+	hFile = _tfindfirst64( filespec, &c_file );
 #else
-   struct _wfinddata_t c_file;
-#endif
-   long hFile;
+// Use 32-bit versions with VC6
+	_tfinddata_t c_file;	
+	long hFile;
+	hFile = _tfindfirst( filespec, &c_file );
+#endif // _MSC_VER >= 1300
 
-   if( (hFile = _tfindfirst( filespec, &c_file )) == -1L )
-       return FALSE;
+	if (hFile == -1L)
+		return FALSE;
 
-    _tcscpy(name, c_file.name);
+	_tcscpy(name, c_file.name);
 	_findclose( hFile );
 	return TRUE;
 }
 
 
-long
-SwapEndian(long val)
+long SwapEndian(long val)
 {
 #ifndef _WINDOWS
   long t = 0x00000000;
@@ -522,8 +426,7 @@ SwapEndian(long val)
 
 
 
-short int
-SwapEndian(short int val)
+short int SwapEndian(short int val)
 {
 #ifndef _WINDOWS
   short int t = 0x0000;
@@ -536,10 +439,10 @@ SwapEndian(short int val)
 }
 
 // Get user language description of error, if available
-static CString MyGetSysError(int nerr)
+static String MyGetSysError(int nerr)
 {
-	LPVOID lpMsgBuf;
-	CString str = _T("?");
+	LPTSTR lpMsgBuf = NULL;
+	String str(_T("?"));
 	if (FormatMessage( 
 		FORMAT_MESSAGE_ALLOCATE_BUFFER | 
 		FORMAT_MESSAGE_FROM_SYSTEM | 
@@ -552,10 +455,10 @@ static CString MyGetSysError(int nerr)
 		NULL 
 		))
 	{
-		str = (LPCTSTR)lpMsgBuf;
+		str = lpMsgBuf;
+		// Free the buffer.
+		LocalFree( lpMsgBuf );
 	}
-	// Free the buffer.
-	LocalFree( lpMsgBuf );
 	return str;
 }
 
@@ -563,42 +466,50 @@ static CString MyGetSysError(int nerr)
 // if success, or already exists, return TRUE
 // if failure, return system error string
 // (NB: Win32 CreateDirectory reports failure if already exists)
-static BOOL MyCreateDirectoryIfNeeded(LPCTSTR lpPathName, CString * perrstr)
+// TODO: replace this with calls to paths_CreateIfNeeded()
+static BOOL MyCreateDirectoryIfNeeded(LPCTSTR lpPathName, String * perrstr)
 {
 	LPSECURITY_ATTRIBUTES lpSecurityAttributes = NULL;
 	int rtn = CreateDirectory(lpPathName, lpSecurityAttributes);
 	if (!rtn)
 	{
-		int errnum = GetLastError();
+		DWORD errnum = GetLastError();
 		// Consider it success if directory already exists
 		if (errnum == ERROR_ALREADY_EXISTS)
 			return TRUE;
-		CString errdesc = MyGetSysError(errnum);
 		if (perrstr)
-			perrstr->Format(_T("%d: %s"), errnum, (LPCTSTR)errdesc);
+		{
+			String errdesc = MyGetSysError(errnum);
+			TCHAR tmp[10];
+			*perrstr = _itot(errnum, tmp, 10);
+			*perrstr += _T(": ");
+			*perrstr += errdesc;
+		}
 	}
 	return rtn;
 }
 
-BOOL MkDirEx(LPCTSTR filename)
+// Not used - remove later?
+#ifdef _UNUSED_
+BOOL MkDirEx(LPCTSTR foldername)
 {
 	TCHAR tempPath[_MAX_PATH] = {0};
 	LPTSTR p;
 
-	_tcscpy(tempPath, filename);
-	if (*_tcsinc(filename)==_T(':'))
-		p=_tcschr(_tcsninc(tempPath,3),_T('\\'));
-	else if (*filename==_T('\\'))
-		p=_tcschr(_tcsinc(tempPath),_T('\\'));
+	_tcscpy(tempPath, foldername);
+	if (*_tcsinc(foldername) == _T(':'))
+		p = _tcschr(_tcsninc(tempPath, 3), _T('\\'));
+	else if (*foldername == _T('\\'))
+		p = _tcschr(_tcsinc(tempPath), _T('\\'));
 	else
-		p=tempPath;
-	CString errstr;
-	if (p!=NULL)
+		p = tempPath;
+	String errstr;
+	if (p != NULL)
 		for (; *p != _T('\0'); p = _tcsinc(p))
 		{
 			if (*p == _T('\\'))
 			{
-				_tccpy(p, _T("\0"));
+				*p = _T('\0');;
 				if (0 && _tcscmp(tempPath, _T(".")) == 0)
 				{
 					// Don't call CreateDirectory(".")
@@ -607,23 +518,24 @@ BOOL MkDirEx(LPCTSTR filename)
 				{
 					if (!MyCreateDirectoryIfNeeded(tempPath, &errstr)
 						&& !MyCreateDirectoryIfNeeded(tempPath, &errstr))
-						TRACE(_T("Failed to create folder %s: %s\n"), tempPath, (LPCTSTR)errstr);
-					_tccpy(p, _T("\\"));
+						TRACE(_T("Failed to create folder %s: %s\n"), tempPath, errstr.c_str());
+					*p = _T('\\');
 				}
 			}
 
 		}
 
-		if (!MyCreateDirectoryIfNeeded(filename, &errstr)
-			&& !MyCreateDirectoryIfNeeded(filename, &errstr))
-			TRACE(_T("Failed to create folder %s: %s\n"), filename, (LPCTSTR)errstr);
+		if (!MyCreateDirectoryIfNeeded(foldername, &errstr)
+			&& !MyCreateDirectoryIfNeeded(foldername, &errstr))
+			TRACE(_T("Failed to create folder %s: %s\n"), foldername, errstr.c_str());
 
-	CFileStatus status;
-	return (CFile::GetStatus(filename, status));
+	struct _stat mystats = {0};
+	int stat_result = _tstat(foldername, &mystats);
+	return stat_result != 0;
 }
+#endif // _UNUSED_
 
-float
-RoundMeasure(float measure, float units)
+float RoundMeasure(float measure, float units)
 {
 	float res1,res2,divisor;
 	if (units == 25.4f)
@@ -645,7 +557,7 @@ RoundMeasure(float measure, float units)
 BOOL HaveAdminAccess()
 {
 	// make sure this is NT first
-	OSVERSIONINFO ver;
+	OSVERSIONINFO ver = { 0 };
 	ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 
 	// if this fails, we want to default to being enabled
@@ -658,7 +570,7 @@ BOOL HaveAdminAccess()
 	HANDLE hHandleToken;
 
 	if(!::OpenProcessToken(::GetCurrentProcess(), TOKEN_READ, &hHandleToken))
-		return(FALSE);
+		return FALSE;
 
 	UCHAR TokenInformation[1024];
 	DWORD dwTokenInformationSize;
@@ -700,7 +612,7 @@ BOOL HaveAdminAccess()
 
 
 
-CString LegalizeFileName(LPCTSTR szFileName)
+String LegalizeFileName(LPCTSTR szFileName)
 {
 	TCHAR tempname[_MAX_PATH] = {0};
 	LPTSTR p;
@@ -711,7 +623,7 @@ CString LegalizeFileName(LPCTSTR szFileName)
 		*p = _T('_');
 	}
 
-	return CString(tempname);
+	return String(tempname);
 }
 
 static double tenpow(int expon)
@@ -721,6 +633,8 @@ static double tenpow(int expon)
 	return rtn;
 }
 
+// These are not used - remove later?
+#ifdef _UNUSED_
 void DDX_Float( CDataExchange* pDX, int nIDC, float& value )
 {
 	pDX->PrepareEditCtrl(nIDC);
@@ -924,30 +838,27 @@ CString GetLocalizedNumberString(double dVal, int nPlaces /*=-1*/, BOOL bSeparat
 	}
 
 	TCHAR szFract[80];
-	if (1)
+
+	// split into integer & fraction
+	char tszInt[80],tszFract[80];
+	int places = (nPlaces==-1? nDecimals : nPlaces);
+	int  decimal, sign;
+	char *buffer;
+
+	buffer = _fcvt( dVal+1e-10, places, &decimal, &sign );
+	if (decimal > 0)
 	{
-		// split into integer & fraction
-		char tszInt[80],tszFract[80];
-		int places = (nPlaces==-1? nDecimals : nPlaces);
-		int  decimal, sign;
-		char *buffer;
-
-		buffer = _fcvt( dVal+1e-10, places, &decimal, &sign );
-		if (decimal > 0)
-		{
-			strncpy(tszInt, buffer, decimal);
-			tszInt[decimal] = NULL;
-		}
-		strncpy(tszFract, &buffer[decimal], strlen(buffer)-decimal);
-		tszFract[strlen(buffer)-decimal] = NULL;
-		intpart = (DWORD)atoi(tszInt);
-#ifdef _UNICODE
-		mbstowcs(szFract, tszFract, strlen(tszFract));
-#else
-		_tcscpy(szFract, tszFract);
-#endif
+		strncpy(tszInt, buffer, decimal);
+		tszInt[decimal] = NULL;
 	}
-
+	strncpy(tszFract, &buffer[decimal], strlen(buffer)-decimal);
+	tszFract[strlen(buffer)-decimal] = NULL;
+	intpart = (DWORD)atoi(tszInt);
+#ifdef _UNICODE
+	mbstowcs(szFract, tszFract, strlen(tszFract));
+#else
+	_tcscpy(szFract, tszFract);
+#endif
 
 	// take care of leading negative sign
 	if (bIsNeg)
@@ -1050,21 +961,17 @@ CString GetLocalizedNumberString(double dVal, int nPlaces /*=-1*/, BOOL bSeparat
 
 	return strResult;
 }
-
+#endif // _UNUSED_
 
 HANDLE RunIt(LPCTSTR szExeFile, LPCTSTR szArgs, BOOL bMinimized /*= TRUE*/, BOOL bNewConsole /*= FALSE*/)
 {
-    STARTUPINFO si;
-	PROCESS_INFORMATION procInfo;
+    STARTUPINFO si = {0};
+	PROCESS_INFORMATION procInfo = {0};
 
     si.cb = sizeof(STARTUPINFO);
-    si.lpReserved=NULL;
     si.lpDesktop = _T("");
-    si.lpTitle = NULL;
     si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = (WORD)(SW_HIDE);
-    si.cbReserved2 = 0;
-    si.lpReserved2 = NULL;
+    si.wShowWindow = (bMinimized) ? SW_MINIMIZE : SW_HIDE;
 
 	TCHAR args[4096];
 	_stprintf(args,_T("\"%s\" %s"), szExeFile, szArgs);
@@ -1198,19 +1105,27 @@ BOOL IsLocalPath(LPCTSTR path)
 }
 #endif
 
-// return module's path component (without filename)
-CString GetModulePath(HMODULE hModule /* = NULL*/)
+/**
+ * @brief Return module's path component (without filename).
+ * @param [in] hModule Module's handle.
+ * @return Module's path.
+ */
+String GetModulePath(HMODULE hModule /* = NULL*/)
 {
 	TCHAR temp[MAX_PATH] = {0};
 	GetModuleFileName(hModule, temp, MAX_PATH);
 	return GetPathOnly(temp);
 }
 
-// return path component (without filename)
-CString GetPathOnly(LPCTSTR fullpath)
+/**
+ * @brief Return path component from full path.
+ * @param [in] fullpath Full path to split.
+ * @return Path without filename.
+ */
+String GetPathOnly(LPCTSTR fullpath)
 {
 	if (!fullpath || !fullpath[0]) return _T("");
-	CString spath;
+	String spath;
 	SplitFilename(fullpath, &spath, 0, 0);
 	return spath;
 }
@@ -1219,7 +1134,7 @@ CString GetPathOnly(LPCTSTR fullpath)
  * @brief Returns Application Data path in user profile directory
  * if one exists
  */
-BOOL GetAppDataPath(CString &sAppDataPath)
+BOOL GetAppDataPath(String &sAppDataPath)
 {
 	TCHAR path[_MAX_PATH] = {0};
 	if (GetEnvironmentVariable(_T("APPDATA"), path, _MAX_PATH))
@@ -1237,7 +1152,7 @@ BOOL GetAppDataPath(CString &sAppDataPath)
 /**
  * @brief Returns User Profile path (if available in environment)
  */
-BOOL GetUserProfilePath(CString &sAppDataPath)
+BOOL GetUserProfilePath(String &sAppDataPath)
 {
 	TCHAR path[_MAX_PATH] = {0};
 	if (GetEnvironmentVariable(_T("USERPROFILE"), path, countof(path)))
@@ -1253,67 +1168,6 @@ BOOL GetUserProfilePath(CString &sAppDataPath)
 }
 
 /**
- * @brief Copies string to clipboard.
- */
-BOOL PutToClipboard(LPCTSTR pszText, HWND currentWindowHandle)
-{
-	if (pszText == NULL || _tcslen (pszText) == 0)
-		return FALSE;
-
-	CWaitCursor wc;
-	BOOL bOK = FALSE;
-	if (OpenClipboard(currentWindowHandle))
-	{
-		EmptyClipboard();
-		HGLOBAL hData = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, (_tcslen(pszText)+1) * sizeof(TCHAR));
-		if (hData != NULL)
-		{
-			LPTSTR pszData = (LPTSTR)::GlobalLock(hData);
-			_tcscpy(pszData, pszText);
-			GlobalUnlock(hData);
-			UINT fmt = GetClipTcharTextFormat();
-			bOK = SetClipboardData(fmt, hData) != NULL;
-		}
-		CloseClipboard();
-	}
-	return bOK;
-}
-
-/**
- * @brief retrieves the string from clipboard.
- */
-BOOL GetFromClipboard(CString & text, HWND currentWindowHandle)
-{
-	BOOL bSuccess = FALSE;
-	if (OpenClipboard(currentWindowHandle))
-	{
-		UINT fmt = GetClipTcharTextFormat();
-		HGLOBAL hData = GetClipboardData(fmt);
-		if (hData != NULL)
-		{
-			LPTSTR pszData = (LPTSTR) GlobalLock(hData);
-			if (pszData != NULL)
-			{
-				text = pszData;
-				GlobalUnlock(hData);
-				bSuccess = TRUE;
-			}
-		}
-		CloseClipboard();
-	}
-	return bSuccess;
-}
-
-/**
- * @brief Checks if the clipboard allows unicode format.
- */
-BOOL TextInClipboard()
-{
-	UINT fmt = GetClipTcharTextFormat();
-	return IsClipboardFormatAvailable(fmt);
-}
-
-/**
  * @brief Decorates commandline for giving to CreateProcess() or
  * ShellExecute().
  *
@@ -1324,21 +1178,26 @@ BOOL TextInClipboard()
  * @param [out] sDecoratedCmdLine decorated commandline
  * @param [out] sExecutable Executable for validating file extension etc
  */
-void GetDecoratedCmdLine(CString sCmdLine, CString &sDecoratedCmdLine,
-	CString &sExecutable)
+void GetDecoratedCmdLine(String sCmdLine, String &sDecoratedCmdLine,
+	String &sExecutable)
 {
 	BOOL pathEndFound = FALSE;
 	BOOL addQuote = FALSE;
-	int pos = 0;
 	int prevPos = 0;
-	pos = sCmdLine.Find(_T(" "), 0);
 
-	sCmdLine.TrimLeft();
-	sCmdLine.TrimRight();
-	sDecoratedCmdLine.Empty();
-	sExecutable.Empty();
+	sDecoratedCmdLine.erase();
+	sExecutable.erase();
 
-	if (pos > -1)
+	// Remove whitespaces from begin and and
+	std::string::size_type clpos = sCmdLine.find_first_not_of(_T(" \n\t"));
+	if (clpos != 0)
+		sCmdLine.erase(0, clpos);
+	clpos = sCmdLine.find_last_not_of(_T(" \n\t"));
+	if (clpos != sCmdLine.length() - 1)
+		sCmdLine.erase(clpos, clpos - sCmdLine.length());
+
+	std::string::size_type pos = sCmdLine.find(_T(" "));
+	if (pos != std::string.npos)
 	{
 		// First space was before switch, we don't need "s
 		// (executable path didn't contain spaces)
@@ -1356,9 +1215,9 @@ void GetDecoratedCmdLine(CString sCmdLine, CString &sDecoratedCmdLine,
 		while (pathEndFound == FALSE)
 		{
 			prevPos = pos;
-			pos = sCmdLine.Find(_T(" "), prevPos + 1);
+			pos = sCmdLine.find(_T(" "), prevPos + 1);
 
-			if (pos > -1)
+			if (pos != std::string.npos)
 			{
 				if (sCmdLine[pos + 1] == '/' || sCmdLine[pos + 1] == '-')
 				{
@@ -1373,12 +1232,12 @@ void GetDecoratedCmdLine(CString sCmdLine, CString &sDecoratedCmdLine,
 
 		if (addQuote)
 		{
-			if (pos > -1)
+			if (pos != std::string.npos)
 			{
-				sExecutable = sCmdLine.Left(pos);
+				sExecutable = sCmdLine.substr(0, pos);
 				sDecoratedCmdLine += sExecutable;
 				sDecoratedCmdLine += _T("\"");
-				sDecoratedCmdLine += sCmdLine.Right(sCmdLine.GetLength() - pos);
+				sDecoratedCmdLine += sCmdLine.substr(pos, sCmdLine.length() - pos);
 			}
 			else
 			{
@@ -1398,22 +1257,4 @@ void GetDecoratedCmdLine(CString sCmdLine, CString &sDecoratedCmdLine,
 		sDecoratedCmdLine = sCmdLine;
 		sExecutable = sCmdLine;
 	}
-}
-
-/**
- * @brief Return time displayed appropriately, as string
- */
-CString TimeString(const __int64 * tim)
-{
-	if (!tim) return _T("---");
-	// _tcsftime does not respect user date customizations from
-	// Regional Options/Configuration Regional; COleDateTime::Format does so.
-#if _MSC_VER < 1300
-		// MSVC6
-	COleDateTime odt = (time_t)*tim;
-#else
-		// MSVC7 (VC.NET)
-	COleDateTime odt = *tim;
-#endif
-	return odt.Format();
 }

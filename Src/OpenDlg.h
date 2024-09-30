@@ -23,8 +23,9 @@
  * @brief Declaration file for COpenDlg dialog
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: OpenDlg.h 3865 2006-11-28 15:57:04Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: OpenDlg.h 5310 2008-04-19 07:44:50Z kimmov $
+
 #if !defined(AFX_OPENDLG_H__69FB0D77_2A05_11D1_BA92_00A024706EDC__INCLUDED_)
 #define AFX_OPENDLG_H__69FB0D77_2A05_11D1_BA92_00A024706EDC__INCLUDED_
 #pragma once
@@ -40,7 +41,15 @@
 
 class ProjectFile;
 
-/** @brief File open dialog displayed for user to choose directories or files */
+/**
+ * @brief The Open-dialog class.
+ * The Open-dialog allows user to select paths to compare. In addition to
+ * the two paths, there are controls for selecting filter and unpacker plugin.
+ * If one of the paths is a project file, that projec file is loaded,
+ * overwriting possible other values in other dialog controls.
+ * The dialog shows also a status of the selected paths (found/not found),
+ * if enabled in the options (enabled by default).
+ */
 class COpenDlg : public CDialog
 {
 // Construction
@@ -77,6 +86,8 @@ public:
 // Implementation data
 private:
 	prdlg::CMoveConstraint m_constraint;
+	CString m_strLeftBrowsePath; /**< Left path from browse dialog. */
+	CString m_strRightBrowsePath; /**< Right path from browse dialog. */
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -108,6 +119,7 @@ protected:
 	afx_msg void OnSelectFilter();
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	afx_msg void OnHelp();
+	afx_msg void OnDropFiles(HDROP dropInfo);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

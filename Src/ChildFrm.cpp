@@ -24,8 +24,8 @@
  * @brief Implementation file for CChildFrame
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: ChildFrm.cpp 3625 2006-09-23 20:16:47Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: ChildFrm.cpp 5420 2008-06-03 21:31:12Z gerundt $
 
 #include "stdafx.h"
 #include "Merge.h"
@@ -36,6 +36,7 @@
 #include "MergeDiffDetailView.h"
 #include "LocationView.h"
 #include "DiffViewBar.h"
+#include "OptionsDef.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -43,10 +44,14 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-/**
- * @brief RO status panel width
- */
+/** @brief RO status panel width */
 static UINT RO_PANEL_WIDTH = 40;
+/** @brief Encoding status panel width */
+static UINT ENCODING_PANEL_WIDTH = 80;
+/** @brief EOL type status panel width */
+static UINT EOL_PANEL_WIDTH = 60;
+
+static CString EolString(const CString & sEol);
 
 /////////////////////////////////////////////////////////////////////////////
 // CChildFrame
@@ -74,9 +79,11 @@ enum
 {
 	PANE_LEFT_INFO = 0,
 	PANE_LEFT_RO,
+	PANE_LEFT_ENCODING,
 	PANE_LEFT_EOL,
 	PANE_RIGHT_INFO,
 	PANE_RIGHT_RO,
+	PANE_RIGHT_ENCODING,
 	PANE_RIGHT_EOL,
 };
 
@@ -91,15 +98,22 @@ static UINT indicatorsBottom[] =
 	ID_SEPARATOR,
 	ID_SEPARATOR,
 	ID_SEPARATOR,
+	ID_SEPARATOR,
+	ID_SEPARATOR,
 };
 
 /////////////////////////////////////////////////////////////////////////////
 // CChildFrame construction/destruction
 
+/**
+ * @brief Constructor.
+ */
 CChildFrame::CChildFrame()
 #pragma warning(disable:4355) // 'this' : used in base member initializer list
 : m_leftStatus(this, PANE_LEFT_INFO)
 , m_rightStatus(this, PANE_RIGHT_INFO)
+, m_hIdentical(NULL)
+, m_hDifferent(NULL)
 #pragma warning(default:4355)
 {
 	m_bActivated = FALSE;
@@ -107,6 +121,9 @@ CChildFrame::CChildFrame()
 	m_pMergeDoc = 0;
 }
 
+/**
+ * Destructor.
+ */
 CChildFrame::~CChildFrame()
 {
 	m_wndDetailBar.setSplitter(0);
@@ -137,13 +154,13 @@ BOOL CChildFrame::OnCreateClient( LPCREATESTRUCT /*lpcs*/,
 		return FALSE;
 	}
 	m_wndSplitter.ResizablePanes(TRUE);
+	m_wndSplitter.AutoResizePanes(GetOptionsMgr()->GetBool(OPT_RESIZE_PANES));
 
 	// Merge frame has also a dockable bar at the very left
 	// This is not the client area, but we create it now because we want
 	// to use the CCreateContext
-	CString sCaption;
-	VERIFY(sCaption.LoadString(IDS_LOCBAR_CAPTION));
-	if (!m_wndLocationBar.Create(this, sCaption, WS_CHILD | WS_VISIBLE, ID_VIEW_LOCATION_BAR))
+	String sCaption = theApp.LoadString(IDS_LOCBAR_CAPTION);
+	if (!m_wndLocationBar.Create(this, sCaption.c_str(), WS_CHILD | WS_VISIBLE, ID_VIEW_LOCATION_BAR))
 	{
 		TRACE0("Failed to create LocationBar\n");
 		return FALSE;
@@ -156,8 +173,8 @@ BOOL CChildFrame::OnCreateClient( LPCREATESTRUCT /*lpcs*/,
 	// Merge frame has also a dockable bar at the very bottom
 	// This is not the client area, but we create it now because we want
 	// to use the CCreateContext
-	VERIFY(sCaption.LoadString(IDS_DIFFBAR_CAPTION));
-	if (!m_wndDetailBar.Create(this, sCaption, WS_CHILD | WS_VISIBLE, ID_VIEW_DETAIL_BAR))
+	sCaption = theApp.LoadString(IDS_DIFFBAR_CAPTION);
+	if (!m_wndDetailBar.Create(this, sCaption.c_str(), WS_CHILD | WS_VISIBLE, ID_VIEW_DETAIL_BAR))
 	{
 		TRACE0("Failed to create DiffViewBar\n");
 		return FALSE;
@@ -289,10 +306,12 @@ int CChildFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	// Set text to read-only info panes
 	// Text is hidden if file is writable
-	CString sText;
-	VERIFY(sText.LoadString(IDS_STATUSBAR_READONLY));
-	m_wndStatusBar.SetPaneText(PANE_LEFT_RO, sText, TRUE); 
-	m_wndStatusBar.SetPaneText(PANE_RIGHT_RO, sText, TRUE);
+	String sText = theApp.LoadString(IDS_STATUSBAR_READONLY);
+	m_wndStatusBar.SetPaneText(PANE_LEFT_RO, sText.c_str(), TRUE); 
+	m_wndStatusBar.SetPaneText(PANE_RIGHT_RO, sText.c_str(), TRUE);
+
+	m_hIdentical = AfxGetApp()->LoadIcon(IDI_EQUALFILE);
+	m_hDifferent = AfxGetApp()->LoadIcon(IDI_NOTEQUALFILE);
 
 	SetTimer(0, 250, NULL); // used to update the title headers
 	return 0;
@@ -353,7 +372,8 @@ static BOOL CALLBACK EnumChildProc(HWND hwnd, LPARAM lParam)
 }
 
 /**
- * @brief Alternative LockWindowUpdate(hWnd) API. See the comment near the code that calls this function.
+ * @brief Alternative LockWindowUpdate(hWnd) API.
+ * See the comment near the code that calls this function.
  */
 static BOOL MyLockWindowUpdate(HWND hwnd)
 {
@@ -361,23 +381,38 @@ static BOOL MyLockWindowUpdate(HWND hwnd)
 
 	EnumChildWindows(hwnd, EnumChildProc, FALSE);
 
-	pfnOldWndProc = (WNDPROC)SetWindowLong(hwnd, GWL_WNDPROC, (LONG)WndProc);
+	pfnOldWndProc = (WNDPROC)SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc);
 	SetProp(hwnd, _T("OldWndProc"), (HANDLE)pfnOldWndProc);
 	return TRUE;
 }
 
 /**
- * @brief Alternative LockWindowUpdate(NULL) API. See the comment near the code that calls this function.
+ * @brief Alternative LockWindowUpdate(NULL) API.
+ * See the comment near the code that calls this function.
  */
 static BOOL MyUnlockWindowUpdate(HWND hwnd)
 {
 	WNDPROC pfnOldWndProc = (WNDPROC)RemoveProp(hwnd, _T("OldWndProc"));
 	if (pfnOldWndProc)
-		SetWindowLong(hwnd, GWL_WNDPROC, (LONG)pfnOldWndProc);
+		SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)pfnOldWndProc);
 
 	EnumChildWindows(hwnd, EnumChildProc, TRUE);
 
 	return TRUE;
+}
+
+/**
+ * @brief Handle translation of default messages on the status bar
+ */
+void CChildFrame::GetMessageString(UINT nID, CString& rMessage) const
+{
+	// load appropriate string
+	const String s = theApp.LoadString(nID);
+	if (!AfxExtractSubString(rMessage, &*s.begin(), 0))
+	{
+		// not found
+		TRACE1("Warning: no message line prompt for ID 0x%04X.\n", nID);
+	}
 }
 
 void CChildFrame::ActivateFrame(int nCmdShow) 
@@ -459,6 +494,19 @@ BOOL CChildFrame::DestroyWindow()
 		GetWindowPlacement(&wp);
 		theApp.WriteProfileInt(_T("Settings"), _T("ActiveFrameMax"), (wp.showCmd == SW_MAXIMIZE));
 	}
+
+	if (m_hIdentical != NULL)
+	{
+		DestroyIcon(m_hIdentical);
+		m_hIdentical = NULL;
+	}
+
+	if (m_hDifferent != NULL)
+	{
+		DestroyIcon(m_hDifferent);
+		m_hDifferent = NULL;
+	}
+
 	return CMDIChildWnd::DestroyWindow();
 }
 
@@ -492,6 +540,8 @@ void CChildFrame::OnClose()
 {
 	// clean up pointers.
 	CMDIChildWnd::OnClose();
+
+	GetMainFrame()->ClearStatusbarItemCount();
 }
 
 void CChildFrame::OnSize(UINT nType, int cx, int cy) 
@@ -530,10 +580,12 @@ void CChildFrame::UpdateHeaderSizes()
 		// Set bottom statusbar panel widths
 		// Kimmo - I don't know why 4 seems to be right for me
 		int borderWidth = 4; // GetSystemMetrics(SM_CXEDGE);
-		int pane1Width = w - 2 * (RO_PANEL_WIDTH + borderWidth);
+		int pane1Width = w - (RO_PANEL_WIDTH + EOL_PANEL_WIDTH +
+				ENCODING_PANEL_WIDTH + (3 * borderWidth));
 		if (pane1Width < borderWidth)
 			pane1Width = borderWidth;
-		int pane2Width = w1 - 2 * (RO_PANEL_WIDTH + borderWidth);
+		int pane2Width = w1 - (RO_PANEL_WIDTH + EOL_PANEL_WIDTH +
+				ENCODING_PANEL_WIDTH + (3 * borderWidth));
 		if (pane2Width < borderWidth)
 			pane2Width = borderWidth;
 
@@ -541,20 +593,62 @@ void CChildFrame::UpdateHeaderSizes()
 			SBPS_NORMAL, pane1Width);
 		m_wndStatusBar.SetPaneInfo(PANE_LEFT_RO, ID_STATUS_LEFTFILE_RO,
 			SBPS_NORMAL, RO_PANEL_WIDTH - borderWidth);
+		m_wndStatusBar.SetPaneInfo(PANE_LEFT_ENCODING, ID_STATUS_LEFTFILE_ENCODING,
+			SBPS_NORMAL, ENCODING_PANEL_WIDTH - borderWidth);
 		m_wndStatusBar.SetPaneInfo(PANE_LEFT_EOL, ID_STATUS_LEFTFILE_EOL,
-			SBPS_NORMAL, RO_PANEL_WIDTH - borderWidth);
+			SBPS_NORMAL, EOL_PANEL_WIDTH - borderWidth);
 		m_wndStatusBar.SetPaneInfo(PANE_RIGHT_INFO, ID_STATUS_RIGHTFILE_INFO,
 			SBPS_STRETCH, pane2Width);
 		m_wndStatusBar.SetPaneInfo(PANE_RIGHT_RO, ID_STATUS_RIGHTFILE_RO,
 			SBPS_NORMAL, RO_PANEL_WIDTH - borderWidth);
+		m_wndStatusBar.SetPaneInfo(PANE_RIGHT_ENCODING, ID_STATUS_RIGHTFILE_ENCODING,
+			SBPS_NORMAL, ENCODING_PANEL_WIDTH - borderWidth);
 		m_wndStatusBar.SetPaneInfo(PANE_RIGHT_EOL, ID_STATUS_RIGHTFILE_EOL,
-			SBPS_NORMAL, RO_PANEL_WIDTH - borderWidth);
+			SBPS_NORMAL, EOL_PANEL_WIDTH - borderWidth);
 	}
 }
 
 IHeaderBar * CChildFrame::GetHeaderInterface()
 {
 	return &m_wndFilePathBar;
+}
+
+/**
+* @brief Reflect comparison result in window's icon.
+* @param nResult [in] Last comparison result which the application returns.
+*/
+void CChildFrame::SetLastCompareResult(int nResult)
+{
+	HICON hCurrent = GetIcon(FALSE);
+	HICON hReplace = (nResult == 0) ? m_hIdentical : m_hDifferent;
+
+	if (hCurrent != hReplace)
+	{
+		SetIcon(hReplace, TRUE);
+
+		BOOL bMaximized;
+		GetMDIFrame()->MDIGetActive(&bMaximized);
+
+		// When MDI maximized the window icon is drawn on the menu bar, so we
+		// need to notify it that our icon has changed.
+		if (bMaximized)
+		{
+			GetMDIFrame()->DrawMenuBar();
+		}
+	}
+
+	theApp.SetLastCompareResult(nResult);
+}
+
+void CChildFrame::UpdateAutoPaneResize()
+{
+	m_wndSplitter.AutoResizePanes(GetOptionsMgr()->GetBool(OPT_RESIZE_PANES));
+}
+
+void CChildFrame::UpdateSplitter()
+{
+	m_wndSplitter.RecalcLayout();
+	m_wndDetailBar.UpdateBarHeight(0);
 }
 
 void CChildFrame::OnTimer(UINT_PTR nIDEvent) 
@@ -599,17 +693,18 @@ void CChildFrame::MergeStatus::Update()
 		CString str;
 		if (m_nChars == -1)
 		{
-			str.Format(IDS_EMPTY_LINE_STATUS_INFO, m_sLine);
+			str.Format(theApp.LoadString(IDS_EMPTY_LINE_STATUS_INFO).c_str(),
+				m_sLine);
 		}
-		else if (m_sEolDisplay == _T(""))
+		else if (m_sEolDisplay.IsEmpty())
 		{
-			str.Format(IDS_LINE_STATUS_INFO, m_sLine, m_nColumn, m_nColumns,
-				m_nChar, m_nChars);
+			str.Format(theApp.LoadString(IDS_LINE_STATUS_INFO).c_str(),
+				m_sLine, m_nColumn, m_nColumns, m_nChar, m_nChars);
 		}
 		else
 		{
-			str.Format(IDS_LINE_STATUS_INFO_EOL, m_sLine, m_nColumn,
-				m_nColumns, m_nChar, m_nChars, m_sEolDisplay);
+			str.Format(theApp.LoadString(IDS_LINE_STATUS_INFO_EOL).c_str(),
+				m_sLine, m_nColumn, m_nColumns, m_nChar, m_nChars, m_sEolDisplay);
 		}
 
 		m_pFrame->m_wndStatusBar.SetPaneText(m_base, str);
@@ -627,11 +722,28 @@ void CChildFrame::MergeStatus::UpdateResources()
 /// Visible representation of eol
 static CString EolString(const CString & sEol)
 {
-	if (sEol == _T("hidden")) return _T("");
-	if (sEol == _T("\r\n")) return _T("CRLF");
-	if (sEol == _T("\n")) return _T("LF");
-	if (sEol == _T("\r")) return _T("CR");
-	if (sEol.IsEmpty()) return _T("None");
+	if (sEol == _T("\r\n"))
+	{
+		String eol = LoadResString(IDS_EOL_CRLF);
+		return eol.c_str();
+	}
+	if (sEol == _T("\n"))
+	{
+		String eol = LoadResString(IDS_EOL_LF);
+		return eol.c_str();
+	}
+	if (sEol == _T("\r"))
+	{
+		String eol = LoadResString(IDS_EOL_CR);
+		return eol.c_str();
+	}
+	if (sEol.IsEmpty())
+	{
+		String eol = LoadResString(IDS_EOL_NONE);
+		return eol.c_str();
+	}
+	if (sEol == _T("hidden"))
+		return _T("");
 	return _T("?");
 }
 

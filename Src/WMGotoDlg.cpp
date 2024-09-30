@@ -19,8 +19,8 @@
  *
  * @brief Implementation of the CWMGotoDlg class
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: WMGotoDlg.cpp 956 2004-01-18 13:56:30Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: WMGotoDlg.cpp 4735 2007-11-11 12:21:25Z jtuc $
 
 #include "stdafx.h"
 #include "merge.h"
@@ -38,12 +38,17 @@ static char THIS_FILE[] = __FILE__;
 
 CWMGotoDlg::CWMGotoDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CWMGotoDlg::IDD, pParent)
+	, m_nFile(-1)
+	, m_nGotoWhat(-1)
 {
-	//{{AFX_DATA_INIT(CWMGotoDlg)
-	m_strParam = _T("");
-	m_nFile = -1;
-	m_nGotoWhat = -1;
-	//}}AFX_DATA_INIT
+}
+
+
+BOOL CWMGotoDlg::OnInitDialog()
+{
+	theApp.TranslateDialog(m_hWnd);
+	CDialog::OnInitDialog();
+	return TRUE;
 }
 
 

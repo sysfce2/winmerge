@@ -23,8 +23,8 @@
  * @brief interface of the CChildFrame class
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: ChildFrm.h 3566 2006-09-15 21:14:54Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: ChildFrm.h 4617 2007-10-14 08:25:48Z jtuc $
 
 #if !defined(AFX_CHILDFRM_H__BBCD4F8E_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_CHILDFRM_H__BBCD4F8E_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -53,6 +53,11 @@ public:
 	IHeaderBar * GetHeaderInterface();
 	void SetSharedMenu(HMENU hMenu) { m_hMenuShared = hMenu; };
 	CMergeDoc * GetMergeDoc() { return m_pMergeDoc; }
+	void SetLastCompareResult(int nResult);
+
+	void UpdateAutoPaneResize();
+	void UpdateSplitter();
+
 
 // Attributes
 protected:
@@ -92,6 +97,8 @@ protected:
 
 
 // Overrides
+public:
+	virtual void GetMessageString(UINT nID, CString& rMessage) const;
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CChildFrame)
 	public:
@@ -114,6 +121,8 @@ private:
 	void UpdateHeaderSizes();
 	BOOL m_bActivated;
 	CMergeDoc * m_pMergeDoc;
+	HICON m_hIdentical;
+	HICON m_hDifferent;
 
 	//{{AFX_MSG(CChildFrame)
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);

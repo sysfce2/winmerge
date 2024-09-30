@@ -4,7 +4,7 @@
  *  @brief Implementation of DiffItemList
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffItemList.cpp 3421 2006-08-02 16:21:33Z kimmov $
+// $Id: DiffItemList.cpp 4464 2007-08-22 13:50:57Z kimmov $
 
 #include "stdafx.h"
 #include "DiffItemList.h"
@@ -104,8 +104,8 @@ void DiffItemList::SetDiffStatusCode(POSITION diffpos, UINT diffcode, UINT mask)
 	ASSERT(diffpos);
 	DIFFITEM & di = m_dirlist.GetAt(diffpos);
 	ASSERT(! ((~mask) & diffcode) ); // make sure they only set flags in their mask
-	di.diffcode &= (~mask); // remove current data
-	di.diffcode |= diffcode; // add new data
+	di.diffcode.diffcode &= (~mask); // remove current data
+	di.diffcode.diffcode |= diffcode; // add new data
 }
 
 /**

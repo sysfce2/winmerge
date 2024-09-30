@@ -20,7 +20,7 @@
 // Look at http://www.codeproject.com/shell/ for excellent guide
 // to Windows Shell programming by Michael Dunn.
 // 
-// $Id: ShellExtension.cpp 2797 2005-12-08 19:16:44Z elsapo $
+// $Id: ShellExtension.cpp 4760 2007-11-17 17:24:05Z sdottaka $
 
 // Note: Proxy/Stub Information
 //      To build a separate proxy/stub DLL, 
@@ -33,7 +33,7 @@
 
 #include "ShellExtension_i.c"
 #include "WinMergeShell.h"
-
+#include "RegKey.h"
 
 CComModule _Module;
 
@@ -41,44 +41,20 @@ BEGIN_OBJECT_MAP(ObjectMap)
 OBJECT_ENTRY(CLSID_WinMergeShell, CWinMergeShell)
 END_OBJECT_MAP()
 
-class CShellExtensionApp : public CWinApp
+/////////////////////////////////////////////////////////////////////////////
+// DLL Entry Point
+
+extern "C"
+BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID /*lpReserved*/)
 {
-public:
-
-// Overrides
-	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(CShellExtensionApp)
-	public:
-    virtual BOOL InitInstance();
-    virtual int ExitInstance();
-	//}}AFX_VIRTUAL
-
-	//{{AFX_MSG(CShellExtensionApp)
-		// NOTE - the ClassWizard will add and remove member functions here.
-		//    DO NOT EDIT what you see in these blocks of generated code !
-	//}}AFX_MSG
-	DECLARE_MESSAGE_MAP()
-};
-
-BEGIN_MESSAGE_MAP(CShellExtensionApp, CWinApp)
-	//{{AFX_MSG_MAP(CShellExtensionApp)
-		// NOTE - the ClassWizard will add and remove mapping macros here.
-		//    DO NOT EDIT what you see in these blocks of generated code!
-	//}}AFX_MSG_MAP
-END_MESSAGE_MAP()
-
-CShellExtensionApp theApp;
-
-BOOL CShellExtensionApp::InitInstance()
+	if (dwReason == DLL_PROCESS_ATTACH)
 {
-    _Module.Init(ObjectMap, m_hInstance, &LIBID_SHELLEXTENSIONLib);
-    return CWinApp::InitInstance();
+		_Module.Init(ObjectMap, hInstance, &LIBID_SHELLEXTENSIONLib);
+		DisableThreadLibraryCalls(hInstance);
 }
-
-int CShellExtensionApp::ExitInstance()
-{
-    _Module.Term();
-    return CWinApp::ExitInstance();
+	else if (dwReason == DLL_PROCESS_DETACH)
+		_Module.Term();
+	return TRUE;    // ok
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -86,8 +62,7 @@ int CShellExtensionApp::ExitInstance()
 
 STDAPI DllCanUnloadNow(void)
 {
-    AFX_MANAGE_STATE(AfxGetStaticModuleState());
-    return (AfxDllCanUnloadNow()==S_OK && _Module.GetLockCount()==0) ? S_OK : S_FALSE;
+    return (_Module.GetLockCount()==0) ? S_OK : S_FALSE;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -129,17 +104,16 @@ STDAPI DllRegisterServer(void)
 	// Special code for Windows NT 4.0 only
 	if (!is9x && dwWindowsMajorVersion == 4)
 	{
-		CRegKey reg;
+		CRegKeyEx reg;
 		LONG lRet;
 
 		lRet = reg.Open(HKEY_LOCAL_MACHINE,
-				_T("Software\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Approved"),
-				KEY_SET_VALUE );
+			_T("Software\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Approved"));
 
 		if (ERROR_SUCCESS != lRet)
 			return E_ACCESSDENIED;
 
-		lRet = reg.SetValue(_T("WinMerge_Shell Extension"), 
+		lRet = reg.WriteString(_T("WinMerge_Shell Extension"), 
 				_T("{4E716236-AA30-4C65-B225-D68BBA81E9C2}"));
 
 		if (ERROR_SUCCESS != lRet)

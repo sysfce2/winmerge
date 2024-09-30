@@ -15,13 +15,13 @@
 //    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 /////////////////////////////////////////////////////////////////////////////
 /**
- * @file  WMGotodDlg.h
+ * @file  WMGotoDlg.h
  *
  * @brief Declaration file for CWMGotoDlg
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: WMGotoDlg.h 977 2004-01-23 02:16:42Z puddle $
+// $Id: WMGotoDlg.h 4735 2007-11-11 12:21:25Z jtuc $
 
 #if !defined(AFX_WMGOTODLG_H__A9D2366D_6358_4A74_9A45_6681D22EC786__INCLUDED_)
 #define AFX_WMGOTODLG_H__A9D2366D_6358_4A74_9A45_6681D22EC786__INCLUDED_
@@ -57,6 +57,7 @@ protected:
 
 	// Generated message map functions
 	//{{AFX_MSG(CWMGotoDlg)
+    virtual BOOL OnInitDialog();
 		// NOTE: the ClassWizard will add member functions here
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()

@@ -4,8 +4,8 @@
  * @brief Declaration file for CLogFile
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: LogFile.h 3584 2006-09-19 16:35:48Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: LogFile.h 4161 2007-03-13 16:50:06Z kimmov $
 
 #if !defined(AFX_LOGFILE_H__803A3641_FE03_11D0_95CD_444553540000__INCLUDED_)
 #define AFX_LOGFILE_H__803A3641_FE03_11D0_95CD_444553540000__INCLUDED_
@@ -65,6 +65,8 @@ public:
 	UINT Write(DWORD idFormatString, ...);
 	UINT Write(UINT level, LPCTSTR pszFormat, ...);
 	UINT Write(UINT level, DWORD idFormatString, ...);
+
+	UINT DeleteFileFailed(LPCTSTR path);
 
 	void SetMaxLogSize(DWORD dwMax) { m_nMaxSize = dwMax; }
 	CString GetPath() const { return m_strLogPath; }

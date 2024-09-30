@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirCmpReport.h 3456 2006-08-09 06:38:07Z jtuc $
+// $Id: DirCmpReport.h 4739 2007-11-12 20:41:16Z jtuc $
 
 #ifndef _DIRCMPREPORT_H_
 #define _DIRCMPREPORT_H_
@@ -36,7 +36,7 @@ public:
 	void SetList(CListCtrl *pList);
 	void SetRootPaths(const PathContext &paths);
 	void SetColumns(int columns);
-	BOOL GenerateReport(CString &errStr);
+	BOOL GenerateReport(String &errStr);
 
 protected:
 	void GenerateReport(REPORT_TYPE nReportType);

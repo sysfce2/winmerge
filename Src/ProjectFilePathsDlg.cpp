@@ -3,10 +3,11 @@
  *
  * @brief Implementation file for ProjectFilePaths dialog
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: ProjectFilePathsDlg.cpp 3978 2006-12-18 22:50:24Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: ProjectFilePathsDlg.cpp 4636 2007-10-16 16:56:52Z jtuc $
 
 #include "stdafx.h"
+#include "UnicodeString.h"
 #include "Merge.h"
 #include "MainFrm.h"
 #include "paths.h"
@@ -33,6 +34,9 @@ ProjectFilePathsDlg::ProjectFilePathsDlg() : CPropertyPage(ProjectFilePathsDlg::
 {
 	//{{AFX_DATA_INIT(ProjectFilePathsDlg)
 	//}}AFX_DATA_INIT
+	m_strCaption = theApp.LoadDialogCaption(m_lpszTemplateName).c_str();
+	m_psp.pszTitle = m_strCaption;
+	m_psp.dwFlags |= PSP_USETITLE;
 }
 
 void ProjectFilePathsDlg::DoDataExchange(CDataExchange* pDX)
@@ -63,6 +67,7 @@ END_MESSAGE_MAP()
  */
 BOOL ProjectFilePathsDlg::OnInitDialog() 
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
 	return FALSE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
@@ -93,9 +98,8 @@ void ProjectFilePathsDlg::OnBnClickedProjRfileBrowse()
  */
 void ProjectFilePathsDlg::OnBnClickedProjFilterSelect()
 {
-	CString filterPrefix;
+	String filterPrefix = theApp.LoadString(IDS_FILTER_PREFIX);
 	CString curFilter;
-	VERIFY(filterPrefix.LoadString(IDS_FILTER_PREFIX));
 
 	const BOOL bUseMask = theApp.m_globalFileFilter.IsUsingMask();
 	GetDlgItemText(IDC_PROJ_FILTER_EDIT, curFilter);
@@ -115,7 +119,7 @@ void ProjectFilePathsDlg::OnBnClickedProjFilterSelect()
 	}
 	else
 	{
-		filterNameOrMask.Insert(0, filterPrefix);
+		filterNameOrMask.Insert(0, filterPrefix.c_str());
 		SetDlgItemText(IDC_PROJ_FILTER_EDIT, filterNameOrMask);
 	}
 }
@@ -131,13 +135,13 @@ void ProjectFilePathsDlg::OnBnClickedProjOpen()
 
 	ProjectFile project;
 
-	CString sErr;
+	String sErr;
 	if (!project.Read(fileName, &sErr))
 	{
-		if (sErr.IsEmpty())
-			sErr = LoadResString(IDS_UNK_ERROR_SAVING_PROJECT);
+		if (sErr.empty())
+			sErr = theApp.LoadString(IDS_UNK_ERROR_SAVING_PROJECT);
 		CString msg;
-		AfxFormatString2(msg, IDS_ERROR_FILEOPEN, fileName, sErr);
+		LangFormatString2(msg, IDS_ERROR_FILEOPEN, fileName, sErr.c_str());
 		AfxMessageBox(msg, MB_ICONSTOP);
 	}
 	else
@@ -148,7 +152,7 @@ void ProjectFilePathsDlg::OnBnClickedProjOpen()
 		m_bIncludeSubfolders = project.GetSubfolders();
 
 		UpdateData(FALSE);
-		AfxMessageBox(IDS_PROJFILE_LOAD_SUCCESS, MB_ICONINFORMATION);
+		LangMessageBox(IDS_PROJFILE_LOAD_SUCCESS, MB_ICONINFORMATION);
 	}
 }
 
@@ -179,29 +183,29 @@ void ProjectFilePathsDlg::OnBnClickedProjSave()
 	if (!m_sFilter.IsEmpty())
 	{
 		// Remove possbile prefix from the filter name
-		CString prefix = LoadResString(IDS_FILTER_PREFIX);
-		int ind = m_sFilter.Find(prefix, 0);
+		String prefix = theApp.LoadString(IDS_FILTER_PREFIX);
+		int ind = m_sFilter.Find(prefix.c_str(), 0);
 		if (ind == 0)
 		{
-			m_sFilter.Delete(0, prefix.GetLength());
+			m_sFilter.Delete(0, prefix.length());
 		}
 		m_sFilter.TrimLeft();
 		project.SetFilter(m_sFilter);
 	}
 	project.SetSubfolders(m_bIncludeSubfolders);
 
-	CString sErr;
+	String sErr;
 	if (!project.Save(fileName, &sErr))
 	{
-		if (sErr.IsEmpty())
-			sErr = LoadResString(IDS_UNK_ERROR_SAVING_PROJECT);
+		if (sErr.empty())
+			sErr = theApp.LoadString(IDS_UNK_ERROR_SAVING_PROJECT);
 		CString msg;
-		AfxFormatString2(msg, IDS_ERROR_FILEOPEN, fileName, sErr);
+		LangFormatString2(msg, IDS_ERROR_FILEOPEN, fileName, sErr.c_str());
 		AfxMessageBox(msg, MB_ICONSTOP);
 	}
 	else
 	{
-		AfxMessageBox(IDS_PROJFILE_SAVE_SUCCESS, MB_ICONINFORMATION);
+		LangMessageBox(IDS_PROJFILE_SAVE_SUCCESS, MB_ICONINFORMATION);
 	}
 }
 
@@ -240,10 +244,10 @@ CString ProjectFilePathsDlg::AskProjectFileName(BOOL bOpen)
 {
 	// get the default projects path
 	CString strProjectFileName;
-	CString strProjectPath = GetOptionsMgr()->GetString(OPT_PROJECTS_PATH);
+	String strProjectPath = GetOptionsMgr()->GetString(OPT_PROJECTS_PATH);
 
-	if (!::SelectFile(GetSafeHwnd(), strProjectFileName, strProjectPath, NULL,
-			IDS_PROJECTFILES, bOpen))
+	if (!::SelectFile(GetSafeHwnd(), strProjectFileName, strProjectPath.c_str(),
+			NULL, IDS_PROJECTFILES, bOpen))
 		return _T("");
 
 	if (strProjectFileName.IsEmpty())
@@ -251,21 +255,18 @@ CString ProjectFilePathsDlg::AskProjectFileName(BOOL bOpen)
 
 	// Add projectfile extension if it is missing
 	// So we allow 'filename.otherext' but add extension for 'filename'
-	CString filename;
-	CString extension;
-	SplitFilename(strProjectFileName, NULL, &filename, &extension);
-	if (extension.IsEmpty())
+	String extension;
+	SplitFilename(strProjectFileName, NULL, NULL, &extension);
+	if (extension.empty())
 	{
-		CString projectFileExt;
-		projectFileExt.LoadString(IDS_PROJECTFILES_EXT);
 		strProjectFileName += _T(".");
-		strProjectFileName += projectFileExt;
+		strProjectFileName += theApp.LoadString(IDS_PROJECTFILES_EXT).c_str();
 	}
 
 	// get the path part from the filename
 	strProjectPath = paths_GetParentPath(strProjectFileName);
 	// store this as the new project path
-	GetOptionsMgr()->SaveOption(OPT_PROJECTS_PATH, strProjectPath);
+	GetOptionsMgr()->SaveOption(OPT_PROJECTS_PATH, strProjectPath.c_str());
 	return strProjectFileName;
 }
 

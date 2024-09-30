@@ -4,13 +4,13 @@
  * @brief Implementation file for DirCmpReport
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DirCmpReport.cpp 4814 2007-12-07 22:47:19Z gerundt $
+// ID line follows -- this is updated by SVN
+// $Id: DirCmpReport.cpp 4778 2007-11-20 21:33:49Z gerundt $
 //
 
 #include "stdafx.h"
 #include <time.h>
-
+#include "locality.h"
 #include "DirCmpReport.h"
 #include "DirCmpReportDlg.h"
 #include "coretools.h"
@@ -24,12 +24,12 @@ UINT CF_HTML = RegisterClipboardFormat(_T("HTML Format"));
  * @brief Return current time as string.
  * @return Current time as CString.
  */
-static CString GetCurrentTimeString()
+static String GetCurrentTimeString()
 {
 	time_t nTime = 0;
 	time(&nTime);
 	_int64 nTime64 = nTime;
-	CString str = TimeString(&nTime64);
+	String str = locality::TimeString(&nTime64);
 	return str;
 }
 
@@ -82,10 +82,10 @@ void DirCmpReport::SetList(CListCtrl *pList)
  */
 void DirCmpReport::SetRootPaths(const PathContext &paths)
 {
-	m_rootPaths.SetLeft(paths.GetLeft());
-	m_rootPaths.SetRight(paths.GetRight());
-	AfxFormatString2(m_sTitle, IDS_DIRECTORY_REPORT_TITLE,
-			m_rootPaths.GetLeft(), m_rootPaths.GetRight());
+	m_rootPaths.SetLeft(paths.GetLeft().c_str());
+	m_rootPaths.SetRight(paths.GetRight().c_str());
+	LangFormatString2(m_sTitle, IDS_DIRECTORY_REPORT_TITLE,
+			m_rootPaths.GetLeft().c_str(), m_rootPaths.GetRight().c_str());
 }
 
 /**
@@ -108,7 +108,7 @@ static ULONG GetLength32(CFile const &f)
  * @param [out] errStr Empty if succeeded, otherwise contains error message.
  * @return TRUE if report was created, FALSE if user canceled report.
  */
-BOOL DirCmpReport::GenerateReport(CString &errStr)
+BOOL DirCmpReport::GenerateReport(String &errStr)
 {
 	ASSERT(m_pList != NULL);
 	ASSERT(m_pFile == NULL);
@@ -117,7 +117,7 @@ BOOL DirCmpReport::GenerateReport(CString &errStr)
 	DirCmpReportDlg dlg;
 	if (dlg.DoModal() == IDOK) try
 	{
-		WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_CREATEREPORT));
+		WaitStatusCursor waitstatus(IDS_STATUS_CREATEREPORT);
 		if (dlg.m_bCopyToClipboard)
 		{
 			if (!CWnd::GetSafeOwner()->OpenClipboard())
@@ -162,11 +162,11 @@ BOOL DirCmpReport::GenerateReport(CString &errStr)
 		}
 		if (!dlg.m_sReportFile.IsEmpty())
 		{
-			CString path;
+			String path;
 			SplitFilename(dlg.m_sReportFile, &path, NULL, NULL);
-			if (!paths_CreateIfNeeded(path))
+			if (!paths_CreateIfNeeded(path.c_str()))
 			{
-				VERIFY(errStr.LoadString(IDS_FOLDER_NOTEXIST));
+				errStr = LoadResString(IDS_FOLDER_NOTEXIST);
 				return FALSE;
 			}
 			CFile file(dlg.m_sReportFile,
@@ -245,7 +245,7 @@ void DirCmpReport::GenerateHeader()
 {
 	WriteString(m_sTitle);
 	WriteString(_T("\n"));
-	WriteString(GetCurrentTimeString());
+	WriteString(GetCurrentTimeString().c_str());
 	WriteString(_T("\n"));
 	for (int currCol = 0; currCol < m_nColumns; currCol++)
 	{
@@ -301,7 +301,28 @@ void DirCmpReport::GenerateHTMLHeader()
 		_T("\t\"http://www.w3.org/TR/html4/loose.dtd\">\n")
 		_T("<html>\n<head>\n\t<title>"));
 	WriteString(m_sTitle);
-	WriteString(_T("</title>\n</head>\n<body>\n"));
+	WriteString(_T("</title>\n"));
+	WriteString(_T("\t<style type=\"text/css\">\n\t<!--\n"));
+	WriteString(_T("\t\tbody {\n"));
+	WriteString(_T("\t\t\tfont-family: sans-serif;\n"));
+	WriteString(_T("\t\t\tfont-size: smaller;\n"));
+	WriteString(_T("\t\t}\n"));
+	WriteString(_T("\t\ttable {\n"));
+	WriteString(_T("\t\t\tborder-collapse: collapse;\n"));
+	WriteString(_T("\t\t\tborder: 1px solid gray;\n"));
+	WriteString(_T("\t\t}\n"));
+	WriteString(_T("\t\tth,td {\n"));
+	WriteString(_T("\t\t\tpadding: 3px;\n"));
+	WriteString(_T("\t\t\ttext-align: left;\n"));
+	WriteString(_T("\t\t\tvertical-align: top;\n"));
+	WriteString(_T("\t\t\tborder: 1px solid gray;\n"));
+	WriteString(_T("\t\t}\n"));
+	WriteString(_T("\t\tth {\n"));
+	WriteString(_T("\t\t\tcolor: black;\n"));
+	WriteString(_T("\t\t\tbackground: silver;\n"));
+	WriteString(_T("\t\t}\n"));
+	WriteString(_T("\t-->\n\t</style>\n"));
+	WriteString(_T("</head>\n<body>\n"));
 	GenerateHTMLHeaderBodyPortion();
 }
 
@@ -313,7 +334,7 @@ void DirCmpReport::GenerateHTMLHeaderBodyPortion()
 	WriteString(_T("<h2>"));
 	WriteString(m_sTitle);
 	WriteString(_T("</h2>\n<p>"));
-	WriteString(GetCurrentTimeString());
+	WriteString(GetCurrentTimeString().c_str());
 	WriteString(_T("</p>\n"));
 	WriteString(_T("<table border=\"1\">\n<tr>\n"));
 
@@ -343,7 +364,7 @@ void DirCmpReport::GenerateXmlHeader()
 	WriteString(_T("<WinMergeDiffReport version=\"1\">\n"));
 	WriteString(Fmt(_T("<left>%s</left>\n"), m_rootPaths.GetLeft()));
 	WriteString(Fmt(_T("<right>%s</right>\n"), m_rootPaths.GetRight()));
-	WriteString(Fmt(_T("<time>%s</time>\n"), GetCurrentTimeString()));
+	WriteString(Fmt(_T("<time>%s</time>\n"), GetCurrentTimeString().c_str()));
 
 	// Add column headers
 	const CString rowEl = _T("column_name");

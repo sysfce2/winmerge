@@ -23,19 +23,11 @@
 //	stdafx.obj will contain the pre-compiled type information
 //
 // RCS ID line follows -- this is updated by CVS
-// $Id: StdAfx.cpp 3584 2006-09-19 16:35:48Z kimmov $
+// $Id: StdAfx.cpp 4733 2007-11-11 12:19:08Z jtuc $
 
 #include "stdafx.h"
 #include "LogFile.h"
-
-// Logging
-CLogFile gLog;
-
-/** @brief Report DeleteFile() failure to gLog */
-UINT gLog::DeleteFileFailed(LPCTSTR path)
-{
-	return::gLog.Write(CLogFile::LERROR|CLogFile::LOSERROR|CLogFile::LDEBUG, _T("DeleteFile(%s) failed: "), path);
-}
+#include "Merge.h"
 
 // Convert any negative inputs to negative char equivalents
 // This is aimed at correcting any chars mistakenly 
@@ -43,7 +35,7 @@ UINT gLog::DeleteFileFailed(LPCTSTR path)
 // This is ok for the UNICODE build because UCS-2LE code bytes
 // do not extend as high as 2Gig (actually even full Unicode
 // codepoints don't extend that high).
-int normch(int c)
+static wint_t normch(wint_t c)
 {
 #ifdef _UNICODE
 	return (unsigned short)(short)c;
@@ -52,52 +44,108 @@ int normch(int c)
 #endif
 }
 
-// Returns nonzero if input is outside ASCII or is underline
-int
-xisspecial (int c)
+/** @brief Return nonzero if input is outside ASCII or is underline. */
+int xisspecial (wint_t c)
 {
   return normch(c) > (unsigned) _T ('\x7f') || c == _T ('_');
 }
 
-// Returns non-zero if input is alphabetic or "special" (see xisspecial)
-// Also converts any negative inputs to negative char equivalents (see normch)
-int
-xisalpha (int c)
+/**
+ * @brief Return non-zero if input is alphabetic or "special" (see xisspecial).
+ * Also converts any negative inputs to negative char equivalents (see normch).
+ */
+int xisalpha (wint_t c)
 {
   return _istalpha (normch(c)) || xisspecial (normch(c));
 }
 
-// Returns non-zero if input is alphanumeric or "special" (see xisspecial)
-// Also converts any negative inputs to negative char equivalents (see normch)
-int
-xisalnum (int c)
+/**
+ * @brief Return non-zero if input is alphanumeric or "special" (see xisspecial).
+ * Also converts any negative inputs to negative char equivalents (see normch).
+ */
+int xisalnum (wint_t c)
 {
   return _istalnum (normch(c)) || xisspecial (normch(c));
 }
 
-// Returns non-zero if input character is a space
-// Also converts any negative inputs to negative char equivalents (see normch)
-int
-xisspace (int c)
+/**
+ * @brief Return non-zero if input character is a space.
+ * Also converts any negative inputs to negative char equivalents (see normch).
+ */
+int xisspace (wint_t c)
 {
   return _istspace (normch(c));
 }
 
-// Load string resource and return as CString
-CString LoadResString(int id)
+/**
+ * @brief Load string resource and return as CString.
+ * @param [in] id Resource string ID.
+ * @return Resource string as CString.
+ */
+String LoadResString(UINT id)
 {
-	CString s;
-	VERIFY(s.LoadString(id));
-	return s;
+	return theApp.LoadString(id);
 }
 
-// Combines AfxFormatString1 with AfxMessageBox
-int
-ResMsgBox1(int msgid, LPCTSTR arg, UINT nType, UINT nIDHelp)
+/**
+ * @brief Wrapper around CMergeApp::TranslateDialog()
+ */
+void NTAPI LangTranslateDialog(HWND h)
+{
+	theApp.TranslateDialog(h);
+}
+
+/**
+ * @brief Lang aware version of AfxFormatStrings()
+ */
+void NTAPI LangFormatStrings(CString &rString, UINT id, LPCTSTR const *rglpsz, int nString)
+{
+	String fmt = theApp.LoadString(id);
+	AfxFormatStrings(rString, fmt.c_str(), rglpsz, nString);
+}
+
+/**
+ * @brief Lang aware version of AfxFormatString1()
+ */
+void NTAPI LangFormatString1(CString &rString, UINT id, LPCTSTR lpsz1)
+{
+	LangFormatStrings(rString, id, &lpsz1, 1);
+}
+
+/**
+ * @brief Lang aware version of AfxFormatString2()
+ */
+void NTAPI LangFormatString2(CString &rString, UINT id, LPCTSTR lpsz1, LPCTSTR lpsz2)
+{
+	LPCTSTR rglpsz[2] = { lpsz1, lpsz2 };
+	LangFormatStrings(rString, id, rglpsz, 2);
+}
+
+/**
+ * @brief Lang aware version of AfxMessageBox()
+ */
+int NTAPI LangMessageBox(UINT nIDPrompt, UINT nType, UINT nIDHelp)
+{
+	String string = theApp.LoadString(nIDPrompt);
+	if (nIDHelp == (UINT)-1)
+		nIDHelp = nIDPrompt;
+	return AfxMessageBox(string.c_str(), nType, nIDHelp);
+}
+
+/**
+ * @brief Show messagebox with resource string having parameter.
+ * @param [in] msgid Resource string ID.
+ * @param [in] arg Argument string.
+ * @param [in] nType Messagebox type flags (e.g. MB_OK).
+ * @param [in] nIDHelp Help string ID.
+ * @return User choice from the messagebox (see MessageBox()).
+ */
+int ResMsgBox1(UINT msgid, LPCTSTR arg, UINT nType, UINT nIDHelp)
 {
 	CString msg;
-	AfxFormatString1(msg, msgid, arg);
-	if (!nIDHelp) nIDHelp = msgid;
+	LangFormatString1(msg, msgid, arg);
+	if (!nIDHelp)
+		nIDHelp = msgid;
 	return AfxMessageBox(msg, nType, nIDHelp);
 }
 
@@ -133,7 +181,7 @@ void LogErrorString(LPCTSTR sz)
 	TRACE(_T("%s: %s\n"), (LPCTSTR)now, sz);
 
 #if defined (_DEBUG) || defined (ENABLE_LOG)
-	gLog.Write(CLogFile::LERROR, sz);
+	GetLog()->Write(CLogFile::LERROR, sz);
 #endif
 }
 
@@ -169,3 +217,13 @@ bool IsUnicodeBuild()
 	return false;
 #endif
 }
+
+#if _MSC_VER <= 1310
+/**
+* @brief Calculates a number absolute value.
+*/
+__int64 _abs64_patch(__int64 n)
+{
+	return ((n >= 0) ? n : -n);
+}
+#endif

@@ -3,8 +3,8 @@
  *
  * @brief Implementation of CompareStats class.
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: CompareStats.cpp 2523 2005-07-26 07:49:20Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: CompareStats.cpp 4993 2008-02-04 10:06:53Z kimmov $
 
 #include "stdafx.h"
 #include "DiffItem.h"
@@ -62,14 +62,9 @@ void CompareStats::AddItem(int code)
  * @param [in] result Resultcode to return.
  * @return Count of items for given resultcode.
  */
-int CompareStats::GetCount(CompareStats::RESULT result)
+int CompareStats::GetCount(CompareStats::RESULT result) const
 {
-	int currentValue = 0;
-	EnterCriticalSection(&m_csProtect);
-	int resInd = static_cast<int>(result);
-	currentValue = m_counts[resInd];
-	LeaveCriticalSection(&m_csProtect);
-	return currentValue;
+	return m_counts[result];
 }
 
 /** 
@@ -100,12 +95,12 @@ void CompareStats::Reset()
 void CompareStats::SetCompareState(CompareStats::CMP_STATE state)
 {
 #ifdef _DEBUG
-	if (state == STATE_COLLECT && m_state != STATE_IDLE)
+	if (state == STATE_START && m_state != STATE_IDLE)
 		_RPTF2(_CRT_ERROR, "Invalid state change from %d to %d", m_state, state);
 #endif //_DEBUG
 
 	// New compare starting so reset ready status
-	if (state == STATE_COLLECT)
+	if (state == STATE_START)
 		m_bCompareDone = FALSE;
 	// Compare ready
 	if (state == STATE_IDLE && m_state == STATE_COMPARE)
@@ -144,7 +139,7 @@ CompareStats::RESULT CompareStats::GetResultFromCode(UINT diffcode)
 			return RESULT_SKIP;
 		}
 	}
-	else if (di.isSideLeft())
+	else if (di.isSideLeftOnly())
 	{
 		// left-only
 		if (di.isDirectory())
@@ -156,7 +151,7 @@ CompareStats::RESULT CompareStats::GetResultFromCode(UINT diffcode)
 			return RESULT_LUNIQUE;
 		}
 	}
-	else if (di.isSideRight())
+	else if (di.isSideRightOnly())
 	{
 		// right-only
 		if (di.isDirectory())

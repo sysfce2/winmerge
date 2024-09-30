@@ -23,15 +23,15 @@
  *
  * @brief Implementation of the CMainFrame class
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: MainFrm.cpp 4784 2007-11-21 22:01:32Z gerundt $
+// ID line follows -- this is updated by SVN
+// $Id: MainFrm.cpp 5481 2008-06-15 13:30:32Z sdottaka $
 
 #include "stdafx.h"
-
+#include <vector>
 #include <htmlhelp.h>  // From HTMLHelp Workshop (incl. in Platform SDK)
-#include <mlang.h>
 #include <shlwapi.h>
 #include "Merge.h"
+#include "UnicodeString.h"
 #include "BCMenu.h"
 #include "MainFrm.h"
 #include "DirFrame.h"		// Include type information
@@ -43,8 +43,8 @@
 #include "MergeDiffDetailView.h"
 #include "LocationView.h"
 #include "SyntaxColors.h"
-
-#include "diff.h"
+#include "LineFiltersList.h"
+#include "ConflictFileParser.h"
 #include "coretools.h"
 #include "Splash.h"
 #include "PropLineFilter.h"
@@ -52,7 +52,6 @@
 #include "paths.h"
 #include "WaitStatusCursor.h"
 #include "PatchTool.h"
-#include "FileTransform.h"
 #include "Plugins.h"
 #include "SelectUnpackerDlg.h"
 #include "files.h"
@@ -67,9 +66,10 @@
 #include "codepage.h"
 #include "ProjectFile.h"
 #include "PreferencesDlg.h"
-#include "AppSerialize.h"
 #include "ProjectFilePathsDlg.h"
+#include "MergeCmdLineInfo.h"
 #include "FileOrFolderSelect.h"
+#include "PropBackups.h"
 
 /*
  One source file must compile the stubs for multimonitor
@@ -87,11 +87,58 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-extern CLogFile gLog;
+static void LoadToolbarImageList(CMainFrame::TOOLBAR_SIZE size, UINT nIDResource, CImageList& ImgList);
 
-static BOOL add_regexp PARAMS((struct regexp_list **, char const*, BOOL bShowError));
+/**
+ * @brief A table associating menuitem id, icon and menus to apply.
+ */
+const CMainFrame::MENUITEM_ICON CMainFrame::m_MenuIcons[] = {
+	{ ID_EDIT_COPY,					IDB_EDIT_COPY,					CMainFrame::MENU_ALL },
+	{ ID_EDIT_CUT,					IDB_EDIT_CUT,					CMainFrame::MENU_ALL },
+	{ ID_EDIT_PASTE,				IDB_EDIT_PASTE,					CMainFrame::MENU_ALL },
+	{ ID_EDIT_FIND,					IDB_EDIT_SEARCH,				CMainFrame::MENU_ALL },
+	{ ID_WINDOW_CASCADE,			IDB_WINDOW_CASCADE,				CMainFrame::MENU_ALL },
+	{ ID_WINDOW_TILE_HORZ,			IDB_WINDOW_HORIZONTAL,			CMainFrame::MENU_ALL },
+	{ ID_WINDOW_TILE_VERT,			IDB_WINDOW_VERTICAL,			CMainFrame::MENU_ALL },
+	{ ID_FILE_CLOSE,				IDB_WINDOW_CLOSE,				CMainFrame::MENU_ALL },
+	{ ID_WINDOW_CHANGE_PANE,		IDB_WINDOW_CHANGEPANE,			CMainFrame::MENU_ALL },
+	{ ID_EDIT_WMGOTO,				IDB_EDIT_GOTO,					CMainFrame::MENU_ALL },
+	{ ID_EDIT_REPLACE,				IDB_EDIT_REPLACE,				CMainFrame::MENU_ALL },
+	{ ID_VIEW_LANGUAGE,				IDB_VIEW_LANGUAGE,				CMainFrame::MENU_ALL },
+	{ ID_VIEW_SELECTFONT,			IDB_VIEW_SELECTFONT,			CMainFrame::MENU_ALL },
+	{ ID_APP_EXIT,					IDB_FILE_EXIT,					CMainFrame::MENU_ALL },
+	{ ID_HELP_CONTENTS,				IDB_HELP_CONTENTS,				CMainFrame::MENU_ALL },
+	{ ID_EDIT_SELECT_ALL,			IDB_EDIT_SELECTALL,				CMainFrame::MENU_ALL },
+	{ ID_TOOLS_FILTERS,				IDB_TOOLS_FILTERS,				CMainFrame::MENU_ALL },
+	{ ID_TOOLS_CUSTOMIZECOLUMNS,	IDB_TOOLS_COLUMNS,				CMainFrame::MENU_ALL },
+	{ ID_TOOLS_GENERATEPATCH,		IDB_TOOLS_GENERATEPATCH,		CMainFrame::MENU_ALL },
+	{ ID_FILE_PRINT,				IDB_FILE_PRINT,					CMainFrame::MENU_FILECMP },
+	{ ID_TOOLS_GENERATEREPORT,		IDB_TOOLS_GENERATEREPORT,		CMainFrame::MENU_FILECMP },
+	{ ID_EDIT_TOGGLE_BOOKMARK,		IDB_EDIT_TOGGLE_BOOKMARK,		CMainFrame::MENU_FILECMP },
+	{ ID_EDIT_GOTO_NEXT_BOOKMARK,	IDB_EDIT_GOTO_NEXT_BOOKMARK,	CMainFrame::MENU_FILECMP },
+	{ ID_EDIT_GOTO_PREV_BOOKMARK,	IDB_EDIT_GOTO_PREV_BOOKMARK,	CMainFrame::MENU_FILECMP },
+	{ ID_EDIT_CLEAR_ALL_BOOKMARKS,	IDB_EDIT_CLEAR_ALL_BOOKMARKS,	CMainFrame::MENU_FILECMP },
+	{ ID_VIEW_ZOOMIN,				IDB_VIEW_ZOOMIN,				CMainFrame::MENU_FILECMP },
+	{ ID_VIEW_ZOOMOUT,				IDB_VIEW_ZOOMOUT,				CMainFrame::MENU_FILECMP },
+	{ ID_MERGE_DELETE,				IDB_MERGE_DELETE,				CMainFrame::MENU_FOLDERCMP },
+	{ ID_TOOLS_GENERATEREPORT,		IDB_TOOLS_GENERATEREPORT,		CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_COPY_LEFT_TO_RIGHT,	IDB_LEFT_TO_RIGHT,				CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_COPY_RIGHT_TO_LEFT,	IDB_RIGHT_TO_LEFT,				CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_COPY_LEFT_TO_BROWSE,	IDB_LEFT_TO_BROWSE,				CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_COPY_RIGHT_TO_BROWSE,	IDB_RIGHT_TO_BROWSE,			CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_MOVE_LEFT_TO_BROWSE,	IDB_MOVE_LEFT_TO_BROWSE,		CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_MOVE_RIGHT_TO_BROWSE,	IDB_MOVE_RIGHT_TO_BROWSE,		CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_DEL_LEFT,				IDB_LEFT,						CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_DEL_RIGHT,				IDB_RIGHT,						CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_DEL_BOTH,				IDB_BOTH,						CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_COPY_PATHNAMES_LEFT,	IDB_LEFT,						CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_COPY_PATHNAMES_RIGHT,	IDB_RIGHT,						CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_COPY_PATHNAMES_BOTH,	IDB_BOTH,						CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_ZIP_LEFT,				IDB_LEFT,						CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_ZIP_RIGHT,				IDB_RIGHT,						CMainFrame::MENU_FOLDERCMP },
+	{ ID_DIR_ZIP_BOTH,				IDB_BOTH,						CMainFrame::MENU_FOLDERCMP }
+};
 
-static void LoadToolbarImageList(UINT nIDResource, CImageList& ImgList);
 
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame
@@ -103,6 +150,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_MENUCHAR()
 	ON_WM_MEASUREITEM()
 	ON_WM_INITMENUPOPUP()
+	ON_WM_INITMENU()
 	ON_COMMAND(ID_OPTIONS_SHOWDIFFERENT, OnOptionsShowDifferent)
 	ON_COMMAND(ID_OPTIONS_SHOWIDENTICAL, OnOptionsShowIdentical)
 	ON_COMMAND(ID_OPTIONS_SHOWUNIQUELEFT, OnOptionsShowUniqueLeft)
@@ -125,10 +173,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_USEDEFAULTFONT, OnUpdateViewUsedefaultfont)
 	ON_COMMAND(ID_HELP_CONTENTS, OnHelpContents)
 	ON_UPDATE_COMMAND_UI(ID_HELP_CONTENTS, OnUpdateHelpContents)
-	ON_COMMAND(ID_HELP_INDEX, OnHelpIndex)
-	ON_UPDATE_COMMAND_UI(ID_HELP_INDEX, OnUpdateHelpIndex)
-	ON_COMMAND(ID_HELP_SEARCH, OnHelpSearch)
-	ON_UPDATE_COMMAND_UI(ID_HELP_SEARCH, OnUpdateHelpSearch)
 	ON_WM_CLOSE()
 	ON_COMMAND(ID_VIEW_WHITESPACE, OnViewWhitespace)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_WHITESPACE, OnUpdateViewWhitespace)
@@ -146,7 +190,10 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(ID_HELP_MERGE7ZMISMATCH, OnHelpMerge7zmismatch)
 	ON_UPDATE_COMMAND_UI(ID_HELP_MERGE7ZMISMATCH, OnUpdateHelpMerge7zmismatch)
 	ON_COMMAND(ID_VIEW_STATUS_BAR, OnViewStatusBar)
-	ON_COMMAND(ID_VIEW_TOOLBAR, OnViewToolbar)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_TAB_BAR, OnUpdateViewTabBar)
+	ON_COMMAND(ID_VIEW_TAB_BAR, OnViewTabBar)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_RESIZE_PANES, OnUpdateResizePanes)
+	ON_COMMAND(ID_VIEW_RESIZE_PANES, OnResizePanes)
 	ON_COMMAND(ID_FILE_OPENPROJECT, OnFileOpenproject)
 	ON_MESSAGE(WM_COPYDATA, OnCopyData)
 	ON_MESSAGE(WM_USER, OnUser)
@@ -155,8 +202,19 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(ID_FILE_SAVEPROJECT, OnSaveProject)
 	ON_WM_TIMER()
 	ON_WM_ACTIVATE()
-	ON_WM_NCDESTROY()
-	//}}AFX_MSG_MAP	
+	ON_COMMAND(ID_DEBUG_RESETOPTIONS, OnDebugResetOptions)
+	ON_COMMAND(ID_TOOLBAR_NONE, OnToolbarNone)
+	ON_UPDATE_COMMAND_UI(ID_TOOLBAR_NONE, OnUpdateToolbarNone)
+	ON_COMMAND(ID_TOOLBAR_SMALL, OnToolbarSmall)
+	ON_UPDATE_COMMAND_UI(ID_TOOLBAR_SMALL, OnUpdateToolbarSmall)
+	ON_COMMAND(ID_TOOLBAR_BIG, OnToolbarBig)
+	ON_UPDATE_COMMAND_UI(ID_TOOLBAR_BIG, OnUpdateToolbarBig)
+	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipText)
+	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipText)
+	ON_COMMAND(ID_HELP_RELEASENOTES, OnHelpReleasenotes)
+  ON_COMMAND(ID_HELP_TRANSLATIONS, OnHelpTranslations)
+	ON_COMMAND(ID_FILE_OPENCONFLICT, OnFileOpenConflict)
+	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /**
@@ -179,14 +237,13 @@ static const TCHAR DocsPath[] = _T("\\Docs\\WinMerge.chm");
  * @brief URL to help indes in internet.
  * We use internet help when local help file is not found (not installed).
  */
-static const TCHAR DocsURL[] = _T("http://winmerge.org/2.6/manual/index.html");
+static const TCHAR DocsURL[] = _T("http://winmerge.org/2.8/manual/index.html");
 
-/**
- * @brief Default relative path to "My Documents" for private filters.
- * We want to use WinMerge folder as general user-file folder in future.
- * So it makes sense to have own subfolder for filters.
- */
-static const TCHAR DefaultRelativeFilterPath[] = _T("WinMerge\\Filters");
+/** @brief Release notes in HTML format. */
+static const TCHAR RelNotes[] = _T("\\Docs\\ReleaseNotes.html");
+
+/** @brief URL to translations page in internet. */
+static const TCHAR TranslationsUrl[] = _T("http://winmerge.org/translations/");
 
 /** @brief Timer ID for window flashing timer. */
 static const UINT ID_TIMER_FLASH = 1;
@@ -211,9 +268,9 @@ CMainFrame::CMainFrame()
 , m_CheckOutMulti(FALSE)
 , m_bVCProjSync(FALSE)
 , m_bVssSuppressPathCheck(FALSE)
+, m_pLineFilters(NULL)
 {
 	ZeroMemory(&m_pMenus[0], sizeof(m_pMenus));
-	OptionsInit(); // Implementation in OptionsInit.cpp
 	UpdateCodepageModule();
 
 	InitializeSourceControlMembers();
@@ -221,44 +278,51 @@ CMainFrame::CMainFrame()
 	// uncomment this when the GUI allows to toggle the mode
 //	g_bPredifferMode = theApp.GetProfileInt(_T("Settings"), _T("PredifferMode"), PLUGIN_MANUAL);
 
-	// TODO: read preference for logging
-
-	int logging = m_options.GetInt(OPT_LOGGING);
-	if (logging > 0)
-	{
-		gLog.EnableLogging(TRUE);
-		gLog.SetFile(_T("WinMerge.log"));
-
-		if (logging == 1)
-			gLog.SetMaskLevel(CLogFile::LALL);
-		else if (logging == 2)
-			gLog.SetMaskLevel(CLogFile::LERROR | CLogFile::LWARNING);
-	}
-
 	m_pSyntaxColors = new SyntaxColors();
 	if (m_pSyntaxColors)
-		m_pSyntaxColors->Initialize(&m_options);
+		m_pSyntaxColors->Initialize(GetOptionsMgr());
+
+	m_pLineFilters = new LineFiltersList();
+	if (m_pLineFilters)
+		m_pLineFilters->Initialize(GetOptionsMgr());
+
+	// If there are no filters loaded, and there is filter string in previous
+	// option string, import old filters to new place.
+	if (m_pLineFilters->GetCount() == 0)
+	{
+		CString oldFilter = theApp.GetProfileString(_T("Settings"), _T("RegExps"));
+		if (!oldFilter.IsEmpty())
+			m_pLineFilters->Import(oldFilter);
+	}
 
 	// Check if filter folder is set, and create it if not
-	CString pathMyFolders = m_options.GetString(OPT_FILTER_USERPATH);
-	if (pathMyFolders.IsEmpty())
+	String pathMyFolders = GetOptionsMgr()->GetString(OPT_FILTER_USERPATH);
+	if (pathMyFolders.empty())
 	{
 		// No filter path, set it to default and make sure it exists.
-		CString pathFilters = GetDefaultFilterUserPath(TRUE);
-		m_options.SaveOption(OPT_FILTER_USERPATH, pathFilters);
+		CString pathFilters = theApp.GetDefaultFilterUserPath(TRUE);
+		GetOptionsMgr()->SaveOption(OPT_FILTER_USERPATH, pathFilters);
 		theApp.m_globalFileFilter.SetFileFilterPath(pathFilters);
 	}
 }
 
 CMainFrame::~CMainFrame()
 {
-	gLog.EnableLogging(FALSE);
+	GetLog()->EnableLogging(FALSE);
 
-	// destroy the reg expression list
-	FreeRegExpList();
 	// Delete all temporary folders belonging to this process
 	GetClearTempPath(NULL, NULL);
 
+	// Remove files from temp file list.
+	while (!m_tempFiles.empty())
+	{
+		TempFile *temp = m_tempFiles.back();
+		temp->Delete();
+		delete temp;
+		m_tempFiles.pop_back();
+	}
+
+	delete m_pLineFilters;
 	delete m_pMenus[MENU_DEFAULT];
 	delete m_pMenus[MENU_MERGEVIEW];
 	delete m_pMenus[MENU_DIRVIEW];
@@ -283,13 +347,35 @@ protected:
 
 static StatusDisplay myStatusDisplay;
 
+/**
+ * @brief Change MainFrame window class name
+ *        see http://support.microsoft.com/kb/403825/ja
+ */
+BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
+{
+	LPCTSTR   lpzsNewName = _T("WinMergeWindowClass");
+	WNDCLASS wndcls;
+	BOOL bRes = CMDIFrameWnd::PreCreateWindow(cs);
+	HINSTANCE hInst = AfxGetInstanceHandle();
+	// see if the class already exists
+	if (!::GetClassInfo(hInst, lpzsNewName, &wndcls))
+	{
+		// get default stuff
+		::GetClassInfo(hInst, cs.lpszClass, &wndcls);
+		// register a new class
+		wndcls.lpszClassName = lpzsNewName;
+		wndcls.hIcon = ::LoadIcon(hInst, MAKEINTRESOURCE(IDR_MAINFRAME));
+		::RegisterClass(&wndcls);
+	}
+	cs.lpszClass = lpzsNewName;
+	return bRes;
+}
+
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	if (CMDIFrameWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
-	// build the initial reg expression list
-	RebuildRegExpList(FALSE);
 	GetFontProperties();
 	
 	if (!CreateToobar())
@@ -298,16 +384,24 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // fail to create
 	}
 	
-	if (!m_wndStatusBar.Create(this) ||
-		!m_wndStatusBar.SetIndicators(indicators,
-		  sizeof(indicators)/sizeof(UINT)))
+	if (!m_wndTabBar.Create(this))
+	{
+		TRACE0("Failed to create tab bar\n");
+		return -1;      // fail to create
+	}
+	if (GetOptionsMgr()->GetBool(OPT_SHOW_TABBAR) == false)
+		CMDIFrameWnd::ShowControlBar(&m_wndTabBar, false, 0);
+
+	if (!m_wndStatusBar.Create(this))
 	{
 		TRACE0("Failed to create status bar\n");
 		return -1;      // fail to create
 	}
+	theApp.SetIndicators(m_wndStatusBar, indicators, sizeof(indicators)/sizeof(UINT));
+	
 	m_wndStatusBar.SetPaneInfo(1, ID_STATUS_MERGINGMODE, 0, 100); 
 	m_wndStatusBar.SetPaneInfo(2, ID_STATUS_DIFFNUM, 0, 150); 
-	if (m_options.GetBool(OPT_SHOW_STATUSBAR) == false)
+	if (GetOptionsMgr()->GetBool(OPT_SHOW_STATUSBAR) == false)
 		CMDIFrameWnd::ShowControlBar(&m_wndStatusBar, false, 0);
 
 	// CG: The following line was added by the Splash Screen component.
@@ -374,6 +468,7 @@ HMENU CMainFrame::GetPrediffersSubmenu(HMENU mainMenu)
  */
 static void FixupDebugMenu(BCMenu * menu)
 {
+	theApp.TranslateMenu(menu->m_hMenu);
 	bool DebugMenu = false;
 #ifdef _DEBUG
 	DebugMenu = true;
@@ -386,7 +481,7 @@ static void FixupDebugMenu(BCMenu * menu)
 	// Finds debug menu by looking for a submenu which
 	//  starts with item ID_DEBUG_LOADCONFIG
 
-	for (int i=0; i< menu->GetMenuItemCount(); ++i)
+	for (UINT i = 0; i < menu->GetMenuItemCount(); ++i)
 	{
 		if (menu->GetSubMenu(i)->GetMenuItemID(0) == ID_DEBUG_LOADCONFIG)
 		{
@@ -397,92 +492,73 @@ static void FixupDebugMenu(BCMenu * menu)
 }
 
 /**
- * @brief Create new default (CMainFrame) menu
+ * @brief Create a new menu for the view..
+ * @param [in] view Menu view either MENU_DEFAULT, MENU_MERGEVIEW or MENU_DIRVIEW.
+ * @param [in] ID Menu's resource ID.
+ * @return Menu for the view.
  */
-HMENU CMainFrame::NewDefaultMenu(int ID /*=0*/)
+HMENU CMainFrame::NewMenu(int view, int ID)
 {
-	if (ID == 0)
-		ID = IDR_MAINFRAME;
+	int menu_view, index;
+	if (m_pMenus[view] == NULL)
+	{
+		m_pMenus[view] = new BCMenu();
+		if (m_pMenus[view] == NULL)
+			return NULL;
+	}
 
-	if (m_pMenus[MENU_DEFAULT] == NULL)
-		m_pMenus[MENU_DEFAULT] = new BCMenu();
-	if (m_pMenus[MENU_DEFAULT] == NULL)
-		return NULL;
+	switch (view)
+	{
+	case MENU_MERGEVIEW:
+		menu_view = MENU_FILECMP;
+		break;
+	case MENU_DIRVIEW:
+		menu_view = MENU_FOLDERCMP;
+		break;
+	case MENU_DEFAULT:
+	default:
+		menu_view = MENU_MAINFRM;
+		break;
+	};
 
-	if (!m_pMenus[MENU_DEFAULT]->LoadMenu(ID))
+	if (!m_pMenus[view]->LoadMenu(ID))
 	{
 		ASSERT(FALSE);
 		return NULL;
 	}
-	
+
 	// Load bitmaps to menuitems
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_EDIT_COPY, IDB_EDIT_COPY);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_EDIT_CUT, IDB_EDIT_CUT);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_EDIT_PASTE, IDB_EDIT_PASTE);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_EDIT_FIND, IDB_EDIT_SEARCH);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_WINDOW_CASCADE, IDB_WINDOW_CASCADE);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_WINDOW_TILE_HORZ, IDB_WINDOW_HORIZONTAL);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_WINDOW_TILE_VERT, IDB_WINDOW_VERTICAL);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_FILE_CLOSE, IDB_WINDOW_CLOSE);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_WINDOW_CHANGE_PANE, IDB_WINDOW_CHANGEPANE);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_EDIT_WMGOTO, IDB_EDIT_GOTO);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_EDIT_REPLACE, IDB_EDIT_REPLACE);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_VIEW_LANGUAGE, IDB_VIEW_LANGUAGE);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_VIEW_SELECTFONT, IDB_VIEW_SELECTFONT);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_APP_EXIT, IDB_FILE_EXIT);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_HELP_CONTENTS, IDB_HELP_CONTENTS);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_EDIT_SELECT_ALL, IDB_EDIT_SELECTALL);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_TOOLS_FILTERS, IDB_TOOLS_FILTERS);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_TOOLS_CUSTOMIZECOLUMNS, IDB_TOOLS_COLUMNS);
-	m_pMenus[MENU_DEFAULT]->ModifyODMenu(NULL, ID_TOOLS_GENERATEPATCH, IDB_TOOLS_GENERATEPATCH);
-	m_pMenus[MENU_DEFAULT]->LoadToolbar(IDR_MAINFRAME);
+	for (index = 0; index < countof(m_MenuIcons); index ++)
+	{
+		if (menu_view == (m_MenuIcons[index].menusToApply & menu_view))
+		{
+			m_pMenus[view]->ModifyODMenu(NULL, m_MenuIcons[index].menuitemID, m_MenuIcons[index].iconResID);
+		}
+	}
 
-	FixupDebugMenu(m_pMenus[MENU_DEFAULT]);
+	m_pMenus[view]->LoadToolbar(IDR_MAINFRAME);
 
-	return(m_pMenus[MENU_DEFAULT]->Detach());
+	FixupDebugMenu(m_pMenus[view]);
+
+	return (m_pMenus[view]->Detach());
+
+}
+/** 
+* @brief Create new default (CMainFrame) menu.
+*/
+HMENU CMainFrame::NewDefaultMenu(int ID /*=0*/)
+{
+	if (ID == 0)
+		ID = IDR_MAINFRAME;
+	return NewMenu( MENU_DEFAULT, ID );
 }
 
 /**
- * @brief Create new File compare (CMergeEditView) menu
+ * @brief Create new File compare (CMergeEditView) menu.
  */
 HMENU CMainFrame::NewMergeViewMenu()
 {
-	if (m_pMenus[MENU_MERGEVIEW] == NULL)
-		m_pMenus[MENU_MERGEVIEW] = new BCMenu();
-	if (m_pMenus[MENU_MERGEVIEW] == NULL)
-		return NULL;
-
-	m_pMenus[MENU_MERGEVIEW]->LoadMenu(IDR_MERGEDOCTYPE);
-	// Load bitmaps to menuitems
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_EDIT_COPY, IDB_EDIT_COPY);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_EDIT_CUT, IDB_EDIT_CUT);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_EDIT_PASTE, IDB_EDIT_PASTE);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_EDIT_FIND, IDB_EDIT_SEARCH);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_WINDOW_CASCADE, IDB_WINDOW_CASCADE);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_WINDOW_TILE_HORZ, IDB_WINDOW_HORIZONTAL);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_WINDOW_TILE_VERT, IDB_WINDOW_VERTICAL);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_FILE_CLOSE, IDB_WINDOW_CLOSE);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_WINDOW_CHANGE_PANE, IDB_WINDOW_CHANGEPANE);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_EDIT_WMGOTO, IDB_EDIT_GOTO);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_EDIT_REPLACE, IDB_EDIT_REPLACE);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_VIEW_LANGUAGE, IDB_VIEW_LANGUAGE);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_VIEW_SELECTFONT, IDB_VIEW_SELECTFONT);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_APP_EXIT, IDB_FILE_EXIT);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_HELP_CONTENTS, IDB_HELP_CONTENTS);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_EDIT_SELECT_ALL, IDB_EDIT_SELECTALL);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_TOOLS_FILTERS, IDB_TOOLS_FILTERS);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_TOOLS_CUSTOMIZECOLUMNS, IDB_TOOLS_COLUMNS);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_FILE_PRINT, IDB_FILE_PRINT);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_TOOLS_GENERATEPATCH, IDB_TOOLS_GENERATEPATCH);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_EDIT_TOGGLE_BOOKMARK, IDB_EDIT_TOGGLE_BOOKMARK);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_EDIT_GOTO_NEXT_BOOKMARK, IDB_EDIT_GOTO_NEXT_BOOKMARK);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_EDIT_GOTO_PREV_BOOKMARK, IDB_EDIT_GOTO_PREV_BOOKMARK);
-	m_pMenus[MENU_MERGEVIEW]->ModifyODMenu(NULL, ID_EDIT_CLEAR_ALL_BOOKMARKS, IDB_EDIT_CLEAR_ALL_BOOKMARKS);
-	m_pMenus[MENU_MERGEVIEW]->LoadToolbar(IDR_MAINFRAME);
-
-	FixupDebugMenu(m_pMenus[MENU_MERGEVIEW]);
-
-	return(m_pMenus[MENU_MERGEVIEW]->Detach());
+	return NewMenu( MENU_MERGEVIEW, IDR_MERGEDOCTYPE);
 }
 
 /**
@@ -490,40 +566,7 @@ HMENU CMainFrame::NewMergeViewMenu()
  */
 HMENU CMainFrame::NewDirViewMenu()
 {
-	if (m_pMenus[MENU_DIRVIEW] == NULL)
-		m_pMenus[MENU_DIRVIEW] = new BCMenu();
-	if (m_pMenus[MENU_DIRVIEW] == NULL)
-		return NULL;
-
-	m_pMenus[MENU_DIRVIEW]->LoadMenu(IDR_DIRDOCTYPE);
-	// Load bitmaps to menuitems
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_EDIT_COPY, IDB_EDIT_COPY);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_EDIT_CUT, IDB_EDIT_CUT);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_EDIT_PASTE, IDB_EDIT_PASTE);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_EDIT_FIND, IDB_EDIT_SEARCH);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_WINDOW_CASCADE, IDB_WINDOW_CASCADE);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_WINDOW_TILE_HORZ, IDB_WINDOW_HORIZONTAL);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_WINDOW_TILE_VERT, IDB_WINDOW_VERTICAL);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_FILE_CLOSE, IDB_WINDOW_CLOSE);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_WINDOW_CHANGE_PANE, IDB_WINDOW_CHANGEPANE);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_EDIT_WMGOTO, IDB_EDIT_GOTO);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_EDIT_REPLACE, IDB_EDIT_REPLACE);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_VIEW_LANGUAGE, IDB_VIEW_LANGUAGE);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_VIEW_SELECTFONT, IDB_VIEW_SELECTFONT);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_APP_EXIT, IDB_FILE_EXIT);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_HELP_CONTENTS, IDB_HELP_CONTENTS);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_EDIT_SELECT_ALL, IDB_EDIT_SELECTALL);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_TOOLS_FILTERS, IDB_TOOLS_FILTERS);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_TOOLS_CUSTOMIZECOLUMNS, IDB_TOOLS_COLUMNS);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_MERGE_DELETE, IDB_MERGE_DELETE);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_TOOLS_GENERATEPATCH, IDB_TOOLS_GENERATEPATCH);
-	m_pMenus[MENU_DIRVIEW]->ModifyODMenu(NULL, ID_TOOLS_GENERATEREPORT, IDB_TOOLS_GENERATEREPORT);
-
-	m_pMenus[MENU_DIRVIEW]->LoadToolbar(IDR_MAINFRAME);
-
-	FixupDebugMenu(m_pMenus[MENU_DIRVIEW]);
-
-	return(m_pMenus[MENU_DIRVIEW]->Detach());
+	return NewMenu(MENU_DIRVIEW, IDR_DIRDOCTYPE );
 }
 
 /**
@@ -576,7 +619,9 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 	if (!bSysMenu)
 	{
 		if (BCMenu::IsMenu(pPopupMenu))
+		{
 			BCMenu::UpdateMenu(pPopupMenu);
+		}
 	}
 }
 
@@ -596,18 +641,23 @@ void CMainFrame::OnFileOpen()
 static void
 FileLocationGuessEncodings(FileLocation & fileloc, BOOL bGuessEncoding)
 {
-	GuessCodepageEncoding(fileloc.filepath, &fileloc.encoding, bGuessEncoding);
+	GuessCodepageEncoding(fileloc.filepath.c_str(), &fileloc.encoding,
+		bGuessEncoding);
 }
 
 /**
- * @brief Creates new MergeDoc instance and shows documents
- *
- * @param cpleft, cpright : left and right codepages
- * = -1 when the file must be parsed
+ * @brief Creates new MergeDoc instance and shows documents.
+ * @param [in] pDirDoc Dir compare document to create a new Merge document for.
+ * @param [in] ifilelocLeft Left side file location info.
+ * @param [in] ifilelocRight Right side file location info.
+ * @param [in] dwLeftFlags Left side flags.
+ * @param [in] dwRightFlags Right side flags.
+ * @param [in] infoUnpacker Plugin info.
+ * @return OPENRESULTS_TYPE for success/failure code.
  */
-int /* really an OPENRESULTS_TYPE, but MainFrm.h doesn't know that type */
-CMainFrame::ShowMergeDoc(CDirDoc * pDirDoc,  const FileLocation & ifilelocLeft, const FileLocation & ifilelocRight,
-	BOOL bROLeft, BOOL bRORight,
+int CMainFrame::ShowMergeDoc(CDirDoc * pDirDoc,
+	const FileLocation & ifilelocLeft, const FileLocation & ifilelocRight,
+	DWORD dwLeftFlags /*=0*/, DWORD dwRightFlags /*=0*/,
 	PackingInfo * infoUnpacker /*= NULL*/)
 {
 	BOOL docNull;
@@ -650,7 +700,7 @@ CMainFrame::ShowMergeDoc(CDirDoc * pDirDoc,  const FileLocation & ifilelocLeft, 
 			&& filelocLeft.encoding.m_codepage != filelocRight.encoding.m_codepage)
 		{
 			CString msg;
-			msg.Format(IDS_SUGGEST_IGNORECODEPAGE, filelocLeft.encoding.m_codepage, filelocRight.encoding.m_codepage);
+			msg.Format(theApp.LoadString(IDS_SUGGEST_IGNORECODEPAGE).c_str(), filelocLeft.encoding.m_codepage, filelocRight.encoding.m_codepage);
 			int msgflags = MB_YESNO | MB_ICONWARNING | MB_DONT_ASK_AGAIN;
 			// Two files with different codepages
 			// Warn and propose to use the default codepage for both
@@ -673,10 +723,10 @@ CMainFrame::ShowMergeDoc(CDirDoc * pDirDoc,  const FileLocation & ifilelocLeft, 
 		}
 		else if (filelocLeft.encoding.m_unicoding != filelocRight.encoding.m_unicoding)
 		{
-			CString leftEncoding = filelocLeft.encoding.GetName();
-			CString rightEnicoding = filelocRight.encoding.GetName();
+			String leftEncoding = filelocLeft.encoding.GetName();
+			String rightEncoding = filelocRight.encoding.GetName();
 			CString msg;
-			msg.Format(IDS_DIFFERENT_UNICODINGS, leftEncoding, rightEnicoding);
+			msg.Format(theApp.LoadString(IDS_DIFFERENT_UNICODINGS).c_str(), leftEncoding.c_str(), rightEncoding.c_str());
 			int msgflags = MB_OK | MB_ICONWARNING | MB_DONT_ASK_AGAIN;
 			// Two files with different codepages
 			// Warn and propose to use the default codepage for both
@@ -685,11 +735,24 @@ CMainFrame::ShowMergeDoc(CDirDoc * pDirDoc,  const FileLocation & ifilelocLeft, 
 	}
 
 	// Note that OpenDocs() takes care of closing compare window when needed.
+	BOOL bLeftRO = (dwLeftFlags & FFILEOPEN_READONLY) > 0;
+	BOOL bRightRO = (dwRightFlags & FFILEOPEN_READONLY) > 0;
 	OPENRESULTS_TYPE openResults = pMergeDoc->OpenDocs(filelocLeft, filelocRight,
-			bROLeft, bRORight);
+			bLeftRO, bRightRO);
 
 	if (openResults == OPENRESULTS_SUCCESS)
 	{
+		BOOL bLeftModified = (dwLeftFlags & FFILEOPEN_MODIFIED) > 0;
+		BOOL bRightModified = (dwRightFlags & FFILEOPEN_MODIFIED) > 0;
+		if (bLeftModified || bRightModified)
+		{
+			if (bLeftModified)
+				pMergeDoc->m_ptBuf[0]->SetModified(TRUE);
+			if (bRightModified)
+				pMergeDoc->m_ptBuf[1]->SetModified(TRUE);
+			pMergeDoc->UpdateHeaderPath(1);
+		}
+
 		if (docNull)
 		{
 			CWnd* pWnd = pMergeDoc->GetParentFrame();
@@ -717,8 +780,8 @@ void CMainFrame::RedisplayAllDirDocs()
  */
 void CMainFrame::OnOptionsShowDifferent() 
 {
-	bool val = m_options.GetBool(OPT_SHOW_DIFFERENT);
-	m_options.SaveOption(OPT_SHOW_DIFFERENT, !val); // reverse
+	bool val = GetOptionsMgr()->GetBool(OPT_SHOW_DIFFERENT);
+	GetOptionsMgr()->SaveOption(OPT_SHOW_DIFFERENT, !val); // reverse
 	RedisplayAllDirDocs();
 }
 
@@ -727,8 +790,8 @@ void CMainFrame::OnOptionsShowDifferent()
  */
 void CMainFrame::OnOptionsShowIdentical() 
 {
-	bool val = m_options.GetBool(OPT_SHOW_IDENTICAL);
-	m_options.SaveOption(OPT_SHOW_IDENTICAL, !val); // reverse
+	bool val = GetOptionsMgr()->GetBool(OPT_SHOW_IDENTICAL);
+	GetOptionsMgr()->SaveOption(OPT_SHOW_IDENTICAL, !val); // reverse
 	RedisplayAllDirDocs();
 }
 
@@ -737,8 +800,8 @@ void CMainFrame::OnOptionsShowIdentical()
  */
 void CMainFrame::OnOptionsShowUniqueLeft() 
 {
-	bool val = m_options.GetBool(OPT_SHOW_UNIQUE_LEFT);
-	m_options.SaveOption(OPT_SHOW_UNIQUE_LEFT, !val); // reverse
+	bool val = GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_LEFT);
+	GetOptionsMgr()->SaveOption(OPT_SHOW_UNIQUE_LEFT, !val); // reverse
 	RedisplayAllDirDocs();
 }
 
@@ -747,8 +810,8 @@ void CMainFrame::OnOptionsShowUniqueLeft()
  */
 void CMainFrame::OnOptionsShowUniqueRight() 
 {
-	bool val = m_options.GetBool(OPT_SHOW_UNIQUE_RIGHT);
-	m_options.SaveOption(OPT_SHOW_UNIQUE_RIGHT, !val); // reverse
+	bool val = GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_RIGHT);
+	GetOptionsMgr()->SaveOption(OPT_SHOW_UNIQUE_RIGHT, !val); // reverse
 	RedisplayAllDirDocs();
 }
 
@@ -757,8 +820,8 @@ void CMainFrame::OnOptionsShowUniqueRight()
  */
 void CMainFrame::OnOptionsShowBinaries()
 {
-	bool val = m_options.GetBool(OPT_SHOW_BINARIES);
-	m_options.SaveOption(OPT_SHOW_BINARIES, !val); // reverse
+	bool val = GetOptionsMgr()->GetBool(OPT_SHOW_BINARIES);
+	GetOptionsMgr()->SaveOption(OPT_SHOW_BINARIES, !val); // reverse
 	RedisplayAllDirDocs();
 }
 
@@ -767,39 +830,39 @@ void CMainFrame::OnOptionsShowBinaries()
  */
 void CMainFrame::OnOptionsShowSkipped()
 {
-	bool val = m_options.GetBool(OPT_SHOW_SKIPPED);
-	m_options.SaveOption(OPT_SHOW_SKIPPED, !val); // reverse
+	bool val = GetOptionsMgr()->GetBool(OPT_SHOW_SKIPPED);
+	GetOptionsMgr()->SaveOption(OPT_SHOW_SKIPPED, !val); // reverse
 	RedisplayAllDirDocs();
 }
 
 void CMainFrame::OnUpdateOptionsShowdifferent(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_options.GetBool(OPT_SHOW_DIFFERENT));
+	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_SHOW_DIFFERENT));
 }
 
 void CMainFrame::OnUpdateOptionsShowidentical(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_options.GetBool(OPT_SHOW_IDENTICAL));
+	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_SHOW_IDENTICAL));
 }
 
 void CMainFrame::OnUpdateOptionsShowuniqueleft(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_options.GetBool(OPT_SHOW_UNIQUE_LEFT));
+	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_LEFT));
 }
 
 void CMainFrame::OnUpdateOptionsShowuniqueright(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_options.GetBool(OPT_SHOW_UNIQUE_RIGHT));
+	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_RIGHT));
 }
 
 void CMainFrame::OnUpdateOptionsShowBinaries(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_options.GetBool(OPT_SHOW_BINARIES));
+	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_SHOW_BINARIES));
 }
 
 void CMainFrame::OnUpdateOptionsShowSkipped(CCmdUI* pCmdUI)
 {
-	pCmdUI->SetCheck(m_options.GetBool(OPT_SHOW_SKIPPED));
+	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_SHOW_SKIPPED));
 }
 
 /**
@@ -807,10 +870,10 @@ void CMainFrame::OnUpdateOptionsShowSkipped(CCmdUI* pCmdUI)
  */
 void CMainFrame::OnHelpGnulicense() 
 {
-	CString spath = GetModulePath() + _T("\\Copying");
-	CString url = _T("http://www.gnu.org/licenses/gpl-2.0.html");
-	
-	OpenFileOrUrl(spath, url);
+	const String spath = GetModulePath() + _T("\\Copying");
+	const TCHAR url[] = _T("http://www.gnu.org/licenses/gpl-2.0.html");
+
+	OpenFileOrUrl(spath.c_str(), url);
 }
 
 /**
@@ -840,7 +903,7 @@ int CMainFrame::HandleReadonlySave(CString& strSavePath, BOOL bMultiFile,
 	int nVerSys = 0;
 
 	bFileRO = files_isFileReadOnly(strSavePath, &bFileExists);
-	nVerSys = m_options.GetInt(OPT_VCS_SYSTEM);
+	nVerSys = GetOptionsMgr()->GetInt(OPT_VCS_SYSTEM);
 	
 	if (bFileExists && bFileRO)
 	{
@@ -865,7 +928,7 @@ int CMainFrame::HandleReadonlySave(CString& strSavePath, BOOL bMultiFile,
 			if (bMultiFile)
 			{
 				// Multiple files or folder
-				AfxFormatString1(s, IDS_SAVEREADONLY_MULTI, strSavePath);
+				LangFormatString1(s, IDS_SAVEREADONLY_MULTI, strSavePath);
 				userChoice = AfxMessageBox(s, MB_YESNOCANCEL |
 						MB_ICONWARNING | MB_DEFBUTTON3 | MB_DONT_ASK_AGAIN |
 						MB_YES_TO_ALL, IDS_SAVEREADONLY_MULTI);
@@ -873,7 +936,7 @@ int CMainFrame::HandleReadonlySave(CString& strSavePath, BOOL bMultiFile,
 			else
 			{
 				// Single file
-				AfxFormatString1(s, IDS_SAVEREADONLY_FMT, strSavePath);
+				LangFormatString1(s, IDS_SAVEREADONLY_FMT, strSavePath);
 				userChoice = AfxMessageBox(s, MB_YESNOCANCEL |
 						MB_ICONWARNING | MB_DEFBUTTON2 | MB_DONT_ASK_AGAIN,
 						IDS_SAVEREADONLY_FMT);
@@ -887,7 +950,7 @@ int CMainFrame::HandleReadonlySave(CString& strSavePath, BOOL bMultiFile,
 		case IDYES:
 			CFile::GetStatus(strSavePath, status);
 			status.m_mtime = 0;		// Avoid unwanted changes
-			status.m_attribute &= ~CFile::Attribute::readOnly;
+			status.m_attribute &= ~CFile::readOnly;
 			CFile::SetStatus(strSavePath, status);
 			nRetVal = IDYES;
 			break;
@@ -896,8 +959,7 @@ int CMainFrame::HandleReadonlySave(CString& strSavePath, BOOL bMultiFile,
 		case IDNO:
 			if (!bMultiFile)
 			{
-				VERIFY(title.LoadString(IDS_SAVE_AS_TITLE));
-				if (SelectFile(GetSafeHwnd(), s, strSavePath, title, NULL, FALSE))
+				if (SelectFile(GetSafeHwnd(), s, strSavePath, IDS_SAVE_AS_TITLE, NULL, FALSE))
 				{
 					strSavePath = s;
 					nRetVal = IDNO;
@@ -921,7 +983,7 @@ int CMainFrame::HandleReadonlySave(CString& strSavePath, BOOL bMultiFile,
 /// Wrapper to set the global option 'm_bAllowMixedEol'
 void CMainFrame::SetEOLMixed(BOOL bAllow)
 {
-	m_options.SaveOption(OPT_ALLOW_MIXED_EOL, bAllow == TRUE);
+	GetOptionsMgr()->SaveOption(OPT_ALLOW_MIXED_EOL, bAllow == TRUE);
 	ApplyViewWhitespace();
 }
 
@@ -931,18 +993,18 @@ void CMainFrame::SetEOLMixed(BOOL bAllow)
 void CMainFrame::OnOptions() 
 {
 	// Using singleton shared syntax colors
-	CPreferencesDlg dlg(&m_options, m_pSyntaxColors);
+	CPreferencesDlg dlg(GetOptionsMgr(), m_pSyntaxColors);
 	int rv = dlg.DoModal();
 
 	if (rv == IDOK)
 	{
 		// Set new filterpath
-		CString filterPath = m_options.GetString(OPT_FILTER_USERPATH);
-		theApp.m_globalFileFilter.SetUserFilterPath(filterPath);
+		String filterPath = GetOptionsMgr()->GetString(OPT_FILTER_USERPATH);
+		theApp.m_globalFileFilter.SetUserFilterPath(filterPath.c_str());
 
 		UpdateCodepageModule();
 		// Call the wrapper to set m_bAllowMixedEol (the wrapper updates the registry)
-		SetEOLMixed(m_options.GetBool(OPT_ALLOW_MIXED_EOL));
+		SetEOLMixed(GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL));
 
 		// make an attempt at rescanning any open diff sessions
 		MergeDocList docs;
@@ -970,7 +1032,15 @@ void CMainFrame::OnOptions()
 }
 
 /**
- * @brief Begin a diff: open dirdoc if it is directories, else open a mergedoc for editing
+ * @brief Begin a diff: open dirdoc if it is directories, else open a mergedoc for editing.
+ * @param [in] pszLeft Left-side path.
+ * @param [in] pszRight Right-side path.
+ * @param [in] dwLeftFlags Left-side flags.
+ * @param [in] dwRightFlags Right-side flags.
+ * @param [in] bRecurse Do we run recursive (folder) compare?
+ * @param [in] pDirDoc Dir compare document to use.
+ * @param [in] prediffer Prediffer plugin name.
+ * @return TRUE if opening files and compare succeeded, FALSE otherwise.
  */
 BOOL CMainFrame::DoFileOpen(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*/,
 	DWORD dwLeftFlags /*=0*/, DWORD dwRightFlags /*=0*/, BOOL bRecurse /*=FALSE*/, CDirDoc *pDirDoc/*=NULL*/,
@@ -1032,6 +1102,7 @@ BOOL CMainFrame::DoFileOpen(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*
 				bRecurse = FALSE;
 			else if (projRecurse > 0)
 				bRecurse = TRUE;
+
 		}
 		pathsType = static_cast<PATH_EXISTENCE>(dlg.m_pathsType);
 		// TODO: add codepage options to open dialog ?
@@ -1057,7 +1128,7 @@ BOOL CMainFrame::DoFileOpen(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*
 
 	if (1)
 	{
-		gLog.Write(_T("### Begin Comparison Parameters #############################\r\n")
+		GetLog()->Write(_T("### Begin Comparison Parameters #############################\r\n")
 				  _T("\tLeft: %s\r\n")
 				  _T("\tRight: %s\r\n")
 				  _T("\tRecurse: %d\r\n")
@@ -1088,7 +1159,7 @@ BOOL CMainFrame::DoFileOpen(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*
 					break;
 				if (strLeft.Find(path) == 0)
 				{
-					VERIFY(::DeleteFile(strLeft) || gLog::DeleteFileFailed(strLeft));
+					VERIFY(::DeleteFile(strLeft) || GetLog()->DeleteFileFailed(strLeft));
 				}
 				SysFreeString(Assign(strLeft, piHandler->GetDefaultName(m_hWnd, strLeft)));
 				strLeft.Insert(0, '\\');
@@ -1104,7 +1175,7 @@ BOOL CMainFrame::DoFileOpen(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*
 						break;;
 					if (strRight.Find(path) == 0)
 					{
-						VERIFY(::DeleteFile(strRight) || gLog::DeleteFileFailed(strRight));
+						VERIFY(::DeleteFile(strRight) || GetLog()->DeleteFileFailed(strRight));
 					}
 					SysFreeString(Assign(strRight, piHandler->GetDefaultName(m_hWnd, strRight)));
 					strRight.Insert(0, '\\');
@@ -1169,22 +1240,22 @@ BOOL CMainFrame::DoFileOpen(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*
 			// Anything that can go wrong inside InitCompare() will yield an
 			// exception. There is no point in checking return value.
 			pDirDoc->InitCompare(paths, bRecurse, pTempPathContext);
-			gLog.Write(CLogFile::LNOTICE, _T("Open dirs: Left: %s\n\tRight: %s."),
+			GetLog()->Write(CLogFile::LNOTICE, _T("Open dirs: Left: %s\n\tRight: %s."),
 				strLeft, strRight);
 
 			pDirDoc->SetReadOnly(TRUE, bROLeft);
 			pDirDoc->SetReadOnly(FALSE, bRORight);
-			pDirDoc->SetDescriptions(m_strLeftDesc, m_strRightDesc);
+			pDirDoc->SetDescriptions(m_strDescriptions[0], m_strDescriptions[1]);
 			pDirDoc->SetTitle(NULL);
-			m_strLeftDesc.Empty();
-			m_strRightDesc.Empty();
+			m_strDescriptions[0].erase();
+			m_strDescriptions[1].erase();
 
 			pDirDoc->Rescan();
 		}
 	}
 	else
 	{
-		gLog.Write(CLogFile::LNOTICE, _T("Open files: Left: %s\n\tRight: %s."),
+		GetLog()->Write(CLogFile::LNOTICE, _T("Open files: Left: %s\n\tRight: %s."),
 			strLeft, strRight);
 		
 		FileLocation filelocLeft(strLeft);
@@ -1196,30 +1267,95 @@ BOOL CMainFrame::DoFileOpen(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*
 			pDirDoc->SetPluginPrediffer(strBothFilenames, prediffer);
 		}
 
-		ShowMergeDoc(pDirDoc, filelocLeft, filelocRight, bROLeft, bRORight,
+		ShowMergeDoc(pDirDoc, filelocLeft, filelocRight, dwLeftFlags, dwRightFlags,
 			&infoUnpacker);
 	}
 	return TRUE;
 }
 
-/// Creates backup before file is saved over
-BOOL CMainFrame::CreateBackup(LPCTSTR pszPath)
+/**
+ * @brief Creates backup before file is saved or copied over.
+ * This function handles formatting correct path and filename for
+ * backup file. Formatting is done based on several options available
+ * for users in Options/Backups dialog. After path is formatted, file
+ * is simply just copied. Not much error checking, just if copying
+ * succeeded or failed.
+ * @param [in] bFolder Are we creating backup in folder compare?
+ * @param [in] pszPath Full path to file to backup.
+ * @return TRUE if backup succeeds, or isn't just done.
+ */
+BOOL CMainFrame::CreateBackup(BOOL bFolder, LPCTSTR pszPath)
 {
-	// first, make a backup copy of the original
+	// If user doesn't want to backups in folder compare, return
+	// success so operations don't abort.
+	if (bFolder && !(GetOptionsMgr()->GetBool(OPT_BACKUP_FOLDERCMP)))
+		return TRUE;
+	// Likewise if user doesn't want backups in file compare
+	else if (!bFolder && !(GetOptionsMgr()->GetBool(OPT_BACKUP_FILECMP)))
+		return TRUE;
+
 	// create backup copy of file if destination file exists
-	if (m_options.GetBool(OPT_CREATE_BACKUPS) 
-		&& paths_DoesPathExist(pszPath) == IS_EXISTING_FILE)
+	if (paths_DoesPathExist(pszPath) == IS_EXISTING_FILE)
 	{
-		// Add backup extension if pathlength allows it
-		BOOL success = TRUE;
-		CString s = pszPath;
-		if (s.GetLength() >= (MAX_PATH - _tcslen(BACKUP_FILE_EXT)))
-			success = FALSE;
+		String bakPath;
+		String path;
+		String filename;
+		String ext;
+	
+		SplitFilename(pszPath, &path, &filename, &ext);
+
+		// Determine backup folder
+		if (GetOptionsMgr()->GetInt(OPT_BACKUP_LOCATION) ==
+			CPropBackups::FOLDER_ORIGINAL)
+		{
+			// Put backups to same folder than original file
+			bakPath = path;
+		}
+		else if (GetOptionsMgr()->GetInt(OPT_BACKUP_LOCATION) ==
+			CPropBackups::FOLDER_GLOBAL)
+		{
+			// Put backups to global folder defined in options
+			bakPath = GetOptionsMgr()->GetString(OPT_BACKUP_GLOBALFOLDER);
+			if (bakPath.empty())
+				bakPath = path;
+		}
 		else
-			s += BACKUP_FILE_EXT;
+		{
+			_RPTF0(_CRT_ERROR, "Unknown backup location!");
+		}
+
+		if (bakPath[bakPath.length() - 1] != '\\')
+			bakPath += _T("\\");
+
+		BOOL success = FALSE;
+		if (GetOptionsMgr()->GetBool(OPT_BACKUP_ADD_BAK))
+			ext += BACKUP_FILE_EXT;
+
+		// Append time to filename if wanted so
+		// NOTE just adds timestamp at the moment as I couldn't figure out
+		// nice way to add a real time (invalid chars etc).
+		if (GetOptionsMgr()->GetBool(OPT_BACKUP_ADD_TIME))
+		{
+			time_t curtime = 0;
+			time(&curtime);
+			CString timestr;
+			timestr.Format(_T("%d"), curtime);
+			filename += _T("-");
+			filename += timestr;
+		}
+
+		// Append filename and extension (+ optional .bak) to path
+		if ((bakPath.length() + filename.length() + ext.length())
+			< MAX_PATH)
+		{
+			success = TRUE;
+			bakPath += filename;
+			bakPath += _T(".");
+			bakPath += ext;
+		}
 
 		if (success)
-			success = CopyFile(pszPath, s, FALSE);
+			success = CopyFile(pszPath, bakPath.c_str(), FALSE);
 		
 		if (!success)
 		{
@@ -1237,7 +1373,6 @@ BOOL CMainFrame::CreateBackup(LPCTSTR pszPath)
 
 /**
  * @brief Sync file to Version Control System
- * @param pszSrc [in] File to copy
  * @param pszDest [in] Where to copy (incl. filename)
  * @param bApplyToAll [in,out] Apply user selection to all items
  * @param psError [out] Error string that can be shown to user in caller func
@@ -1245,24 +1380,18 @@ BOOL CMainFrame::CreateBackup(LPCTSTR pszPath)
  * @sa CMainFrame::HandleReadonlySave()
  * @sa CDirView::PerformActionList()
  */
-int CMainFrame::SyncFileToVCS(LPCTSTR pszSrc, LPCTSTR pszDest,
-	BOOL &bApplyToAll, CString *psError)
+int CMainFrame::SyncFileToVCS(LPCTSTR pszDest, BOOL &bApplyToAll,
+	CString *psError)
 {
 	CString sActionError;
 	CString strSavePath(pszDest);
 	int nVerSys = 0;
 
-	nVerSys = m_options.GetInt(OPT_VCS_SYSTEM);
+	nVerSys = GetOptionsMgr()->GetInt(OPT_VCS_SYSTEM);
 	
 	int nRetVal = HandleReadonlySave(strSavePath, TRUE, bApplyToAll);
 	if (nRetVal == IDCANCEL || nRetVal == IDNO)
 		return nRetVal;
-	
-	if (!CreateBackup(strSavePath))
-	{
-		psError->LoadString(IDS_ERROR_BACKUP);
-		return -1;
-	}
 	
 	// If VC project opened from VSS sync and version control used
 	if ((nVerSys == VCS_VSS4 || nVerSys == VCS_VSS5) && m_bVCProjSync)
@@ -1284,15 +1413,8 @@ int CMainFrame::SyncFileToVCS(LPCTSTR pszSrc, LPCTSTR pszDest,
  */
 void CMainFrame::OnViewSelectfont() 
 {
-	const TCHAR fileFontPath[] = _T("Font");
-	const TCHAR dirFontPath[] = _T("FontDirCompare");
-	CString sFontPath = fileFontPath; // Default to change file compare font
-
 	CFrameWnd * pFrame = GetActiveFrame();
 	BOOL bDirFrame = pFrame->IsKindOf(RUNTIME_CLASS(CDirFrame));
-
-	if (bDirFrame)
-		sFontPath = dirFontPath;
 
 	CHOOSEFONT cf;
 	LOGFONT *lf = NULL;
@@ -1314,12 +1436,41 @@ void CMainFrame::OnViewSelectfont()
 	if (ChooseFont(&cf))
 	{
 		if (bDirFrame)
-			m_options.SaveOption(OPT_FONT_DIRCMP_USECUSTOM, true);
+		{
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_USECUSTOM, true);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_HEIGHT, lf->lfHeight);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_WIDTH, lf->lfWidth);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_ESCAPEMENT, lf->lfEscapement);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_ORIENTATION, lf->lfOrientation);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_WEIGHT, lf->lfWeight);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_ITALIC, lf->lfItalic);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_UNDERLINE, lf->lfUnderline);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_STRIKEOUT, lf->lfStrikeOut);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_CHARSET, lf->lfCharSet);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_OUTPRECISION, lf->lfOutPrecision);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_CLIPPRECISION, lf->lfClipPrecision);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_QUALITY, lf->lfQuality);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_PITCHANDFAMILY, lf->lfPitchAndFamily);
+			GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_FACENAME, lf->lfFaceName);
+		}
 		else
-			m_options.SaveOption(OPT_FONT_FILECMP_USECUSTOM, true);
-
-		AppSerialize appser(AppSerialize::Save, sFontPath);
-		appser.SerializeFont(_T(""), *lf); // unnamed font
+		{
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_USECUSTOM, true);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_HEIGHT, lf->lfHeight);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_WIDTH, lf->lfWidth);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_ESCAPEMENT, lf->lfEscapement);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_ORIENTATION, lf->lfOrientation);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_WEIGHT, lf->lfWeight);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_ITALIC, lf->lfItalic);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_UNDERLINE, lf->lfUnderline);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_STRIKEOUT, lf->lfStrikeOut);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_CHARSET, lf->lfCharSet);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_OUTPRECISION, lf->lfOutPrecision);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_CLIPPRECISION, lf->lfClipPrecision);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_QUALITY, lf->lfQuality);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_PITCHANDFAMILY, lf->lfPitchAndFamily);
+			GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_FACENAME, lf->lfFaceName);
+		}
 
 		if (bDirFrame)
 			m_lfDir = *lf;
@@ -1356,63 +1507,47 @@ void CMainFrame::OnUpdateViewSelectfont(CCmdUI* pCmdUI)
  */
 void CMainFrame::GetFontProperties()
 {
-	USES_CONVERSION;
-
-	LOGFONT lfDefault;
-	ZeroMemory(&lfDefault, sizeof(LOGFONT));
-
-	MIMECPINFO cpi = {0};
-	cpi.bGDICharset = ANSI_CHARSET;
-	wcscpy(cpi.wszFixedWidthFont, L"Courier New");
-	IMultiLanguage *pMLang = NULL;
-
-	HRESULT hr = CoCreateInstance(CLSID_CMultiLanguage, NULL,
-		CLSCTX_INPROC_SERVER, IID_IMultiLanguage, (void **)&pMLang);
-	if (SUCCEEDED(hr))
-	{
-		hr = pMLang->GetCodePageInfo(GetACP(), &cpi);
-		pMLang->Release();
-	}
-
-	lfDefault.lfHeight = -16;
-	lfDefault.lfWidth = 0;
-	lfDefault.lfEscapement = 0;
-	lfDefault.lfOrientation = 0;
-	lfDefault.lfWeight = FW_NORMAL;
-	lfDefault.lfItalic = FALSE;
-	lfDefault.lfUnderline = FALSE;
-	lfDefault.lfStrikeOut = FALSE;
-	lfDefault.lfCharSet = cpi.bGDICharset;
-	lfDefault.lfOutPrecision = OUT_STRING_PRECIS;
-	lfDefault.lfClipPrecision = CLIP_STROKE_PRECIS;
-	lfDefault.lfQuality = DRAFT_QUALITY;
-	lfDefault.lfPitchAndFamily = FF_MODERN | FIXED_PITCH;
-	_tcscpy(lfDefault.lfFaceName, W2T(cpi.wszFixedWidthFont));
 	LOGFONT lfnew;
 	ZeroMemory(&lfnew, sizeof(LOGFONT));
 
-	// Get MergeView font
-	if (m_options.GetBool(OPT_FONT_FILECMP_USECUSTOM))
-	{
-		AppSerialize appser(AppSerialize::Load, _T("Font"));
-		appser.SerializeFont(_T(""), lfnew); // unnamed font 
+	lfnew.lfHeight = GetOptionsMgr()->GetInt(OPT_FONT_FILECMP_HEIGHT);
+	lfnew.lfWidth = GetOptionsMgr()->GetInt(OPT_FONT_FILECMP_WIDTH);
+	lfnew.lfEscapement = GetOptionsMgr()->GetInt(OPT_FONT_FILECMP_ESCAPEMENT);
+	lfnew.lfOrientation = GetOptionsMgr()->GetInt(OPT_FONT_FILECMP_ORIENTATION);
+	lfnew.lfWeight = GetOptionsMgr()->GetInt(OPT_FONT_FILECMP_WEIGHT);
+	lfnew.lfItalic = GetOptionsMgr()->GetBool(OPT_FONT_FILECMP_ITALIC);
+	lfnew.lfUnderline = GetOptionsMgr()->GetBool(OPT_FONT_FILECMP_UNDERLINE);
+	lfnew.lfStrikeOut = GetOptionsMgr()->GetBool(OPT_FONT_FILECMP_STRIKEOUT);
+	lfnew.lfCharSet = GetOptionsMgr()->GetInt(OPT_FONT_FILECMP_CHARSET);
+	lfnew.lfOutPrecision = GetOptionsMgr()->GetInt(OPT_FONT_FILECMP_OUTPRECISION);
+	lfnew.lfClipPrecision = GetOptionsMgr()->GetInt(OPT_FONT_FILECMP_CLIPPRECISION);
+	lfnew.lfQuality = GetOptionsMgr()->GetInt(OPT_FONT_FILECMP_QUALITY);
+	lfnew.lfPitchAndFamily = GetOptionsMgr()->GetInt(OPT_FONT_FILECMP_PITCHANDFAMILY);
 
-		m_lfDiff = lfnew;
-	}
-	else
-		m_lfDiff = lfDefault;
+	_tcscpy(lfnew.lfFaceName,
+		GetOptionsMgr()->GetString(OPT_FONT_FILECMP_FACENAME).c_str());
+	m_lfDiff = lfnew;
 
 	// Get DirView font
 	ZeroMemory(&lfnew, sizeof(LOGFONT));
-	if (m_options.GetBool(OPT_FONT_DIRCMP_USECUSTOM))
-	{
-		AppSerialize appser(AppSerialize::Load, _T("FontDirCompare"));
-		appser.SerializeFont(_T(""), lfnew); // unnamed font 
 
-		m_lfDir = lfnew;
-	}
-	else
-		m_lfDir = lfDefault;
+	lfnew.lfHeight = GetOptionsMgr()->GetInt(OPT_FONT_DIRCMP_HEIGHT);
+	lfnew.lfWidth = GetOptionsMgr()->GetInt(OPT_FONT_DIRCMP_WIDTH);
+	lfnew.lfEscapement = GetOptionsMgr()->GetInt(OPT_FONT_DIRCMP_ESCAPEMENT);
+	lfnew.lfOrientation = GetOptionsMgr()->GetInt(OPT_FONT_DIRCMP_ORIENTATION);
+	lfnew.lfWeight = GetOptionsMgr()->GetInt(OPT_FONT_DIRCMP_WEIGHT);
+	lfnew.lfItalic = GetOptionsMgr()->GetBool(OPT_FONT_DIRCMP_ITALIC);
+	lfnew.lfUnderline = GetOptionsMgr()->GetBool(OPT_FONT_DIRCMP_UNDERLINE);
+	lfnew.lfStrikeOut = GetOptionsMgr()->GetBool(OPT_FONT_DIRCMP_STRIKEOUT);
+	lfnew.lfCharSet = GetOptionsMgr()->GetInt(OPT_FONT_DIRCMP_CHARSET);
+	lfnew.lfOutPrecision = GetOptionsMgr()->GetInt(OPT_FONT_DIRCMP_OUTPRECISION);
+	lfnew.lfClipPrecision = GetOptionsMgr()->GetInt(OPT_FONT_DIRCMP_CLIPPRECISION);
+	lfnew.lfQuality = GetOptionsMgr()->GetInt(OPT_FONT_DIRCMP_QUALITY);
+	lfnew.lfPitchAndFamily = GetOptionsMgr()->GetInt(OPT_FONT_DIRCMP_PITCHANDFAMILY);
+
+	_tcscpy(lfnew.lfFaceName,
+		GetOptionsMgr()->GetString(OPT_FONT_DIRCMP_FACENAME).c_str());
+    m_lfDir = lfnew;
 }
 
 /**
@@ -1427,9 +1562,43 @@ void CMainFrame::OnViewUsedefaultfont()
 	BOOL bDirFrame = pFrame->IsKindOf(RUNTIME_CLASS(CDirFrame));
 
 	if (bDirFrame)
-		m_options.SaveOption(OPT_FONT_DIRCMP_USECUSTOM, false);
+	{
+		GetOptionsMgr()->SaveOption(OPT_FONT_DIRCMP_USECUSTOM, false);
+
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_HEIGHT);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_WIDTH);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_ESCAPEMENT);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_ORIENTATION);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_WEIGHT);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_ITALIC);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_UNDERLINE);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_STRIKEOUT);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_OUTPRECISION);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_CLIPPRECISION);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_QUALITY);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_PITCHANDFAMILY);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_CHARSET);
+		GetOptionsMgr()->Reset(OPT_FONT_DIRCMP_FACENAME);
+	}
 	else
-		m_options.SaveOption(OPT_FONT_FILECMP_USECUSTOM, false);
+	{
+		GetOptionsMgr()->SaveOption(OPT_FONT_FILECMP_USECUSTOM, false);
+
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_HEIGHT);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_WIDTH);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_ESCAPEMENT);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_ORIENTATION);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_WEIGHT);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_ITALIC);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_UNDERLINE);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_STRIKEOUT);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_OUTPRECISION);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_CLIPPRECISION);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_QUALITY);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_PITCHANDFAMILY);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_CHARSET);
+		GetOptionsMgr()->Reset(OPT_FONT_FILECMP_FACENAME);
+	}
 
 	GetFontProperties();
 	ShowFontChangeMessage();
@@ -1448,7 +1617,7 @@ void CMainFrame::OnUpdateViewUsedefaultfont(CCmdUI* pCmdUI)
  */
 void CMainFrame::UpdateResources()
 {
-	m_wndStatusBar.SetPaneText(0, LoadResString(AFX_IDS_IDLEMESSAGE));
+	m_wndStatusBar.SetPaneText(0, theApp.LoadString(AFX_IDS_IDLEMESSAGE).c_str());
 
 	DirDocList dirdocs;
 	GetAllDirDocs(&dirdocs);
@@ -1475,7 +1644,7 @@ BOOL CMainFrame::IsComparing()
 	{
 		CDirDoc * pDirDoc = dirdocs.RemoveHead();
 		UINT threadState = pDirDoc->m_diffThread.GetThreadState();
-		if (threadState == THREAD_COMPARING)
+		if (threadState == CDiffThread::THREAD_COMPARING)
 			return TRUE;
 	}
 	return FALSE;
@@ -1493,21 +1662,21 @@ void CMainFrame::OpenFileOrUrl(LPCTSTR szFile, LPCTSTR szUrl)
 }
 
 /**
- * @brief Open help contents.
+ * @brief Open WinMerge help.
  *
  * If local HTMLhelp file is found, open it, otherwise open HTML page from web.
  */
 void CMainFrame::OnHelpContents()
 {
-	CString sPath = GetModulePath(0) + DocsPath;
-	if (paths_DoesPathExist(sPath) == IS_EXISTING_FILE)
-		::HtmlHelp(GetSafeHwnd(), sPath, HH_DISPLAY_TOC, NULL);
+	String sPath = GetModulePath(0) + DocsPath;
+	if (paths_DoesPathExist(sPath.c_str()) == IS_EXISTING_FILE)
+		::HtmlHelp(GetSafeHwnd(), sPath.c_str(), HH_DISPLAY_TOC, NULL);
 	else
 		ShellExecute(NULL, _T("open"), DocsURL, NULL, NULL, SW_SHOWNORMAL);
 }
 
 /**
- * @brief Enable Open help contents -menuitem.
+ * @brief Enable Open WinMerge help -menuitem.
  */
 void CMainFrame::OnUpdateHelpContents(CCmdUI* pCmdUI) 
 {
@@ -1515,58 +1684,19 @@ void CMainFrame::OnUpdateHelpContents(CCmdUI* pCmdUI)
 }
 
 /**
- * @brief Open help index.
- *
- * If local HTMLhelp file is found, open it, otherwise open HTML page from web.
+ * @brief Handle translation of default messages on the status bar
  */
-void CMainFrame::OnHelpIndex()
+void CMainFrame::GetMessageString(UINT nID, CString& rMessage) const
 {
-	CString sPath = GetModulePath(0) + DocsPath;
-	if (paths_DoesPathExist(sPath) == IS_EXISTING_FILE)
-		::HtmlHelp(GetSafeHwnd(), sPath, HH_DISPLAY_INDEX, NULL);
-	else
-		ShellExecute(NULL, _T("open"), DocsURL, NULL, NULL, SW_SHOWNORMAL);
-}
+	// load appropriate string
+	const String s = theApp.LoadString(nID);
 
-/**
- * @brief Disable Open help index -menuitem.
- */
-void CMainFrame::OnUpdateHelpIndex(CCmdUI* pCmdUI) 
-{
-	pCmdUI->Enable(TRUE);
-}
-
-/**
- * @brief Open help search.
- *
- * If local HTMLhelp file is found, open it, otherwise open HTML page from web.
- */
-void CMainFrame::OnHelpSearch()
-{
-	CString sPath = GetModulePath(0) + DocsPath;
-	if (paths_DoesPathExist(sPath) == IS_EXISTING_FILE)
+	// avoid dereference of empty strings
+	if (s.length() <= 0 || !AfxExtractSubString(rMessage, &*s.begin(), 0))
 	{
-		HH_FTS_QUERY q = {0};
-		q.fExecute = TRUE;
-		q.fTitleOnly = FALSE;
-		q.fUniCodeStrings = TRUE;
-		q.fStemmedSearch = FALSE;
-		q.pszSearchQuery = _T("");
-		q.pszWindow = NULL;
-		q.cbStruct = sizeof(q);
-
-		::HtmlHelp(GetSafeHwnd(), sPath, HH_DISPLAY_SEARCH, (DWORD)&q);
+		// not found
+		TRACE1("Warning: no message line prompt for ID 0x%04X.\n", nID);
 	}
-	else
-		ShellExecute(NULL, _T("open"), DocsURL, NULL, NULL, SW_SHOWNORMAL);
-}
-
-/**
- * @brief Enable Open help search -menuitem.
- */
-void CMainFrame::OnUpdateHelpSearch(CCmdUI* pCmdUI) 
-{
-	pCmdUI->Enable(TRUE);
 }
 
 void CMainFrame::ActivateFrame(int nCmdShow) 
@@ -1586,7 +1716,10 @@ void CMainFrame::ActivateFrame(int nCmdShow)
 	wp.rcNormalPosition.top=theApp.GetProfileInt(_T("Settings"), _T("MainTop"),0);
 	wp.rcNormalPosition.right=theApp.GetProfileInt(_T("Settings"), _T("MainRight"),0);
 	wp.rcNormalPosition.bottom=theApp.GetProfileInt(_T("Settings"), _T("MainBottom"),0);
-	wp.showCmd = nCmdShow;
+	if (nCmdShow != SW_MINIMIZE && theApp.GetProfileInt(_T("Settings"), _T("MainMax"), FALSE))
+		wp.showCmd = SW_MAXIMIZE;
+	else
+		wp.showCmd = nCmdShow;
 
 	CRect dsk_rc,rc(wp.rcNormalPosition);
 
@@ -1594,11 +1727,7 @@ void CMainFrame::ActivateFrame(int nCmdShow)
 	dsk_rc.top = ::GetSystemMetrics(SM_YVIRTUALSCREEN);
 	dsk_rc.right = dsk_rc.left + ::GetSystemMetrics(SM_CXVIRTUALSCREEN);
 	dsk_rc.bottom = dsk_rc.top + ::GetSystemMetrics(SM_CYVIRTUALSCREEN);
-	if (nCmdShow != SW_MINIMIZE && theApp.GetProfileInt(_T("Settings"), _T("MainMax"), FALSE))
-	{
-		CMDIFrameWnd::ActivateFrame(SW_MAXIMIZE);	
-	}
-	else if (rc.Width() != 0 && rc.Height() != 0)
+	if (rc.Width() != 0 && rc.Height() != 0)
 	{
 		// Ensure top-left corner is on visible area,
 		// 20 points margin is added to prevent "lost" window
@@ -1614,11 +1743,25 @@ void CMainFrame::ActivateFrame(int nCmdShow)
 		CMDIFrameWnd::ActivateFrame(nCmdShow);
 }
 
-void CMainFrame::OnClose() 
+/**
+ * @brief Called when mainframe is about to be closed.
+ * This function is called when mainframe is to be closed (not for
+ * file/compare windows.
+ */
+void CMainFrame::OnClose()
 {
+	// Check if there are multiple windows open and ask for closing them
+	BOOL bAskClosing = GetOptionsMgr()->GetBool(OPT_ASK_MULTIWINDOW_CLOSE);
+	if (bAskClosing)
+	{
+		bool quit = AskCloseConfirmation();
+		if (!quit)
+			return;
+	}
+
 	// Save last selected filter
 	CString filter = theApp.m_globalFileFilter.GetFilterNameOrMask();
-	m_options.SaveOption(OPT_FILEFILTER_CURRENT, filter);
+	GetOptionsMgr()->SaveOption(OPT_FILEFILTER_CURRENT, filter);
 
 	// save main window position
 	WINDOWPLACEMENT wp;
@@ -1647,107 +1790,6 @@ void CMainFrame::OnClose()
 	myStatusDisplay.SetFrame(0);
 	
 	CMDIFrameWnd::OnClose();
-}
-
-/// Empty regexp list used internally
-void CMainFrame::FreeRegExpList()
-{
-	struct regexp_list *r;
-	r = ignore_regexp_list;
-	// iterate through the list, free the reg expression
-	// list item
-	while (ignore_regexp_list)
-	{
-		r = r->next;
-		free((ignore_regexp_list->buf).fastmap);
-		free((ignore_regexp_list->buf).buffer);
-		free(ignore_regexp_list);
-		ignore_regexp_list = r;
-	}
-}
-
-/**
- * @brief Add regexps from options to internal list
- * @param [in] bShowError When TRUE error messages are shown to user,
- * otherwise just written to log.
- */
-void CMainFrame::RebuildRegExpList(BOOL bShowError)
-{
-	USES_CONVERSION;
-
-	TCHAR tmp[_MAX_PATH] = {0};
-	TCHAR* token;
-	TCHAR sep[] = _T("\r\n");
-	BOOL valid = TRUE;
-	
-	// destroy the old list if the it is not NULL
-	FreeRegExpList();
-
-	// build the new list if the user choose to
-	// ignore lines matching the reg expression patterns
-	if (m_options.GetBool(OPT_LINEFILTER_ENABLED))
-	{
-		// find each regular expression and add to list
-		_tcsncpy(tmp, m_options.GetString(OPT_LINEFILTER_REGEXP), _MAX_PATH);
-
-		token = _tcstok(tmp, sep);
-		while (token && valid)
-		{
-			valid = add_regexp(&ignore_regexp_list, T2A(token), bShowError);
-			token = _tcstok(NULL, sep);
-		}
-	}
-
-	if (ignore_regexp_list)
-	{
-		ignore_some_changes = 1;
-	}
-}
-
-/// Add the compiled form of regexp pattern to reglist
-static BOOL add_regexp(struct regexp_list **reglist, char const* pattern, BOOL bShowError)
-{
-	struct regexp_list *r;
-	int m;
-	BOOL ret = FALSE;
-
-	r = (struct regexp_list *) malloc (sizeof (*r));
-	if (r)
-	{
-		bzero (r, sizeof (*r));
-		r->buf.fastmap = (char*) malloc (256);
-		if (r->buf.fastmap)
-		{
-			m = re_compile_pattern (pattern, strlen (pattern), &r->buf);
-
-			if (m > 0)
-			{
-				CString msg;
-				CString errMsg;
-				VERIFY(errMsg.LoadString(IDS_REGEXP_ERROR));
-				errMsg += _T(":\n\n");
-				errMsg += pattern;
-				errMsg += _T("\n\n");
-				int errID = IDS_REGEXP_ERROR + m;
-				VERIFY(msg.LoadString(errID));
-				errMsg += msg;
-				LogErrorString(errMsg);
-				if (bShowError)
-					AfxMessageBox(errMsg, MB_ICONWARNING);
-			}
-
-			/* Add to the start of the list, since it's easier than the end.  */
-			r->next = *reglist;
-			*reglist = r;
-			ret = TRUE;
-		}
-		else
-		{
-			free(r->buf.fastmap);
-			r->buf.fastmap = NULL;
-		}
-	}
-	return ret;
 }
 
 /**
@@ -1819,15 +1861,15 @@ void CMainFrame::ApplyViewWhitespace()
 
 void CMainFrame::OnViewWhitespace() 
 {
-	bool bViewWhitespace = m_options.GetBool(OPT_VIEW_WHITESPACE);
-	m_options.SaveOption(OPT_VIEW_WHITESPACE, !bViewWhitespace);
+	bool bViewWhitespace = GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE);
+	GetOptionsMgr()->SaveOption(OPT_VIEW_WHITESPACE, !bViewWhitespace);
 	ApplyViewWhitespace();
 }
 
 /// Enables View/View Whitespace menuitem when merge view is active
 void CMainFrame::OnUpdateViewWhitespace(CCmdUI* pCmdUI) 
 {
-	pCmdUI->SetCheck(m_options.GetBool(OPT_VIEW_WHITESPACE));
+	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE));
 }
 
 /// Get list of MergeDocs (documents underlying edit sessions)
@@ -1923,9 +1965,28 @@ void CMainFrame::GetAllViews(MergeEditViewList * pEditViews, MergeDetailViewList
 	}
 }
 
-/// Obtain a merge doc to display a difference in files
+/**
+ * @brief Obtain a merge doc to display a difference in files.
+ * This function (usually) uses DirDoc to determine if new or existing
+ * MergeDoc is used. However there is exceptional case when DirDoc does
+ * not contain diffs. Then we have only file compare, and if we also have
+ * limited file compare windows, we always reuse existing MergeDoc.
+ * @param [in] pDirDoc Dir compare document.
+ * @param [out] pNew Did we create a new document?
+ * @return Pointer to merge doucument.
+ */
 CMergeDoc * CMainFrame::GetMergeDocToShow(CDirDoc * pDirDoc, BOOL * pNew)
 {
+	const BOOL bMultiDocs = GetOptionsMgr()->GetBool(OPT_MULTIDOC_MERGEDOCS);
+	MergeDocList docs;
+	GetAllMergeDocs(&docs);
+
+	if (!pDirDoc->HasDiffs() && !bMultiDocs && !docs.IsEmpty())
+	{
+		POSITION pos = docs.GetHeadPosition();
+		CMergeDoc * pMergeDoc = docs.GetAt(pos);
+		pMergeDoc->CloseNow();
+	}
 	CMergeDoc * pMergeDoc = pDirDoc->GetMergeDocForDiff(pNew);
 	return pMergeDoc;
 }
@@ -1934,7 +1995,7 @@ CMergeDoc * CMainFrame::GetMergeDocToShow(CDirDoc * pDirDoc, BOOL * pNew)
 CDirDoc * CMainFrame::GetDirDocToShow(BOOL * pNew)
 {
 	CDirDoc * pDirDoc = 0;
-	if (!m_options.GetBool(OPT_MULTIDOC_DIRDOCS))
+	if (!GetOptionsMgr()->GetBool(OPT_MULTIDOC_DIRDOCS))
 	{
 		POSITION pos = theApp.m_pDirTemplate->GetFirstDocPosition();
 		while (pos)
@@ -1964,6 +2025,12 @@ CString CMainFrame::SetStatus(LPCTSTR status)
 	return old;
 }
 
+// Clear the item count in the main status pane
+void CMainFrame::ClearStatusbarItemCount()
+{
+	m_wndStatusBar.SetPaneText(2, _T(""));
+}
+
 /**
  * @brief Generate patch from files selected.
  *
@@ -1985,7 +2052,7 @@ void CMainFrame::OnToolsGeneratePatch()
 		if (pMergeDoc->m_ptBuf[0]->IsModified() || pMergeDoc->m_ptBuf[1]->IsModified())
 		{
 			bOpenDialog = FALSE;
-			AfxMessageBox(IDS_SAVEFILES_FORPATCH, MB_ICONSTOP);
+			LangMessageBox(IDS_SAVEFILES_FORPATCH, MB_ICONSTOP);
 		}
 		else
 		{
@@ -2004,16 +2071,16 @@ void CMainFrame::OnToolsGeneratePatch()
 		int ind = pView->GetFirstSelectedInd();
 		while (ind != -1 && bValidFiles)
 		{
-			const DIFFITEM item = pView->GetItemAt(ind);
-			if (item.isBin())
+			const DIFFITEM &item = pView->GetItemAt(ind);
+			if (item.diffcode.isBin())
 			{
-				AfxMessageBox(IDS_CANNOT_CREATE_BINARYPATCH, MB_ICONWARNING |
+				LangMessageBox(IDS_CANNOT_CREATE_BINARYPATCH, MB_ICONWARNING |
 					MB_DONT_DISPLAY_AGAIN, IDS_CANNOT_CREATE_BINARYPATCH);
 				bValidFiles = FALSE;
 			}
-			else if (item.isDirectory())
+			else if (item.diffcode.isDirectory())
 			{
-				AfxMessageBox(IDS_CANNOT_CREATE_DIRPATCH, MB_ICONWARNING |
+				LangMessageBox(IDS_CANNOT_CREATE_DIRPATCH, MB_ICONWARNING |
 					MB_DONT_DISPLAY_AGAIN, IDS_CANNOT_CREATE_DIRPATCH);
 				bValidFiles = FALSE;
 			}
@@ -2021,22 +2088,22 @@ void CMainFrame::OnToolsGeneratePatch()
 			if (bValidFiles)
 			{
 				// Format full paths to files (leftFile/rightFile)
-				CString leftFile = item.getLeftFilepath(pDoc->GetLeftBasePath());
-				if (!leftFile.IsEmpty())
-					leftFile += _T("\\") + item.sLeftFilename;
-				CString rightFile = item.getRightFilepath(pDoc->GetRightBasePath());
-				if (!rightFile.IsEmpty())
-					rightFile += _T("\\") + item.sRightFilename;
+				String leftFile = item.getLeftFilepath(pDoc->GetLeftBasePath());
+				if (!leftFile.empty())
+					leftFile += _T("\\") + item.left.filename;
+				String rightFile = item.getRightFilepath(pDoc->GetRightBasePath());
+				if (!rightFile.empty())
+					rightFile += _T("\\") + item.right.filename;
 
 				// Format relative paths to files in folder compare
-				CString leftpatch = item.sLeftSubdir;
-				if (!leftpatch.IsEmpty())
+				String leftpatch = item.left.path;
+				if (!leftpatch.empty())
 					leftpatch += _T("/");
-				leftpatch += item.sLeftFilename;
-				CString rightpatch = item.sRightSubdir;
-				if (!rightpatch.IsEmpty())
+				leftpatch += item.left.filename;
+				String rightpatch = item.right.path;
+				if (!rightpatch.empty())
 					rightpatch += _T("/");
-				rightpatch += item.sRightFilename;
+				rightpatch += item.right.filename;
 				patcher.AddFiles(leftFile, leftpatch, rightFile, rightpatch);
 				pView->GetNextSelectedInd(ind);
 			}
@@ -2049,7 +2116,7 @@ void CMainFrame::OnToolsGeneratePatch()
 		{
 			if (patcher.GetOpenToEditor())
 			{
-				OpenFileToExternalEditor(patcher.GetPatchFile());
+				OpenFileToExternalEditor(patcher.GetPatchFile().c_str());
 			}
 		}
 	}
@@ -2100,12 +2167,15 @@ void CMainFrame::OnDropFiles(HDROP dropInfo)
 
 	for (UINT i = 0; i < fileCount; i++)
 	{
-		// if this was a shortcut, we need to expand it to the target path
-		CString expandedFile = ExpandShortcut(files[i]);
+		if (paths_IsShortcut((LPCTSTR)files[i]))
+		{
+			// if this was a shortcut, we need to expand it to the target path
+			CString expandedFile = ExpandShortcut((LPCTSTR)files[i]).c_str();
 
-		// if that worked, we should have a real file name
-		if (!expandedFile.IsEmpty()) 
-			files[i] = expandedFile;
+			// if that worked, we should have a real file name
+			if (!expandedFile.IsEmpty())
+				files[i] = expandedFile;
+		}
 	}
 
 	// If Ctrl pressed, do recursive compare
@@ -2118,7 +2188,7 @@ void CMainFrame::OnDropFiles(HDROP dropInfo)
 		files[1] = files[0];
 	}
 
-	gLog.Write(CLogFile::LNOTICE, _T("D&D open: Left: %s\n\tRight: %s."),
+	GetLog()->Write(CLogFile::LNOTICE, _T("D&D open: Left: %s\n\tRight: %s."),
 		files[0], files[1]);
 
 	// Check if they dropped a project file
@@ -2231,31 +2301,35 @@ void CMainFrame::UpdatePrediffersMenu()
 }
 
 /**
- * @brief Open given file to external editor specified in options
+ * @brief Open given file to external editor specified in options.
+ * @param [in] file Full path to file to open.
  */
-BOOL CMainFrame::OpenFileToExternalEditor(CString file)
+void CMainFrame::OpenFileToExternalEditor(LPCTSTR file)
 {
-	CString sExtEditor;
-	CString ext;
-	CString sExecutable;
-	CString sCmd;
+	String sExtEditor;
+	String sExecutable;
+	String sCmd;
 	
-	sExtEditor = m_options.GetString(OPT_EXT_EDITOR_CMD);
+	sExtEditor = GetOptionsMgr()->GetString(OPT_EXT_EDITOR_CMD);
 	GetDecoratedCmdLine(sExtEditor, sCmd, sExecutable);
 
-	SplitFilename(sExecutable, NULL, NULL, &ext);
+	String sExt;
+	SplitFilename(sExecutable.c_str(), NULL, NULL, &sExt);
+	CString ext(sExt.c_str());
 	ext.MakeLower();
 
 	if (ext == _T("exe") || ext == _T("cmd") || ext == ("bat"))
 	{
-		sCmd += _T(" \"") + file + _T("\"");
+		sCmd += _T(" \"");
+		sCmd += file;
+		sCmd += _T("\"");
 
 		BOOL retVal = FALSE;
 		STARTUPINFO stInfo = {0};
 		stInfo.cb = sizeof(STARTUPINFO);
 		PROCESS_INFORMATION processInfo;
 
-		retVal = CreateProcess(NULL, (LPTSTR)(LPCTSTR) sCmd,
+		retVal = CreateProcess(NULL, (LPTSTR)sCmd.c_str(),
 			NULL, NULL, FALSE, CREATE_DEFAULT_ERROR_MODE, NULL, NULL,
 			&stInfo, &processInfo);
 
@@ -2263,7 +2337,7 @@ BOOL CMainFrame::OpenFileToExternalEditor(CString file)
 		{
 			// Error invoking external editor
 			CString msg;
-			AfxFormatString1(msg, IDS_ERROR_EXECUTE_FILE, sExtEditor);
+			LangFormatString1(msg, IDS_ERROR_EXECUTE_FILE, sExtEditor.c_str());
 			AfxMessageBox(msg, MB_ICONSTOP);
 		}
 	}
@@ -2271,52 +2345,8 @@ BOOL CMainFrame::OpenFileToExternalEditor(CString file)
 	{
 		// Don't know how to invoke external editor (it doesn't end with
 		// an obvious executable extension)
-		ResMsgBox1(IDS_UNKNOWN_EXECUTE_FILE, sExtEditor, MB_ICONSTOP);
+		ResMsgBox1(IDS_UNKNOWN_EXECUTE_FILE, sExtEditor.c_str(), MB_ICONSTOP);
 	}
-	return TRUE;
-}
-
-/**
- * @brief Get default editor path
- */
-CString CMainFrame::GetDefaultEditor()
-{
-	CString path = paths_GetWindowsDirectory() + _T("\\NOTEPAD.EXE");
-	return path;
-}
-
-/**
- * @brief Get default user filter folder path.
- * This function returns the default filter path for user filters.
- * If wanted so (@p bCreate) path can be created if it does not
- * exist yet. But you really want to create the patch only when
- * there is no user path defined.
- * @param [in] bCreate If TRUE filter path is created if it does
- *  not exist.
- * @return Default folder for user filters.
- */
-CString CMainFrame::GetDefaultFilterUserPath(BOOL bCreate /*=FALSE*/)
-{
-	CString pathMyFolders = paths_GetMyDocuments(GetSafeHwnd());
-	CString pathFilters(pathMyFolders);
-	if (pathFilters.Right(1) != _T("\\"))
-		pathFilters += _T("\\");
-	pathFilters += DefaultRelativeFilterPath;
-
-	if (bCreate && !paths_CreateIfNeeded(pathFilters))
-	{
-		// Failed to create a folder, check it didn't already
-		// exist.
-		DWORD errCode = GetLastError();
-		if (errCode != ERROR_ALREADY_EXISTS)
-		{
-			// Failed to create a folder for filters, fallback to
-			// "My Documents"-folder. It is not worth the trouble to
-			// bother user about this or user more clever solutions.
-			pathFilters = pathMyFolders;
-		}
-	}
-	return pathFilters;
 }
 
 typedef enum { ToConfigLog, FromConfigLog } ConfigLogDirection;
@@ -2325,15 +2355,18 @@ typedef enum { ToConfigLog, FromConfigLog } ConfigLogDirection;
  * @brief Copy one piece of data from options object to config log, or vice-versa
  */
 static void
-LoadConfigIntSetting(int * cfgval, COptionsMgr & options, const CString & name, ConfigLogDirection cfgdir)
+LoadConfigIntSetting(int * cfgval, COptionsMgr * options, const CString & name, ConfigLogDirection cfgdir)
 {
+	if (options == NULL)
+		return;
+
 	if (cfgdir == ToConfigLog)
 	{
-			*cfgval = options.GetInt(name);
+			*cfgval = options->GetInt(name);
 	}
 	else
 	{
-		options.SetInt(name, *cfgval);
+		options->SetInt(name, *cfgval);
 	}
 }
 
@@ -2341,24 +2374,30 @@ LoadConfigIntSetting(int * cfgval, COptionsMgr & options, const CString & name, 
  * @brief Copy one piece of data from options object to config log, or vice-versa
  */
 static void
-LoadConfigBoolSetting(BOOL * cfgval, COptionsMgr & options, const CString & name, ConfigLogDirection cfgdir)
+LoadConfigBoolSetting(BOOL * cfgval, COptionsMgr * options, const CString & name, ConfigLogDirection cfgdir)
 {
+	if (options == NULL)
+		return;
+
 	if (cfgdir == ToConfigLog)
 	{
-			*cfgval = options.GetBool(name);
+			*cfgval = options->GetBool(name);
 	}
 	else
 	{
-		options.SetBool(name, !!(*cfgval));
+		options->SetBool(name, !!(*cfgval));
 	}
 }
 
 /**
  * @brief Pass options settings from options manager object to config log, or vice-versa
  */
-static void LoadConfigLog(CConfigLog & configLog, COptionsMgr & options,
+static void LoadConfigLog(CConfigLog & configLog, COptionsMgr * options,
 	LOGFONT & lfDiff, ConfigLogDirection cfgdir)
 {
+	if (options == NULL)
+		return;
+
 	LoadConfigIntSetting(&configLog.m_diffOptions.nIgnoreWhitespace, options, OPT_CMP_IGNORE_WHITESPACE, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_diffOptions.bIgnoreBlankLines, options, OPT_CMP_IGNORE_BLANKLINES, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_diffOptions.bFilterCommentsLines, options, OPT_CMP_FILTER_COMMENTLINES, cfgdir);
@@ -2377,7 +2416,6 @@ static void LoadConfigLog(CConfigLog & configLog, COptionsMgr & options,
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bAutomaticRescan, options, OPT_AUTOMATIC_RESCAN, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bAllowMixedEol, options, OPT_ALLOW_MIXED_EOL, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bScrollToFirst, options, OPT_SCROLL_TO_FIRST, cfgdir);
-	LoadConfigBoolSetting(&configLog.m_miscSettings.bBackup, options, OPT_CREATE_BACKUPS, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bViewWhitespace, options, OPT_VIEW_WHITESPACE, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bMovedBlocks, options, OPT_CMP_MOVED_BLOCKS, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bShowLinenumbers, options, OPT_VIEW_LINENUMBERS, cfgdir);
@@ -2412,7 +2450,7 @@ void CMainFrame::OnSaveConfigData()
 	CConfigLog configLog;
 	CString sError;
 
-	LoadConfigLog(configLog, m_options, m_lfDiff, ToConfigLog);
+	LoadConfigLog(configLog, GetOptionsMgr(), m_lfDiff, ToConfigLog);
 
 	if (configLog.WriteLogFile(sError))
 	{
@@ -2423,7 +2461,7 @@ void CMainFrame::OnSaveConfigData()
 	{
 		CString msg;
 		CString sFileName = configLog.GetFileName();
-		AfxFormatString2(msg, IDS_ERROR_FILEOPEN, sFileName, sError);
+		LangFormatString2(msg, IDS_ERROR_FILEOPEN, sFileName, sError);
 		AfxMessageBox(msg, MB_OK | MB_ICONSTOP);
 	}
 }
@@ -2447,7 +2485,7 @@ void CMainFrame::OnFileNew()
 	if (IsComparing())
 		return;
 
-	if (!m_options.GetBool(OPT_MULTIDOC_DIRDOCS))
+	if (!GetOptionsMgr()->GetBool(OPT_MULTIDOC_DIRDOCS))
 	{
 		pDirDoc = GetDirDocToShow(&docNull);
 		if (!docNull)
@@ -2455,7 +2493,7 @@ void CMainFrame::OnFileNew()
 			// If dircompare contains results, warn user that they are lost
 			if (pDirDoc->HasDiffs())
 			{
-				int res = AfxMessageBox(IDS_DIR_RESULTS_EMPTIED, MB_OKCANCEL |
+				int res = LangMessageBox(IDS_DIR_RESULTS_EMPTIED, MB_OKCANCEL |
 					MB_ICONWARNING | MB_DONT_DISPLAY_AGAIN, IDS_DIR_RESULTS_EMPTIED);
 				if (res == IDCANCEL)
 					return;
@@ -2472,16 +2510,15 @@ void CMainFrame::OnFileNew()
 	
 	// Load emptyfile descriptors and open empty docs
 	// Use default codepage
-	VERIFY(m_strLeftDesc.LoadString(IDS_EMPTY_LEFT_FILE));
-	VERIFY(m_strRightDesc.LoadString(IDS_EMPTY_RIGHT_FILE));
+	m_strDescriptions[0] = theApp.LoadString(IDS_EMPTY_LEFT_FILE);
+	m_strDescriptions[1] = theApp.LoadString(IDS_EMPTY_RIGHT_FILE);
 	FileLocation filelocLeft; // empty, unspecified (so default) encoding
 	FileLocation filelocRight;
-	ShowMergeDoc(pDirDoc, filelocLeft, filelocRight, FALSE, FALSE);
-
+	ShowMergeDoc(pDirDoc, filelocLeft, filelocRight);
 
 	// Empty descriptors now that docs are open
-	m_strLeftDesc.Empty();
-	m_strRightDesc.Empty();
+	m_strDescriptions[0].erase();
+	m_strDescriptions[1].erase();
 }
 
 /**
@@ -2489,10 +2526,12 @@ void CMainFrame::OnFileNew()
  */
 void CMainFrame::OnToolsFilters()
 {
-	CPropertySheet sht(IDS_FILTER_TITLE);
+	String title = theApp.LoadString(IDS_FILTER_TITLE);
+	CPropertySheet sht(title.c_str());
 	CPropLineFilter filter;
 	FileFiltersDlg fileFiltersDlg;
 	FILEFILTER_INFOLIST fileFilters;
+	LineFiltersList * lineFilters = new LineFiltersList();
 	CString selectedFilter;
 	sht.AddPage(&fileFiltersDlg);
 	sht.AddPage(&filter);
@@ -2504,22 +2543,23 @@ void CMainFrame::OnToolsFilters()
 	theApp.m_globalFileFilter.GetFileFilters(&fileFilters, selectedFilter);
 	fileFiltersDlg.SetFilterArray(&fileFilters);
 	fileFiltersDlg.SetSelected(selectedFilter);
-	filter.m_bIgnoreRegExp = m_options.GetBool(OPT_LINEFILTER_ENABLED);
-	filter.m_sPattern = m_options.GetString(OPT_LINEFILTER_REGEXP);
+	filter.m_bIgnoreRegExp = GetOptionsMgr()->GetBool(OPT_LINEFILTER_ENABLED);
+
+	lineFilters->CloneFrom(m_pLineFilters);
+	filter.SetList(lineFilters);
 
 	if (sht.DoModal() == IDOK)
 	{
-		CString strNone;
-		VERIFY(strNone.LoadString(IDS_USERCHOICE_NONE));
+		String strNone = theApp.LoadString(IDS_USERCHOICE_NONE);
 		CString path = fileFiltersDlg.GetSelected();
-		if (path.Find(strNone) > -1)
+		if (path.Find(strNone.c_str()) > -1)
 		{
 			// Don't overwrite mask we already have
 			if (!theApp.m_globalFileFilter.IsUsingMask())
 			{
 				CString sFilter = _T("*.*");
 				theApp.m_globalFileFilter.SetFilter(sFilter);
-				m_options.SaveOption(OPT_FILEFILTER_CURRENT, sFilter);
+				GetOptionsMgr()->SaveOption(OPT_FILEFILTER_CURRENT, sFilter);
 			}
 		}
 		else
@@ -2527,13 +2567,14 @@ void CMainFrame::OnToolsFilters()
 			theApp.m_globalFileFilter.SetFileFilterPath(path);
 			theApp.m_globalFileFilter.UseMask(FALSE);
 			CString sFilter = theApp.m_globalFileFilter.GetFilterNameOrMask();
-			m_options.SaveOption(OPT_FILEFILTER_CURRENT, sFilter);
+			GetOptionsMgr()->SaveOption(OPT_FILEFILTER_CURRENT, sFilter);
 		}
-		m_options.SaveOption(OPT_LINEFILTER_ENABLED, filter.m_bIgnoreRegExp == TRUE);
-		m_options.SaveOption(OPT_LINEFILTER_REGEXP, filter.m_sPattern);
+		GetOptionsMgr()->SaveOption(OPT_LINEFILTER_ENABLED, filter.m_bIgnoreRegExp == TRUE);
 
-		RebuildRegExpList(TRUE);
+		m_pLineFilters->CloneFrom(lineFilters);
+		m_pLineFilters->SaveFilters();
 	}
+	delete lineFilters;
 }
 
 /**
@@ -2564,7 +2605,7 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 		}
 		else
 		{
-			if (m_options.GetBool(OPT_CLOSE_WITH_ESC))
+			if (GetOptionsMgr()->GetBool(OPT_CLOSE_WITH_ESC))
 			{
 				MergeDocList docs;
 				GetAllMergeDocs(&docs);
@@ -2585,29 +2626,26 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 /**
  * @brief Shows VSS error from exception and writes log.
  */
-void CMainFrame::ShowVSSError(CException *e, CString strItem)
+void CMainFrame::ShowVSSError(CException *e, LPCTSTR strItem)
 {
-	CString errMsg;
-	CString logMsg;
 	TCHAR errStr[1024] = {0};
-
-	VERIFY(errMsg.LoadString(IDS_VSS_ERRORFROM));
 	if (e->GetErrorMessage(errStr, 1024))
 	{
-		logMsg = errMsg;
+		String errMsg = theApp.LoadString(IDS_VSS_ERRORFROM);
+		String logMsg = errMsg;
 		errMsg += _T("\n");
 		errMsg += errStr;
 		logMsg += _T(" ");
 		logMsg += errStr;
-		if (!strItem.IsEmpty())
+		if (*strItem)
 		{
 			errMsg += _T("\n\n");
 			errMsg += strItem;
 			logMsg += _T(": ");
 			logMsg += strItem;
 		}
-		LogErrorString(logMsg);
-		AfxMessageBox(errMsg, MB_ICONSTOP);
+		LogErrorString(logMsg.c_str());
+		AfxMessageBox(errMsg.c_str(), MB_ICONSTOP);
 	}
 	else
 	{
@@ -2628,11 +2666,11 @@ void CMainFrame::ShowHelp(LPCTSTR helpLocation /*= NULL*/)
 	}
 	else
 	{
-		CString sPath = GetModulePath(0) + DocsPath;
-		if (paths_DoesPathExist(sPath) == IS_EXISTING_FILE)
+		String sPath = GetModulePath(0) + DocsPath;
+		if (paths_DoesPathExist(sPath.c_str()) == IS_EXISTING_FILE)
 		{
 			sPath += helpLocation;
-			::HtmlHelp(GetSafeHwnd(), sPath, HH_DISPLAY_TOPIC, NULL);
+			::HtmlHelp(GetSafeHwnd(), sPath.c_str(), HH_DISPLAY_TOPIC, NULL);
 		}
 	}
 }
@@ -2661,21 +2699,55 @@ void CMainFrame::OnUpdateHelpMerge7zmismatch(CCmdUI* pCmdUI)
  */
 void CMainFrame::OnViewStatusBar()
 {
-	bool bShow = !m_options.GetBool(OPT_SHOW_STATUSBAR);
-	m_options.SaveOption(OPT_SHOW_STATUSBAR, bShow);
+	bool bShow = !GetOptionsMgr()->GetBool(OPT_SHOW_STATUSBAR);
+	GetOptionsMgr()->SaveOption(OPT_SHOW_STATUSBAR, bShow);
 
 	CMDIFrameWnd::ShowControlBar(&m_wndStatusBar, bShow, 0);
 }
 
 /**
- * @brief Show/hide toolbar.
+ * @brief Updates "Show Tabbar" menuitem.
  */
-void CMainFrame::OnViewToolbar()
+void CMainFrame::OnUpdateViewTabBar(CCmdUI* pCmdUI) 
 {
-	bool bShow = !m_options.GetBool(OPT_SHOW_TOOLBAR);
-	m_options.SaveOption(OPT_SHOW_TOOLBAR, bShow);
+	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_SHOW_TABBAR));
+}
 
-	CMDIFrameWnd::ShowControlBar(&m_wndToolBar, bShow, 0);
+/**
+ * @brief Show/hide tabbar.
+ */
+void CMainFrame::OnViewTabBar()
+{
+	bool bShow = !GetOptionsMgr()->GetBool(OPT_SHOW_TABBAR);
+	GetOptionsMgr()->SaveOption(OPT_SHOW_TABBAR, bShow);
+
+	CMDIFrameWnd::ShowControlBar(&m_wndTabBar, bShow, 0);
+}
+
+/**
+ * @brief Updates "Automatically Resize Panes" menuitem.
+ */
+void CMainFrame::OnUpdateResizePanes(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_RESIZE_PANES));
+}
+
+
+/**
+ * @brief Enable/disable automatic pane resizing.
+ */
+void CMainFrame::OnResizePanes()
+{
+	bool bResize = !GetOptionsMgr()->GetBool(OPT_RESIZE_PANES);
+	GetOptionsMgr()->SaveOption(OPT_RESIZE_PANES, bResize);
+
+	CChildFrame * pFrame = dynamic_cast<CChildFrame *>(GetActiveFrame());
+	if (pFrame)
+	{
+		pFrame->UpdateAutoPaneResize();
+		if (bResize)
+			pFrame->UpdateSplitter();
+	}
 }
 
 /**
@@ -2684,27 +2756,25 @@ void CMainFrame::OnViewToolbar()
 void CMainFrame::OnFileOpenproject()
 {
 	CString sFilepath;
-	CString title;
-	VERIFY(title.LoadString(IDS_OPEN_TITLE));
 	
 	// get the default projects path
-	CString strProjectPath = m_options.GetString(OPT_PROJECTS_PATH);
-	if (!SelectFile(GetSafeHwnd(), sFilepath, strProjectPath, title, IDS_PROJECTFILES,
-			TRUE))
+	String strProjectPath = GetOptionsMgr()->GetString(OPT_PROJECTS_PATH);
+	if (!SelectFile(GetSafeHwnd(), sFilepath, strProjectPath.c_str(), IDS_OPEN_TITLE,
+			IDS_PROJECTFILES, TRUE))
 		return;
 	
 	strProjectPath = paths_GetParentPath(sFilepath);
 	// store this as the new project path
-	m_options.SaveOption(OPT_PROJECTS_PATH,strProjectPath);
+	GetOptionsMgr()->SaveOption(OPT_PROJECTS_PATH, strProjectPath.c_str());
 
 	theApp.LoadAndOpenProjectFile(sFilepath);
 }
 
 /**
- * @brief Receive commandline from another instance.
+ * @brief Receive command line from another instance.
  *
- * This function receives commandline when only single-instance
- * is allowed. New instance tried to start sends its commandline
+ * This function receives command line when only single-instance
+ * is allowed. New instance tried to start sends its command line
  * to here so we can open paths it was meant to.
  */
 LRESULT CMainFrame::OnCopyData(WPARAM wParam, LPARAM lParam)
@@ -2714,7 +2784,7 @@ LRESULT CMainFrame::OnCopyData(WPARAM wParam, LPARAM lParam)
 	int argc = pCopyData->dwData;
 	TCHAR **argv = new (TCHAR *[argc]);
 	USES_CONVERSION;
-	
+
 	for (int i = 0; i < argc; i++)
 	{
 		argv[i] = new TCHAR[lstrlenW(p) * (sizeof(WCHAR)/sizeof(TCHAR)) + 1];
@@ -2730,14 +2800,30 @@ LRESULT CMainFrame::OnCopyData(WPARAM wParam, LPARAM lParam)
 
 LRESULT CMainFrame::OnUser(WPARAM wParam, LPARAM lParam)
 {
-	int argc = (int)wParam;
-	TCHAR **argv = (TCHAR **)lParam;
+	// MFC's ParseCommandLine method is working with __argc and __targv
+	// variables. We need to send MergeCmdLineInfo object rather than
+	// passing the command line as string. Until we do, we temporary
+	// change these variable values and restore then after parsing.
 
-	theApp.ParseArgsAndDoOpen(argc, argv, this);
-	
-	for (int i = 0; i < argc; i++)
-		delete[] argv[i];
-	delete [] argv;
+	int argc = __argc;
+	TCHAR **argv = __targv;
+
+	__argc = wParam;
+	__targv = reinterpret_cast<TCHAR **>(lParam);
+
+	MergeCmdLineInfo cmdInfo(*__targv);
+	theApp.ParseCommandLine(cmdInfo);
+	theApp.ParseArgsAndDoOpen(cmdInfo, this);
+
+	// Delete memrory allocated in OnCopyData method.
+	for (int i = 0; i < __argc; ++i)
+	{
+		delete[] __targv[i];
+	}
+	delete __targv;
+
+	__argc = argc;
+	__targv = argv;
 
 	return TRUE;
 }
@@ -2752,7 +2838,7 @@ void CMainFrame::ShowFontChangeMessage()
 	GetAllViews(&editViews, NULL, &dirViews);
 
 	if (editViews.GetCount() > 0 || dirViews.GetCount() > 0)
-		AfxMessageBox(IDS_FONT_CHANGE, MB_ICONINFORMATION | MB_DONT_DISPLAY_AGAIN, IDS_FONT_CHANGE);
+		LangMessageBox(IDS_FONT_CHANGE, MB_ICONINFORMATION | MB_DONT_DISPLAY_AGAIN, IDS_FONT_CHANGE);
 }
 
 /**
@@ -2770,13 +2856,13 @@ void CMainFrame::OnDebugLoadConfig()
 	CConfigLog configLog;
 
 	// set configLog settings to current
-	LoadConfigLog(configLog, m_options, m_lfDiff, ToConfigLog);
+	LoadConfigLog(configLog, GetOptionsMgr(), m_lfDiff, ToConfigLog);
 
 	// update any settings found in actual config file
 	configLog.ReadLogFile(filepath);
 
 	// set our current settings from configLog settings
-	LoadConfigLog(configLog, m_options, m_lfDiff, FromConfigLog);
+	LoadConfigLog(configLog,GetOptionsMgr(), m_lfDiff, FromConfigLog);
 }
 
 /**
@@ -2786,7 +2872,7 @@ void CMainFrame::UpdateCodepageModule()
 {
 	// Get current codepage settings from the options module
 	// and push them into the codepage module
-	updateDefaultCodepage(m_options.GetInt(OPT_CP_DEFAULT_MODE), m_options.GetInt(OPT_CP_DEFAULT_CUSTOM));
+	updateDefaultCodepage(GetOptionsMgr()->GetInt(OPT_CP_DEFAULT_MODE), GetOptionsMgr()->GetInt(OPT_CP_DEFAULT_CUSTOM));
 }
 
 /**
@@ -2875,15 +2961,15 @@ void CMainFrame::OnUpdateWindowCloseAll(CCmdUI* pCmdUI)
  */ 
 void CMainFrame::CheckinToClearCase(CString strDestinationPath)
 {
-	CString spath, sname;
+	String spath, sname;
 	SplitFilename(strDestinationPath, &spath, &sname, 0);
 	DWORD code;
 	CString args;
 	
 	// checkin operation
-	args.Format(_T("checkin -nc \"%s\""), sname);
-	CString vssPath = m_options.GetString(OPT_VSS_PATH);
-	HANDLE hVss = RunIt(vssPath, args, TRUE, FALSE);
+	args.Format(_T("checkin -nc \"%s\""), sname.c_str());
+	String vssPath = GetOptionsMgr()->GetString(OPT_VSS_PATH);
+	HANDLE hVss = RunIt(vssPath.c_str(), args, TRUE, FALSE);
 	if (hVss!=INVALID_HANDLE_VALUE)
 	{
 		WaitForSingleObject(hVss, INFINITE);
@@ -2892,11 +2978,11 @@ void CMainFrame::CheckinToClearCase(CString strDestinationPath)
 				
 		if (code != 0)
 		{
-			if (AfxMessageBox(IDS_VSS_CHECKINERROR, MB_ICONWARNING | MB_YESNO) == IDYES)
+			if (LangMessageBox(IDS_VSS_CHECKINERROR, MB_ICONWARNING | MB_YESNO) == IDYES)
 			{
 				// undo checkout operation
-				args.Format(_T("uncheckout -rm \"%s\""), sname);
-				HANDLE hVss = RunIt(vssPath, args, TRUE, TRUE);
+				args.Format(_T("uncheckout -rm \"%s\""), sname.c_str());
+				HANDLE hVss = RunIt(vssPath.c_str(), args, TRUE, TRUE);
 				if (hVss!=INVALID_HANDLE_VALUE)
 				{
 					WaitForSingleObject(hVss, INFINITE);
@@ -2905,13 +2991,13 @@ void CMainFrame::CheckinToClearCase(CString strDestinationPath)
 					
 					if (code != 0)
 					{
-						AfxMessageBox(IDS_VSS_UNCOERROR, MB_ICONSTOP);
+						LangMessageBox(IDS_VSS_UNCOERROR, MB_ICONSTOP);
 						return;
 					}
 				}
 				else
 				{
-					AfxMessageBox(IDS_VSS_RUN_ERROR, MB_ICONSTOP);
+					LangMessageBox(IDS_VSS_RUN_ERROR, MB_ICONSTOP);
 					return;
 				}				
 			}
@@ -2920,18 +3006,9 @@ void CMainFrame::CheckinToClearCase(CString strDestinationPath)
 	}
 	else
 	{
-		AfxMessageBox(IDS_VSS_RUN_ERROR, MB_ICONSTOP);
+		LangMessageBox(IDS_VSS_RUN_ERROR, MB_ICONSTOP);
 		return;
 	}
-}
-
-/**
- * @brief Access to the singleton options manager
- */
-COptionsMgr *
-GetOptionsMgr() 
-{
-	return GetMainFrame()->GetTheOptionsMgr();
 }
 
 /**
@@ -3011,13 +3088,14 @@ void CMainFrame::SetMainIcon(CDialog * dlg)
  */
 void CMainFrame::OnSaveProject()
 {
-	CPropertySheet sht(IDS_PROJFILEDLG_CAPTION);
+	String title = theApp.LoadString(IDS_PROJFILEDLG_CAPTION);
+	CPropertySheet sht(title.c_str());
 	ProjectFilePathsDlg pathsDlg;
 	sht.AddPage(&pathsDlg);
 	sht.m_psh.dwFlags |= PSH_NOAPPLYNOW; // Hide 'Apply' button since we don't need it
 
-	CString left;
-	CString right;
+	String left;
+	String right;
 	CFrameWnd * pFrame = GetActiveFrame();
 	BOOL bMergeFrame = pFrame->IsKindOf(RUNTIME_CLASS(CChildFrame));
 	BOOL bDirFrame = pFrame->IsKindOf(RUNTIME_CLASS(CDirFrame));
@@ -3027,7 +3105,7 @@ void CMainFrame::OnSaveProject()
 		CMergeDoc * pMergeDoc = (CMergeDoc *) pFrame->GetActiveDocument();
 		left = pMergeDoc->m_filePaths.GetLeft();
 		right = pMergeDoc->m_filePaths.GetRight();
-		pathsDlg.SetPaths(left, right);
+		pathsDlg.SetPaths(left.c_str(), right.c_str());
 		pathsDlg.m_bLeftPathReadOnly = pMergeDoc->m_ptBuf[0]->GetReadOnly();
 		pathsDlg.m_bRightPathReadOnly = pMergeDoc->m_ptBuf[1]->GetReadOnly();
 	}
@@ -3037,13 +3115,13 @@ void CMainFrame::OnSaveProject()
 		CDirDoc * pDoc = (CDirDoc*)pFrame->GetActiveDocument();
 		left = pDoc->GetLeftBasePath();
 		right = pDoc->GetRightBasePath();
-		if (!paths_EndsWithSlash(left))
+		if (!paths_EndsWithSlash(left.c_str()))
 			left += _T("\\");
-		if (!paths_EndsWithSlash(right))
+		if (!paths_EndsWithSlash(right.c_str()))
 			right += _T("\\");
 		
 		// Set-up the dialog
-		pathsDlg.SetPaths(left, right);
+		pathsDlg.SetPaths(left.c_str(), right.c_str());
 		pathsDlg.m_bIncludeSubfolders = pDoc->GetRecursive();
 		pathsDlg.m_bLeftPathReadOnly = pDoc->GetReadOnly(TRUE);
 		pathsDlg.m_bRightPathReadOnly = pDoc->GetReadOnly(FALSE);
@@ -3092,50 +3170,90 @@ void CMainFrame::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)
 	}
 }
 
+/**
+ * @brief Work around a bug WinMerge does not exit.
+ * See the bug #1602313 WinMerge stays in tasklist after closing
+ * http://winmerge.org/bug/1602313
+ * Double-post the WM_QUIT message until we'll figure who is
+ * "eating" the first message.
+ */
 void CMainFrame::OnNcDestroy()
 {
 	CMDIFrameWnd::OnNcDestroy();
 
-	// A temporary patch which double-post the WM_QUIT message until we'll
-	// figure who is "eating" the first message.
 	AfxPostQuitMessage(0);
 }
 
 BOOL CMainFrame::CreateToobar()
 {
-	if (!m_wndToolBar.Create(this, WS_CHILD|WS_VISIBLE|CBRS_GRIPPER|CBRS_TOP|CBRS_TOOLTIPS|CBRS_FLYBY|CBRS_SIZE_DYNAMIC) ||
+	if (!m_wndToolBar.CreateEx(this) ||
 		!m_wndToolBar.LoadToolBar(IDR_MAINFRAME))
 	{
 		return FALSE;
 	}
 
-	m_wndToolBar.SetBorders(1, 1, 1, 1);
-	VERIFY(m_wndToolBar.ModifyStyle(0, TBSTYLE_FLAT));
+	if (!m_wndReBar.Create(this))
+	{
+		return FALSE;
+	}
+
+	VERIFY(m_wndToolBar.ModifyStyle(0, TBSTYLE_FLAT|TBSTYLE_TRANSPARENT));
 
 	// Remove this if you don't want tool tips or a resizable toolbar
 	m_wndToolBar.SetBarStyle(m_wndToolBar.GetBarStyle() |
 		CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC);
 
-	// Delete these three lines if you don't want the toolbar to
-	// be dockable
-	m_wndToolBar.EnableDocking(CBRS_ALIGN_ANY);
-	EnableDocking(CBRS_ALIGN_ANY);
-	DockControlBar(&m_wndToolBar);
+	m_wndReBar.AddBar(&m_wndToolBar);
 
-	LoadToolbarImageList(IDB_TOOLBAR_ENABLED, m_ToolbarImages[TOOLBAR_IMAGES_ENABLED]);
-	LoadToolbarImageList(IDB_TOOLBAR_DISABLED, m_ToolbarImages[TOOLBAR_IMAGES_DISABLED]);
+	LoadToolbarImages();
 
-	CToolBarCtrl& BarCtrl = m_wndToolBar.GetToolBarCtrl();
-	BarCtrl.SetImageList(&m_ToolbarImages[TOOLBAR_IMAGES_ENABLED]);
-	BarCtrl.SetDisabledImageList(&m_ToolbarImages[TOOLBAR_IMAGES_DISABLED]);
-
-	if (m_options.GetBool(OPT_SHOW_TOOLBAR) == false)
+	if (GetOptionsMgr()->GetBool(OPT_SHOW_TOOLBAR) == false)
 	{
 		CMDIFrameWnd::ShowControlBar(&m_wndToolBar, false, 0);
 	}
 
 	return TRUE;
 }
+
+/** @brief Load toolbar images from the resource. */
+void CMainFrame::LoadToolbarImages()
+{
+	int toolbarSize = GetOptionsMgr()->GetInt(OPT_TOOLBAR_SIZE);
+	CToolBarCtrl& BarCtrl = m_wndToolBar.GetToolBarCtrl();
+
+	m_ToolbarImages[TOOLBAR_IMAGES_ENABLED].DeleteImageList();
+	m_ToolbarImages[TOOLBAR_IMAGES_DISABLED].DeleteImageList();
+	CSize sizeButton(0, 0);
+
+	if (toolbarSize == 0)
+	{
+		LoadToolbarImageList(TOOLBAR_SIZE_16x16, IDB_TOOLBAR_ENABLED,
+			m_ToolbarImages[TOOLBAR_IMAGES_ENABLED]);
+		LoadToolbarImageList(TOOLBAR_SIZE_16x16, IDB_TOOLBAR_DISABLED,
+			m_ToolbarImages[TOOLBAR_IMAGES_DISABLED]);
+		sizeButton = CSize(24, 24);
+	}
+	else if (toolbarSize == 1)
+	{
+		LoadToolbarImageList(TOOLBAR_SIZE_32x32, IDB_TOOLBAR_ENABLED32,
+			m_ToolbarImages[TOOLBAR_IMAGES_ENABLED]);
+		LoadToolbarImageList(TOOLBAR_SIZE_32x32, IDB_TOOLBAR_DISABLED32,
+			m_ToolbarImages[TOOLBAR_IMAGES_DISABLED]);
+		sizeButton = CSize(40, 40);
+	}
+
+	BarCtrl.SetButtonSize(sizeButton);
+	BarCtrl.SetImageList(&m_ToolbarImages[TOOLBAR_IMAGES_ENABLED]);
+	BarCtrl.SetDisabledImageList(&m_ToolbarImages[TOOLBAR_IMAGES_DISABLED]);
+
+	// resize the rebar.
+	REBARBANDINFO rbbi;
+	rbbi.cbSize = sizeof(rbbi);
+	rbbi.fMask = RBBIM_CHILDSIZE;
+	rbbi.cyMinChild = sizeButton.cy;
+	m_wndReBar.GetReBarCtrl().SetBandInfo(0, &rbbi);
+}
+
 
 /**
  * @brief Load a transparent 24-bit color image list.
@@ -3152,11 +3270,260 @@ static void LoadHiColImageList(UINT nIDResource, int nWidth, int nHeight, int nC
 /**
  * @brief Load toolbar image list.
  */
-static void LoadToolbarImageList(UINT nIDResource, CImageList& ImgList)
+static void LoadToolbarImageList(CMainFrame::TOOLBAR_SIZE size, UINT nIDResource,
+		CImageList& ImgList)
 {
-	static const int ImageWidth = 16;
-	static const int ImageHeight = 15;
-	static const int ImageCount	= 19;
+	const int ImageCount = 19;
+	int imageWidth = 0;
+	int imageHeight = 0;
 
-	LoadHiColImageList(nIDResource, ImageWidth, ImageHeight, ImageHeight, ImgList);
+	switch (size)
+	{
+		case CMainFrame::TOOLBAR_SIZE_16x16:
+			imageWidth = 16;
+			imageHeight = 15;
+			break;
+		case CMainFrame::TOOLBAR_SIZE_32x32:
+			imageWidth = 32;
+			imageHeight = 31;
+			break;
+	}
+
+	LoadHiColImageList(nIDResource, imageWidth, imageHeight, ImageCount, ImgList);
+}
+
+/**
+ * @brief Reset all WinMerge options to default values.
+ */
+void CMainFrame::OnDebugResetOptions()
+{
+	String msg = theApp.LoadString(IDS_RESET_OPTIONS_WARNING);
+	int res = AfxMessageBox(msg.c_str(), MB_YESNO | MB_DEFBUTTON2 | MB_ICONWARNING);
+	if (res == IDYES)
+	{
+		theApp.ResetOptions();
+	}
+}
+
+/**
+ * @brief Called when the document title is modified.
+ */
+void CMainFrame::OnUpdateFrameTitle(BOOL bAddToTitle)
+{
+	CFrameWnd::OnUpdateFrameTitle(bAddToTitle);
+	
+	m_wndTabBar.UpdateTabs();
+}
+
+/** @brief Hide the toolbar. */
+void CMainFrame::OnToolbarNone()
+{
+	GetOptionsMgr()->SaveOption(OPT_SHOW_TOOLBAR, false);
+	CMDIFrameWnd::ShowControlBar(&m_wndToolBar, FALSE, 0);
+}
+
+/** @brief Update menuitem for hidden toolbar. */
+void CMainFrame::OnUpdateToolbarNone(CCmdUI* pCmdUI)
+{
+	bool enabled = GetOptionsMgr()->GetBool(OPT_SHOW_TOOLBAR);
+	pCmdUI->SetRadio(!enabled);
+}
+
+/** @brief Show small toolbar. */
+void CMainFrame::OnToolbarSmall()
+{
+	GetOptionsMgr()->SaveOption(OPT_SHOW_TOOLBAR, true);
+	GetOptionsMgr()->SaveOption(OPT_TOOLBAR_SIZE, 0);
+
+	LoadToolbarImages();
+
+	CMDIFrameWnd::ShowControlBar(&m_wndToolBar, TRUE, 0);
+}
+
+/** @brief Update menuitem for small toolbar. */
+void CMainFrame::OnUpdateToolbarSmall(CCmdUI* pCmdUI)
+{
+	bool enabled = GetOptionsMgr()->GetBool(OPT_SHOW_TOOLBAR);
+	int toolbar = GetOptionsMgr()->GetInt(OPT_TOOLBAR_SIZE);
+	pCmdUI->SetRadio(enabled && toolbar == 0);
+}
+
+/** @brief Show big toolbar. */
+void CMainFrame::OnToolbarBig()
+{
+	GetOptionsMgr()->SaveOption(OPT_SHOW_TOOLBAR, true);
+	GetOptionsMgr()->SaveOption(OPT_TOOLBAR_SIZE, 1);
+
+	LoadToolbarImages();
+
+	CMDIFrameWnd::ShowControlBar(&m_wndToolBar, TRUE, 0);
+}
+
+/** @brief Update menuitem for big toolbar. */
+void CMainFrame::OnUpdateToolbarBig(CCmdUI* pCmdUI)
+{
+	bool enabled = GetOptionsMgr()->GetBool(OPT_SHOW_TOOLBAR);
+	int toolbar = GetOptionsMgr()->GetInt(OPT_TOOLBAR_SIZE);
+	pCmdUI->SetRadio(enabled && toolbar == 1);
+}
+
+/** @brief Lang aware version of CFrameWnd::OnToolTipText() */
+BOOL CMainFrame::OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult)
+{
+	ASSERT(pNMHDR->code == TTN_NEEDTEXTA || pNMHDR->code == TTN_NEEDTEXTW);
+
+	// need to handle both ANSI and UNICODE versions of the message
+	TOOLTIPTEXTA* pTTTA = (TOOLTIPTEXTA*)pNMHDR;
+	TOOLTIPTEXTW* pTTTW = (TOOLTIPTEXTW*)pNMHDR;
+	String strFullText;
+	CString strTipText;
+	UINT_PTR nID = pNMHDR->idFrom;
+	if (pNMHDR->code == TTN_NEEDTEXTA && (pTTTA->uFlags & TTF_IDISHWND) ||
+		pNMHDR->code == TTN_NEEDTEXTW && (pTTTW->uFlags & TTF_IDISHWND))
+	{
+		// idFrom is actually the HWND of the tool
+		nID = ::GetDlgCtrlID((HWND)nID);
+	}
+
+	if (nID != 0) // will be zero on a separator
+	{
+		strFullText = theApp.LoadString(nID);
+		// don't handle the message if no string resource found
+		if (strFullText.empty())
+			return FALSE;
+
+		// this is the command id, not the button index
+		AfxExtractSubString(strTipText, strFullText.c_str(), 1, '\n');
+	}
+#ifndef _UNICODE
+	if (pNMHDR->code == TTN_NEEDTEXTA)
+		lstrcpyn(pTTTA->szText, strTipText, countof(pTTTA->szText));
+	else
+		_mbstowcsz(pTTTW->szText, strTipText, countof(pTTTW->szText));
+#else
+	if (pNMHDR->code == TTN_NEEDTEXTA)
+		_wcstombsz(pTTTA->szText, strTipText, countof(pTTTA->szText));
+	else
+		lstrcpyn(pTTTW->szText, strTipText, countof(pTTTW->szText));
+#endif
+	*pResult = 0;
+
+	// bring the tooltip window above other popup windows
+	::SetWindowPos(pNMHDR->hwndFrom, HWND_TOP, 0, 0, 0, 0,
+		SWP_NOACTIVATE|SWP_NOSIZE|SWP_NOMOVE|SWP_NOOWNERZORDER);
+
+	return TRUE;    // message was handled
+}
+
+/**
+ * @brief Ask user for close confirmation when closing the mainframe.
+ * This function asks if user wants to close multiple open windows when user
+ * selects (perhaps accidentally) to close WinMerge (application).
+ * @return true if user agreeds to close all windows.
+ */
+bool CMainFrame::AskCloseConfirmation()
+{
+	DirViewList dirViews;
+	MergeEditViewList mergeViews; 
+	GetAllViews(&mergeViews, NULL, &dirViews);
+
+	int ret = IDYES;
+	const int count = dirViews.GetCount() + (mergeViews.GetCount() / 2);
+	if (count > 1)
+	{
+		ret = LangMessageBox(IDS_CLOSEALL_WINDOWS, MB_YESNO | MB_ICONWARNING);
+	}
+	return (ret == IDYES);
+}
+
+/**
+ * @brief Shows the release notes for user.
+ * This function opens release notes HTML document into browser.
+ */
+void CMainFrame::OnHelpReleasenotes()
+{
+	String sPath = GetModulePath(0) + RelNotes;
+	ShellExecute(NULL, _T("open"), sPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
+}
+
+/**
+ * @brief Shows the translations page.
+ * This function opens translations page URL into browser.
+ */
+void CMainFrame::OnHelpTranslations()
+{
+	ShellExecute(NULL, _T("open"), TranslationsUrl, NULL, NULL, SW_SHOWNORMAL);
+}
+
+/**
+ * @brief Called when user selects File/Open Conflict...
+ */
+void CMainFrame::OnFileOpenConflict()
+{
+	CString conflictFile;
+	if (SelectFile(GetSafeHwnd(), conflictFile))
+	{
+		DoOpenConflict(conflictFile);
+	}
+}
+
+/**
+ * @brief Select and open conflict file for resolving.
+ * This function lets user to select conflict file to resolve.
+ * Then we parse conflict file to two files to "merge" and
+ * save resulting file over original file.
+ *
+ * Set left-side file read-only as it is the repository file which cannot
+ * be modified anyway. Right-side file is user's file which is set as
+ * modified by default so user can just save it and accept workspace
+ * file as resolved file.
+ * @param [in] conflictFile Full path to conflict file to open.
+ * @return TRUE if conflict file was opened for resolving.
+ */
+BOOL CMainFrame::DoOpenConflict(LPCTSTR conflictFile)
+{
+	BOOL conflictCompared = FALSE;
+	String confl = (LPCTSTR)conflictFile;
+
+	bool confFile = IsConflictFile(confl);
+	if (!confFile)
+	{
+		CString message;
+		LangFormatString1(message, IDS_NOT_CONFLICT_FILE, confl.c_str());
+		AfxMessageBox(message, MB_ICONSTOP);
+		return FALSE;
+	}
+
+	// Create temp files and put them into the list,
+	// from where they get deleted when MainFrame is deleted.
+	TempFile *wTemp = new TempFile();
+	String workFile = wTemp->Create(_T("confw_"));
+	m_tempFiles.push_back(wTemp);
+	TempFile *vTemp = new TempFile();
+	String revFile = vTemp->Create(_T("confv_"));
+	m_tempFiles.push_back(vTemp);
+
+	// Parse conflict file into two files.
+	bool inners;
+	bool success = ParseConflictFile(confl, workFile, revFile, inners);
+
+	if (success)
+	{
+		// Open two parsed files to WinMerge, telling WinMerge to
+		// save over original file (given as third filename).
+		m_strSaveAsPath = conflictFile;
+		String theirs = LoadResString(IDS_CONFLICT_THEIRS_FILE);
+		String my = LoadResString(IDS_CONFLICT_MINE_FILE);
+		m_strDescriptions[0] = theirs;
+		m_strDescriptions[1] = my;
+
+		conflictCompared = DoFileOpen(revFile.c_str(), workFile.c_str(),
+				FFILEOPEN_READONLY | FFILEOPEN_NOMRU,
+				FFILEOPEN_NOMRU | FFILEOPEN_MODIFIED);
+	}
+	else
+	{
+		LangMessageBox(IDS_ERROR_CONF_RESOLVE, MB_ICONSTOP);
+	}
+	return conflictCompared;
 }

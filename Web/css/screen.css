@@ -1,0 +1,260 @@
+body {
+	margin: 0;
+	padding: 0;
+	min-width: 40em;
+	color: black;
+	background: white;
+	font-family: Verdana,Helvetica,Arial,sans-serif;
+	font-size: small;
+}
+
+code,pre {
+	font-family: "Courier New",Courier,monospace;
+	font-size: 1em;
+}
+
+#head {
+	margin: 0;
+	padding: 5px;
+	padding-left: 1em;
+	background: #FFCC00;
+}
+
+#head h1 {
+	float: left;
+	margin: 0;
+	padding: 0;
+	width: 266px;
+	height: 50px;
+	background: url(/images/head.gif) no-repeat;
+	text-indent: -999em;
+}
+
+#rightcorner {
+	text-align: right;
+}
+
+/* Based on "Eric Meyer's tabbed navbar" from Eric Meyer:
+   http://css.maxdesign.com.au/listamatic/horizontal05.htm */
+#tabs {
+	margin: 0;
+	padding: 3px 1em;
+	background: #FFCC00;
+	border-bottom: 1px solid black;
+}
+
+#tabs li {
+	margin: 0;
+	display: inline;
+	list-style: none;
+}
+
+#tabs li a {
+	margin-left: 3px;
+	padding: 3px 0.5em;
+	text-decoration: none;
+	background: #FFFFCC;
+	border: 1px solid #808080;
+	border-bottom: none;
+}
+
+#tabs li a:link { color: black; }
+#tabs li a:visited { color: black; }
+
+#tabs li a:hover {
+	color: black;
+	background: white;
+	border-color: black;
+}
+
+#tabs li a#current {
+	background: white;
+	border: 1px solid black;
+	border-bottom: 1px solid white;
+}
+
+#subtabs {
+	margin: 0;
+	padding: 5px;
+	background: white;
+}
+
+#subtabs li {
+	margin: 0;
+	padding: 0 .5em 0 .5em;
+	display: inline;
+	list-style: none;
+	border: none;
+	border-right: 1px dotted #AAAAAA;
+}
+
+#subtabs li:last-child { border: none; }
+
+#ads {
+	margin: 0;
+	padding: 10px 5px 10px 5px;
+	text-align: center;
+}
+
+#content {
+	margin: 0;
+	padding: 1em;
+}
+
+#content h2, p {
+	margin-top: 0;
+}
+
+/* "Download Now!" link */
+a.downloadnow {
+	display: block;
+	width: 12em;
+	margin: 0;
+	padding: 5px;
+	text-align: center;
+	text-decoration: none;
+	color: black;
+	background: #00B300;
+	border: 1px solid black;
+	-moz-border-radius: 0.5em;
+}
+
+a.downloadnow:hover {
+	color: black;
+	background: #00CC00;
+}
+
+a.downloadnow strong {
+	display: block;
+	text-decoration: underline;
+	font-size: larger;
+	font-weight: bold;
+}
+
+a.downloadnow em {
+	display: block;
+	font-size: smaller;
+	font-style: normal;
+}
+
+/* Download Matrix based on "Tutorial 3" from Listutorial:
+   http://css.maxdesign.com.au/listutorial/sub_master.htm */
+.downloadmatrix {
+	margin-bottom: 1em;
+}
+
+.downloadmatrix ul {
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+}
+
+.downloadmatrix a,
+.downloadmatrix strong {
+	display: block;
+	width: 20em;
+	padding: 3px 12px 3px 8px;
+	text-decoration: none;
+	font-weight: bold;
+	color: #FFFFFF;
+	background-color: #003366;
+	border-bottom: 1px solid #FFFFFF;
+}
+
+.downloadmatrix a:hover {
+	color: #FFFFFF;
+	background-color: #336699;
+}
+
+.downloadmatrix li li a {
+	display: block;
+	width: 20em;
+	padding: 3px 3px 3px 17px;
+	text-decoration: none;
+	font-weight: normal;
+	color: #FFFFFF;
+	background-color: #6699CC;
+	border-bottom: 1px solid #FFFFFF;
+}
+
+/* Heading list */
+.headinglist dt {
+	font-weight: bold;
+}
+
+.headinglist dd {
+	margin: 0;
+	margin-bottom: 1em;
+	padding: 0;
+}
+
+p.important {
+	padding: 5px;
+	background-color: #FFDDDD;
+	border: 1px solid red;
+	font-weight: bold;
+}
+
+p.note {
+	padding: 5px;
+	background-color: #DDDDFF;
+	border: 1px solid blue;
+}
+
+pre.code {
+	margin-left: 25px;
+	margin-right: 25px;
+	padding: 5px;
+	background-color: #EEEEEE;
+	border: 1px solid black;
+}
+
+img.thumbnail {
+	padding-top: 2px;
+	padding-bottom: 3px;
+}
+
+acronym {
+	cursor: help;
+	border-bottom: 1px dotted black;
+}
+
+/* Inline list */
+ul.inline {
+	margin: 1em;
+	padding: 0;
+}
+
+ul.inline li {
+	margin: 0;
+	margin-right: 1em;
+	padding: 0;
+	display: inline;
+	list-style: none;
+}
+
+/* Translations Status */
+.status {
+	border-collapse: collapse;
+	border: 1px solid #aaaaaa;
+}
+
+.status th {
+	padding: 3px;
+	background: #f2f2f2;
+	border: 1px solid #aaaaaa ;
+}
+
+.status td {
+	padding: 3px;
+	background: #f9f9f9;
+	border: 1px solid #aaaaaa;
+}
+
+.translated { color: #2D802B; }
+.fuzzy { color: #05359B; }
+.untranslated { color: #D42323; }
+
+.left { text-align: left; }
+.center { text-align: center; }
+.right { text-align: right; }

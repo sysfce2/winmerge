@@ -1,7 +1,7 @@
-; *** Inno Setup version 5.1.0+ Japanese messages ***
+; *** Inno Setup version 5.1.11+ Japanese messages ***
 ;
 ; Translated by Ryou Minakami (ryou32jp@yahoo.co.jp)
-; Fix: Koichi Shirasuka (shirasuka@eugrid.co.jp)
+; Fixes and updates: Koichi Shirasuka (shirasuka@eugrid.co.jp)
 ;
 ; $jrsoftware: issrc/Files/Default.isl,v 1.66 2005/02/25 20:23:48 mlaan Exp $
 
@@ -267,7 +267,7 @@ ErrorReplacingExistingFile=既存ファイルを置き換え中にエラーが発生しました。:
 ErrorRestartReplace=置き換え再開中にエラーが発生しました。:
 ErrorRenamingTemp=コピー先フォルダのファイル名を変更中にエラーが発生しました。:
 ErrorRegisterServer=DLL/OCXの登録に失敗しました。: %1
-ErrorRegisterServerMissingExport=DllRegisterServerエクスポートが見つかりません。
+ErrorRegSvr32Failed=RegSvr32はエラーコード %1 により失敗しました。
 ErrorRegisterTypeLib=タイプライブラリへの登録に失敗しました。: %1
 
 ; *** Post-installation errors
@@ -324,7 +324,6 @@ CustomInstallation=カスタムインストール
 ;Components
 AppCoreFiles=WinMerge コアファイル
 ApplicationRuntimes=アプリケーションランタイム
-UsersGuide=ユーザーガイド
 Filters=フィルタ
 Plugins=プラグイン
 
@@ -334,23 +333,29 @@ BulgarianLanguage=Bulgarian menus and dialogs
 CatalanLanguage=Catalan menus and dialogs
 ChineseSimplifiedLanguage=Chinese (Simplified) menus and dialogs
 ChineseTraditionalLanguage=Chinese (Traditional) menus and dialogs
+CroatianLanguage=Croatian menus and dialogs
 CzechLanguage=Czech menus and dialogs
 DanishLanguage=Danish menus and dialogs
 DutchLanguage=Dutch menus and dialogs
 FrenchLanguage=French menus and dialogs
 GermanLanguage=German menus and dialogs
+GreekLanguage=Greek menus and dialogs
 HungarianLanguage=Hungarian menus and dialogs
 ItalianLanguage=Italian menus and dialogs
 JapaneseLanguage=Japanese menus and dialogs
 KoreanLanguage=Korean menus and dialogs
 NorwegianLanguage=Norwegian menus and dialogs
 PolishLanguage=Polish menus and dialogs
-PortugueseLanguage=Portuguese (Brazilian) menus and dialogs
+PortugueseBrazilLanguage=Portuguese (Brazilian) menus and dialogs
+PortugueseLanguage=Portuguese menus and dialogs
+RomanianLanguage=Romanian menus and dialogs
 RussianLanguage=Russian menus and dialogs
 SlovakLanguage=Slovak menus and dialogs
+SlovenianLanguage=Slovenian menus and dialogs
 SpanishLanguage=Spanish menus and dialogs
 SwedishLanguage=Swedish menus and dialogs
 TurkishLanguage=Turkish menus and dialogs
+UkrainianLanguage=Ukrainian menus and dialogs
 
 ;Tasks
 ExplorerContextMenu=エクスプローラのコンテキストメニューに追加(&E)

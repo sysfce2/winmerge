@@ -3,23 +3,34 @@
 // see FileFilterMgr.h for description
 /////////////////////////////////////////////////////////////////////////////
 //    License (GPLv2+):
-//    This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-//    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-//    You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+//    This program is free software; you can redistribute it and/or modify it
+//    under the terms of the GNU General Public License as published by the
+//    Free Software Foundation; either version 2 of the License, or (at your
+//    option) any later version.
+//    This program is distributed in the hope that it will be useful, but
+//    WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    General Public License for more details.
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 /////////////////////////////////////////////////////////////////////////////
 /**
  *  @file FileFilterMgr.cpp
  *
  *  @brief Implementation of FileFilterMgr and supporting routines
  */ 
-// RCS ID line follows -- this is updated by CVS
-// $Id: FileFilterMgr.cpp 4050 2007-01-15 15:26:53Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: FileFilterMgr.cpp 4631 2007-10-16 09:50:16Z kimmov $
 
 #include "stdafx.h"
+#include <string.h>
+#include "UnicodeString.h"
+#include "pcre.h"
 #include "FileFilterMgr.h"
-#include "RegExp.h"
 #include "UniFile.h"
 #include "coretools.h"
+#include "Ucs2Utf8.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -37,7 +48,8 @@ void EmptyFilterList(FileFilterList & filterList)
 	while (!filterList.IsEmpty())
 	{
 		FileFilterElement &elem = filterList.GetHead();
-		delete elem.pRegExp;
+		pcre_free(elem.pRegExp);
+		pcre_free(elem.pRegExpExtra);
 		filterList.RemoveHead();
 	}
 }
@@ -63,12 +75,18 @@ struct FileFilter
 	~FileFilter();
 };
 
+/**
+ * @brief Destructor, frees created filter lists.
+ */
 FileFilter::~FileFilter()
 {
 	EmptyFilterList(filefilters);
 	EmptyFilterList(dirfilters);
 }
 
+/**
+ * @brief Destructor, frees all filters.
+ */
 FileFilterMgr::~FileFilterMgr()
 {
 	DeleteAllFilters();
@@ -76,7 +94,7 @@ FileFilterMgr::~FileFilterMgr()
 
 /**
  * @brief Loads filterfile from disk and adds it to filters.
- * @param [in] szFilterFile to load.
+ * @param [in] szFilterFile Filter file to load.
  * @return FILTER_OK if succeeded or one of FILTER_RETVALUE values on error.
  */
 int FileFilterMgr::AddFilter(LPCTSTR szFilterFile)
@@ -158,7 +176,6 @@ void FileFilterMgr::DeleteAllFilters()
 static void AddFilterPattern(FileFilterList & filterList, CString & str)
 {
 	LPCTSTR commentLeader = _T("##"); // Starts comment
-	str.MakeUpper();
 	str.TrimLeft();
 
 	// Ignore lines beginning with '##'
@@ -177,18 +194,38 @@ static void AddFilterPattern(FileFilterList & filterList, CString & str)
 	if (str.IsEmpty())
 		return;
 
-	CRegExp * regexp = new CRegExp;
+	const char * errormsg = NULL;
+	int erroroffset = 0;
+	char regexString[200] = {0};
+	int regexLen = 0;
+	int pcre_opts = 0;
+
+#ifdef UNICODE
+	// For unicode builds, use UTF-8.
+	// Convert pattern to UTF-8 and set option for PCRE to specify UTF-8.
+	regexLen = TransformUcs2ToUtf8((LPCTSTR)str, _tcslen(str),
+		regexString, sizeof(regexString));
+	pcre_opts |= PCRE_UTF8;
+#else
+	strcpy(regexString, (LPCTSTR)str);
+	regexLen = strlen(regexString);
+#endif
+	pcre_opts |= PCRE_CASELESS;
+	
+	pcre *regexp = pcre_compile(regexString, pcre_opts, &errormsg,
+		&erroroffset, NULL);
 	if (regexp)
 	{
-		if (regexp->RegComp(str))
-		{
-			FileFilterElement elem;
-			elem.pRegExp = regexp;
+		FileFilterElement elem;
+		errormsg = NULL;
+
+		pcre_extra *pe = pcre_study(regexp, 0, &errormsg);
+		elem.pRegExp = regexp;
 		
-			filterList.AddTail(elem);
-		}
-		else
-			delete regexp;
+		if (pe != NULL && errormsg != NULL)
+			elem.pRegExpExtra = pe;
+		
+		filterList.AddTail(elem);
 	}
 }
 
@@ -210,11 +247,11 @@ FileFilter * FileFilterMgr::LoadFilterFile(LPCTSTR szFilepath, int & error)
 
 	file.ReadBom(); // in case it is a Unicode file, let UniMemFile handle BOM
 
-	CString fileName;
+	String fileName;
 	SplitFilename(szFilepath, NULL, &fileName, NULL);
 	FileFilter *pfilter = new FileFilter;
 	pfilter->fullpath = szFilepath;
-	pfilter->name = fileName; // Filename is the default name
+	pfilter->name = fileName.c_str(); // Filename is the default name
 
 	CString sLine;
 	bool lossy = false;
@@ -296,13 +333,31 @@ FileFilter * FileFilterMgr::GetFilterByPath(LPCTSTR szFilterPath)
  */
 BOOL TestAgainstRegList(const FileFilterList & filterList, LPCTSTR szTest)
 {
-	CString str = szTest;
-	str.MakeUpper();
 	for (POSITION pos = filterList.GetHeadPosition(); pos; )
 	{
 		const FileFilterElement & elem = filterList.GetNext(pos);
-		CRegExp * regexp = elem.pRegExp;
-		if (regexp->RegFind(str) != -1)
+		int ovector[30];
+		char compString[200] = {0};
+		int stringLen = 0;
+		TCHAR * tempName = _tcsdup(szTest); // Create temp copy for conversions
+		TCHAR * cmpStr = _tcsupr(tempName);
+
+#ifdef UNICODE
+		stringLen = TransformUcs2ToUtf8(cmpStr, _tcslen(cmpStr),
+			compString, sizeof(compString));
+#else
+		strcpy(compString, cmpStr);
+		stringLen = strlen(compString);
+#endif
+
+		pcre * regexp = elem.pRegExp;
+		pcre_extra * extra = elem.pRegExpExtra;
+		int result = pcre_exec(regexp, extra, compString, stringLen,
+			0, 0, ovector, 30);
+
+		free(tempName);
+
+		if (result >= 0)
 			return TRUE;
 	}
 	return FALSE;
@@ -361,7 +416,11 @@ CString FileFilterMgr::GetFilterName(int i) const
 	return m_filters[i]->name; 
 }
 
-/** @brief Return name of filter. */
+/**
+ * @brief Return name of filter.
+ * @param [in] pFilter Filter to get name for.
+ * @return Given filter's name.
+ */
 CString FileFilterMgr::GetFilterName(const FileFilter *pFilter) const
 {
 	return pFilter->name; 
@@ -378,7 +437,11 @@ CString FileFilterMgr::GetFilterDesc(int i) const
 	return m_filters[i]->description; 
 }
 
-/** @brief Return description of filter. */
+/**
+ * @brief Return description of filter.
+ * @param [in] pFilter Filter to get description for.
+ * @return Given filter's description.
+ */
 CString FileFilterMgr::GetFilterDesc(const FileFilter *pFilter) const
 {
 	return pFilter->description;

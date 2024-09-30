@@ -19,8 +19,8 @@
  *
  * @brief Declaration file for FileActionScript and related classes
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: FileActionScript.h 3409 2006-07-31 16:58:17Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: FileActionScript.h 5061 2008-02-20 19:18:20Z kimmov $
 
 #ifndef _FILEACTIONSCRIPT_H_
 #define _FILEACTIONSCRIPT_H_
@@ -32,10 +32,10 @@ class CShellFileOp;
  */
 enum CreateScriptReturn
 {
-	SCRIPT_FAIL = 0,
-	SCRIPT_SUCCESS,
-	SCRIPT_USERCANCEL,
-	SCRIPT_USERSKIP,
+	SCRIPT_FAIL = 0,    /**< The script failed. */
+	SCRIPT_SUCCESS,     /**< The script succeeded. */
+	SCRIPT_USERCANCEL,  /**< The user cancelled the action. */
+	SCRIPT_USERSKIP,    /**< The user wanted to skip one or more items. */
 };
 
 /** 
@@ -47,27 +47,64 @@ enum CreateScriptReturn
  **/
 struct FileAction
 {
-	typedef enum { ACT_COPY = 1, ACT_MOVE, ACT_DEL, } ACT_TYPE;
+	/**
+	 * @brief the type of the action.
+	 * These action types are low level actions for filesystem, not
+	 * higher level actions user is doing (e.g. synchronizing).
+	 */
+	enum ACT_TYPE
+	{ 
+		ACT_COPY = 1, /**< Copy the item(s). */
+		ACT_MOVE,     /**< Move the item(s). */
+		ACT_DEL,      /**< Delete the item(s). */
+	};
 
-	CString src; /**< Source for action */
-	CString dest; /**< Destination action */
+	String src; /**< Source for action */
+	String dest; /**< Destination action */
 	BOOL dirflag; /**< Is it directory? (TRUE means directory) */
 	ACT_TYPE atype; /**< Action's type */
 };
 
 /** 
- * @brief FileActionItem presents one filesystem action with UI context.
- *
- * This struct adds UI context and UI action to filesystem action.
- * UI context and action is for storing reference to UI and then updating
- * UI after action script is run.
+ * @brief FileActionItem presents one filesystem action from GUI perspective.
  */
 struct FileActionItem : public FileAction
 {
-	typedef enum { UI_SYNC = 1, UI_DESYNC, UI_DEL_LEFT, UI_DEL_RIGHT, UI_DEL_BOTH,} UI_RESULT;
+	/**
+	 * @brief UI result of the action done.
+	 * These values present the change in the UI happening, due to lower
+	 * level actions. E.g. delete operation may cause left item to be removed
+	 * from the list.
+	 */
+	enum UI_RESULT
+	{
+		UI_SYNC = 1,   /**< Make items identical (synchronized). */
+		UI_DESYNC,     /**< Make items different. */
+		UI_DEL_LEFT,   /**< Remove left item. */
+		UI_DEL_RIGHT,  /**< Remove right item. */
+		UI_DEL_BOTH,   /**< Remove both items (removes the row). */
+		UI_DONT_CARE,  /**< Ignore the GUI change. */
+	};
 
-	int context; /**< UI context */
+	/**
+	 * @brief Side of the action.
+	 * This lists possible values for origin and destination sides.
+	 */
+	enum UI_SIDE
+	{
+		UI_LEFT,
+		UI_RIGHT
+	};
+
+	/**
+	 * Optional context value for the item.
+	 * This is an arbitrary value that can be used to associate the item with
+	 * other items. This can be e.g. indext of the item in the GUI.
+	 */
+	int context;
 	UI_RESULT UIResult; /**< Resulting UI action */
+	UI_SIDE UIOrigin; /**< Original UI-side */
+	UI_SIDE UIDestination; /**< Destination UI-side */
 };
 
 typedef CList<FileActionItem, FileActionItem&> FileActionList;
@@ -85,18 +122,33 @@ public:
 	FileActionScript();
 	~FileActionScript();
 
-	void SetParentWindow(CWnd * pWnd);
+	void SetParentWindow(HWND hWnd);
 	void UseRecycleBin(BOOL bUseRecycleBin);
 	BOOL Run();
 
 	// Manipulate the FileActionList
 	int GetActionItemCount() const;
+
+	/**
+	 * Add new item to the action list.
+	 * @param [in] item Item to add to the list.
+	 */
 	void AddActionItem(FileActionItem & item) { m_actions.AddTail(item); }
+	/**
+	 * Remove last action item from the list.
+	 * @return Item removed from the list.
+	 */
 	FileActionItem RemoveTailActionItem() { return m_actions.RemoveTail(); }
+	/**
+	 * Get first action item in the list.
+	 * @return First item in the list.
+	 */
 	FileActionItem GetHeadActionItem() const { return m_actions.GetHead(); }
 
+	String m_destBase; /**< Base destination path for some operations */
+
 protected:
-	int VCSCheckOut(const CString &path, BOOL &bApplyToAll);
+	int VCSCheckOut(const String &path, BOOL &bApplyToAll);
 	int CreateOperationsScripts();
 
 private:
@@ -108,7 +160,7 @@ private:
 	CShellFileOp * m_pDelOperations; /**< Delete operations. */
 	BOOL m_bHasDelOperations; /**< flag if we've put anything into m_pDelOperations */
 	BOOL m_bUseRecycleBin; /**< Use recycle bin for script actions? */
-	CWnd * m_pParentWindow; /**< Parent window for showing messages */
+	HWND m_hParentWindow; /**< Parent window for showing messages */
 };
 
 #endif // _FILEACTIONSCRIPT_H_

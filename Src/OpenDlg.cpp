@@ -23,13 +23,13 @@
  *
  * @brief Implementation of the COpenDlg class
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: OpenDlg.cpp 3865 2006-11-28 15:57:04Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: OpenDlg.cpp 5310 2008-04-19 07:44:50Z kimmov $
 
 #include "stdafx.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include "UnicodeString.h"
 #include "Merge.h"
 #include "ProjectFile.h"
 #include "OpenDlg.h"
@@ -119,6 +119,7 @@ BEGIN_MESSAGE_MAP(COpenDlg, CDialog)
 	ON_BN_CLICKED(IDC_SELECT_FILTER, OnSelectFilter)
 	ON_WM_ACTIVATE()
 	ON_COMMAND(ID_HELP, OnHelp)
+	ON_WM_DROPFILES()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -131,6 +132,7 @@ END_MESSAGE_MAP()
  */
 BOOL COpenDlg::OnInitDialog() 
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
 	
 	// setup handler for resizing this dialog	
@@ -172,9 +174,8 @@ BOOL COpenDlg::OnInitDialog()
 
 	if (!bMask)
 	{
-		CString filterPrefix;
-		VERIFY(filterPrefix.LoadString(IDS_FILTER_PREFIX));
-		FilterNameOrMask.Insert(0, filterPrefix);
+		String filterPrefix = theApp.LoadString(IDS_FILTER_PREFIX);
+		FilterNameOrMask.Insert(0, filterPrefix.c_str());
 	}
 
 	int ind = m_ctlExt.FindStringExact(0, FilterNameOrMask);
@@ -201,7 +202,7 @@ BOOL COpenDlg::OnInitDialog()
 	if (!m_bOverwriteRecursive)
 		m_bRecurse = theApp.GetProfileInt(_T("Settings"), _T("Recurse"), 0) == 1;
 
-	m_strUnpacker = m_infoHandler.pluginName;
+	m_strUnpacker = m_infoHandler.pluginName.c_str();
 	UpdateData(FALSE);
 	SetStatus(IDS_OPEN_FILESDIRS);
 	SetUnpackerStatus(IDS_OPEN_UNPACKERDISABLED);
@@ -214,7 +215,7 @@ BOOL COpenDlg::OnInitDialog()
 void COpenDlg::OnLeftButton()
 {
 	CString s;
-	CString sfolder, sext;
+	String sfolder;
 	UpdateData(TRUE); 
 
 	PATH_EXISTENCE existence = paths_DoesPathExist(m_strLeft);
@@ -234,9 +235,10 @@ void COpenDlg::OnLeftButton()
 		break;
 	}
 
-	if (SelectFileOrFolder(GetSafeHwnd(), s, sfolder))
+	if (SelectFileOrFolder(GetSafeHwnd(), s, sfolder.c_str()))
 	{
 		m_strLeft = s;
+		m_strLeftBrowsePath = s;
 		UpdateData(FALSE);
 		UpdateButtonStates();
 	}	
@@ -248,7 +250,7 @@ void COpenDlg::OnLeftButton()
 void COpenDlg::OnRightButton() 
 {
 	CString s;
-	CString sfolder, sext;
+	String sfolder;
 	UpdateData(TRUE);
 
 	PATH_EXISTENCE existence = paths_DoesPathExist(m_strRight);
@@ -268,9 +270,10 @@ void COpenDlg::OnRightButton()
 		break;
 	}
 
-	if (SelectFileOrFolder(GetSafeHwnd(), s, sfolder))
+	if (SelectFileOrFolder(GetSafeHwnd(), s, sfolder.c_str()))
 	{
 		m_strRight = s;
+		m_strRightBrowsePath = s;
 		UpdateData(FALSE);
 		UpdateButtonStates();
 	}	
@@ -283,15 +286,15 @@ void COpenDlg::OnRightButton()
  */
 void COpenDlg::OnOK() 
 {
-	CString filterPrefix;
-	VERIFY(filterPrefix.LoadString(IDS_FILTER_PREFIX));
+	String filterPrefix = theApp.LoadString(IDS_FILTER_PREFIX);
 
 	UpdateData(TRUE);
 	TrimPaths();
 
 	// If left path is a project-file, load it
-	CString sExt;
-	SplitFilename(m_strLeft, NULL, NULL, &sExt);
+	String ext;
+	SplitFilename(m_strLeft, NULL, NULL, &ext);
+	CString sExt(ext.c_str());
 	if (m_strRight.IsEmpty() && sExt.CompareNoCase(PROJECTFILE_EXT) == 0)
 		LoadProjectFile(m_strLeft);
 
@@ -299,12 +302,20 @@ void COpenDlg::OnOK()
 
 	if (m_pathsType == DOES_NOT_EXIST)
 	{
-		AfxMessageBox(IDS_ERROR_INCOMPARABLE, MB_ICONSTOP);
+		LangMessageBox(IDS_ERROR_INCOMPARABLE, MB_ICONSTOP);
 		return;
 	}
 
-	m_strRight = paths_GetLongPath(m_strRight);
-	m_strLeft = paths_GetLongPath(m_strLeft);
+	// If user has edited path by hand, expand environment variables
+	BOOL bExpandLeft = FALSE;
+	BOOL bExpandRight = FALSE;
+	if (m_strLeftBrowsePath.CompareNoCase(m_strLeft) != 0)
+		bExpandLeft = TRUE;
+	if (m_strRightBrowsePath.CompareNoCase(m_strRight) != 0)
+		bExpandRight = TRUE;
+
+	m_strRight = paths_GetLongPath(m_strRight, bExpandRight).c_str();
+	m_strLeft = paths_GetLongPath(m_strLeft, bExpandLeft).c_str();
 
 	// Add trailing '\' for directories if its missing
 	if (m_pathsType == IS_EXISTING_DIR)
@@ -322,10 +333,10 @@ void COpenDlg::OnOK()
 	m_strExt.TrimRight();
 
 	// If prefix found from start..
-	if (m_strExt.Find(filterPrefix, 0) == 0)
+	if (m_strExt.Find(filterPrefix.c_str(), 0) == 0)
 	{
 		// Remove prefix + space
-		m_strExt.Delete(0, filterPrefix.GetLength());
+		m_strExt.Delete(0, filterPrefix.length());
 		if (!theApp.m_globalFileFilter.SetFilter(m_strExt))
 		{
 			// If filtername is not found use default *.* mask
@@ -384,10 +395,11 @@ void COpenDlg::UpdateButtonStates()
 	TrimPaths();
 
 	// Check if we have project file as left side path
-	CString sExt;
 	BOOL bProject = FALSE;
-	SplitFilename(m_strLeft, NULL, NULL, &sExt);
-    if (m_strRight.IsEmpty() && sExt.CompareNoCase(PROJECTFILE_EXT) == 0)
+	String ext;
+	SplitFilename(m_strLeft, NULL, NULL, &ext);
+	CString sExt(ext.c_str());
+	if (m_strRight.IsEmpty() && sExt.CompareNoCase(PROJECTFILE_EXT) == 0)
 		bProject = TRUE;
 
 	// Enable buttons as appropriate
@@ -493,7 +505,7 @@ void COpenDlg::OnSelectUnpacker()
 	{
 		m_infoHandler = dlg.GetInfoHandler();
 
-		m_strUnpacker = m_infoHandler.pluginName;
+		m_strUnpacker = m_infoHandler.pluginName.c_str();
 
 		UpdateData(FALSE);
 	}
@@ -501,18 +513,14 @@ void COpenDlg::OnSelectUnpacker()
 
 void COpenDlg::SetStatus(UINT msgID)
 {
-	CString msg;
-	if (msgID > 0)
-		VERIFY(msg.LoadString(msgID));
-	SetDlgItemText(IDC_OPEN_STATUS, msg);
+	String msg = theApp.LoadString(msgID);
+	SetDlgItemText(IDC_OPEN_STATUS, msg.c_str());
 }
 
 void COpenDlg::SetUnpackerStatus(UINT msgID)
 {
-	CString msg;
-	if (msgID > 0)
-		VERIFY(msg.LoadString(msgID));
-	SetDlgItemText(IDC_UNPACKER_EDIT, msg);
+	String msg = theApp.LoadString(msgID);
+	SetDlgItemText(IDC_UNPACKER_EDIT, msg.c_str());
 }
 
 /** 
@@ -520,9 +528,8 @@ void COpenDlg::SetUnpackerStatus(UINT msgID)
  */
 void COpenDlg::OnSelectFilter()
 {
-	CString filterPrefix;
+	String filterPrefix = theApp.LoadString(IDS_FILTER_PREFIX);
 	CString curFilter;
-	VERIFY(filterPrefix.LoadString(IDS_FILTER_PREFIX));
 
 	const BOOL bUseMask = theApp.m_globalFileFilter.IsUsingMask();
 	GetDlgItemText(IDC_EXT_COMBO, curFilter);
@@ -542,7 +549,7 @@ void COpenDlg::OnSelectFilter()
 	}
 	else
 	{
-		FilterNameOrMask.Insert(0, filterPrefix);
+		FilterNameOrMask.Insert(0, filterPrefix.c_str());
 		SetDlgItemText(IDC_EXT_COMBO, FilterNameOrMask);
 	}
 }
@@ -553,20 +560,19 @@ void COpenDlg::OnSelectFilter()
  */
 BOOL COpenDlg::LoadProjectFile(CString path)
 {
-	CString filterPrefix;
-	CString err;
+	String filterPrefix = theApp.LoadString(IDS_FILTER_PREFIX);
+	String err;
 
 	m_pProjectFile = new ProjectFile;
 	if (m_pProjectFile == NULL)
 		return FALSE;
 
-	VERIFY(filterPrefix.LoadString(IDS_FILTER_PREFIX));
 	if (!m_pProjectFile->Read(path, &err))
 	{
-		if (!err.IsEmpty())
+		if (!err.empty())
 		{
 			CString msg;
-			AfxFormatString2(msg, IDS_ERROR_FILEOPEN, path, err);
+			LangFormatString2(msg, IDS_ERROR_FILEOPEN, path, err.c_str());
 			AfxMessageBox(msg, MB_ICONSTOP);
 		}
 		return FALSE;
@@ -580,7 +586,7 @@ BOOL COpenDlg::LoadProjectFile(CString path)
 			m_strExt.TrimLeft();
 			m_strExt.TrimRight();
 			if (m_strExt[0] != '*')
-				m_strExt.Insert(0, filterPrefix);
+				m_strExt.Insert(0, filterPrefix.c_str());
 		}
 	}
 	return TRUE;
@@ -618,4 +624,93 @@ void COpenDlg::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)
 void COpenDlg::OnHelp()
 {
 	GetMainFrame()->ShowHelp(OpenDlgHelpLocation);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//	OnDropFiles code from CDropEdit
+//	Copyright 1997 Chris Losinger
+//
+//	shortcut expansion code modified from :
+//	CShortcut, 1996 Rob Warner
+//
+
+/**
+ * @brief Drop paths(s) to the dialog.
+ * One or two paths can be dropped to the dialog. The behaviour is:
+ *   If 1 file:
+ *     - drop to empty path edit box (check left first)
+ *     - if both boxes have a path, drop to left path
+ *   If two files:
+ *    - overwrite both paths, empty or not
+ * @param [in] dropInfo Dropped data, including paths.
+ */
+void COpenDlg::OnDropFiles(HDROP dropInfo)
+{
+	// Get the number of pathnames that have been dropped
+	UINT wNumFilesDropped = DragQueryFile(dropInfo, 0xFFFFFFFF, NULL, 0);
+	CString files[2];
+	UINT fileCount = 0;
+
+	// get all file names. but we'll only need the first one.
+	for (WORD x = 0 ; x < wNumFilesDropped; x++)
+	{
+		// Get the number of bytes required by the file's full pathname
+		UINT wPathnameSize = DragQueryFile(dropInfo, x, NULL, 0);
+
+		// Allocate memory to contain full pathname & zero byte
+		wPathnameSize += 1;
+		LPTSTR npszFile = (TCHAR *) new TCHAR[wPathnameSize];
+
+		// If not enough memory, skip this one
+		if (npszFile == NULL)
+			continue;
+
+		// Copy the pathname into the buffer
+		DragQueryFile(dropInfo, x, npszFile, wPathnameSize);
+
+		if (x < 2)
+		{
+			files[x] = npszFile;
+			fileCount++;
+		}
+		delete[] npszFile;
+	}
+
+	// Free the memory block containing the dropped-file information
+	DragFinish(dropInfo);
+
+	for (UINT i = 0; i < fileCount; i++)
+	{
+		if (paths_IsShortcut((LPCTSTR)files[i]))
+		{
+			// if this was a shortcut, we need to expand it to the target path
+			CString expandedFile = ExpandShortcut((LPCTSTR)files[i]).c_str();
+
+			// if that worked, we should have a real file name
+			if (!expandedFile.IsEmpty())
+				files[i] = expandedFile;
+		}
+	}
+
+	// Add dropped paths to the dialog
+	UpdateData(TRUE);
+	if (fileCount == 2)
+	{
+		m_strLeft = files[0];
+		m_strRight = files[1];
+		UpdateData(FALSE);
+		UpdateButtonStates();
+	}
+	else if (fileCount == 1)
+	{
+		if (m_strLeft.IsEmpty())
+			m_strLeft = files[0];
+		else if (m_strRight.IsEmpty())
+			m_strRight = files[0];
+		else
+			m_strLeft = files[0];
+		UpdateData(FALSE);
+		UpdateButtonStates();
+	}
 }

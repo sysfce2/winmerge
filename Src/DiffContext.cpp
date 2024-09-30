@@ -23,15 +23,18 @@
  *
  *  @brief Implementation of CDiffContext
  */ 
-// RCS ID line follows -- this is updated by CVS
-// $Id: DiffContext.cpp 3230 2006-04-26 17:40:19Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: DiffContext.cpp 5052 2008-02-18 22:30:10Z sdottaka $
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
 #include <shlwapi.h>
+#include "UnicodeString.h"
 #include "Merge.h"
+#include "CompareOptions.h"
 #include "CompareStats.h"
 #include "version.h"
+#include "FilterList.h"
 #include "DiffContext.h"
 #include "paths.h"
 #include "coretools.h"
@@ -59,16 +62,19 @@ static char THIS_FILE[]=__FILE__;
 CDiffContext::CDiffContext(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*/)
 : m_piFilterGlobal(NULL)
 , m_piPluginInfos(NULL)
-, m_hDirFrame(NULL)
 , m_nCompMethod(-1)
 , m_bIgnoreSmallTimeDiff(FALSE)
 , m_pCompareStats(NULL)
 , m_pList(&m_dirlist)
 , m_piAbortable(NULL)
 , m_bStopAfterFirstDiff(FALSE)
+, m_pFilterList(NULL)
+, m_pCompareOptions(NULL)
+, m_pOptions(NULL)
 {
 	m_paths.SetLeft(pszLeft);
 	m_paths.SetRight(pszRight);
+	InitializeCriticalSection(&m_criticalSect);
 }
 
 /**
@@ -90,32 +96,42 @@ CDiffContext::CDiffContext(LPCTSTR pszLeft, LPCTSTR pszRight, CDiffContext& src)
 	m_paths.SetRight(pszRight);
 	m_pList = src.m_pList;
 	m_piFilterGlobal = src.m_piFilterGlobal;
-	m_hDirFrame = src.m_hDirFrame;
 	m_nCompMethod = src.m_nCompMethod;
 	m_bIgnoreSmallTimeDiff = src.m_bIgnoreSmallTimeDiff;
 	m_bStopAfterFirstDiff = src.m_bStopAfterFirstDiff;
+	m_pFilterList = src.m_pFilterList;
+
+	EnterCriticalSection(&src.m_criticalSect);
+	InitializeCriticalSection(&m_criticalSect);
+	LeaveCriticalSection(&src.m_criticalSect);
+	DeleteCriticalSection(&src.m_criticalSect);
 }
 
 /**
- * @brief Fetch & return the fixed file version as a dotted string
+ * @brief Destructor.
  */
-static CString GetFixedFileVersion(const CString & path)
+CDiffContext::~CDiffContext()
 {
-	CVersionInfo ver(path);
-	return ver.GetFixedFileVersion();
+	delete m_pOptions;
+	delete m_pCompareOptions;
+	delete m_pFilterList;
+	DeleteCriticalSection(&m_criticalSect);
 }
 
 /**
- * @brief Add new diffitem to CDiffContext array
+ * @brief Add new result item to result list.
+ * @param [in] di DIFFITEM to add.
  */
 void CDiffContext::AddDiff(const DIFFITEM & di)
 {
 	DiffItemList::AddDiff(di);
-	m_pCompareStats->AddItem(di.diffcode);
+	m_pCompareStats->AddItem(di.diffcode.diffcode);
 }
 
 /**
- * @brief Update info in DIFFITEM from disk.
+ * @brief Update info in item in result list from disk.
+ * This function updates result list item's file information from actual
+ * file in the disk. This updates info like date, size and attributes.
  * @param [in] diffpos DIFFITEM to update.
  * @param [in] bLeft Update left-side info.
  * @param [in] bRight Update right-side info.
@@ -125,20 +141,22 @@ void CDiffContext::UpdateStatusFromDisk(POSITION diffpos, BOOL bLeft, BOOL bRigh
 	DIFFITEM &di = m_pList->GetAt(diffpos);
 	if (bLeft)
 	{
-		di.left.Clear();
-		if (!di.isSideRight())
+		di.left.ClearPartial();
+		if (!di.diffcode.isSideRightOnly())
 			UpdateInfoFromDiskHalf(di, TRUE);
 	}
 	if (bRight)
 	{
-		di.right.Clear();
-		if (!di.isSideLeft())
+		di.right.ClearPartial();
+		if (!di.diffcode.isSideLeftOnly())
 			UpdateInfoFromDiskHalf(di, FALSE);
 	}
 }
 
 /**
- * @brief Update information from disk for selected side.
+ * @brief Update file information from disk for DIFFITEM.
+ * This function updates DIFFITEM's file information from actual file in
+ * the disk. This updates info like date, size and attributes.
  * @param [in, out] di DIFFITEM to update (selected side, see bLeft param).
  * @param [in] bLeft If TRUE left side information is updated,
  *  right side otherwise.
@@ -146,22 +164,28 @@ void CDiffContext::UpdateStatusFromDisk(POSITION diffpos, BOOL bLeft, BOOL bRigh
  */
 BOOL CDiffContext::UpdateInfoFromDiskHalf(DIFFITEM & di, BOOL bLeft)
 {
-	CString filepath
-	(
-		bLeft == TRUE
-	?	paths_ConcatPath(di.getLeftFilepath(GetNormalizedLeft()), di.sLeftFilename)
-	:	paths_ConcatPath(di.getRightFilepath(GetNormalizedRight()), di.sRightFilename)
-	);
+	String filepath;
+
+	if (bLeft == TRUE)
+		filepath = paths_ConcatPath(di.getLeftFilepath(GetNormalizedLeft()), di.left.filename);
+	else
+		filepath = paths_ConcatPath(di.getRightFilepath(GetNormalizedRight()), di.right.filename);
+
 	DiffFileInfo & dfi = bLeft ? di.left : di.right;
-	if (!dfi.Update(filepath))
+	if (!dfi.Update(filepath.c_str()))
 		return FALSE;
 	UpdateVersion(di, bLeft);
-	GuessCodepageEncoding(filepath, &dfi.encoding, m_bGuessEncoding);
+	GuessCodepageEncoding(filepath.c_str(), &dfi.encoding, m_bGuessEncoding);
 	return TRUE;
 }
 
 /**
- * @brief Return if this extension is one we expect to have a file version
+ * @brief Determine if file is one to have a version information.
+ * This function determines if the given file has a version information
+ * attached into it in resource. This is done by comparing file extension to
+ * list of known filename extensions usually to have a version information.
+ * @param [in] ext Extension to check.
+ * @return true if extension has version info, false otherwise.
  */
 static bool CheckFileForVersion(LPCTSTR ext)
 {
@@ -189,44 +213,133 @@ void CDiffContext::UpdateVersion(DIFFITEM & di, BOOL bLeft) const
 {
 	DiffFileInfo & dfi = bLeft ? di.left : di.right;
 	// Check only binary files
-	dfi.version = _T("");
+	dfi.version.Clear();
 	dfi.bVersionChecked = true;
 
-	if (di.isDirectory())
+	if (di.diffcode.isDirectory())
 		return;
 	
-	CString spath;
+	String spath;
 	if (bLeft)
 	{
-		if (di.isSideRight())
+		if (di.diffcode.isSideRightOnly())
 			return;
-		LPCTSTR ext = PathFindExtension(di.sLeftFilename);
+		LPCTSTR ext = PathFindExtension(di.left.filename.c_str());
 		if (!CheckFileForVersion(ext))
 			return;
 		spath = di.getLeftFilepath(GetNormalizedLeft());
-		spath = paths_ConcatPath(spath, di.sLeftFilename);
+		spath = paths_ConcatPath(spath, di.left.filename);
 	}
 	else
 	{
-		if (di.isSideLeft())
+		if (di.diffcode.isSideLeftOnly())
 			return;
-		LPCTSTR ext = PathFindExtension(di.sRightFilename);
+		LPCTSTR ext = PathFindExtension(di.right.filename.c_str());
 		if (!CheckFileForVersion(ext))
 			return;
 		spath = di.getRightFilepath(GetNormalizedRight());
-		spath = paths_ConcatPath(spath, di.sRightFilename);
+		spath = paths_ConcatPath(spath, di.right.filename);
 	}
-	dfi.version = GetFixedFileVersion(spath);
+	
+	// Get version info if it exists
+	CVersionInfo ver(spath.c_str());
+	DWORD verMS = 0;
+	DWORD verLS = 0;
+	if (ver.GetFixedFileVersion(verMS, verLS))
+		dfi.version.SetFileVersion(verMS, verLS);
+}
+
+/**
+ * @brief Create compare-method specific compare options class.
+ * This function creates a compare options class that is specific for
+ * selected compare method. Compare options class is initialized from
+ * given set of options.
+ * @param [in] compareMethod Selected compare method.
+ * @param [in] options Initial set of compare options.
+ * @return TRUE if creation succeeds.
+ */
+BOOL CDiffContext::CreateCompareOptions(int compareMethod, const DIFFOPTIONS & options)
+{
+	if (m_pOptions != NULL)
+		delete m_pOptions;
+	m_pOptions = new DIFFOPTIONS;
+	if (m_pOptions != NULL)
+		CopyMemory(m_pOptions, &options, sizeof(DIFFOPTIONS));
+	else
+		return FALSE;
+
+	m_nCompMethod = compareMethod;
+	m_pCompareOptions = GetCompareOptions(compareMethod);
+	if (m_pCompareOptions == NULL)
+	{
+		// For Date and Date+Size compare NULL is ok since they don't have actual
+		// compare options.
+		if (compareMethod == CMP_DATE || compareMethod == CMP_DATE_SIZE ||
+			compareMethod == CMP_SIZE)
+		{
+			return TRUE;
+		}
+		else
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
+ * @brief Get compare-type specific compare options.
+ * This function returns per-compare method options. The compare options
+ * returned are converted from general options to match options for specific
+ * comapare type. Not all compare options in general set are available for
+ * some other compare type. And some options can have different values.
+ * @param [in] compareMethod Compare method used.
+ * @return Compare options class.
+ */
+CompareOptions * CDiffContext::GetCompareOptions(int compareMethod)
+{
+	// If compare method is same than in previous time, return cached value
+	if (compareMethod == m_nCompMethod && m_pCompareOptions != NULL)
+		return m_pCompareOptions;
+
+	// Otherwise we have to create new options
+	delete m_pCompareOptions;
+	m_pCompareOptions = NULL;
+
+	switch (compareMethod)
+	{
+	case CMP_CONTENT:
+		m_pCompareOptions = new DiffutilsOptions();
+		break;
+
+	case CMP_QUICK_CONTENT:
+		m_pCompareOptions = new QuickCompareOptions();
+		break;
+
+	default:
+		// No really options to set..
+		break;
+	}
+
+	if (m_pCompareOptions == NULL)
+		return NULL;
+
+	m_pCompareOptions->SetFromDiffOptions(*m_pOptions);
+
+	return m_pCompareOptions;
 }
 
 /** @brief Forward call to retrieve plugin info (winds up in DirDoc) */
-void CDiffContext::FetchPluginInfos(const CString& filteredFilenames, PackingInfo ** infoUnpacker, PrediffingInfo ** infoPrediffer)
+void CDiffContext::FetchPluginInfos(LPCTSTR filteredFilenames,
+		PackingInfo ** infoUnpacker, PrediffingInfo ** infoPrediffer)
 {
 	ASSERT(m_piPluginInfos);
 	m_piPluginInfos->FetchPluginInfos(filteredFilenames, infoUnpacker, infoPrediffer);
 }
 
-/** @brief Return true only if user has requested abort */
+/**
+ * @brief Check if user has requested aborting the compare.
+ * @return true if user has requested abort, false otherwise.
+ */
 bool CDiffContext::ShouldAbort() const
 {
 	return m_piAbortable && m_piAbortable->ShouldAbort();

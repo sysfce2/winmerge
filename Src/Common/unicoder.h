@@ -6,8 +6,8 @@
  *
  *  @brief  Declaration of utility unicode conversion routines
  */ 
-// RCS ID line follows -- this is updated by CVS
-// $Id: unicoder.h 3087 2006-02-20 21:43:58Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: unicoder.h 4959 2008-01-26 00:05:00Z kimmov $
 
 #ifndef unicoder_h_included
 #define unicoder_h_included
@@ -24,8 +24,14 @@ struct buffer {
 	void resize(unsigned int needed);
 };
 
-typedef enum { NONE=0, UCS2LE, UCS2BE, UTF8 } UNICODESET;
-CString GetUnicodesetName(UNICODESET codeset);
+/** @brief Known Unicode encodings. */
+typedef enum
+{
+	NONE = 0,  /**< No unicode. */
+	UCS2LE,    /**< UCS-2 little endian. */
+	UCS2BE,    /**< UCS-2 big endian. */
+	UTF8,      /**< UTF-8. */
+} UNICODESET;
 
 int Ucs4_to_Utf8(UINT unich, unsigned char * utf8);
 int Utf8len_fromLeadByte(unsigned char ch);
@@ -51,6 +57,8 @@ int CrossConvert(LPCSTR src, UINT srclen, LPSTR dest, UINT destsize, int cpin, i
 #ifndef UNICODE
 CString CrossConvertToStringA(LPCSTR src, UINT srclen, int cpin, int cpout, bool * lossy);
 #endif
+
+UNICODESET DetermineEncoding(LPBYTE pBuffer, int size, bool * pBom);
 
 } // namespace ucr
 

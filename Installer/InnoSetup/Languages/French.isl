@@ -1,4 +1,4 @@
-; *** Inno Setup version 5.1.0+ French messages ***
+; *** Inno Setup version 5.1.11+ French messages ***
 ;
 ; To download user-contributed translations of this file, go to:
 ;   http://www.jrsoftware.org/is3rdparty.php
@@ -12,7 +12,7 @@
 ;
 ; Contributors : Frédéric Bonduelle, Francis Pallini
 ;
-; $jrsoftware: issrc/Files/Languages/French.isl,v 1.13 2005/02/26 09:50:47 pierrey Exp $
+; $jrsoftware: issrc/Files/Languages/French.isl,v 1.14 2007/02/27 18:22:41 jr Exp $
 
 [LangOptions]
 LanguageName=Fran<00E7>ais
@@ -64,7 +64,7 @@ AboutSetupMenuItem=&A propos...
 AboutSetupTitle=A Propos de l'assistant d'installation
 AboutSetupMessage=%1 version %2%n%3%n%nPage d'accueil de %1 :%n%4
 AboutSetupNote=
-TranslatorNote=French translation maintained by Pierre Yager (pierre@levosgien.net)
+TranslatorNote=Entretien de la traduction par Jean-François Jolin (jean-f-j at users.sourceforge.net)
 
 ; *** Buttons
 ButtonBack=< &Précédent
@@ -266,7 +266,7 @@ ErrorReplacingExistingFile=Une erreur est survenue lors du remplacement d'un fic
 ErrorRestartReplace=Le marquage d'un fichier pour remplacement au redémarrage de l'ordinateur a échoué :
 ErrorRenamingTemp=Une erreur est survenue en essayant de renommer un fichier dans le dossier de destination :
 ErrorRegisterServer=Impossible d'enregistrer la bibliothèque DLL/OCX : %1
-ErrorRegisterServerMissingExport=La fonction exportée DllRegisterServer n'a pas été trouvée
+ErrorRegSvr32Failed=RegSvr32 a échoué et a retourné le code d'erreur %1
 ErrorRegisterTypeLib=Impossible d'enregistrer la bibliothèque de type : %1
 
 ; *** Post-installation errors
@@ -303,7 +303,7 @@ StatusUninstalling=Désinstallation de %1...
 ;Inno Setup Built-in Custom Messages
 NameAndVersion=%1 version %2
 AdditionalIcons=Icônes supplémentaires :
-OptionalFeatures=Optional Features:
+OptionalFeatures=Caractéristiques optionnelles:
 CreateDesktopIcon=Créer une icône sur le &Bureau
 CreateQuickLaunchIcon=Créer une icône dans la barre de &Lancement rapide
 ProgramOnTheWeb=Page d'accueil de %1
@@ -316,59 +316,64 @@ AssocingFileExtension=Associe %1 avec l'extension de fichier %2...
 CompanyName=Thingamahoochie Software
 
 ;Types
-TypicalInstallation=Typical Installation
-FullInstallation=Full Installation
-CompactInstallation=Compact Installation
-CustomInstallation=Custom Installation
+TypicalInstallation=Installation Typique
+FullInstallation=Installation Complète
+CompactInstallation=Installation Compacte
+CustomInstallation=Installation Personnaliser
 
 ;Components
-AppCoreFiles=WinMerge Core Files
-ApplicationRuntimes=Application Runtimes
-UsersGuide=User's Guide
-Filters=Filters
-Plugins=Plugins
+AppCoreFiles=Fichiers Vitaux Winmerge
+ApplicationRuntimes=Exécutables de l'application
+Filters=Filtres
+Plugins=Plugiciels
 
 ;Localization Components
-Languages=Languages
-BulgarianLanguage=Bulgarian menus and dialogs
-CatalanLanguage=Catalan menus and dialogs
-ChineseSimplifiedLanguage=Chinese (Simplified) menus and dialogs
-ChineseTraditionalLanguage=Chinese (Traditional) menus and dialogs
-CzechLanguage=Czech menus and dialogs
-DanishLanguage=Danish menus and dialogs
-DutchLanguage=Dutch menus and dialogs
-FrenchLanguage=French menus and dialogs
-GermanLanguage=German menus and dialogs
-HungarianLanguage=Hungarian menus and dialogs
-ItalianLanguage=Italian menus and dialogs
-JapaneseLanguage=Japanese menus and dialogs
-KoreanLanguage=Korean menus and dialogs
-NorwegianLanguage=Norwegian menus and dialogs
-PolishLanguage=Polish menus and dialogs
-PortugueseLanguage=Portuguese (Brazilian) menus and dialogs
-RussianLanguage=Russian menus and dialogs
-SlovakLanguage=Slovak menus and dialogs
-SpanishLanguage=Spanish menus and dialogs
-SwedishLanguage=Swedish menus and dialogs
-TurkishLanguage=Turkish menus and dialogs
+Languages=Langages
+BulgarianLanguage=Menus et dialogues Bulgare
+CatalanLanguage=Menus et dialogues Catalan
+ChineseSimplifiedLanguage=Menus et dialogues Chinois (Simplifié)
+ChineseTraditionalLanguage=Menus et dialogues Chinois (Traditionnel)
+CroatianLanguage=Menus et dialogues Croate
+CzechLanguage=Menus et dialogues Tchécoslovaque
+DanishLanguage=Menus et dialogues Danois
+DutchLanguage=Menus et dialogues Néerlandais
+FrenchLanguage=Menus et dialogues Français
+GermanLanguage=Menus et dialogues Allemand
+GreekLanguage=Greek menus and dialogs
+HungarianLanguage=Menus et dialogues Hongrois
+ItalianLanguage=Menus et dialogues Italien
+JapaneseLanguage=Menus et dialogues Japonais
+KoreanLanguage=Menus et dialogues Coréen
+NorwegianLanguage=Menus et dialogues Norvégien
+PolishLanguage=Menus et dialogues Polonais
+PortugueseBrazilLanguage=Menus et dialogues Portugais (Brésilien)
+PortugueseLanguage=Menus et dialogues Portugais
+RomanianLanguage=Menus et dialogues Roumain
+RussianLanguage=Menus et dialogues Russe
+SlovakLanguage=Menus et dialogues Slovaque
+SlovenianLanguage=Slovenian menus and dialogs
+SpanishLanguage=Menus et dialogues Espagnol
+SwedishLanguage=Menus et dialogues Suédois
+TurkishLanguage=Menus et dialogues Turque
+UkrainianLanguage=Ukrainian menus and dialogs
 
 ;Tasks
-ExplorerContextMenu=&Enable Explorer context menu integration
-IntegrateTortoiseCVS=Integrate with &TortoiseCVS
-IntegrateTortoiseSVN=Integrate with T&ortoiseSVN
-IntegrateClearCase=Integrate with Rational &ClearCase
-IntegrateDelphi4=Borland® Delphi &4 Binary File Support
-UpdatingCommonControls=Updating the System's Common Controls
+ExplorerContextMenu=&Permetre l'intégration au menu contextuel de l'explorateur
+IntegrateTortoiseCVS=Integrer avec &TortoiseCVS
+IntegrateTortoiseSVN=Integrer avec T&ortoiseSVN
+IntegrateClearCase=Integrer avec Rational &ClearCase
+IntegrateDelphi4=Support de fichier binaire Borland® Delphi &4
+UpdatingCommonControls=Mettre à jour les contrôles communs du système
 
 ;Icon Labels
-ReadMe=Read Me
-UsersGuide=User's Guide
-UpdatingCommonControls=Updating the System's Common Controls
-ViewStartMenuFolder=&View the WinMerge Start Menu Folder
-PluginsText=Plugins
+ReadMe=Lisez moi
+UsersGuide=Guide de l'usager
+UpdatingCommonControls=Mise à jour des contrôles communs du système
+ViewStartMenuFolder=&Voir le répertoire du menu démarrer WinMerge
+PluginsText=Plugiciels
 
 ;Code Dialogs
-DeletePreviousStartMenu=The installer has detected that you changed the location of your start menu from "%s" to "%s". Would you like to delete the previous start menu folder?
+DeletePreviousStartMenu=L'installeur a détecté que vous avez changé l'emplacement du votre menu démarré de "%s" à "%s". Désirez-vous retirer l'ancien répertoire du menu démarrer WinMerge?
 
 ; Project file description
-ProjectFileDesc=WinMerge Project file
+ProjectFileDesc=Fichier de projet WinMerge 

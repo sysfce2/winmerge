@@ -89,9 +89,10 @@
         <answer>
           <para>Unfortunately not. We acknowledge it would be good feature but
           have no plans to implement it in near future. This can be somewhat
-          worked around by using two WinMerge instances. (One developer has
-          begun preliminary work on this feature, but it is not yet available,
-          even in experimental releases.)</para>
+          worked around by using two WinMerge instances. Or using third path
+          parameter given from command line. See <link
+          linkend="CommandLine">Command Line</link> -chapter for more
+          information.</para>
         </answer>
       </qandaentry>
 
@@ -117,8 +118,9 @@
         <answer>
           <para>Which kind of CVS integration WinMerge should have? Adding CVS
           client features to WinMerge is questionable since there are many
-          good CVS clients already. Conflict file resolution is a feature we
-          are planning to add in future releases.</para>
+          good CVS clients already. WinMerge can resolve conflict files, see
+          <link linkend="ResolveConflictFiles">Resolving Confilict
+          Files</link>.</para>
         </answer>
       </qandaentry>
 
@@ -148,24 +150,25 @@
 
       <qandaentry>
         <question>
-          <para>Why do large files sometimes show as different in the
-          folder view, but come up as identical in the merge editor?</para>
+          <para>Why do large files sometimes show as different in the folder
+          view, but come up as identical in the merge editor?</para>
         </question>
 
         <answer>
-          <para>This is because large files use the "<guilabel>Quick
-          Compare</guilabel>" method, even when the [<menuchoice>
-              <guimenu>Edit</guimenu>
-
-              <guimenuitem>Options /</guimenuitem>
-            </menuchoice> <guilabel>Compare</guilabel> / <guilabel>File
-          Compare Method</guilabel>] setting is set to "<guilabel>Full
-          Compare</guilabel>". This is a speed optimization. To test if this
-          is causing the behavior you're seeing, you could raise the limit for
+          <para>This is because WinMerge uses the "<guilabel>Quick
+          Compare</guilabel>" method for large files always. It allows
+          WinMerge to compare large files more efficiently. To test if this is
+          causing the behavior you're seeing, you could raise the limit for
           the <guilabel>Quick Compare</guilabel> threshold for large files. It
           is stored in the registry as:</para>
 
           <screen>HKEY_CURRENT_USER\Software\Thingamahoochie\WinMerge\Settings\QuickMethodLimit</screen>
+
+          <para>You may consider raising this limit if you constantly compare
+          large text files. Be careful to not raise it too much "for just to
+          be sure". 100 MB is too much.</para>
+
+          <para>The default value for the limit is 4MB (0x400000).</para>
         </answer>
       </qandaentry>
 
@@ -209,8 +212,8 @@
     <qandaset>
       <qandaentry>
         <question>
-          <para>WinMerge does not start and complains about missing DLL
-          files (mfc71.dll, mfc71u.dll, msvcr71.dll, msvcp71.dll)</para>
+          <para>WinMerge does not start and complains about missing DLL files
+          (mfc71.dll, mfc71u.dll, msvcr71.dll, msvcp71.dll)</para>
         </question>
 
         <answer>
@@ -233,83 +236,14 @@
         </question>
 
         <answer>
-          <para>Maybe your files have different line-ending styles (e.g. DOS
-          and UNIX?). WinMerge by default compares also line-ending styles,
-          but you can disable it from <menuchoice>
+          <para>Maybe your files have different line-ending styles (e.g.
+          Windows and Unix?). WinMerge by default compares also line-ending
+          styles, but you can disable it from <menuchoice>
               <guimenu>Edit</guimenu>
 
               <guimenuitem>Options</guimenuitem>
             </menuchoice> / Compare / Ignore carriage return
           differences.</para>
-        </answer>
-      </qandaentry>
-    </qandaset>
-  </sect2>
-
-  <sect2>
-    <title>Questions about binary files</title>
-
-    <qandaset>
-      <qandaentry>
-        <question>
-          <para>WinMerge says "<guilabel>Binary files are
-          different</guilabel>", but I am not comparing binary files?</para>
-        </question>
-
-        <answer>
-          <para>If you are using <filename>WinMerge.exe</filename> (not
-          <filename>WinMergeU.exe</filename>), then your files may be Unicode
-          files. <filename>WinMerge.exe</filename> cannot handle Unicode
-          files. Please try comparing files with
-          <filename>WinMergeU.exe</filename> if you have Windows NT4, Windows
-          2000 or newer Windows version.</para>
-        </answer>
-      </qandaentry>
-
-      <qandaentry>
-        <question>
-          <para>WinMerge cannot compare registry files
-          (<filename><replaceable>*</replaceable>.reg</filename>)?</para>
-        </question>
-
-        <answer>
-          <para>Windows registry files
-          (<filename><replaceable>*</replaceable>.reg</filename>) are Unicode
-          files (UTF-16 or UCS-2) -- see the question "<link
-          linkend="qmergebinaryfiles">I cannot merge binary files?</link>" for
-          a workaround.</para>
-        </answer>
-      </qandaentry>
-
-      <qandaentry>
-        <question>
-          <para>WinMerge tells my files are binary files even when they are
-          not?</para>
-        </question>
-
-        <answer>
-          <para>There is one or more zero-bytes in your file(s). If WinMerge
-          finds zero-bytes from files, it considers the files to be binary
-          files. You can try to remove those zero-bytes from files.
-          Alternatively, you may open the files with the DisplayBinaryFiles
-          plugin. This plugin allows viewing binary files, but not editing
-          them. If you have a very recent version of WinMerge (2.6.0 and
-          newer), you may use the new EditBinaryFiles plugin, which does allow
-          editing binary files (using an escape scheme for representing
-          non-printable characters).</para>
-        </answer>
-      </qandaentry>
-
-      <qandaentry>
-        <question id="qmergebinaryfiles">
-          <para>I cannot merge binary files?</para>
-        </question>
-
-        <answer>
-          <para>WinMerge 2.4.0 (and newer) includes a binary file viewer
-          (plugin <filename>DisplayBinaryFiles.dll</filename>). WinMerge 2.6.0
-          (and newer) includes a binary file editor (plugin
-          <filename>EditBinaryFiles.dll</filename>).</para>
         </answer>
       </qandaentry>
     </qandaset>

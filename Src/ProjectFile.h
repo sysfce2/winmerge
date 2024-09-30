@@ -20,7 +20,9 @@
  * @brief Declaration file ProjectFile class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ProjectFile.h 3375 2006-07-19 11:58:51Z kimmov $
+// $Id: ProjectFile.h 4619 2007-10-14 08:50:20Z jtuc $
+
+#include <scew/scew.h>
 
 /** @brief File extension for path files */
 const TCHAR PROJECTFILE_EXT[] = _T("WinMerge");
@@ -28,16 +30,16 @@ const TCHAR PROJECTFILE_EXT[] = _T("WinMerge");
 /**
  * @brief Class for handling project files.
  *
- * This class handles project files, reading and saving projectdata from
- * XML files. Jochen's Markdown -parser (@s markdown.h) is used. We use UTF-8
- * encoding so Unicode paths are supported.
+ * This class loads and saves project files. Expat parser and SCEW wrapper for
+ * expat are used for XML parsing. We use UTF-8 encoding so Unicode paths are
+ * supported.
  */
 class ProjectFile
 {
 public:
 	ProjectFile();
-	BOOL Read(LPCTSTR path, CString *sError);
-	BOOL Save(LPCTSTR path, CString *sError);
+	BOOL Read(LPCTSTR path, String *sError);
+	BOOL Save(LPCTSTR path, String *sError);
 	
 	BOOL HasLeft() const;
 	BOOL HasRight() const;
@@ -59,14 +61,20 @@ public:
 	void GetPaths(CString & sLeft, CString & sRight, BOOL & bSubFolders) const;
 
 protected:
-	BOOL Serialize(bool writing, LPCTSTR path, CString *sError);
-	BOOL GetVal(TCHAR *pPaths, TCHAR *pVal, CString * sval,
-		TCHAR *ptag1, TCHAR *ptag2, TCHAR *pbuf);
+	scew_element* GetRootElement(scew_tree * tree);
+	BOOL GetPathsData(scew_element * parent);
+
+	scew_element* AddPathsElement(scew_element * parent);
+	BOOL AddPathsContent(scew_element * parent);
 
 private:
+	BOOL m_bHasLeft; /**< Has left path? */
 	CString m_leftFile; /**< Left path */
+	BOOL m_bHasRight; /**< Has right path? */
 	CString m_rightFile; /**< Right path */
+	BOOL m_bHasFilter; /**< Has filter? */
 	CString m_filter; /**< Filter name or mask */
+	BOOL m_bHasSubfolders; /**< Has subfolders? */
 	int m_subfolders; /**< Are subfolders included (recursive scan) */
 	BOOL m_bLeftReadOnly; /**< Is left path opened as read-only */
 	BOOL m_bRightReadOnly; /**< Is right path opened as read-only */

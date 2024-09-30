@@ -23,22 +23,17 @@
  * @brief Declaration file for CDirDoc
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DirDoc.h 3228 2006-04-25 16:58:05Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: DirDoc.h 5454 2008-06-09 22:13:20Z kimmov $
 
 #if !defined(AFX_DIRDOC_H__0B17B4C1_356F_11D1_95CD_444553540000__INCLUDED_)
 #define AFX_DIRDOC_H__0B17B4C1_356F_11D1_95CD_444553540000__INCLUDED_
 #pragma once
 
 #include "diffThread.h"
-#include "DiffWrapper.h"
 
 #ifndef PluginManager_h_included
 #include "PluginManager.h"
-#endif
-
-#ifndef REGEXP_H
-#include "RegExp.h"
 #endif
 
 class CDirView;
@@ -119,13 +114,13 @@ public:
 	void UpdateHeaderPath(BOOL bLeft);
 	void AbortCurrentScan();
 	bool IsCurrentScanAbortable() const;
-	void SetDescriptions(const CString &strLeftDesc, const CString &strRightDesc);
-	void ApplyLeftDisplayRoot(CString &);
-	void ApplyRightDisplayRoot(CString &);
+	void SetDescriptions(const String &strLeftDesc, const String &strRightDesc);
+	void ApplyLeftDisplayRoot(String &);
+	void ApplyRightDisplayRoot(String &);
 
-	void SetPluginPrediffSetting(const CString & filteredFilenames, int newsetting);
-	void SetPluginPrediffer(const CString & filteredFilenames, const CString & prediffer);
-	void FetchPluginInfos(const CString& filteredFilenames, 
+	void SetPluginPrediffSetting(LPCTSTR filteredFilenames, int newsetting);
+	void SetPluginPrediffer(LPCTSTR filteredFilenames, const CString & prediffer);
+	void FetchPluginInfos(LPCTSTR filteredFilenames, 
 	                      PackingInfo ** infoUnpacker, PrediffingInfo ** infoPrediffer);
 	BOOL IsShowable(const DIFFITEM & di);
 
@@ -133,8 +128,8 @@ public:
 	const CDiffContext & GetDiffContext() const { return *m_pCtxt; }
 	DIFFITEM GetDiffByKey(POSITION key) const { return m_pCtxt->GetDiffAt(key); }
 	DIFFITEM & GetDiffRefByKey(POSITION key) { return m_pCtxt->GetDiffRefAt(key); }
-	CString GetLeftBasePath() const { return m_pCtxt->GetNormalizedLeft(); }
-	CString GetRightBasePath() const { return m_pCtxt->GetNormalizedRight(); }
+	String GetLeftBasePath() const { return m_pCtxt->GetNormalizedLeft(); }
+	String GetRightBasePath() const { return m_pCtxt->GetNormalizedRight(); }
 	void RemoveDiffByKey(POSITION key) { m_pCtxt->RemoveDiff(key); }
 	void SetMarkedRescan() {m_bMarkedRescan = TRUE; }
 	struct AllowUpwardDirectory
@@ -147,13 +142,14 @@ public:
 			ParentIsTempPath
 		};
 	};
-	AllowUpwardDirectory::ReturnCode AllowUpwardDirectory(CString &leftParent, CString &rightParent);
+	AllowUpwardDirectory::ReturnCode AllowUpwardDirectory(String &leftParent, String &rightParent);
 	void SetItemViewFlag(POSITION key, UINT flag, UINT mask);
 	void SetItemViewFlag(UINT flag, UINT mask);
 	const CompareStats * GetCompareStats() const { return m_pCompareStats; };
+	bool IsArchiveFolders();
 
 protected:
-	CDiffWrapper m_diffWrapper;
+	void LoadLineFilterList();
 
 	// Generated message map functions
 	//{{AFX_MSG(CDirDoc)
@@ -171,8 +167,8 @@ private:
 	BOOL m_bRORight; /**< Is right side read-only */
 	BOOL m_bRecursive; /**< Is current compare recursive? */
 	CustomStatusCursor * m_statusCursor;
-	CString m_strLeftDesc; /**< Left side desription text */
-	CString m_strRightDesc; /**< Left side desription text */
+	String m_strLeftDesc; /**< Left side desription text */
+	String m_strRightDesc; /**< Left side desription text */
 	PluginManager m_pluginman;
 	BOOL m_bReuseCloses; /**< Are we closing because of reuse? */
 	BOOL m_bMarkedRescan; /**< If TRUE next rescan scans only marked items */

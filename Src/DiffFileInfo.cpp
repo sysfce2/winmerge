@@ -20,19 +20,30 @@
  * @brief Implementation for DiffFileInfo routines
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffFileInfo.cpp 3825 2006-11-21 20:09:16Z kimmov $
+// $Id: DiffFileInfo.cpp 5019 2008-02-10 11:50:33Z jtuc $
 
 #include "stdafx.h"
-#include "FileInfo.h"
+#include "DirItem.h"
 #include "DiffFileInfo.h"
 #include "unicoder.h"
 
 /**
  * @brief Clears FileInfo data.
  */
-void DiffFileInfo::Clear()
+/*void DiffFileInfo::Clear()
 {
-	FileInfo::Clear();
+	DirItem::Clear();
+	bVersionChecked = false;
+	encoding.Clear();
+	m_textStats.clear();
+}*/
+
+/**
+ * @brief Clears FileInfo data.
+ */
+void DiffFileInfo::ClearPartial()
+{
+	DirItem::ClearPartial();
 	bVersionChecked = false;
 	encoding.Clear();
 	m_textStats.clear();

@@ -19,11 +19,13 @@
  *
  * @brief Declaration file for file routines
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: files.h 3492 2006-08-23 15:30:54Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: files.h 5081 2008-02-25 15:58:32Z kimmov $
 
 #ifndef _FILES_H_INCLUDED
 #define _FILES_H_INCLUDED
+
+struct DiffFileInfo;
 
 /**
  * @brief File-operation return-statuses
@@ -35,13 +37,41 @@ class FileLoadResult
 {
 public:
 // Checking results
-	// main results
+	/**
+	 * Is result an error?
+	 * @param [in] flr Return value to test.
+	 * @return true if return value is an error value.
+	 */
 	static bool IsError(DWORD flr) { return Main(flr) == FRESULT_ERROR; }
+	/**
+	 * Is result a success?
+	 * @param [in] flr Return value to test.
+	 * @return true if return value is an success value.
+	 */
 	static bool IsOk(DWORD flr) { return Main(flr) == FRESULT_OK; }
+	/**
+	 * Is result OK but file is impure?
+	 * @param [in] flr Return value to test.
+	 * @return true if return value is success and file is impure.
+	 */
 	static bool IsOkImpure(DWORD flr) { return Main(flr) == FRESULT_OK_IMPURE; }
+	/**
+	 * Is result binary file?
+	 * @param [in] flr Return value to test.
+	 * @return true if return value determines binary file.
+	 */
 	static bool IsBinary(DWORD flr) { return Main(flr) == FRESULT_BINARY; }
+	/**
+	 * Is result unpack error?
+	 * @param [in] flr Return value to test.
+	 * @return true if return value determines unpacking error.
+	 */
 	static bool IsErrorUnpack(DWORD flr) { return Main(flr) == FRESULT_ERROR_UNPACK; }
-	// modifiers
+	/**
+	 * Was there lossy conversion involved?
+	 * @param [in] flr Return value to test.
+	 * @return true if return value determines lossy conversion(s) were done.
+	 */
 	static bool IsLossy(DWORD flr) { return IsModifier(flr, FRESULT_LOSSY); }
 
 // Assigning results
@@ -55,16 +85,48 @@ public:
 	static DWORD Main(DWORD flr) { return flr & FRESULT_MAIN_MASK; }
 	static bool IsModifier(DWORD flr, DWORD modifier) { return !!(flr & modifier); }
 
-	enum
+	/** @brief Return values for functions. */
+	enum FILES_RESULT
 	{
+		/**
+		 * Mask for the main return values.
+		 * This mask defines bits used for main return values, separated from
+		 * modifier flags.
+		 */
 		FRESULT_MAIN_MASK = 0xF,
-		// main results
+
+		/**
+		 * Error.
+		 * This defines general error return value.
+		 */
 		FRESULT_ERROR = 0x0,
+		/**
+		 * Success.
+		 * This defines general success return value.
+		 */
 		FRESULT_OK = 0x1,
+		/**
+		 * Success, but impure file.
+		 * The file operation was successful. But the files was detected
+		 * to be impure file. Impure file is a file with two or three
+		 * different EOL styles.
+		 */
 		FRESULT_OK_IMPURE = 0x2,
+		/**
+		 * Binary file.
+		 * The file was loaded OK, and was detected to be a binary file.
+		 */
 		FRESULT_BINARY = 0x3,
+		/**
+		 * Unpacking plugin failed.
+		 * The file was loaded OK, but the unpacking plugin failed.
+		 */
 		FRESULT_ERROR_UNPACK = 0x4,
-		// modifiers
+
+		/**
+		 * Lossy conversions done.
+		 * Unicode / codepage conversions caused lossy conversions.
+		 */
 		FRESULT_LOSSY = 0x10000,
 	};
 };
@@ -112,5 +174,7 @@ struct ParsedTextFile
 BOOL files_openFileMapped(MAPPEDFILEDATA *fileData);
 BOOL files_closeFileMapped(MAPPEDFILEDATA *fileData, DWORD newSize, BOOL flush);
 BOOL files_isFileReadOnly(const CString &file, BOOL *fileExists = NULL);
+
+void files_UpdateFileTime(const DiffFileInfo & info);
 
 #endif // _FILES_H

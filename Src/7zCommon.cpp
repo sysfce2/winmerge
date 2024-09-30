@@ -48,51 +48,55 @@ Please mind 2. a) of the GNU General Public License, and log your changes below.
 
 DATE:		BY:					DESCRIPTION:
 ==========	==================	================================================
-2003/12/09	Jochen Tucht		Created
-2003/12/16	Jochen Tucht		Properly generate .tar.gz and .tar.bz2
-2003/12/16	Jochen Tucht		Obtain long path to temporary folder
-2004/01/20	Jochen Tucht		Complain only once if Merge7z*.dll is missing
-2004/01/25	Jochen Tucht		Fix bad default for OPENFILENAME::nFilterIndex
-2004/03/15	Jochen Tucht		Fix Visual Studio 2003 build issue
-2004/04/13	Jochen Tucht		Avoid StrNCat to get away with shlwapi 4.70
-2004/08/25	Jochen Tucht		More explicit error message
-2004/10/17	Jochen Tucht		Leave decision whether to recurse into folders
+2003-12-09	Jochen Tucht		Created
+2003-12-16	Jochen Tucht		Properly generate .tar.gz and .tar.bz2
+2003-12-16	Jochen Tucht		Obtain long path to temporary folder
+2004-01-20	Jochen Tucht		Complain only once if Merge7z*.dll is missing
+2004-01-25	Jochen Tucht		Fix bad default for OPENFILENAME::nFilterIndex
+2004-03-15	Jochen Tucht		Fix Visual Studio 2003 build issue
+2004-04-13	Jochen Tucht		Avoid StrNCat to get away with shlwapi 4.70
+2004-08-25	Jochen Tucht		More explicit error message
+2004-10-17	Jochen Tucht		Leave decision whether to recurse into folders
 								to enumerator (Mask.Recurse)
-2004/11/03	Jochen Tucht		FIX [1048997] as proposed by Kimmo 2004-11-02
-2005/01/15	Jochen Tucht		Read 7-Zip version from 7zip_pad.xml
+2004-11-03	Jochen Tucht		FIX [1048997] as proposed by Kimmo 2004-11-02
+2005-01-15	Jochen Tucht		Read 7-Zip version from 7zip_pad.xml
 								Set Merge7z UI language if DllBuild_Merge7z >= 9
-2005/01/22	Jochen Tucht		Better explain what's present/missing/outdated
-2005/02/05	Jochen Tucht		Fall back to IDD_MERGE7ZMISMATCH template from
+2005-01-22	Jochen Tucht		Better explain what's present/missing/outdated
+2005-02-05	Jochen Tucht		Fall back to IDD_MERGE7ZMISMATCH template from
 								.exe if .lang file isn't up to date.
-2005/02/26	Jochen Tucht		Add download link to error message
-2005/02/26	Jochen Tucht		Use WinAPI to obtain ISO language/region codes
-2005/02/27	Jochen Tucht		FIX [1152375]
-2005/04/24	Kimmo Varis			Don't use DiffContext exported from DirView
-2005/06/08	Kimmo Varis			Use DIFFITEM, not reference to it (hopefully only
+2005-02-26	Jochen Tucht		Add download link to error message
+2005-02-26	Jochen Tucht		Use WinAPI to obtain ISO language/region codes
+2005-02-27	Jochen Tucht		FIX [1152375]
+2005-04-24	Kimmo Varis			Don't use DiffContext exported from DirView
+2005-06-08	Kimmo Varis			Use DIFFITEM, not reference to it (hopefully only
 								temporarily, to sort out new directory compare)
-2005/06/22	Jochen Tucht		Change recommended version of 7-Zip to 4.20
+2005-06-22	Jochen Tucht		Change recommended version of 7-Zip to 4.20
 								Remove noise from Nagbox
-2005/07/03	Jochen Tucht		DIFFITEM has changed due to RFE [ 1205516 ]
-2005/07/04	Jochen Tucht		New global ArchiveGuessFormat() checks for
+2005-07-03	Jochen Tucht		DIFFITEM has changed due to RFE [ 1205516 ]
+2005-07-04	Jochen Tucht		New global ArchiveGuessFormat() checks for
 								formats to be handled by external command line
 								tools. These take precedence over Merge7z
 								internal handlers.
-2005/07/05	Jochen Tucht		Move to Merge7z::Format::GetDefaultName() to
+2005-07-05	Jochen Tucht		Move to Merge7z::Format::GetDefaultName() to
 								build intermediate filenames for multi-step
 								compression.
-2005/07/15	Jochen Tucht		Remove external command line tool integration
+2005-07-15	Jochen Tucht		Remove external command line tool integration
 								for now. Rethink about it after 2.4 branch.
-2005/08/20	Jochen Tucht		Option to guess archive format by signature
+2005-08-20	Jochen Tucht		Option to guess archive format by signature
 								Map extensions through ExternalArchiveFormat.ini
-2005/08/23	Jochen Tucht		Option to entirely disable 7-Zip integration
-2007/06/16	Jochen Neubeck		FIX [1723263] "Zip --> Both" operation...
+2005-08-23	Jochen Tucht		Option to entirely disable 7-Zip integration
+2007-01-04	Kimmo Varis			Convert using COptionsMgr for options.
+2007-06-16	Jochen Neubeck		FIX [1723263] "Zip --> Both" operation...
+2007-12-22	Jochen Neubeck		Fix Merge7z UI lang for new translation system
+								Change recommended version of 7-Zip to 4.57
 */
 
-// RCS ID line follows -- this is updated by CVS
-// $Id: 7zCommon.cpp 4339 2007-06-16 05:43:41Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: 7zCommon.cpp 5367 2008-05-25 18:37:56Z jtuc $
 
 #include "stdafx.h"
-#include "Merge.h"		// DirDocFilter theApp
+#include "OptionsDef.h"
+#include "Merge.h"		// DirDocFilter theApp GetOptionsMgr()
 #include "resource.h"
 #include "DirDoc.h"
 #include "MainFrm.h"
@@ -102,6 +106,7 @@ DATE:		BY:					DESCRIPTION:
 #include <afxinet.h>
 #include <shlwapi.h>
 #include <paths.h>
+#include "Environment.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -116,7 +121,7 @@ static char THIS_FILE[] = __FILE__;
  */
 Merge7z::Format *ArchiveGuessFormat(LPCTSTR path)
 {
-	if (theApp.GetProfileInt(_T("Merge7z"), _T("Enable"), 1) == 0)
+	if (GetOptionsMgr()->GetInt(OPT_ARCHIVE_ENABLE) == 0)
 		return NULL;
 	if (PathIsDirectory(path))
 		return NULL;
@@ -200,14 +205,14 @@ protected:
 	static const DWORD m_dwVer7zRecommended;
 	static const TCHAR m_strRegistryKey[];
 	static const TCHAR m_strDownloadURL[];
-	static BOOL CALLBACK DlgProc(HWND, UINT, WPARAM, LPARAM);
+	static INT_PTR CALLBACK DlgProc(HWND, UINT, WPARAM, LPARAM);
 	static DWORD FormatVersion(LPTSTR, LPTSTR, DWORD);
 };
 
 /**
  * @brief Recommended version of 7-Zip.
  */
-const DWORD C7ZipMismatchException::m_dwVer7zRecommended = DWORD MAKELONG(42,4);
+const DWORD C7ZipMismatchException::m_dwVer7zRecommended = DWORD MAKELONG(57,4);
 
 /**
  * @brief Registry key for C7ZipMismatchException's ReportError() popup.
@@ -364,12 +369,13 @@ HCURSOR NTAPI CommCtrl_LoadCursor(LPCTSTR lpCursorName)
 /**
  * @brief DLGPROC for C7ZipMismatchException's ReportError() popup.
  */
-BOOL CALLBACK C7ZipMismatchException::DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK C7ZipMismatchException::DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
 		case WM_INITDIALOG:
 		{
+			theApp.TranslateDialog(hWnd);
 			if (GetDlgItem(hWnd, 9001) == NULL)
 			{
 				// Dialog template isn't up to date. Give it a second chance.
@@ -387,13 +393,13 @@ BOOL CALLBACK C7ZipMismatchException::DlgProc(HWND hWnd, UINT uMsg, WPARAM wPara
 			else
 			{
 				GetDlgItemText(hWnd, 107, cText.Data, cText.Size);
-				switch (theApp.GetProfileInt(_T("Merge7z"), _T("Enable"), 1))
+				switch (GetOptionsMgr()->GetInt(OPT_ARCHIVE_ENABLE))
 				{
 				case 0:
-					lstrcat(cText.Data, CString(MAKEINTRESOURCE(IDS_MERGE7Z_ENABLE_0)));
+					lstrcat(cText.Data, theApp.LoadString(IDS_MERGE7Z_ENABLE_0).c_str());
 					break;
 				case 2:
-					lstrcat(cText.Data, CString(MAKEINTRESOURCE(IDS_MERGE7Z_ENABLE_2)));
+					lstrcat(cText.Data, theApp.LoadString(IDS_MERGE7Z_ENABLE_2).c_str());
 					break;
 				}
 				SetDlgItemText(hWnd, 107, cText.Data);
@@ -484,7 +490,7 @@ BOOL CALLBACK C7ZipMismatchException::DlgProc(HWND hWnd, UINT uMsg, WPARAM wPara
 			if (hCursor)
 			{
 				SetCursor(hCursor);
-				SetWindowLong(hWnd, DWL_MSGRESULT, 1);
+				SetWindowLongPtr(hWnd, DWLP_MSGRESULT, 1);
 				return TRUE;
 			}
 		} return FALSE;
@@ -523,7 +529,7 @@ BOOL CALLBACK C7ZipMismatchException::DlgProc(HWND hWnd, UINT uMsg, WPARAM wPara
  */
 int C7ZipMismatchException::ReportError(UINT nType, UINT nMessageID)
 {
-	short response = -1;
+	UINT_PTR response = -1;
 	m_bShowAllways = nMessageID;
 	if (!m_bShowAllways)
 	{
@@ -599,7 +605,7 @@ CString NTAPI GetClearTempPath(LPVOID pOwner, LPCTSTR pchExt)
 	strPath.Format
 	(
 		pOwner ? _T("%sWINMERGE.%08lX\\%08lX.%s") : _T("%sWINMERGE.%08lX"),
-		paths_GetTempPath(), GetCurrentProcessId(), pOwner, pchExt
+		env_GetTempPath(), GetCurrentProcessId(), pOwner, pchExt
 	);
 	// SHFileOperation expects a ZZ terminated list of paths!
 	int cchPath = strPath.GetLength();
@@ -657,21 +663,6 @@ DWORD NTAPI VersionOf7z(BOOL bLocal)
 }
 
 /**
- * @brief Callback to pass to EnumResourceLanguages.
- */
-BOOL CALLBACK FindNextResLang(HMODULE hModule, LPCTSTR lpType, LPCTSTR lpName, WORD wLanguage, LONG lParam)
-{
-	LPWORD pwLanguage = (LPWORD)lParam;
-	WORD wPrevious = *pwLanguage;
-	if (wPrevious == 0 || wPrevious == wLanguage)
-	{
-		*pwLanguage ^= wLanguage;
-		return wPrevious;
-	}
-	return TRUE;
-}
-
-/**
  * @brief Access dll functions through proxy.
  */
 interface Merge7z *Merge7z::Proxy::operator->()
@@ -689,7 +680,7 @@ interface Merge7z *Merge7z::Proxy::operator->()
 		char name[MAX_PATH];
 		DWORD flags = ~0;
 		CException *pCause = NULL;
-		switch (theApp.GetProfileInt(_T("Merge7z"), _T("Enable"), 1))
+		switch (GetOptionsMgr()->GetInt(OPT_ARCHIVE_ENABLE))
 		{
 		case 1: //Use installed 7-Zip if present. Otherwise, use local 7-Zip.
 			if (DWORD ver = VersionOf7z(FALSE))
@@ -734,15 +725,9 @@ interface Merge7z *Merge7z::Proxy::operator->()
 				pCause
 			);
 		}
-		if (HINSTANCE hinstLang = AfxGetResourceHandle())
-		{
-			WORD wLangID = 0;
-			if (EnumResourceLanguages(hinstLang, RT_VERSION, MAKEINTRESOURCE(VS_VERSION_INFO), FindNextResLang, (LPARAM)&wLangID) == 0)
-			{
-				flags |= wLangID << 16;
-			}
-		}
-		if (theApp.GetProfileInt(_T("Merge7z"), _T("ProbeSignature"), 0))
+		LANGID wLangID = (LANGID)GetThreadLocale();
+		flags |= wLangID << 16;
+		if (GetOptionsMgr()->GetBool(OPT_ARCHIVE_PROBETYPE))
 		{
 			flags |= Initialize::GuessFormatBySignature | Initialize::GuessFormatByExtension;
 		}
@@ -820,7 +805,7 @@ CDirView::DirItemEnumerator::DirItemEnumerator(CDirView *pView, int nFlags)
 		// Collect implied folders
 		for (UINT i = Open() ; i-- ; )
 		{
-			DIFFITEM di = Next();
+			const DIFFITEM &di = Next();
 			if ((m_nFlags & DiffsOnly) && !m_pView->IsItemNavigableDiff(di))
 			{
 				continue;
@@ -828,19 +813,19 @@ CDirView::DirItemEnumerator::DirItemEnumerator(CDirView *pView, int nFlags)
 			if (m_bRight) 
 			{
 				// Enumerating items on right side
-				if (!di.isSideLeft())
+				if (!di.diffcode.isSideLeftOnly())
 				{
 					// Item is present on right side, i.e. folder is implied
-					m_rgImpliedFoldersRight[di.sRightSubdir] = PVOID(1);
+					m_rgImpliedFoldersRight[di.right.path.c_str()] = PVOID(1);
 				}
 			}
 			else
 			{
 				// Enumerating items on left side
-				if (!di.isSideRight())
+				if (!di.diffcode.isSideRightOnly())
 				{
 					// Item is present on left side, i.e. folder is implied
-					m_rgImpliedFoldersLeft[di.sLeftSubdir] = PVOID(1);
+					m_rgImpliedFoldersLeft[di.left.path.c_str()] = PVOID(1);
 				}
 			}
 		}
@@ -875,7 +860,7 @@ UINT CDirView::DirItemEnumerator::Open()
 /**
  * @brief Return next item.
  */
-DIFFITEM CDirView::DirItemEnumerator::Next()
+const DIFFITEM &CDirView::DirItemEnumerator::Next()
 {
 	enum {nMask = LVNI_FOCUSED|LVNI_SELECTED|LVNI_CUT|LVNI_DROPHILITED};
 	while ((m_nIndex = pView(m_pView)->GetNextItem(m_nIndex, m_nFlags & nMask)) == -1)
@@ -883,7 +868,7 @@ DIFFITEM CDirView::DirItemEnumerator::Next()
 		m_strFolderPrefix = m_rgFolderPrefix.GetNext(m_curFolderPrefix);
 		m_bRight = TRUE;
 	}
-	return m_pView->GetItemAt(m_nIndex);
+	return m_pView->GetDiffItem(m_nIndex);
 }
 
 /**
@@ -903,29 +888,29 @@ DIFFITEM CDirView::DirItemEnumerator::Next()
 Merge7z::Envelope *CDirView::DirItemEnumerator::Enum(Item &item)
 {
 	CDirDoc * pDoc = m_pView->GetDocument();
-	DIFFITEM di = Next();
+	const DIFFITEM &di = Next();
 
 	if ((m_nFlags & DiffsOnly) && !m_pView->IsItemNavigableDiff(di))
 	{
 		return 0;
 	}
 
-	bool isSideLeft = di.isSideLeft();
-	bool isSideRight = di.isSideRight();
+	bool isSideLeft = di.diffcode.isSideLeftOnly();
+	bool isSideRight = di.diffcode.isSideRightOnly();
 
 	Envelope *envelope = new Envelope;
 
-	const CString &sFilename = m_bRight ? di.sRightFilename : di.sLeftFilename;
-	const CString &sSubdir = m_bRight ? di.sRightSubdir : di.sLeftSubdir;
+	const String &sFilename = m_bRight ? di.right.filename : di.left.filename;
+	const String &sSubdir = m_bRight ? di.right.path : di.left.path;
 	envelope->Name = sFilename;
-	if (sSubdir.GetLength())
+	if (sSubdir.length())
 	{
-		envelope->Name.Insert(0, '\\');
-		envelope->Name.Insert(0, sSubdir);
+		envelope->Name.insert(0, _T("\\"));
+		envelope->Name.insert(0, sSubdir);
 	}
 	envelope->FullPath = sFilename;
-	envelope->FullPath.Insert(0, '\\');
-	envelope->FullPath.Insert(0, m_bRight ?
+	envelope->FullPath.insert(0, _T("\\"));
+	envelope->FullPath.insert(0, m_bRight ?
 		di.getRightFilepath(pDoc->GetRightBasePath()) :
 		di.getLeftFilepath(pDoc->GetLeftBasePath()));
 
@@ -939,12 +924,12 @@ Merge7z::Envelope *CDirView::DirItemEnumerator::Enum(Item &item)
 			if (isSideLeft)
 			{
 				// Item is missing on right side
-				PVOID &implied = m_rgImpliedFoldersRight[di.sLeftSubdir];
+				PVOID &implied = m_rgImpliedFoldersRight[di.left.path.c_str()];
 				if (!implied)
 				{
 					// Folder is not implied by some other file, and has
 					// not been enumerated so far, so enumerate it now!
-					envelope->Name = di.sLeftSubdir;
+					envelope->Name = di.left.path;
 					envelope->FullPath = di.getLeftFilepath(pDoc->GetLeftBasePath());
 					implied = PVOID(2); // Don't enumerate same folder twice!
 					isSideLeft = false;
@@ -958,12 +943,12 @@ Merge7z::Envelope *CDirView::DirItemEnumerator::Enum(Item &item)
 			if (isSideRight)
 			{
 				// Item is missing on left side
-				PVOID &implied = m_rgImpliedFoldersLeft[di.sRightSubdir];
+				PVOID &implied = m_rgImpliedFoldersLeft[di.right.path.c_str()];
 				if (!implied)
 				{
 					// Folder is not implied by some other file, and has
 					// not been enumerated so far, so enumerate it now!
-					envelope->Name = di.sRightSubdir;
+					envelope->Name = di.right.path;
 					envelope->FullPath = di.getRightFilepath(pDoc->GetRightBasePath());
 					implied = PVOID(2); // Don't enumerate same folder twice!
 					isSideRight = false;
@@ -980,14 +965,14 @@ Merge7z::Envelope *CDirView::DirItemEnumerator::Enum(Item &item)
 
 	if (m_strFolderPrefix.GetLength())
 	{
-		if (envelope->Name.GetLength())
-			envelope->Name.Insert(0, '\\');
-		envelope->Name.Insert(0, m_strFolderPrefix);
+		if (envelope->Name.length())
+			envelope->Name.insert(0, _T("\\"));
+		envelope->Name.insert(0, m_strFolderPrefix);
 	}
 
 	item.Mask.Item = item.Mask.Name|item.Mask.FullPath|item.Mask.CheckIfPresent|Recurse;
-	item.Name = envelope->Name;
-	item.FullPath = envelope->FullPath;
+	item.Name = envelope->Name.c_str();
+	item.FullPath = envelope->FullPath.c_str();
 	return envelope;
 }
 
@@ -1095,7 +1080,7 @@ void CDirView::DirItemEnumerator::CompressArchive(LPCTSTR path)
 	}
 	if (path && !MultiStepCompressArchive(path))
 	{
-		AfxMessageBox(IDS_UNKNOWN_ARCHIVE_FORMAT, MB_ICONEXCLAMATION);
+		LangMessageBox(IDS_UNKNOWN_ARCHIVE_FORMAT, MB_ICONEXCLAMATION);
 	}
 #ifdef _DEBUG
 	afxDump << m_rgImpliedFoldersLeft;
@@ -1109,33 +1094,33 @@ void CDirView::DirItemEnumerator::CompressArchive(LPCTSTR path)
 void CDirView::DirItemEnumerator::CollectFiles(CString &strBuffer)
 {
 	CDirDoc *pDoc = m_pView->GetDocument();
-	const CString sLeftRootPath = pDoc->GetLeftBasePath();
-	const CString sRightRootPath = pDoc->GetRightBasePath();
+	const String sLeftRootPath = pDoc->GetLeftBasePath();
+	const String sRightRootPath = pDoc->GetRightBasePath();
 	UINT i;
 	int cchBuffer = 0;
 	for (i = Open() ; i-- ; )
 	{
-		DIFFITEM di = Next();
+		const DIFFITEM &di = Next();
 		if (m_bRight ? m_pView->IsItemOpenableOnRightWith(di) : m_pView->IsItemOpenableOnLeftWith(di))
 		{
 			cchBuffer +=
 			(
 				m_bRight ? di.getRightFilepath(sLeftRootPath) : di.getLeftFilepath(sRightRootPath)
-			).GetLength() + (m_bRight ? di.sRightFilename : di.sLeftFilename).GetLength() + 2;
+			).length() + (m_bRight ? di.right.filename : di.left.filename).length() + 2;
 		}
 	}
 	LPTSTR pchBuffer = strBuffer.GetBufferSetLength(cchBuffer);
 	for (i = Open() ; i-- ; )
 	{
-		DIFFITEM di = Next();
+		const DIFFITEM &di = Next();
 		if (m_bRight ? m_pView->IsItemOpenableOnRightWith(di) : m_pView->IsItemOpenableOnLeftWith(di))
 		{
 			pchBuffer += wsprintf
 			(
 				pchBuffer,
 				_T("%s\\%s"),
-				m_bRight ? di.getRightFilepath(sLeftRootPath) : di.getLeftFilepath(sRightRootPath),
-				m_bRight ? di.sRightFilename : di.sLeftFilename
+				m_bRight ? di.getRightFilepath(sLeftRootPath).c_str() : di.getLeftFilepath(sRightRootPath).c_str(),
+				m_bRight ? di.right.filename.c_str() : di.left.filename.c_str()
 			) + 1;
 		}
 	}

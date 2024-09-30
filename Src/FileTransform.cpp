@@ -23,8 +23,8 @@
  *
  *  @brief Implementation of file transformations
  */ 
-// RCS ID line follows -- this is updated by CVS
-// $Id: FileTransform.cpp 2877 2005-12-30 00:57:48Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: FileTransform.cpp 4869 2008-01-07 16:22:35Z kimmov $
 
 #include "StdAfx.h"
 #include "FileTransform.h"
@@ -32,6 +32,8 @@
 #include "files.h"
 #include "paths.h"
 #include "multiformatText.h"
+#include "UniMarkdownFile.h"
+#include "Environment.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -40,8 +42,8 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 
-BOOL g_bUnpackerMode = PLUGIN_MANUAL;
-BOOL g_bPredifferMode = PLUGIN_MANUAL;
+int g_bUnpackerMode = PLUGIN_MANUAL;
+int g_bPredifferMode = PLUGIN_MANUAL;
 
 /**
  * @brief Category of transformation : define the transformation events
@@ -67,21 +69,21 @@ extern LPCWSTR TransformationCategories[] =
 // transformations : packing unpacking
 
 // known handler
-BOOL FileTransform_Packing(CString & filepath, PackingInfo handler)
+BOOL FileTransform_Packing(String & filepath, PackingInfo handler)
 {
 	// no handler : return true
-	if (handler.pluginName.IsEmpty())
+	if (handler.pluginName.empty())
 		return TRUE;
 
 	storageForPlugins bufferData;
-	bufferData.SetDataFileAnsi(filepath);
+	bufferData.SetDataFileAnsi(filepath.c_str());
 
 	// control value
 	BOOL bHandled = FALSE;
 
-	PluginInfo * plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"FILE_PACK_UNPACK", handler.pluginName);
+	PluginInfo * plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"FILE_PACK_UNPACK", handler.pluginName.c_str());
 	if (plugin == NULL)
-		plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"BUFFER_PACK_UNPACK", handler.pluginName);
+		plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"BUFFER_PACK_UNPACK", handler.pluginName.c_str());
 	LPDISPATCH piScript = plugin->lpDispatch;
 	if (handler.bWithFile)
 	{
@@ -117,14 +119,14 @@ BOOL FileTransform_Packing(CString & filepath, PackingInfo handler)
 }
 
 // known handler
-BOOL FileTransform_Unpacking(CString & filepath, const PackingInfo * handler, int * handlerSubcode)
+BOOL FileTransform_Unpacking(String & filepath, const PackingInfo * handler, int * handlerSubcode)
 {
 	// no handler : return true
-	if (handler->pluginName.IsEmpty())
+	if (handler->pluginName.empty())
 		return TRUE;
 
 	storageForPlugins bufferData;
-	bufferData.SetDataFileAnsi(filepath);
+	bufferData.SetDataFileAnsi(filepath.c_str());
 
 	// temporary subcode 
 	int subcode;
@@ -132,9 +134,9 @@ BOOL FileTransform_Unpacking(CString & filepath, const PackingInfo * handler, in
 	// control value
 	BOOL bHandled = FALSE;
 
-	PluginInfo * plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"FILE_PACK_UNPACK", handler->pluginName);
+	PluginInfo * plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"FILE_PACK_UNPACK", handler->pluginName.c_str());
 	if (plugin == NULL)
-		plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"BUFFER_PACK_UNPACK", handler->pluginName);
+		plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"BUFFER_PACK_UNPACK", handler->pluginName.c_str());
 	LPDISPATCH piScript = plugin->lpDispatch;
 	if (handler->bWithFile)
 	{
@@ -175,13 +177,25 @@ BOOL FileTransform_Unpacking(CString & filepath, const PackingInfo * handler, in
 
 
 // scan plugins for the first handler
-BOOL FileTransform_Unpacking(CString & filepath, CString filteredText, PackingInfo * handler, int * handlerSubcode)
+BOOL FileTransform_Unpacking(String & filepath, LPCTSTR filteredText, PackingInfo * handler, int * handlerSubcode)
 {
+	// PLUGIN_BUILTIN_XML : read source file through custom UniFile
+	if (handler->bToBeScanned == PLUGIN_BUILTIN_XML)
+	{
+		handler->pufile = new UniMarkdownFile;
+		handler->textType = _T("xml");
+		handler->disallowMixedEOL = true;
+		handler->pluginName.erase(); // Make FileTransform_Packing() a NOP
+		// Leave bToBeScanned alone so above lines will continue to execute on
+		// subsequent calls to this function
+		return TRUE;
+	}
+
 	storageForPlugins bufferData;
-	bufferData.SetDataFileAnsi(filepath);
+	bufferData.SetDataFileAnsi(filepath.c_str());
 
 	// filename, to test the extension
-	CString filename = filepath.Mid(filepath.ReverseFind('\\')+1);
+	CString filename = PathFindFileName(filepath.c_str());
 
 	// control value
 	BOOL bHandled = FALSE;
@@ -266,25 +280,25 @@ BOOL FileTransform_Unpacking(CString & filepath, CString filteredText, PackingIn
 // transformation prediffing
     
 // known handler
-BOOL FileTransform_Prediffing(CString & filepath, PrediffingInfo handler, BOOL bMayOverwrite)
+BOOL FileTransform_Prediffing(String & filepath, PrediffingInfo handler, BOOL bMayOverwrite)
 {
 	// no handler : return true
-	if (handler.pluginName.IsEmpty())
+	if (handler.pluginName.empty())
 		return TRUE;
 
 	storageForPlugins bufferData;
 	// detect Ansi or Unicode file
-	bufferData.SetDataFileUnknown(filepath, bMayOverwrite);
+	bufferData.SetDataFileUnknown(filepath.c_str(), bMayOverwrite);
 	// TODO : set the codepage
 	// bufferData.SetCodepage();
 
 	// control value
 	BOOL bHandled = FALSE;
 
-	PluginInfo * plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"FILE_PREDIFF", handler.pluginName);
+	PluginInfo * plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"FILE_PREDIFF", handler.pluginName.c_str());
 	if (!plugin)
 	{
-		plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"BUFFER_PREDIFF", handler.pluginName);
+		plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"BUFFER_PREDIFF", handler.pluginName.c_str());
 		if (!plugin)
 			return FALSE;
 	}
@@ -326,16 +340,16 @@ BOOL FileTransform_Prediffing(CString & filepath, PrediffingInfo handler, BOOL b
 
 
 // scan plugins for the first handler
-BOOL FileTransform_Prediffing(CString & filepath, CString filteredText, PrediffingInfo * handler, BOOL bMayOverwrite)
+BOOL FileTransform_Prediffing(String & filepath, LPCTSTR filteredText, PrediffingInfo * handler, BOOL bMayOverwrite)
 {
 	storageForPlugins bufferData;
 	// detect Ansi or Unicode file
-	bufferData.SetDataFileUnknown(filepath, bMayOverwrite);
+	bufferData.SetDataFileUnknown(filepath.c_str(), bMayOverwrite);
 	// TODO : set the codepage
 	// bufferData.SetCodepage();
 
 	// filename, to test the extension
-	CString filename = filepath.Mid(filepath.ReverseFind('\\')+1);
+	CString filename = PathFindFileName(filepath.c_str());
 
 	// control value
 	BOOL bHandled = FALSE;
@@ -413,17 +427,17 @@ BOOL FileTransform_Prediffing(CString & filepath, CString filteredText, Prediffi
 
 ////////////////////////////////////////////////////////////////////////////////
 
-BOOL FileTransform_NormalizeUnicode(CString & filepath, BOOL bMayOverwrite)
+BOOL FileTransform_NormalizeUnicode(String & filepath, BOOL bMayOverwrite)
 {
-	CString tempDir = paths_GetTempPath();
-	if (tempDir.IsEmpty())
+	String tempDir = env_GetTempPath();
+	if (tempDir.empty())
 		return FALSE;
-	CString tempFilepath = paths_GetTempFileName(tempDir, _T("_WM"));
-	if (tempFilepath.IsEmpty())
+	String tempFilepath = env_GetTempFileName(tempDir.c_str(), _T("_WM"));
+	if (tempFilepath.empty())
 		return FALSE;
 
 	int nFileChanged = 0;
-	BOOL bSuccess = UnicodeFileToOlechar(filepath, tempFilepath, nFileChanged); 
+	BOOL bSuccess = UnicodeFileToOlechar(filepath.c_str(), tempFilepath.c_str(), nFileChanged); 
 	if (!bSuccess)
 		return FALSE;
 
@@ -432,10 +446,10 @@ BOOL FileTransform_NormalizeUnicode(CString & filepath, BOOL bMayOverwrite)
 		// we do not overwrite so we delete the old file
 		if (bMayOverwrite)
 		{
-			if (!::DeleteFile(filepath))
+			if (!::DeleteFile(filepath.c_str()))
 			{
 				LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-					filepath, GetSysError(GetLastError())));
+					filepath.c_str(), GetSysError(GetLastError())));
 			}
 		}
 		// and change the filepath if everything works
@@ -443,10 +457,10 @@ BOOL FileTransform_NormalizeUnicode(CString & filepath, BOOL bMayOverwrite)
 	}
 	else
 	{
-		if (!::DeleteFile(tempFilepath))
+		if (!::DeleteFile(tempFilepath.c_str()))
 		{
 			LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-				tempFilepath, GetSysError(GetLastError())));
+				tempFilepath.c_str(), GetSysError(GetLastError())));
 		}
 	}
 
@@ -458,19 +472,18 @@ BOOL FileTransform_NormalizeUnicode(CString & filepath, BOOL bMayOverwrite)
 
 // for OLECHAR files, transform to UTF8 for diffutils
 // TODO : convert Ansi to UTF8 if other file is unicode or uses a different codepage
-BOOL FileTransform_UCS2ToUTF8(CString & filepath, BOOL bMayOverwrite)
+BOOL FileTransform_UCS2ToUTF8(String & filepath, BOOL bMayOverwrite)
 {
-
-	TCHAR tempFilepath[MAX_PATH] = _T("");
-	TCHAR tempDir[MAX_PATH] = _T("");
-	if (!GetTempPath(countof(tempDir), tempDir))
+	String tempDir = env_GetTempPath();
+	if (tempDir.empty())
 		return FALSE;
-	if (!GetTempFileName(tempDir, _T ("_WM"), 0, tempFilepath))
+	String tempFilepath = env_GetTempFileName(tempDir.c_str(), _T("_WM"));
+	if (tempFilepath.empty())
 		return FALSE;
 
 	// TODO : is it better with the BOM or without (just change the last argument)
 	int nFileChanged = 0;
-	BOOL bSuccess = OlecharToUTF8(filepath, tempFilepath, nFileChanged, FALSE); 
+	BOOL bSuccess = OlecharToUTF8(filepath.c_str(), tempFilepath.c_str(), nFileChanged, FALSE); 
 	if (!bSuccess)
 		return FALSE;
 
@@ -479,10 +492,10 @@ BOOL FileTransform_UCS2ToUTF8(CString & filepath, BOOL bMayOverwrite)
 		// we do not overwrite so we delete the old file
 		if (bMayOverwrite)
 		{
-			if (!::DeleteFile(filepath))
+			if (!::DeleteFile(filepath.c_str()))
 			{
 				LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-					filepath, GetSysError(GetLastError())));
+					filepath.c_str(), GetSysError(GetLastError())));
 			}
 		}
 		// and change the filepath if everything works
@@ -490,10 +503,10 @@ BOOL FileTransform_UCS2ToUTF8(CString & filepath, BOOL bMayOverwrite)
 	}
 	else
 	{
-		if (!::DeleteFile(tempFilepath))
+		if (!::DeleteFile(tempFilepath.c_str()))
 		{
 			LogErrorString(Fmt(_T("DeleteFile(%s) failed: %s"),
-				tempFilepath, GetSysError(GetLastError())));
+				tempFilepath.c_str(), GetSysError(GetLastError())));
 		}
 	}
 

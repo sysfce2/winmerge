@@ -23,10 +23,11 @@
  *
  * @brief Code for CVssPrompt class
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: VssPrompt.cpp 2381 2005-05-24 02:48:42Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: VssPrompt.cpp 4739 2007-11-12 20:41:16Z jtuc $
 
 #include "stdafx.h"
+#include "Merge.h"
 #include "VssPrompt.h"
 #include "RegKey.h"
 
@@ -40,18 +41,16 @@ static char THIS_FILE[] = __FILE__;
 // CVssPrompt dialog
 
 
+/**
+ * @brief Default constructor.
+ * @param [in] pParent Pointer to parent component.
+ */
 CVssPrompt::CVssPrompt(CWnd* pParent /*=NULL*/)
 	: CDialog(CVssPrompt::IDD, pParent)
 	, m_strSelectedDatabase(_T(""))
 	, m_bMultiCheckouts(FALSE)
 	, m_bVCProjSync(FALSE)
 {
-	//{{AFX_DATA_INIT(CVssPrompt)
-	m_strProject = _T("");
-	m_strUser = _T("");
-	m_strPassword = _T("");
-	m_strMessage = _T("");
-	//}}AFX_DATA_INIT
 }
 
 
@@ -82,8 +81,13 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CVssPrompt message handlers
 
-BOOL CVssPrompt::OnInitDialog() 
+/**
+ * @brief Initialize the dialog.
+ * @return TRUE, unless focus is modified.
+ */
+BOOL CVssPrompt::OnInitDialog()
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
 
 	m_ctlProject.LoadState(_T("Vss"));
@@ -99,9 +103,8 @@ BOOL CVssPrompt::OnInitDialog()
 	// Open key containing VSS databases
 	if (!reg.QueryRegMachine(_T("SOFTWARE\\Microsoft\\SourceSafe\\Databases")))
 	{
-		CString msg;
-		VERIFY(msg.LoadString(IDS_VSS_NODATABASES));
-		AfxMessageBox(msg, MB_ICONERROR);
+		String msg = theApp.LoadString(IDS_VSS_NODATABASES);
+		AfxMessageBox(msg.c_str(), MB_ICONERROR);
 		return FALSE;
 	}
 
@@ -123,12 +126,15 @@ BOOL CVssPrompt::OnInitDialog()
 	return TRUE;
 }
 
-void CVssPrompt::OnOK() 
+/**
+ * @brief Close dialog with OK-button.
+ */
+void CVssPrompt::OnOK()
 {
 	UpdateData(TRUE);
 	if (m_strProject.IsEmpty())
 	{
-		AfxMessageBox(IDS_NOPROJECT,MB_ICONSTOP);
+		LangMessageBox(IDS_NOPROJECT,MB_ICONSTOP);
 		m_ctlProject.SetFocus();
 		return;
 	}
@@ -137,7 +143,10 @@ void CVssPrompt::OnOK()
 	CDialog::OnOK();
 }
 
-void CVssPrompt::OnSaveas() 
+/**
+ * @brief Close dialog with Save As -button.
+ */
+void CVssPrompt::OnSaveas()
 {
 	EndDialog(IDC_SAVE_AS);
 }

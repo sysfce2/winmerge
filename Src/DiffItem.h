@@ -3,8 +3,8 @@
  *
  *  @brief Declaration of DIFFITEM
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DiffItem.h 3748 2006-10-31 17:33:53Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: DiffItem.h 5019 2008-02-10 11:50:33Z jtuc $
 
 #ifndef _DIFF_ITEM_H_
 #define _DIFF_ITEM_H_
@@ -54,7 +54,7 @@ struct DIFFCODE
 		// and each set of flags is in a different hex digit
 		// to make debugging easier
 		// These can always be packed down in the future
-		TEXTFLAGS=0x7, TEXT=0x1, BIN=0x2,
+		TEXTFLAGS=0x7, TEXT=0x1, BINSIDE1=0x2, BINSIDE2=0x3, BIN=0x4,
 		DIRFLAGS=0x30, FILE=0x10, DIR=0x20,
 		SIDEFLAGS=0x300, LEFT=0x100, RIGHT=0x200, BOTH=0x300,
 		COMPAREFLAGS=0x7000, NOCMP=0x0000, SAME=0x1000, DIFF=0x2000, CMPERR=0x3000, CMPABORT=0x4000,
@@ -67,23 +67,29 @@ struct DIFFCODE
 	DIFFCODE(int diffcode = 0) : diffcode(diffcode) { }
 
 protected:
+	/// Worker function, to check one area (mask) of code for a particular value (result)
 	static bool Check(int code, int mask, int result) { return ((code & mask) == result); }
+	/// Convenience function to check the part of the code for comparison results
 	static bool CheckCompare(int code, int result) { return Check(code, DIFFCODE::COMPAREFLAGS, result); }
+	/// Convenience function to check the part of the code for filter status
 	static bool CheckFilter(int code, int result) { return Check(code, DIFFCODE::FILTERFLAGS, result); }
+	/// Convenience function to check the part of the code for side status (eg, left-only)
 	static bool CheckSide(int code, int result) { return Check(code, DIFFCODE::SIDEFLAGS, result); }
 
+	/// Worker function to set the area indicated by mask to specified result
 	void Set(int mask, int result) { diffcode &= (~mask); diffcode |= result; }
+	/// Convenience function to set the side status, eg, SetSide(DIFFCODE::LEFT)
 	void SetSide(int result) { Set(DIFFCODE::SIDEFLAGS, result); }
 public:
 
 	// file/directory
 	bool isDirectory() const { return Check(diffcode, DIFFCODE::DIRFLAGS, DIFFCODE::DIR); }
 	// left/right
-	bool isSideLeft() const { return CheckSide(diffcode, DIFFCODE::LEFT); }
-	bool isSideLeftOrBoth() const { return isSideLeft() || isSideBoth(); }
+	bool isSideLeftOnly() const { return CheckSide(diffcode, DIFFCODE::LEFT); }
+	bool isSideLeftOrBoth() const { return isSideLeftOnly() || isSideBoth(); }
 	void setSideLeft() { SetSide(DIFFCODE::LEFT); }
-	bool isSideRight() const { return CheckSide(diffcode, DIFFCODE::RIGHT); }
-	bool isSideRightOrBoth() const { return isSideRight() || isSideBoth(); }
+	bool isSideRightOnly() const { return CheckSide(diffcode, DIFFCODE::RIGHT); }
+	bool isSideRightOrBoth() const { return isSideRightOnly() || isSideBoth(); }
 	void setSideRight() { SetSide(DIFFCODE::RIGHT); }
 	bool isSideBoth() const { return CheckSide(diffcode, DIFFCODE::BOTH); }
 	void setSideBoth() { SetSide(DIFFCODE::BOTH); }
@@ -91,7 +97,7 @@ public:
 	// compare result
 	bool isResultSame() const { return CheckCompare(diffcode, DIFFCODE::SAME); }
 	bool isResultDiff() const { return (!isResultSame() && !isResultFiltered() && !isResultError() &&
-			!isSideLeft() && !isSideRight()); }
+			!isSideLeftOnly() && !isSideRightOnly()); }
 	static bool isResultError(int code) { return CheckCompare(code, DIFFCODE::CMPERR); }
 	bool isResultError() const { return isResultError(diffcode); }
 	static bool isResultAbort(int code) { return CheckCompare(code, DIFFCODE::CMPABORT); }
@@ -99,7 +105,9 @@ public:
 	// filter status
 	bool isResultFiltered() const { return CheckFilter(diffcode, DIFFCODE::SKIPPED); }
 	// type
-	bool isBin() const { return Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::BIN); }
+	bool isBin() const { return Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::BIN) ||
+			Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::BINSIDE1) ||
+			Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::BINSIDE2); }
 	void setBin() { Set(DIFFCODE::TEXTFLAGS, DIFFCODE::BIN); }
 	// rescan
 	bool isScanNeeded() const { return ((diffcode & DIFFCODE::SCANFLAGS) == DIFFCODE::NEEDSCAN); }
@@ -111,31 +119,26 @@ public:
  *
  * @note times in fileinfo's are seconds since January 1, 1970.
  * See Dirscan.cpp/fentry and Dirscan.cpp/LoadFiles()
- *
- * Note: A DIFFITEM has a DIFFCODE, but unfortunately for historical reasons
- *   it still has an inheritance relationship
- *  (That is to say, fixing this would affect a lot of code.)
  */
-struct DIFFITEM : DIFFCODE
+struct DIFFITEM
 {
 	DiffFileInfo left; /**< Fileinfo for left file */
 	DiffFileInfo right; /**< Fileinfo for right file */
-	CString sLeftFilename; /**< Left filename (without path!) */
-	CString sRightFilename; /**< Right filename (without path!) */
-	CString sLeftSubdir; /**< Left subdirectory from root of comparison */
-	CString sRightSubdir; /**< Right subdirectory from root of comparison */
 	int	nsdiffs; /**< Amount of non-ignored differences */
 	int nidiffs; /**< Amount of ignored differences */
-	CString errorDesc; /**< technical note about error */
+	String errorDesc; /**< technical note about error */
 	UINT customFlags1; /**< Custom flags set 1 */
 	bool empty; /**< flag to mark diffitem that doesn't have any data */
+	DIFFCODE diffcode; /**< Compare result */
 
 	static DIFFITEM MakeEmptyDiffItem();
 
 	DIFFITEM() : nidiffs(-1), nsdiffs(-1), customFlags1(0), empty(false) { }
+	DIFFITEM(const DIFFITEM& di);
+	DIFFITEM& operator=(const DIFFITEM& di);
 
-	CString getLeftFilepath(const CString &sLeftRoot) const;
-	CString getRightFilepath(const CString &sRightRoot) const;
+	String getLeftFilepath(const String &sLeftRoot) const;
+	String getRightFilepath(const String &sRightRoot) const;
 };
 
 #endif // _DIFF_ITEM_H_

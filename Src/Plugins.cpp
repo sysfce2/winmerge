@@ -23,26 +23,27 @@
  *
  *  @brief Support for VBS Scriptlets, VB ActiveX DLL, VC++ COM DLL
  */ 
-// RCS ID line follows -- this is updated by CVS
-// $Id: Plugins.cpp 3584 2006-09-19 16:35:48Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: Plugins.cpp 4736 2007-11-11 12:26:36Z jtuc $
 
 #include "StdAfx.h"
 #ifndef __AFXMT_H__
 #include <afxmt.h>
 #endif
 
+#include "pcre.h"
+#include "LogFile.h"
+#include "Merge.h"
+#include "Ucs2Utf8.h"
 #include "FileTransform.h"
 #include "FileFilterMgr.h"
 #include "Plugins.h"
 #include "lwdisp.h"
 #include "coretools.h"
-#include "RegExp.h"
 #include "resource.h"
 #include "Exceptions.h"
 #include "RegKey.h"
 #include "paths.h"
-#include "logfile.h"
-extern CLogFile gLog;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -69,7 +70,7 @@ BOOL IsWindowsScriptThere()
 	if (!keyExtension.QueryRegMachine(_T("SOFTWARE\\Classes\\.sct")))
 		return FALSE;
 
-	CString content = keyExtension.ReadString(_T(""), _T(""));
+	CString content = keyExtension.ReadString(_T(""), _T("")).c_str();
 	keyExtension.Close();
 	if (content.CompareNoCase(_T("scriptletfile")) != 0)
 		return FALSE;
@@ -78,7 +79,7 @@ BOOL IsWindowsScriptThere()
 	if (!keyFile.QueryRegMachine(_T("SOFTWARE\\Classes\\scriptletfile\\AutoRegister")))
 		return FALSE;
 
-	CString filename = keyFile.ReadString(_T(""), _T(""));
+	CString filename = keyFile.ReadString(_T(""), _T("")).c_str();
 	keyFile.Close();
 	if (filename.IsEmpty())
 		return FALSE;
@@ -280,16 +281,27 @@ void PluginInfo::LoadFilterString()
 		sPiece.TrimLeft();
 		sPiece.MakeUpper();
 
-		CRegExp * regexp = new CRegExp;
 		FileFilterElement element;
-		
-		if (regexp->RegComp(sPiece))
+		const char * errormsg = NULL;
+		int erroroffset = 0;
+		char regexString[200] = {0};
+		int regexLen = 0;
+#ifdef UNICODE
+		regexLen = TransformUcs2ToUtf8((LPCTSTR)sPiece, _tcslen(sPiece),
+			regexString, sizeof(regexString));
+#else
+		strcpy(regexString, (LPCTSTR)sPiece);
+		regexLen = strlen(regexString);
+#endif
+
+		pcre *regexp = pcre_compile(regexString, 0, &errormsg, &erroroffset, NULL);
+		if (regexp)
 		{
-			element.pRegExp = regexp;
-			filters->AddTail(element);
+			FileFilterElement elem;
+			elem.pRegExp = regexp;
+			filters->AddTail(elem);
 		}
-		else
-			delete regexp;
+
 	};
 }
 
@@ -553,14 +565,14 @@ static CStringArray & LoadTheScriptletList()
 	if (!scriptletsLoaded)
 	{
 		CSingleLock lock(&scriptletsSem);
-		CString path = GetModulePath() + _T("\\MergePlugins\\");
+		String path = GetModulePath() + _T("\\MergePlugins\\");
 
 		if (IsWindowsScriptThere())
-			GetScriptletsAt(path, _T(".sct"), theScriptletList );		// VBS/JVS scriptlet
+			GetScriptletsAt(path.c_str(), _T(".sct"), theScriptletList );		// VBS/JVS scriptlet
 		else
-			gLog.Write(CLogFile::LWARNING, _T("\n  .sct plugins disabled (Windows Script Host not found)"));
-		GetScriptletsAt(path, _T(".ocx"), theScriptletList );		// VB COM object
-		GetScriptletsAt(path, _T(".dll"), theScriptletList );		// VC++ COM object
+			GetLog()->Write(CLogFile::LWARNING, _T("\n  .sct plugins disabled (Windows Script Host not found)"));
+		GetScriptletsAt(path.c_str(), _T(".ocx"), theScriptletList );		// VB COM object
+		GetScriptletsAt(path.c_str(), _T(".dll"), theScriptletList );		// VC++ COM object
 		scriptletsLoaded = true;
 
 		// lock the *.sct to avoid them being deleted/moved away
@@ -781,7 +793,7 @@ PluginInfo * CScriptsOfThread::GetPluginByName(LPCWSTR transformationEvent, LPCT
 				m_aPluginsByEvent[i] = ::GetAvailableScripts(transformationEvent, bInMainThread());
 
 			for (int j = 0 ; j <  m_aPluginsByEvent[i]->GetSize() ; j++)
-				if (_tcscmp(m_aPluginsByEvent[i]->GetAt(j).name, name) == 0)
+				if (_tcscmp(m_aPluginsByEvent[i]->GetAt(j).name.c_str(), name) == 0)
 					return &(m_aPluginsByEvent[i]->ElementAt(j));
 		}
 	return NULL;
@@ -944,7 +956,7 @@ static void ShowPluginErrorMessage(LPDISPATCH piScript, LPTSTR description)
 	PluginInfo * pInfo = CAllThreadsScripts::GetActiveSet()->GetPluginInfo(piScript);
 	ASSERT(pInfo != NULL);
 	ASSERT (description != NULL);	
-	MessageBox(AfxGetMainWnd()->GetSafeHwnd(), description, pInfo->name, MB_ICONSTOP);
+	MessageBox(AfxGetMainWnd()->GetSafeHwnd(), description, pInfo->name.c_str(), MB_ICONSTOP);
 }
 
 /**

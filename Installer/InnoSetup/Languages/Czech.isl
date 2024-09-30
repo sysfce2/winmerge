@@ -1,6 +1,6 @@
 ; *******************************************************
 ; ***                                                 ***
-; *** Inno Setup version 5.1.0+ Czech messages        ***
+; *** Inno Setup version 5.1.11+ Czech messages       ***
 ; ***                                                 ***
 ; *** Original Author:                                ***
 ; ***                                                 ***
@@ -13,13 +13,13 @@
 ; ***                                                 ***
 ; *******************************************************
 ;
-; Copyright (C) 1997-2005 Jordan Russell. All rights reserved.
-; Translations (C) 2002-2006 Original Author and Contributors. All rights reserved.
+; Copyright (C) 1997-2007 Jordan Russell. All rights reserved.
+; Translations (C) 2002-2007 Original Author and Contributors. All rights reserved.
 ;
 ; The contents of this file are subject to the Inno Setup License (the "License").
 ; You may obtain a copy of the License at http://www.jrsoftware.org/files/is/license.txt
 ;
-; $jrsoftware: issrc/Files/Languages/Czech.isl,v 1.17 2006/05/04 09:50:07 mlaan Exp $
+; $jrsoftware: issrc/Files/Languages/Czech.isl,v 1.18 2007/02/27 18:22:41 jr Exp $
 
 [LangOptions]
 LanguageName=<010C>e<0161>tina
@@ -273,7 +273,7 @@ ErrorReplacingExistingFile=Došlo k chybì pøi pokusu o nahrazení existujícího sou
 ErrorRestartReplace=Funkce "RestartReplace" prùvodce instalací selhala:
 ErrorRenamingTemp=Došlo k chybì pøi pokusu o pøejmenování souboru v cílové složce:
 ErrorRegisterServer=Nelze zaregistrovat DLL/OCX: %1
-ErrorRegisterServerMissingExport=Nelze nalézt export DllRegisterServer
+ErrorRegSvr32Failed=Volání RegSvr32 selhalo s návratovým kódem %1
 ErrorRegisterTypeLib=Nelze zaregistrovat typovou knihovnu: %1
 
 ; *** Post-installation errors
@@ -330,7 +330,6 @@ CustomInstallation=Custom Installation
 ;Components
 AppCoreFiles=WinMerge Core Files
 ApplicationRuntimes=Application Runtimes
-UsersGuide=User's Guide
 Filters=Filters
 Plugins=Plugins
 
@@ -340,23 +339,29 @@ BulgarianLanguage=Bulgarian menus and dialogs
 CatalanLanguage=Catalan menus and dialogs
 ChineseSimplifiedLanguage=Chinese (Simplified) menus and dialogs
 ChineseTraditionalLanguage=Chinese (Traditional) menus and dialogs
+CroatianLanguage=Croatian menus and dialogs
 CzechLanguage=Czech menus and dialogs
 DanishLanguage=Danish menus and dialogs
 DutchLanguage=Dutch menus and dialogs
 FrenchLanguage=French menus and dialogs
 GermanLanguage=German menus and dialogs
+GreekLanguage=Greek menus and dialogs
 HungarianLanguage=Hungarian menus and dialogs
 ItalianLanguage=Italian menus and dialogs
 JapaneseLanguage=Japanese menus and dialogs
 KoreanLanguage=Korean menus and dialogs
 NorwegianLanguage=Norwegian menus and dialogs
 PolishLanguage=Polish menus and dialogs
-PortugueseLanguage=Portuguese (Brazilian) menus and dialogs
+PortugueseBrazilLanguage=Portuguese (Brazilian) menus and dialogs
+PortugueseLanguage=Portuguese menus and dialogs
+RomanianLanguage=Romanian menus and dialogs
 RussianLanguage=Russian menus and dialogs
 SlovakLanguage=Slovak menus and dialogs
+SlovenianLanguage=Slovenian menus and dialogs
 SpanishLanguage=Spanish menus and dialogs
 SwedishLanguage=Swedish menus and dialogs
 TurkishLanguage=Turkish menus and dialogs
+UkrainianLanguage=Ukrainian menus and dialogs
 
 ;Tasks
 ExplorerContextMenu=&Enable Explorer context menu integration

@@ -25,7 +25,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropCodepage.cpp 3126 2006-03-04 02:36:46Z elsapo $
+// $Id: PropCodepage.cpp 4588 2007-10-05 11:35:46Z jtuc $
 
 #include "stdafx.h"
 #include "merge.h"
@@ -99,6 +99,7 @@ void CPropCodepage::WriteOptions()
 
 BOOL CPropCodepage::OnInitDialog() 
 {
+	theApp.TranslateDialog(m_hWnd);
 	CPropertyPage::OnInitDialog();
 	
 	CEdit * pEdit = (CEdit *) GetDlgItem(IDC_CUSTOM_CP_NUMBER);

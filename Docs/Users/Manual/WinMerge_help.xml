@@ -4,7 +4,6 @@
 <!ENTITY AboutDoc SYSTEM "About_Doc.xml">
 <!ENTITY QuickStart SYSTEM "Quick_start.xml">
 <!ENTITY Introduction SYSTEM "Introduction.xml">
-<!ENTITY WhatsNew SYSTEM "Whatsnew.xml">
 <!ENTITY Install SYSTEM "Install.xml">
 <!ENTITY IntroductDiffing SYSTEM "Intro_diffs.xml">
 <!ENTITY OpenPaths SYSTEM "Open_paths.xml">
@@ -22,11 +21,11 @@
 ]>
 <article id="index">
   <articleinfo>
-    <title>WinMerge 2.6 Manual</title>
+    <title>WinMerge 2.8 Manual</title>
 
     <productname>WinMerge</productname>
 
-    <releaseinfo><emphasis>Revision 1.2.11</emphasis></releaseinfo>
+    <releaseinfo><emphasis>Revision 1.3.16</emphasis></releaseinfo>
 
     <copyright>
       <year>2004-2008</year>
@@ -84,8 +83,6 @@
 
   &Introduction;
 
-  &WhatsNew;
-
   &Install;
 
   &IntroductDiffing;
@@ -114,5 +111,5 @@
 
   &ShortCuts;
 
-  <index/>
+  <index id="word_index"/>
 </article>

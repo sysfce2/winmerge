@@ -23,7 +23,7 @@
  * @brief Declaration of CMergeDoc class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: MergeDoc.h 3847 2006-11-25 11:29:44Z kimmov $
+// $Id: MergeDoc.h 5085 2008-02-26 15:18:15Z kimmov $
 
 #if !defined(AFX_MERGEDOC_H__BBCD4F90_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MERGEDOC_H__BBCD4F90_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -33,6 +33,10 @@
 #include "DiffWrapper.h"
 #include "DiffList.h"
 #include "stringdiffs.h"
+
+#ifndef _TEMP_FILE_
+#include "TempFile.h"
+#endif
 
 #ifndef _PATH_CONTEXT_H_
 #include "PathContext.h"
@@ -135,10 +139,10 @@ class CDiffTextBuffer : public CGhostTextBuffer
 	{
 		friend class CMergeDoc;
 private :
-		CMergeDoc * m_pOwnerDoc;
+		CMergeDoc * m_pOwnerDoc; /**< Merge document owning this buffer. */
 		int m_nThisPane; /**< Left/Right side */
 		BOOL FlagIsSet(UINT line, DWORD flag);
-		CString m_strTempPath;
+		String m_strTempPath; /**< Temporary files folder. */
 		int unpackerSubcode;
 		/* 
 		 * @brief Unicode encoding from ucr::UNICODESET 
@@ -150,29 +154,29 @@ private :
 		 * Unicode:
 		 *   in memory it is wchars
 		 */
-		int m_unicoding; 
-		int m_codepage; /**< @brief 8-bit codepage, if relevant m_unicoding==ucr::NONE */
+		FileTextEncoding m_encoding; /**< File's encoding information. */
 
 		int NoteCRLFStyleFromBuffer(TCHAR *lpLineBegin, DWORD dwLineLen = 0);
 		void ReadLineFromBuffer(TCHAR *lpLineBegin, DWORD dwLineNum, DWORD dwLineLen = 0);
 public :
-		void SetTempPath(CString path);
+		void SetTempPath(String path);
 		virtual void AddUndoRecord (BOOL bInsert, const CPoint & ptStartPos, const CPoint & ptEndPos,
-			LPCTSTR pszText, int nLinesToValidate, int nActionType = CE_ACTION_UNKNOWN, CDWordArray *paSavedRevisonNumbers = NULL);
+			LPCTSTR pszText, int cchText, int nLinesToValidate, int nActionType = CE_ACTION_UNKNOWN, CDWordArray *paSavedRevisonNumbers = NULL);
 		bool curUndoGroup();
-		void ReplaceLine(CCrystalTextView * pSource, int nLine, const CString& strText, int nAction =CE_ACTION_UNKNOWN);
+		void ReplaceLine(CCrystalTextView * pSource, int nLine, LPCTSTR pchText, int cchText, int nAction =CE_ACTION_UNKNOWN);
 		void ReplaceFullLine(CCrystalTextView * pSource, int nLine, const CString& strText, int nAction =CE_ACTION_UNKNOWN);
 
 		int LoadFromFile(LPCTSTR pszFileName, PackingInfo * infoUnpacker,
-			CString filteredFilenames, BOOL & readOnly, int nCrlfStyle,
-			int codepage, CString &sError);
+			LPCTSTR filteredFilenames, BOOL & readOnly, int nCrlfStyle,
+			const FileTextEncoding & encoding, CString &sError);
 		int SaveToFile (LPCTSTR pszFileName, BOOL bTempFile, CString & sError,
 			PackingInfo * infoUnpacker = NULL, int nCrlfStyle = CRLF_STYLE_AUTOMATIC,
 			BOOL bClearModifiedFlag = TRUE );
-		int getUnicoding() const { return m_unicoding; }
-		void setUnicoding(int value) { m_unicoding = value; }
-		int getCodepage() const { return m_codepage; }
-		void setCodepage(int value) { m_codepage = value; }
+		int getUnicoding() const { return m_encoding.m_unicoding; }
+		void setUnicoding(int value) { m_encoding.m_unicoding = value; }
+		int getCodepage() const { return m_encoding.m_codepage; }
+		void setCodepage(int value) { m_encoding.m_codepage = value; }
+		const FileTextEncoding & getEncoding() const { return m_encoding; }
 
 		CDiffTextBuffer(CMergeDoc * pDoc, int pane);
 
@@ -216,7 +220,7 @@ public:
 	UINT m_nTrivialDiffs; /**< Amount of trivial (ignored) diffs */
 	PathContext m_filePaths; /**< Filepaths for this document */
 	/// String of concatenated filenames as text to apply plugins filter to
-	CString m_strBothFilenames;
+	String m_strBothFilenames;
 
 	int GetActiveMergeViewIndexType() const;
 	CMergeEditView * GetActiveMergeView();
@@ -226,11 +230,9 @@ public:
 	void UpdateResources();
 	OPENRESULTS_TYPE OpenDocs(FileLocation filelocLeft, FileLocation filelocRight,
 		BOOL bROLeft, BOOL bRORight);
-	void CompareBinaries(CString sLeftFile, CString sRightFile, int nLeftSuccess, int nRightSuccess);
-	int LoadFile(CString sFileName, int nBuffer, BOOL & readOnly, int codepage);
 	void RescanIfNeeded(float timeOutInSecond);
 	int Rescan(BOOL &bBinary, BOOL &bIdentical, BOOL bForced = FALSE);
-	void ShowRescanError(int nRescanResult, BOOL bBinary, BOOL bIdentical);
+	void ShowRescanError(int nRescanResult, BOOL bIdentical);
 	void AddUndoAction(UINT nBegin, UINT nEnd, UINT nDiff, int nBlanks, BOOL bInsert, CMergeEditView *pList);
 	BOOL Undo();
 	void CopyAllList(int srcPane, int dstPane);
@@ -262,6 +264,8 @@ public:
 	CMergeDiffDetailView * GetRightDetailView() const { return m_pDetailView[1]; }
 	CMergeDiffDetailView * GetDetailView(int pane) const { return m_pDetailView[pane]; }
 	CChildFrame * GetParentFrame();
+	const FileTextEncoding & GetEncoding(int file) const
+			{ return m_ptBuf[file]->getEncoding(); }
 
 	// Overrides
 	// ClassWizard generated virtual function overrides
@@ -304,14 +308,16 @@ public:
 	BOOL GetMergingMode() const;
 	void SetMergingMode(BOOL bMergingMode);
 	void SetDetectMovedBlocks(BOOL bDetectMovedBlocks);
+	BOOL IsMixedEOL() const { return m_bMixedEol; }
 
 // implementation methods
 private:
-	BOOL GetOptionInt(LPCTSTR name) const;
-	BOOL GetOptionBool(LPCTSTR name) const;
 	bool GetBreakType() const;
 	bool GetByteColoringOption() const;
 	bool IsValidCodepageForMergeEditor(unsigned cp) const;
+	void SanityCheckCodepage(FileLocation & fileinfo);
+	DWORD LoadOneFile(int index, String filename, BOOL readOnly, const FileTextEncoding & encoding);
+	int LoadFile(CString sFileName, int nBuffer, BOOL & readOnly, const FileTextEncoding & encoding);
 
 // Implementation data
 protected:
@@ -324,11 +330,12 @@ protected:
 	CDiffWrapper m_diffWrapper;
 	/// information about the file packer/unpacker
 	PackingInfo * m_pInfoUnpacker;
-	CString m_strDesc[2]; /**< Left/right side description text */
+	String m_strDesc[2]; /**< Left/right side description text */
 	BUFFERTYPE m_nBufferType[2];
 	BOOL m_bMergingMode; /**< Merging or Edit mode */
 	BOOL m_bEditAfterRescan[2]; /**< Left/right doc edited after rescanning */
-	TempFileContext * m_pTempFiles; /**< Temp files for compared files */
+	TempFile m_tempFiles[2]; /**< Temp files for compared files */
+	BOOL m_bMixedEol; /**< Does this document have mixed EOL style? */
 
 // friend access
 	friend class RescanSuppress;
@@ -344,12 +351,17 @@ protected:
 	afx_msg void OnFileSaveAsRight();
 	afx_msg void OnUpdateStatusNum(CCmdUI* pCmdUI);
 	afx_msg void OnFileEncoding();
+	afx_msg void OnToolsGenerateReport();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 private:
 	void PrimeTextBuffers();
-	void FlagMovedLines(const CMap<int, int, int, int> * movedLines, CDiffTextBuffer * pBuffer);
-	CString GetFileExt(const CString& sFileName, const CString& sDescription);
+	void AdjustDiffBlocks();
+	void AdjustDiffBlock(DiffMap & diffmap, const DIFFRANGE & diffrange, int lo0, int hi0, int lo1, int hi1);
+	int GetMatchCost(const CString &Line0, const CString &Line1);
+	void FlagMovedLines(MovedLines * pMovedLines, CDiffTextBuffer * pBuffer1,
+		CDiffTextBuffer * pBuffer2);
+	String GetFileExt(LPCTSTR sFileName, LPCTSTR sDescription);
 };
 
 /////////////////////////////////////////////////////////////////////////////

@@ -6,7 +6,7 @@
  * @date  Created: 2003-08-19
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirViewColItems.h 2881 2005-12-30 23:43:12Z elsapo $
+// $Id: DirViewColItems.h 4619 2007-10-14 08:50:20Z jtuc $
 
 #ifndef DirViewColItems_h
 #define DirViewColItems_h
@@ -14,7 +14,7 @@
 class CDiffContext;
 
 // DirViewColItems typedefs
-typedef CString (*ColGetFncPtrType)(const CDiffContext *, const void *);
+typedef String (*ColGetFncPtrType)(const CDiffContext *, const void *);
 typedef int (*ColSortFncPtrType)(const CDiffContext *, const void *, const void *);
 
 

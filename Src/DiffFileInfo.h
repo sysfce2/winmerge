@@ -19,14 +19,14 @@
  *
  * @brief Declaration file for DiffFileInfo
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DiffFileInfo.h 3825 2006-11-21 20:09:16Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: DiffFileInfo.h 5019 2008-02-10 11:50:33Z jtuc $
 
 #ifndef _DIFF_FILE_INFO_H_INCLUDED
 #define _DIFF_FILE_INFO_H_INCLUDED
 
-#ifndef _FILE_INFO_H_INCLUDED
-#include "FileInfo.h"
+#ifndef _DIR_ITEM_H_INCLUDED
+#include "DirItem.h"
 #endif
 
 #ifndef FileTextEncoding_h_included
@@ -43,12 +43,12 @@
 struct DiffFileFlags : public FileFlags
 {
 	DWORD coding; /**< Coding info for item */
-	DiffFileFlags() : coding(0) { FileFlags(); }
+	DiffFileFlags() : coding(0) { }
 	
 	/// Convert flags and coding to string for UI.
-	CString toString() const
+	String toString() const
 		{
-			CString sflags;
+			String sflags;
 			if (attributes & FILE_ATTRIBUTE_READONLY)
 				sflags += _T("R");
 			if (attributes & FILE_ATTRIBUTE_HIDDEN)
@@ -85,10 +85,11 @@ struct DiffFileFlags : public FileFlags
 
 /**
  * @brief Information for file.
- * This class expands FileInfo class with encoding information and
+ * This class expands DirItem class with encoding information and
  * text stats information.
+ * @sa DirItem.
  */
-struct DiffFileInfo : public FileInfo
+struct DiffFileInfo : public DirItem
 {
 // data
 	bool bVersionChecked; /**< true if version string is up-to-date */
@@ -101,8 +102,9 @@ struct DiffFileInfo : public FileInfo
 
 // methods
 
-	DiffFileInfo() { Clear(); }
-	void Clear();
+	DiffFileInfo(): bVersionChecked(false) { }
+	//void Clear();
+	void ClearPartial();
 	bool IsEditableEncoding() const;
 };
 

@@ -3,14 +3,13 @@
  *
  * @brief Declaration file for Coretools.cpp
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: coretools.h 3116 2006-03-01 17:08:23Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: coretools.h 4654 2007-10-22 19:25:50Z kimmov $
 
 #ifndef CORETOOLS_H
 #define CORETOOLS_H
 
-#include <io.h>
-#include <stdlib.h>
+#include "UnicodeString.h"
 
 /******** types & defines ********/
 #define BYTES     1L
@@ -91,59 +90,46 @@ BOOL GetFileTimes(LPCTSTR szFilename,
 				  LPSYSTEMTIME pMod,
 				  LPSYSTEMTIME pCreate =NULL,
 				  LPSYSTEMTIME pAccess =NULL);
-long GetFileModTime(LPCTSTR szPath);
+time_t GetFileModTime(LPCTSTR szPath);
 DWORD GetFileSizeEx(LPCTSTR szFilename);
-CString GetCDPath();
 BOOL HaveAdminAccess();
-BOOL DoModalProcess(CWnd *pWndParent, LPCTSTR szExeFile,
-					LPCTSTR szCmdLine, LPCTSTR szWindowCaption);
-
 DWORD FPRINTF(HANDLE hf, LPCTSTR fmt, ... );
 DWORD FPUTS(LPCTSTR s, HANDLE hf);
 HANDLE FOPEN(LPCTSTR path, DWORD mode = GENERIC_READ, DWORD access = OPEN_EXISTING);
-CString ConvertPath2PS(LPCSTR szPath);
 void GetLocalDrives(LPTSTR letters);
 //BOOL GetIP(LPTSTR straddr);
 void replace_char(LPTSTR s, int target, int repl);
 BOOL FileExtMatches(LPCTSTR filename, LPCTSTR ext);
-void SplitFilename(LPCTSTR s, CString * path, CString * name, CString * ext);
-void SplitViewName(LPCTSTR s, CString * path, CString * name, CString * ext);
+void SplitFilename(LPCTSTR s, String * path, String * name, String * ext);
+void SplitViewName(LPCTSTR s, String * path, String * name, String * ext);
 void TestSplitFilename();
 void AddExtension(LPTSTR name, LPCTSTR ext);
 BOOL GetFreeSpaceString(LPCTSTR drivespec, ULONG mode, LPTSTR s);
 int fcmp(float a,float b);
-void aswap(LPTSTR a,LPTSTR b);
 BOOL FindAnyFile(LPTSTR filespec, LPTSTR name);
 long SwapEndian(long val);
 short int SwapEndian(short int val);
-BOOL MkDirEx(LPCTSTR filename);
-CString GetModulePath(HMODULE hModule = NULL);
-CString GetPathOnly(LPCTSTR fullpath);
+//BOOL MkDirEx(LPCTSTR foldername);
+String GetModulePath(HMODULE hModule = NULL);
+String GetPathOnly(LPCTSTR fullpath);
 float RoundMeasure(float measure, float units);
 
-CString LegalizeFileName(LPCTSTR szFileName);
+String LegalizeFileName(LPCTSTR szFileName);
+
+#ifdef _UNUSED_
 CString GetLocalizedNumberString(double dVal, int nPlaces =-1, BOOL bSeparate =FALSE, BOOL bTrailZeros =FALSE, LCID lcidNew =LOCALE_USER_DEFAULT);
 void DDX_Float( CDataExchange* pDX, int nIDC, float& value );
 void DDX_Double( CDataExchange* pDX, int nIDC, double& value );
+#endif
+
 int tcssubptr(LPCTSTR start, LPCTSTR end);
-void ReadWcsToMbs(CFile* cf, LPTSTR szDest, DWORD dwCount);
-void WriteWcsFromMbs(CFile* cf, LPCTSTR szSrc, DWORD dwCount);
-void ReadWcsToMbs(HANDLE hf, LPTSTR szDest, DWORD dwCount);
-void WriteWcsFromMbs(HANDLE hf, LPCTSTR szSrc, DWORD dwCount);
-void ReadWcsToMbs(CArchive* ar, LPTSTR szDest, DWORD dwCount);
-void WriteWcsFromMbs(CArchive* ar, LPCTSTR szSrc, DWORD dwCount);
 
 HANDLE RunIt(LPCTSTR szExeFile, LPCTSTR szArgs, BOOL bMinimized = TRUE, BOOL bNewConsole = FALSE);
 BOOL HasExited(HANDLE hProcess, DWORD *pCode = NULL);
 BOOL IsLocalPath(LPCTSTR path);
-BOOL GetAppDataPath(CString &sAppDataPath);
-BOOL GetUserProfilePath(CString &sAppDataPath);
-BOOL PutToClipboard(LPCTSTR pszText, HWND currentWindowHandle);
-BOOL GetFromClipboard(CString & text, HWND currentWindowHandle);
-BOOL TextInClipboard();
+BOOL GetAppDataPath(String &sAppDataPath);
+BOOL GetUserProfilePath(String &sAppDataPath);
 
-CString TimeString(const __int64 * tim);
-
-void GetDecoratedCmdLine(CString sCmdLine, CString &sDecoratedCmdLine,
-	CString &sExecutable);
+void GetDecoratedCmdLine(String sCmdLine, String &sDecoratedCmdLine,
+	String &sExecutable);
 #endif

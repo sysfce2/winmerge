@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: MergeDocLineDiffs.cpp 3035 2006-02-08 15:55:37Z elsapo $
+// $Id: MergeDocLineDiffs.cpp 4983 2008-01-31 21:08:06Z jtuc $
 
 #include "stdafx.h"
 #include "Merge.h"
@@ -82,11 +82,9 @@ void CMergeDoc::Showlinediff(CMergeEditView * pView, DIFFLEVEL difflvl)
 
 	if (rc1.top == -1 && rc2.top == -1)
 	{
-		CString caption;
-		CString msg;
-		VERIFY(caption.LoadString(IDS_LINEDIFF_NODIFF_CAPTION));
-		VERIFY(msg.LoadString(IDS_LINEDIFF_NODIFF));
-		MessageBox(pView->GetSafeHwnd(), msg, caption, MB_OK);
+		String caption = theApp.LoadString(IDS_LINEDIFF_NODIFF_CAPTION);
+		String msg = theApp.LoadString(IDS_LINEDIFF_NODIFF);
+		MessageBox(pView->GetSafeHwnd(), msg.c_str(), caption.c_str(), MB_OK);
 		return;
 	}
 
@@ -105,11 +103,9 @@ void CMergeDoc::Showlinediff(CMergeDiffDetailView * pView, DIFFLEVEL difflvl)
 
 	if (rc1.top == -1 && rc2.top == -1)
 	{
-		CString caption;
-		CString msg;
-		VERIFY(caption.LoadString(IDS_LINEDIFF_NODIFF_CAPTION));
-		VERIFY(msg.LoadString(IDS_LINEDIFF_NODIFF));
-		MessageBox(pView->GetSafeHwnd(), msg, caption, MB_OK);
+		String caption = theApp.LoadString(IDS_LINEDIFF_NODIFF_CAPTION);
+		String msg = theApp.LoadString(IDS_LINEDIFF_NODIFF);
+		MessageBox(pView->GetSafeHwnd(), msg.c_str(), caption.c_str(), MB_OK);
 		return;
 	}
 
@@ -194,8 +190,8 @@ void CMergeDoc::Computelinediff(CCrystalTextView * pView1, CCrystalTextView * pV
 	DIFFOPTIONS diffOptions = {0};
 	m_diffWrapper.GetOptions(&diffOptions);
 
-	CString str1 = pView1->GetLineChars(line);
-	CString str2 = pView2->GetLineChars(line);
+	CString str1(pView1->GetLineChars(line), pView1->GetFullLineLength(line));
+	CString str2(pView2->GetLineChars(line), pView2->GetFullLineLength(line));
 
 	if (diffOptions.bIgnoreEol)
 	{
@@ -319,8 +315,8 @@ void CMergeDoc::GetWordDiffArray(int nLineIndex, wdiffarray *pworddiffs)
 	DIFFOPTIONS diffOptions = {0};
 	m_diffWrapper.GetOptions(&diffOptions);
 
-	CString str1 = m_pView[0]->GetLineChars(nLineIndex);
-	CString str2 = m_pView[1]->GetLineChars(nLineIndex);
+	CString str1(m_pView[0]->GetLineChars(nLineIndex), m_pView[0]->GetFullLineLength(nLineIndex));
+	CString str2(m_pView[1]->GetLineChars(nLineIndex), m_pView[1]->GetFullLineLength(nLineIndex));
 
 	if (diffOptions.bIgnoreEol)
 	{

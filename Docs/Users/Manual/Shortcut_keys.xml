@@ -6,7 +6,7 @@
   work in WinMerge.</para>
 
   <table>
-    <title>Directory compare</title>
+    <title>Folder compare</title>
 
     <tgroup cols="2">
       <thead>
@@ -34,7 +34,7 @@
         <row>
           <entry><keycap>F5</keycap></entry>
 
-          <entry>Rescan directories</entry>
+          <entry>Rescan folders</entry>
         </row>
 
         <row>
@@ -44,7 +44,7 @@
               <keycap>Home</keycap>
             </keycombo></entry>
 
-          <entry>Go to first different file/directoriy</entry>
+          <entry>Go to first different file/folder</entry>
         </row>
 
         <row>
@@ -54,7 +54,7 @@
               <keycap>End</keycap>
             </keycombo></entry>
 
-          <entry>Go to last different file/directoriy</entry>
+          <entry>Go to last different file/folder</entry>
         </row>
 
         <row>
@@ -75,7 +75,7 @@
               <keycap>Up Arrow</keycap>
             </keycombo></entry>
 
-          <entry>Go to previous different file/directory</entry>
+          <entry>Go to previous different file/folder</entry>
         </row>
 
         <row>
@@ -85,7 +85,7 @@
               <keycap>Down Arrow</keycap>
             </keycombo></entry>
 
-          <entry>Go to next different file/directory</entry>
+          <entry>Go to next different file/folder</entry>
         </row>
 
         <row>
@@ -128,12 +128,6 @@
           <entry><keycap>Esc</keycap></entry>
 
           <entry>Close window (if enabled in options)</entry>
-        </row>
-
-        <row>
-          <entry><keycap>F3</keycap></entry>
-
-          <entry>Find again</entry>
         </row>
 
         <row>
@@ -313,7 +307,163 @@
           <entry>Copy difference from left side to right side and select next
           difference</entry>
         </row>
+      </tbody>
+    </tgroup>
+  </table>
 
+  <table>
+    <title>Difference navigation and merging (merge mode)</title>
+
+    <tgroup cols="2">
+      <thead>
+        <row>
+          <entry>Key</entry>
+
+          <entry>Function</entry>
+        </row>
+      </thead>
+
+      <tbody>
+        <row>
+          <entry><keycap>Up Arrow</keycap></entry>
+
+          <entry>Go to previous difference</entry>
+        </row>
+
+        <row>
+          <entry><keycap>Down Arrow</keycap></entry>
+
+          <entry>Go to next difference</entry>
+        </row>
+
+        <row>
+          <entry><keycap>Left Arrow</keycap></entry>
+
+          <entry>Copy difference from right side to left side</entry>
+        </row>
+
+        <row>
+          <entry><keycap>Right Arrow</keycap></entry>
+
+          <entry>Copy difference from left side to right side</entry>
+        </row>
+
+        <row>
+          <entry><keycombo>
+              <keycap>Ctrl</keycap>
+
+              <keycap>Alt</keycap>
+
+              <keycap>Left Arrow</keycap>
+            </keycombo></entry>
+
+          <entry>Copy difference from right side to left side and select next
+          difference</entry>
+        </row>
+
+        <row>
+          <entry><keycombo>
+              <keycap>Ctrl</keycap>
+
+              <keycap>Alt</keycap>
+
+              <keycap>Right Arrow</keycap>
+            </keycombo></entry>
+
+          <entry>Copy difference from left side to right side and select next
+          difference</entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+
+  <table>
+    <title>Find and Replace</title>
+
+    <tgroup cols="2">
+      <thead>
+        <row>
+          <entry>Key</entry>
+
+          <entry>Function</entry>
+        </row>
+      </thead>
+
+      <tbody>
+        <row>
+          <entry><keycombo>
+              <keycap>Ctrl</keycap>
+
+              <keycap>F</keycap>
+            </keycombo></entry>
+
+          <entry>Find text</entry>
+        </row>
+
+        <row>
+          <entry><keycombo>
+              <keycap>Ctrl</keycap>
+
+              <keycap>H</keycap>
+            </keycombo></entry>
+
+          <entry>Replace text with another text</entry>
+        </row>
+
+        <row>
+          <entry><keycap>F3</keycap></entry>
+
+          <entry>Find/Replace again.</entry>
+        </row>
+
+        <row>
+          <entry><keycombo>
+              <keycap>Shift</keycap>
+
+              <keycap>F3</keycap>
+            </keycombo></entry>
+
+          <entry>Find/Replace upwards in file</entry>
+        </row>
+
+        <row>
+          <entry><keycombo>
+              <keycap>Ctrl</keycap>
+
+              <keycap>F3</keycap>
+            </keycombo></entry>
+
+          <entry>Find selected text in file</entry>
+        </row>
+
+        <row>
+          <entry><keycombo>
+              <keycap>Ctrl</keycap>
+
+              <keycap>Shift</keycap>
+
+              <keycap>F3</keycap>
+            </keycombo></entry>
+
+          <entry>Find selected text upwards in file</entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+
+  <table>
+    <title>Bookmarks</title>
+
+    <tgroup cols="2">
+      <thead>
+        <row>
+          <entry>Key</entry>
+
+          <entry>Function</entry>
+        </row>
+      </thead>
+
+      <tbody>
         <row>
           <entry><keycombo>
               <keycap>Ctrl</keycap>
@@ -339,7 +489,7 @@
               <keycap>F2</keycap>
             </keycombo></entry>
 
-          <entry>Prev Bookmark</entry>
+          <entry>Previous Bookmark</entry>
         </row>
 
         <row>
@@ -558,73 +708,7 @@
   </table>
 
   <table>
-    <title>Difference navigation and merging (merge mode)</title>
-
-    <tgroup cols="2">
-      <thead>
-        <row>
-          <entry>Key</entry>
-
-          <entry>Function</entry>
-        </row>
-      </thead>
-
-      <tbody>
-        <row>
-          <entry><keycap>Up Arrow</keycap></entry>
-
-          <entry>Go to previous difference</entry>
-        </row>
-
-        <row>
-          <entry><keycap>Down Arrow</keycap></entry>
-
-          <entry>Go to next difference</entry>
-        </row>
-
-        <row>
-          <entry><keycap>Left Arrow</keycap></entry>
-
-          <entry>Copy difference from right side to left side</entry>
-        </row>
-
-        <row>
-          <entry><keycap>Right Arrow</keycap></entry>
-
-          <entry>Copy difference from left side to right side</entry>
-        </row>
-
-        <row>
-          <entry><keycombo>
-              <keycap>Ctrl</keycap>
-
-              <keycap>Alt</keycap>
-
-              <keycap>Left Arrow</keycap>
-            </keycombo></entry>
-
-          <entry>Copy difference from right side to left side and select next
-          difference</entry>
-        </row>
-
-        <row>
-          <entry><keycombo>
-              <keycap>Ctrl</keycap>
-
-              <keycap>Alt</keycap>
-
-              <keycap>Right Arrow</keycap>
-            </keycombo></entry>
-
-          <entry>Copy difference from left side to right side and select next
-          difference</entry>
-        </row>
-      </tbody>
-    </tgroup>
-  </table>
-
-  <table>
-    <title>Find and Replace</title>
+    <title>Zoom</title>
 
     <tgroup cols="2">
       <thead>
@@ -640,57 +724,50 @@
           <entry><keycombo>
               <keycap>Ctrl</keycap>
 
-              <keycap>F</keycap>
+              <keycap>+</keycap>
             </keycombo></entry>
 
-          <entry>Find text</entry>
+          <entry>Increase text size</entry>
         </row>
 
         <row>
           <entry><keycombo>
               <keycap>Ctrl</keycap>
 
-              <keycap>H</keycap>
+              <keycap>-</keycap>
             </keycombo></entry>
 
-          <entry>Replace text with another text</entry>
-        </row>
-
-        <row>
-          <entry><keycap>F3</keycap></entry>
-          <entry>Find/Replace again.</entry>
-        </row>
-
-        <row>
-          <entry><keycombo>
-              <keycap>Shift</keycap>
-
-              <keycap>F3</keycap>
-            </keycombo></entry>
-
-          <entry>Find/Replace upwards in file</entry>
+          <entry>Decrease text size</entry>
         </row>
 
         <row>
           <entry><keycombo>
               <keycap>Ctrl</keycap>
 
-              <keycap>F3</keycap>
+              <keycap>*</keycap>
             </keycombo></entry>
 
-          <entry>Find selected text in file</entry>
+          <entry>Reset text zoom to default size</entry>
         </row>
 
         <row>
           <entry><keycombo>
               <keycap>Ctrl</keycap>
 
-              <keycap>Shift</keycap>
-              
-              <keycap>F3</keycap>
+              <mousebutton>MouseWheel Up</mousebutton>
             </keycombo></entry>
 
-          <entry>Find selected text upwards in file</entry>
+          <entry>Increase text size</entry>
+        </row>
+
+        <row>
+          <entry><keycombo>
+              <keycap>Ctrl</keycap>
+
+              <mousebutton>MouseWheel Down</mousebutton>
+            </keycombo></entry>
+
+          <entry>Decrease text size</entry>
         </row>
       </tbody>
     </tgroup>

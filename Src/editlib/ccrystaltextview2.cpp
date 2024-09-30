@@ -41,8 +41,8 @@
  *
  * @brief More functions for CCrystalTextView class.
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: ccrystaltextview2.cpp 3566 2006-09-15 21:14:54Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: ccrystaltextview2.cpp 5105 2008-03-03 15:32:04Z sdottaka $
 
 #include "stdafx.h"
 #include "editcmd.h"
@@ -63,6 +63,17 @@ static char THIS_FILE[] = __FILE__;
 
 #define CRYSTAL_TIMER_DRAGSEL   1001
 
+static LPTSTR NTAPI EnsureCharNext(LPCTSTR current)
+{
+  LPTSTR next = ::CharNext(current);
+  return next > current ? next : next + 1;
+}
+
+static LPTSTR NTAPI EnsureCharPrev(LPCTSTR start, LPCTSTR current)
+{
+  LPTSTR prev = ::CharPrev(start, current);
+  return prev < current ? prev : prev - 1;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CCrystalTextView
@@ -158,7 +169,7 @@ MoveWordLeft (BOOL bSelect)
   LPCTSTR pszChars = GetLineChars (m_ptCursorPos.y);
   int nPos = m_ptCursorPos.x;
   int nPrevPos;
-  while (nPos > 0 && xisspace (pszChars[nPrevPos = ::CharPrev(pszChars, pszChars + nPos) - pszChars]))
+  while (nPos > 0 && xisspace (pszChars[nPrevPos = ::EnsureCharPrev(pszChars, pszChars + nPos) - pszChars]))
     nPos = nPrevPos;
 
   if (nPos > 0)
@@ -167,12 +178,12 @@ MoveWordLeft (BOOL bSelect)
       nPos = nPrevPos;
       if (xisalnum (pszChars[nPos]))
         {
-          while (nPos > 0 && (xisalnum (pszChars[nPrevPos = ::CharPrev(pszChars, pszChars + nPos) - pszChars])))
+          while (nPos > 0 && (xisalnum (pszChars[nPrevPos = ::EnsureCharPrev(pszChars, pszChars + nPos) - pszChars])))
             nPos = nPrevPos;
         }
       else
         {
-          while (nPos > 0 && !xisalnum (pszChars[nPrevPos = ::CharPrev(pszChars, pszChars + nPos) - pszChars])
+          while (nPos > 0 && !xisalnum (pszChars[nPrevPos = ::EnsureCharPrev(pszChars, pszChars + nPos) - pszChars])
                 && !xisspace (pszChars[nPrevPos]))
             nPos = nPrevPos;
         }
@@ -217,17 +228,17 @@ MoveWordRight (BOOL bSelect)
   if (xisalnum (pszChars[nPos]))
     {
       while (nPos < nLength && xisalnum (pszChars[nPos]))
-        nPos = ::CharNext(pszChars + nPos) - pszChars;
+        nPos = ::EnsureCharNext(pszChars + nPos) - pszChars;
     }
   else
     {
       while (nPos < nLength && !xisalnum (pszChars[nPos])
             && !xisspace (pszChars[nPos]))
-        nPos = ::CharNext(pszChars + nPos) - pszChars;
+        nPos = ::EnsureCharNext(pszChars + nPos) - pszChars;
     }
 
   while (nPos < nLength && xisspace (pszChars[nPos]))
-    nPos = ::CharNext(pszChars + nPos) - pszChars;
+    nPos = ::EnsureCharNext(pszChars + nPos) - pszChars;
 
   m_ptCursorPos.x = nPos;
   m_nIdealCharPos = CalculateActualOffset (m_ptCursorPos.y, m_ptCursorPos.x);
@@ -374,10 +385,6 @@ MovePgUp (BOOL bSelect)
     nNewTopSubLine = 0;
   if (m_nTopSubLine != nNewTopSubLine)
     {
-      int nDummy;
-      int nNewTopLine;
-      GetLineBySubLine(nNewTopSubLine, nNewTopLine, nDummy);
-      m_ptCursorPos.y = nNewTopLine;
       ScrollToSubLine(nNewTopSubLine);
       UpdateSiblingScrollPos(FALSE);
     }
@@ -386,7 +393,10 @@ MovePgUp (BOOL bSelect)
   CPoint subLinePos;
   CharPosToPoint( m_ptCursorPos.y, m_ptCursorPos.x, subLinePos );
 
-  int nSubLine = GetSubLineIndex( m_ptCursorPos.y ) + subLinePos.y;
+  int nSubLine = GetSubLineIndex( m_ptCursorPos.y ) + subLinePos.y - GetScreenLines() + 1;
+
+  if (nSubLine < nNewTopSubLine || nSubLine >= nNewTopSubLine + GetScreenLines())
+    nSubLine = nNewTopSubLine;
 
   if ( nSubLine < 0 )
     nSubLine = 0;
@@ -415,10 +425,6 @@ MovePgDn (BOOL bSelect)
 		nNewTopSubLine = nSubLineCount - 1;
 	if (m_nTopSubLine != nNewTopSubLine)
 	{
-		int nDummy;
-		int nNewTopLine;
-		GetLineBySubLine(nNewTopSubLine, nNewTopLine, nDummy);
-		m_ptCursorPos.y = nNewTopLine;
 		ScrollToSubLine(nNewTopSubLine);
         UpdateSiblingScrollPos(FALSE);
 	}
@@ -428,6 +434,9 @@ MovePgDn (BOOL bSelect)
 	CharPosToPoint( m_ptCursorPos.y, m_ptCursorPos.x, subLinePos );
 
 	int nSubLine = GetSubLineIndex( m_ptCursorPos.y ) + subLinePos.y + GetScreenLines() - 1;
+
+	if (nSubLine < nNewTopSubLine || nSubLine >= nNewTopSubLine + GetScreenLines())
+		nSubLine = nNewTopSubLine + GetScreenLines() - 1;
 
 	if( nSubLine > nSubLineCount - 1 )
 		nSubLine = nSubLineCount - 1;
@@ -1145,7 +1154,9 @@ OnRButtonDown (UINT nFlags, CPoint point)
   CPoint pt = point;
   AdjustTextPoint (pt);
   pt = ClientToText (pt);
-  if (!IsInsideSelBlock (pt))
+
+  // If there is selection, dont' clear it
+  if (!IsSelection())
     {
       m_ptAnchor = m_ptCursorPos = pt;
       SetSelection (m_ptCursorPos, m_ptCursorPos);
@@ -1171,7 +1182,7 @@ Copy ()
   PrepareSelBounds ();
   CString text;
   GetText (m_ptDrawSelStart, m_ptDrawSelEnd, text);
-  PutToClipboard (text);
+  PutToClipboard (text, text.GetLength());
 }
 
 
@@ -1183,9 +1194,9 @@ TextInClipboard ()
 }
 
 BOOL CCrystalTextView::
-PutToClipboard (LPCTSTR pszText)
+PutToClipboard (LPCTSTR pszText, int cchText)
 {
-  if (pszText == NULL || _tcslen (pszText) == 0)
+  if (pszText == NULL || cchText == 0)
     return FALSE;
 
   CWaitCursor wc;
@@ -1193,14 +1204,19 @@ PutToClipboard (LPCTSTR pszText)
   if (OpenClipboard ())
     {
       EmptyClipboard ();
-      HGLOBAL hData = GlobalAlloc (GMEM_MOVEABLE | GMEM_DDESHARE, (_tcslen(pszText)+1) * sizeof(TCHAR));
+      SIZE_T cbData = (cchText + 1) * sizeof(TCHAR);
+      HGLOBAL hData = GlobalAlloc (GMEM_MOVEABLE | GMEM_DDESHARE, cbData);
       if (hData != NULL)
         {
+          GlobalReAlloc(hData, cbData, 0);
+          ASSERT(GlobalSize(hData) == cbData);
           LPTSTR pszData = (LPTSTR)::GlobalLock (hData);
-          _tcscpy (pszData, pszText);
+          memcpy (pszData, pszText, cbData);
           GlobalUnlock (hData);
           UINT fmt = GetClipTcharTextFormat();
           bOK = SetClipboardData (fmt, hData) != NULL;
+          if (bOK)
+            SetClipboardData (RegisterClipboardFormat (_T("WinMergeClipboard")), NULL);
         }
       CloseClipboard ();
     }
@@ -1220,9 +1236,26 @@ GetFromClipboard (CString & text)
           LPTSTR pszData = (LPTSTR) GlobalLock (hData);
           if (pszData != NULL)
             {
-              text = pszData;
+              SIZE_T cbData = GlobalSize (hData);
+              int cchText = cbData / sizeof(TCHAR) - 1;
+              if (cchText >= 0)
+                memcpy(text.GetBufferSetLength(cchText), pszData, cbData);
               GlobalUnlock (hData);
               bSuccess = TRUE;
+              BOOL bWinMergeClipboardFormat = FALSE;
+              UINT nFormat = 0;
+              UINT nWinMergeClipboardFormat = RegisterClipboardFormat (_T("WinMergeClipboard"));
+              while (nFormat = EnumClipboardFormats (nFormat))
+                {
+                  if (nFormat == nWinMergeClipboardFormat)
+                    bWinMergeClipboardFormat = TRUE;
+                }
+              if (!bWinMergeClipboardFormat)
+                {
+                  // truncate the data after the first null
+                  CString tmp = (LPCTSTR)text;
+                  text = tmp;
+                }
             }
         }
       CloseClipboard ();

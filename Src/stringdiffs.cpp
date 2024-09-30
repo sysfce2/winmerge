@@ -4,8 +4,8 @@
  * @brief Implementation file for sd_ComputeWordDiffs (q.v.)
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: stringdiffs.cpp 3104 2006-02-24 21:36:47Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: stringdiffs.cpp 5414 2008-06-02 13:07:47Z kimmov $
 
 #include "stdafx.h"
 #include <mbctype.h>
@@ -512,6 +512,8 @@ LastChar(LPCTSTR psz, int len)
 	{
 		prev = psz;
 		psz = CharNext(psz);
+		if (prev == psz)
+			psz++;
 	}
 	if (psz==lastValid && !IsLeadByte(*psz))
 		return psz;
@@ -810,7 +812,7 @@ static void wordLevelToByteLevel(wdiffarray * pDiffs, const CString& str1, const
 		if (begin1 == -1)
 		{
 			// no visible diff on side1
-			pDiff->end[0] = pDiff->start[0];
+			pDiff->end[0] = pDiff->start[0] - 1;
 		}
 		else
 		{
@@ -820,7 +822,7 @@ static void wordLevelToByteLevel(wdiffarray * pDiffs, const CString& str1, const
 		if (begin2 == -1)
 		{
 			// no visible diff on side2
-			pDiff->end[1] = pDiff->start[1];
+			pDiff->end[1] = pDiff->start[1] - 1;
 		}
 		else
 		{

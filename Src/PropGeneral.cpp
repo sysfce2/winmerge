@@ -24,8 +24,8 @@
  * @brief Implementation file for CPropGeneral propertyheet
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PropGeneral.cpp 3195 2006-03-27 22:37:31Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: PropGeneral.cpp 4833 2007-12-17 16:33:16Z kimmov $
 
 #include "stdafx.h"
 #include "merge.h"
@@ -47,15 +47,16 @@ static char THIS_FILE[] = __FILE__;
  */
 CPropGeneral::CPropGeneral(COptionsMgr *optionsMgr) : CPropertyPage(CPropGeneral::IDD)
 , m_pOptionsMgr(optionsMgr)
-, m_bBackup(FALSE)
 , m_bScroll(FALSE)
 , m_bDisableSplash(FALSE)
 , m_bSingleInstance(FALSE)
 , m_bVerifyPaths(FALSE)
 , m_bCloseWindowWithEsc(TRUE)
+, m_bAskMultiWindowClose(FALSE)
 , m_bMultipleFileCmp(FALSE)
 , m_bMultipleDirCmp(FALSE)
 , m_nAutoCompleteSource(0)
+, m_bPreserveFiletime(FALSE)
 {
 }
 
@@ -65,18 +66,15 @@ CPropGeneral::~CPropGeneral()
 
 BOOL CPropGeneral::OnInitDialog()
 {
+	theApp.TranslateDialog(m_hWnd);
 	CPropertyPage::OnInitDialog();
 
 	CComboBox *pWnd = (CComboBox*)GetDlgItem(IDC_AUTO_COMPLETE_SOURCE);
 	ASSERT(NULL != pWnd);
 
-	CString str;
-	VERIFY(str.LoadString(IDS_AUTOCOMPLETE_DISABLED));
-	pWnd->AddString(str);
-	VERIFY(str.LoadString(IDS_AUTOCOMPLETE_FILE_SYS));
-	pWnd->AddString(str);
-	VERIFY(str.LoadString(IDS_AUTOCOMPLETE_MRU));
-	pWnd->AddString(str);
+	pWnd->AddString(theApp.LoadString(IDS_AUTOCOMPLETE_DISABLED).c_str());
+	pWnd->AddString(theApp.LoadString(IDS_AUTOCOMPLETE_FILE_SYS).c_str());
+	pWnd->AddString(theApp.LoadString(IDS_AUTOCOMPLETE_MRU).c_str());
 
 	pWnd->SetCurSel(m_nAutoCompleteSource);
 
@@ -87,15 +85,16 @@ void CPropGeneral::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CPropGeneral)
-	DDX_Check(pDX, IDC_BACKUP_CHECK, m_bBackup);
 	DDX_Check(pDX, IDC_SCROLL_CHECK, m_bScroll);
 	DDX_Check(pDX, IDC_DISABLE_SPLASH, m_bDisableSplash);
 	DDX_Check(pDX, IDC_SINGLE_INSTANCE, m_bSingleInstance);
 	DDX_Check(pDX, IDC_VERIFY_OPEN_PATHS, m_bVerifyPaths);
 	DDX_Check(pDX, IDC_ESC_CLOSES_WINDOW, m_bCloseWindowWithEsc);
+	DDX_Check(pDX, IDC_ASK_MULTIWINDOW_CLOSE, m_bAskMultiWindowClose);
 	DDX_Check(pDX, IDC_MULTIDOC_FILECMP, m_bMultipleFileCmp);
 	DDX_Check(pDX, IDC_MULTIDOC_DIRCMP, m_bMultipleDirCmp);
 	DDX_CBIndex(pDX, IDC_AUTO_COMPLETE_SOURCE, m_nAutoCompleteSource);
+	DDX_Check(pDX, IDC_PRESERVE_FILETIME, m_bPreserveFiletime);
 	//}}AFX_DATA_MAP
 }
 
@@ -111,15 +110,16 @@ END_MESSAGE_MAP()
  */
 void CPropGeneral::ReadOptions()
 {
-	m_bBackup = m_pOptionsMgr->GetBool(OPT_CREATE_BACKUPS);
 	m_bScroll = m_pOptionsMgr->GetBool(OPT_SCROLL_TO_FIRST);
 	m_bDisableSplash = m_pOptionsMgr->GetBool(OPT_DISABLE_SPLASH);
 	m_bSingleInstance = m_pOptionsMgr->GetBool(OPT_SINGLE_INSTANCE);
 	m_bVerifyPaths = m_pOptionsMgr->GetBool(OPT_VERIFY_OPEN_PATHS);
 	m_bCloseWindowWithEsc = m_pOptionsMgr->GetBool(OPT_CLOSE_WITH_ESC);
+	m_bAskMultiWindowClose = m_pOptionsMgr->GetBool(OPT_ASK_MULTIWINDOW_CLOSE);
 	m_bMultipleFileCmp = m_pOptionsMgr->GetBool(OPT_MULTIDOC_MERGEDOCS);
 	m_bMultipleDirCmp = m_pOptionsMgr->GetBool(OPT_MULTIDOC_DIRDOCS);
 	m_nAutoCompleteSource = m_pOptionsMgr->GetInt(OPT_AUTO_COMPLETE_SOURCE);
+	m_bPreserveFiletime = m_pOptionsMgr->GetBool(OPT_PRESERVE_FILETIMES);
 }
 
 /** 
@@ -127,15 +127,16 @@ void CPropGeneral::ReadOptions()
  */
 void CPropGeneral::WriteOptions()
 {
-	m_pOptionsMgr->SaveOption(OPT_CREATE_BACKUPS, m_bBackup == TRUE);
 	m_pOptionsMgr->SaveOption(OPT_SCROLL_TO_FIRST, m_bScroll == TRUE);
 	m_pOptionsMgr->SaveOption(OPT_DISABLE_SPLASH, m_bDisableSplash == TRUE);
 	m_pOptionsMgr->SaveOption(OPT_SINGLE_INSTANCE, m_bSingleInstance == TRUE);
 	m_pOptionsMgr->SaveOption(OPT_VERIFY_OPEN_PATHS, m_bVerifyPaths == TRUE);
 	m_pOptionsMgr->SaveOption(OPT_CLOSE_WITH_ESC, m_bCloseWindowWithEsc == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_ASK_MULTIWINDOW_CLOSE, m_bAskMultiWindowClose == TRUE);
 	m_pOptionsMgr->SaveOption(OPT_MULTIDOC_MERGEDOCS, m_bMultipleFileCmp == TRUE);
 	m_pOptionsMgr->SaveOption(OPT_MULTIDOC_DIRDOCS, m_bMultipleDirCmp == TRUE);
 	m_pOptionsMgr->SaveOption(OPT_AUTO_COMPLETE_SOURCE, m_nAutoCompleteSource);
+	m_pOptionsMgr->SaveOption(OPT_PRESERVE_FILETIMES, m_bPreserveFiletime);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -147,5 +148,5 @@ void CPropGeneral::WriteOptions()
 void CPropGeneral::OnResetAllMessageBoxes()
 {
 	CMessageBoxDialog::ResetMessageBoxes();
-	AfxMessageBox(IDS_MESSAGE_BOX_ARE_RESET, MB_ICONINFORMATION);
+	LangMessageBox(IDS_MESSAGE_BOX_ARE_RESET, MB_ICONINFORMATION);
 }

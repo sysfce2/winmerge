@@ -7,16 +7,18 @@
  * (http://www.abstractspoon.com/) but is modified to use in
  * WinMerge.
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PreferencesDlg.cpp 3850 2006-11-26 11:29:07Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: PreferencesDlg.cpp 4637 2007-10-16 16:57:44Z jtuc $
 
 #include "stdafx.h"
 #include "resource.h"
+#include "UnicodeString.h"
 #include "OptionsDef.h"
 #include "OptionsMgr.h"
 #include "SyntaxColors.h"
 #include "PreferencesDlg.h"
 #include "MainFrm.h"
+#include "Merge.h"
 #include "coretools.h" //SplitFilename()
 #include "FileOrFolderSelect.h"
 
@@ -53,6 +55,7 @@ CPreferencesDlg::CPreferencesDlg(COptionsMgr *regOptions, SyntaxColors *colors,
 , m_pageCodepage(regOptions)
 , m_pageEditor(regOptions)
 , m_pageSystem(regOptions)
+, m_pageBackups(regOptions)
 , m_pageVss(regOptions)
 {
 	UNREFERENCED_PARAMETER(nMenuID);
@@ -86,6 +89,7 @@ END_MESSAGE_MAP()
 
 BOOL CPreferencesDlg::OnInitDialog() 
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
 
 	m_tcPages.SetIndent(0);
@@ -102,6 +106,7 @@ BOOL CPreferencesDlg::OnInitDialog()
 	AddPage(&m_pageSyntaxColors, IDS_OPTIONSPG_SYNTAXCOLORS);
 	AddPage(&m_pageArchive, IDS_OPTIONSPG_ARCHIVE);
 	AddPage(&m_pageSystem, IDS_OPTIONSPG_SYSTEM);
+	AddPage(&m_pageBackups, IDS_OPTIONSPG_BACKUPS);
 	AddPage(&m_pageVss, IDS_OPTIONSPG_VERSIONCONTROL);
 	AddPage(&m_pageCodepage, IDS_OPTIONSPG_CODEPAGE);
 
@@ -140,9 +145,8 @@ void CPreferencesDlg::OnHelpButton()
 
 void CPreferencesDlg::AddPage(CPropertyPage* pPage, UINT nResourceID)
 {
-	CString sPath;
-	VERIFY(sPath.LoadString(nResourceID));
-	AddPage(pPage, sPath);
+	String sPath = theApp.LoadString(nResourceID);
+	AddPage(pPage, sPath.c_str());
 }
 
 void CPreferencesDlg::AddPage(CPropertyPage* pPage, LPCTSTR szPath)
@@ -203,7 +207,7 @@ void CPreferencesDlg::OnSelchangedPages(NMHDR* pNMHDR, LRESULT* pResult)
 
 		// update caption
 		CString sCaption;
-		AfxFormatString1(sCaption, IDS_OPTIONS_TITLE, GetItemPath(htiSel));
+		LangFormatString1(sCaption, IDS_OPTIONS_TITLE, GetItemPath(htiSel));
 		SetWindowText(sCaption);
 	}
 
@@ -250,6 +254,7 @@ void CPreferencesDlg::ReadOptions(BOOL bUpdate)
 	m_pageCodepage.ReadOptions();
 	m_pageVss.ReadOptions();
 	m_pageArchive.ReadOptions();
+	m_pageBackups.ReadOptions();
 
 	if (bUpdate)
 	{
@@ -263,6 +268,7 @@ void CPreferencesDlg::ReadOptions(BOOL bUpdate)
 		SafeUpdatePage(&m_pageCodepage, FALSE);
 		SafeUpdatePage(&m_pageVss, FALSE);
 		SafeUpdatePage(&m_pageArchive, FALSE);
+		SafeUpdatePage(&m_pageBackups, FALSE);
 	}
 }
 
@@ -281,6 +287,7 @@ void CPreferencesDlg::SaveOptions()
 	m_pageCodepage.WriteOptions();
 	m_pageVss.WriteOptions();	
 	m_pageArchive.WriteOptions();
+	m_pageBackups.WriteOptions();
 }
 
 void CPreferencesDlg::SetSyntaxColors(SyntaxColors *pColors)
@@ -294,17 +301,15 @@ void CPreferencesDlg::SetSyntaxColors(SyntaxColors *pColors)
 void CPreferencesDlg::OnImportButton()
 {
 	CString s;
-	CString caption;
-	VERIFY(caption.LoadString(IDS_OPT_IMPORT_CAPTION));
-	if (SelectFile(GetSafeHwnd(), s, NULL, caption, IDS_INIFILES, TRUE))
+	if (SelectFile(GetSafeHwnd(), s, NULL, IDS_OPT_IMPORT_CAPTION, IDS_INIFILES, TRUE))
 	{
 		if (m_pOptionsMgr->ImportOptions(s) == OPT_OK)
 		{
 			ReadOptions(TRUE);
-			AfxMessageBox(IDS_OPT_IMPORT_DONE, MB_ICONINFORMATION);
+			LangMessageBox(IDS_OPT_IMPORT_DONE, MB_ICONINFORMATION);
 		}
 		else
-			AfxMessageBox(IDS_OPT_IMPORT_ERR, MB_ICONWARNING);
+			LangMessageBox(IDS_OPT_IMPORT_ERR, MB_ICONWARNING);
 	}
 }
 
@@ -314,26 +319,20 @@ void CPreferencesDlg::OnImportButton()
 void CPreferencesDlg::OnExportButton()
 {
 	CString settingsFile;
-	CString caption;
-	VERIFY(caption.LoadString(IDS_OPT_EXPORT_CAPTION));
-	if (SelectFile(GetSafeHwnd(), settingsFile, NULL, caption, IDS_INIFILES, FALSE))
+	if (SelectFile(GetSafeHwnd(), settingsFile, NULL, IDS_OPT_EXPORT_CAPTION, IDS_INIFILES,
+		FALSE))
 	{
 		// Add settings file extension if it is missing
 		// So we allow 'filename.otherext' but add extension for 'filename'
-		CString filename;
-		CString extension;
-		SplitFilename(settingsFile, NULL, &filename, &extension);
-		if (extension.IsEmpty())
-		{
-			CString settingsFileExt(_T("ini"));
-			settingsFile += _T(".");
-			settingsFile += settingsFileExt;
-		}
+		String extension;
+		SplitFilename(settingsFile, NULL, NULL, &extension);
+		if (extension.empty())
+			settingsFile += _T(".ini");
 
 		if (m_pOptionsMgr->ExportOptions(settingsFile) == OPT_OK)
-			AfxMessageBox(IDS_OPT_EXPORT_DONE, MB_ICONINFORMATION);
+			LangMessageBox(IDS_OPT_EXPORT_DONE, MB_ICONINFORMATION);
 		else
-			AfxMessageBox(IDS_OPT_EXPORT_ERR, MB_ICONWARNING);
+			LangMessageBox(IDS_OPT_EXPORT_ERR, MB_ICONWARNING);
 	}
 }
 

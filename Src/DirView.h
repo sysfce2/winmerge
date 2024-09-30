@@ -23,8 +23,8 @@
  *  @brief Declaration of class CDirView
  */ 
 //
-// RCS ID line follows -- this is updated by CVS
-// $Id: DirView.h 3566 2006-09-15 21:14:54Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: DirView.h 5019 2008-02-10 11:50:33Z jtuc $
 
 #if !defined(AFX_DirView_H__16E7C721_351C_11D1_95CD_444553540000__INCLUDED_)
 #define AFX_DirView_H__16E7C721_351C_11D1_95CD_444553540000__INCLUDED_
@@ -33,6 +33,7 @@
 // CDirView view
 #include <afxcview.h>
 #include "SortHeaderCtrl.h"
+#include "UnicodeString.h"
 
 class FileActionScript;
 
@@ -63,13 +64,10 @@ struct ViewCustomFlags
 	};
 };
 
-
-namespace varprop { struct VariantValue; }
-
 /**
  * @brief Position value for special items (..) in directory compare view.
  */
-const int SPECIAL_ITEM_POS = -1;
+const POSITION SPECIAL_ITEM_POS = (POSITION)-1L;
 
 /** Default column width in directory compare */
 const UINT DefColumnWidth = 150;
@@ -109,7 +107,7 @@ public:
 	void UpdateResources();
 	void LoadColumnHeaderItems();
 	POSITION GetItemKey(int idx) const;
-	int GetItemIndex(DWORD key);
+	int GetItemIndex(POSITION key);
 	// for populating list
 	void DeleteAllDisplayItems();
 	void SetColumnWidths();
@@ -129,10 +127,10 @@ private:
 
 // Implementation in DirActions.cpp
 private:
-	BOOL GetSelectedDirNames(CString& strLeft, CString& strRight) const;
-	BOOL GetSelectedFileNames(CString& strLeft, CString& strRight) const;
-	CString GetSelectedFileName(SIDE_TYPE stype) const;
-	void GetItemFileNames(int sel, CString& strLeft, CString& strRight) const;
+	BOOL GetSelectedDirNames(String& strLeft, String& strRight) const;
+	BOOL GetSelectedFileNames(String& strLeft, String& strRight) const;
+	String GetSelectedFileName(SIDE_TYPE stype) const;
+	void GetItemFileNames(int sel, String& strLeft, String& strRight) const;
 	void GetItemFileNames(int sel, PathContext * paths) const;
 	void FormatEncodingDialogDisplays(CLoadSaveCodepageDlg * dlg);
 	BOOL IsItemLeftOnly(int code);
@@ -200,8 +198,8 @@ private:
 	bool IsDefaultSortAscending(int col) const;
 	int ColPhysToLog(int i) const { return m_invcolorder[i]; }
 	int ColLogToPhys(int i) const { return m_colorder[i]; } /**< -1 if not displayed */
-	CString GetColDisplayName(int col) const;
-	CString GetColDescription(int col) const;
+	String GetColDisplayName(int col) const;
+	String GetColDescription(int col) const;
 	int GetColLogCount() const;
 	void LoadColumnOrders();
 	void ValidateColumnOrdering();
@@ -209,7 +207,7 @@ private:
 	void ResetColumnOrdering();
 	void MoveColumn(int psrc, int pdest);
 	CString GetColRegValueNameBase(int col) const;
-	CString ColGetTextToDisplay(const CDiffContext *pCtxt, int col, const DIFFITEM & di);
+	String ColGetTextToDisplay(const CDiffContext *pCtxt, int col, const DIFFITEM & di);
 	int ColSort(const CDiffContext *pCtxt, int col, const DIFFITEM & ldi, const DIFFITEM &rdi) const;
 // End DirViewCols.cpp
 
@@ -246,6 +244,13 @@ protected:
 	int GetDefaultColImage() const;
 	int AddSpecialItems();
 	void GetCurrentColRegKeys(CStringArray & colKeys);
+	void WarnContentsChanged(const CString & failedPath);
+	void OpenSpecialItems(POSITION pos1, POSITION pos2);
+	bool OpenOneItem(POSITION pos1, DIFFITEM **di1, DIFFITEM **di2,
+		String &path1, String &path2, int & sel1, bool & isDir);
+	bool OpenTwoItems(POSITION pos1, POSITION pos2, DIFFITEM **di1, DIFFITEM **di2,
+		String &path1, String &path2, int & sel1, int & sel2, bool & isDir);
+	bool CreateFoldersPair(DIFFITEM & di, bool side1);
 
 // Implementation data
 protected:
@@ -357,6 +362,7 @@ protected:
 	afx_msg void OnViewShowHiddenItems();
 	afx_msg void OnUpdateViewShowHiddenItems(CCmdUI* pCmdUI);
 	afx_msg void OnMergeCompare();
+	afx_msg void OnMergeCompareXML();
 	afx_msg void OnUpdateMergeCompare(CCmdUI *pCmdUI);
 	afx_msg void OnViewCompareStatistics();
 	afx_msg void OnFileEncoding();
@@ -396,8 +402,8 @@ private:
 	void DoUpdateCtxtDirCopyRightTo(CCmdUI* pCmdUI);
 	void DoUpdateCtxtDirMoveLeftTo(CCmdUI* pCmdUI);
 	void DoUpdateCtxtDirMoveRightTo(CCmdUI* pCmdUI);
-	POSITION GetItemKeyFromData(DWORD dw) const;
-	DIFFITEM GetDiffItem(int sel) const;
+	POSITION GetItemKeyFromData(DWORD_PTR dw) const;
+	const DIFFITEM & GetDiffItem(int sel) const;
 	DIFFITEM & GetDiffItemRef(int sel);
 	const DIFFITEM & GetDiffItemConstRef(int sel) const;
 	int GetSingleSelectedItem() const;
@@ -421,7 +427,7 @@ inline CDirDoc* CDirView::GetDocument()
 #endif
 
 
-CString NumToStr(int n);
+String NumToStr(int n);
 
 
 /////////////////////////////////////////////////////////////////////////////

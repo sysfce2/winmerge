@@ -19,8 +19,8 @@
  *
  * @brief Declaration file for VSSHelper
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: VSSHelper.h 2247 2005-04-05 19:50:27Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: VSSHelper.h 4719 2007-11-07 06:11:38Z kimmov $
 
 #ifndef _VSSHELPER_H_
 #define _VSSHELPER_H_

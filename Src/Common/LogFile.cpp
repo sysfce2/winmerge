@@ -4,12 +4,15 @@
  * @brief Implementation file for CLogFile
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: LogFile.cpp 3584 2006-09-19 16:35:48Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: LogFile.cpp 4855 2008-01-04 15:55:30Z kimmov $
 
 #include "stdafx.h"
 #include "LogFile.h"
 #include <afxinet.h>
+#include "UnicodeString.h"
+#include "paths.h"
+#include "Environment.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -17,14 +20,10 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-/**
- * @brief Global name for mutes protecting log file access.
- */
+/** @brief Global name for mutes protecting log file access. */
 static const TCHAR MutexName[] = _T("WINMERGE_LOG_MUTEX");
 
-/**
- * @brief Constant for Megabyte.
- */
+/** @brief Constant for Megabyte. */
 static const int MEGA = 1024 * 1024;
 
 /**
@@ -65,15 +64,13 @@ CLogFile::~CLogFile()
 CString CLogFile::SetFile(const CString & strFile, const CString & strPath,
 	BOOL bDelExisting /*= FALSE*/)
 {
-	TCHAR temp[MAX_PATH] = {0};
-
 	// build the path to the logfile
 	if (!strPath.IsEmpty())
 		m_strLogPath = strFile;
 	else
 	{
-		if (GetTempPath(MAX_PATH, temp))
-			m_strLogPath = temp;
+		String temp = env_GetTempPath();
+		m_strLogPath = temp.c_str();
 	}
 	
 	if (m_strLogPath.Right(1) != _T('\\'))
@@ -284,21 +281,20 @@ void CLogFile::Prune(FILE *f)
 {
 	TCHAR buf[8196] = {0};
 	DWORD amt;
-	TCHAR tempfile[MAX_PATH];
 	FILE *tf;
-	GetTempFileName(_T("."),_T("LOG"),0,tempfile);
-	DeleteFile(tempfile);
-	if ((tf=_tfopen(tempfile,_T("w"))) != NULL)
+	String tempfile = env_GetTempFileName(_T("."), _T("LOG"));
+	DeleteFile(tempfile.c_str());
+	if ((tf = _tfopen(tempfile.c_str(), _T("w"))) != NULL)
 	{
-		fseek(f, ftell(f)/4, SEEK_SET);
+		fseek(f, ftell(f) / 4, SEEK_SET);
 		_fputts(_T("#### The log has been truncated due to size limits ####\n"), tf);
 
-		while ((amt=fread(buf, 1, 8196, f)) > 0)
+		while ((amt = fread(buf, 1, 8196, f)) > 0)
 			fwrite(buf, amt, 1, tf);
 		fclose(tf);
 		fclose(f);
 		DeleteFile(m_strLogPath);
-		MoveFile(tempfile,m_strLogPath);
+		MoveFile(tempfile.c_str(), m_strLogPath);
 	}
 }
 
@@ -333,4 +329,10 @@ LPCTSTR CLogFile::GetPrefix(UINT level) const
 			break;
 	}
 	return str;
+}
+
+/** @brief Report DeleteFile() failure to Log */
+UINT CLogFile::DeleteFileFailed(LPCTSTR path)
+{
+	return Write(CLogFile::LERROR|CLogFile::LOSERROR|CLogFile::LDEBUG, _T("DeleteFile(%s) failed: "), path);
 }

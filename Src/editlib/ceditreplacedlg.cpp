@@ -30,7 +30,7 @@
  *  @brief Implementation of Replace-dialog.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ceditreplacedlg.cpp 3438 2006-08-05 17:20:43Z kimmov $
+// $Id: ceditreplacedlg.cpp 4983 2008-01-31 21:08:06Z jtuc $
 
 #include "stdafx.h"
 #include "resource.h"
@@ -150,6 +150,7 @@ OnCancel ()
 BOOL CEditReplaceDlg::
 OnInitDialog ()
 {
+  LangTranslateDialog(m_hWnd);
   CDialog::OnInitDialog ();
 
   m_ctlFindText.LoadState(_T("Files\\ReplaceInFile"));
@@ -205,7 +206,7 @@ DoHighlightText ( BOOL bNotifyIfNotFound )
       if ( bNotifyIfNotFound ) 
       {
         CString prompt;
-        prompt.Format (IDS_EDIT_TEXT_NOT_FOUND, m_sText);
+        prompt.Format (LoadResString(IDS_EDIT_TEXT_NOT_FOUND).c_str(), m_sText);
         AfxMessageBox (prompt, MB_ICONINFORMATION);
       }
       if (m_nScope == 0)
@@ -245,7 +246,7 @@ DoReplaceText (LPCTSTR /*pszNewText*/, DWORD dwSearchFlags)
   if (!bFound)
     {
       CString prompt;
-      prompt.Format (IDS_EDIT_TEXT_NOT_FOUND, m_sText);
+      prompt.Format (LoadResString(IDS_EDIT_TEXT_NOT_FOUND).c_str(), m_sText);
       AfxMessageBox (prompt, MB_ICONINFORMATION);
       if (m_nScope == 0)
         m_ptCurrentPos = m_ptBlockBegin;
@@ -355,7 +356,7 @@ OnEditReplace ()
     dwSearchFlags |= FIND_REGEXP;
 
   //  We have highlighted text
-  VERIFY (m_pBuddy->ReplaceSelection (m_sNewText, dwSearchFlags));
+  VERIFY (m_pBuddy->ReplaceSelection (m_sNewText, m_sNewText.GetLength(), dwSearchFlags));
 
   //  Manually recalculate points
   if (m_bEnableScopeSelection)
@@ -424,7 +425,7 @@ OnEditReplaceAll ()
         dwSearchFlags |= FIND_REGEXP;
     
       //  We have highlighted text
-      VERIFY (m_pBuddy->ReplaceSelection (m_sNewText, dwSearchFlags));
+      VERIFY (m_pBuddy->ReplaceSelection (m_sNewText, m_sNewText.GetLength(), dwSearchFlags));
 
       //  Manually recalculate points
       if (m_bEnableScopeSelection)
@@ -493,7 +494,7 @@ OnEditReplaceAll ()
   CString strMessage;
   CString strNumber;
   strNumber.Format( _T("%d"), nNumReplaced );
-  AfxFormatString1(strMessage, IDS_NUM_REPLACED, strNumber);
+  LangFormatString1(strMessage, IDS_NUM_REPLACED, strNumber);
 
   AfxMessageBox( strMessage, MB_ICONINFORMATION|MB_DONT_DISPLAY_AGAIN, IDS_NUM_REPLACED);
 }

@@ -1,10 +1,10 @@
 /** 
- * @file  PropCompare.cpp
+ * @file  PropCompare.h
  *
- * @brief Implementation of CPropCompare propertysheet
+ * @brief Declaration of CPropCompare propertysheet
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PropCompare.h 3363 2006-07-13 10:19:15Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: PropCompare.h 5040 2008-02-13 15:12:13Z kimmov $
 
 #ifndef _PROPPAGE_COMPARE_H_
 #define _PROPPAGE_COMPARE_H_
@@ -27,6 +27,8 @@ class COptionsMgr;
  * Compare methods:
  *  - compare by contents
  *  - compare by modified date
+ *  - compare by file size
+ *  - compare by date and size
  *  - compare by quick contents
  *
  * @author Tim Musschoot, several modifications by others
@@ -35,8 +37,6 @@ class CPropCompare : public CPropertyPage, public IOptionsPanel
 {
 // Construction
 public:
-    enum CompareMethod { BY_CONTENTS, BY_DATE};
-
 	CPropCompare(COptionsMgr *optionsMgr);
 
 // Implement IOptionsPanel
@@ -52,8 +52,10 @@ public:
 	BOOL    m_bIgnoreBlankLines;
 	int     m_nIgnoreWhite;
 	BOOL    m_bMovedBlocks;
+	BOOL    m_bMatchSimilarLines;
 	BOOL    m_bStopAfterFirst;
-	BOOL	m_bFilterCommentsLines;
+	BOOL    m_bFilterCommentsLines;
+	BOOL    m_bIgnoreSmallTimeDiff;
 	//}}AFX_DATA
 
 
@@ -82,4 +84,3 @@ private:
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 
 #endif // _PROPPAGE_COMPARE_H_
-

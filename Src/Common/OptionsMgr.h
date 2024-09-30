@@ -4,11 +4,11 @@
  * @brief Interface for Options management classes
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: OptionsMgr.h 2963 2006-01-22 19:42:40Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: OptionsMgr.h 4389 2007-07-28 07:10:30Z kimmov $
 
 /* The MIT License
-Copyright (c) 2004 Kimmo Varis
+Copyright (c) 2004-2007 Kimmo Varis
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files
 (the "Software"), to deal in the Software without restriction, including
@@ -31,123 +31,140 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _OPTIONS_MGR_
 #define _OPTIONS_MGR_
 
-#include <afxtempl.h>
+#include <map>
+#include "UnicodeString.h"
 #include "varprop.h"
 
+
 /**
- * @brief Return values for functions
+ * @brief Return values for functions.
  */
 enum
 {
-	OPT_OK				= 0,
-	OPT_ERR				= 1,
-	OPT_WRONG_TYPE		= 2,
-	OPT_UNKNOWN_TYPE	= 3,
-	OPT_NOTFOUND		= 4,
+	OPT_OK				= 0, /**< All good. */
+	OPT_ERR				= 1, /**< General error. */
+	OPT_WRONG_TYPE		= 2, /**< Option type was wrong. */
+	OPT_UNKNOWN_TYPE	= 3, /**< Given option type is not known. */
+	OPT_NOTFOUND		= 4, /**< Option name not found. */
 };
 
 /**
- * @brief Class to store option name, value and default value
+ * @brief Class to store option name, value and default value.
  */
 class COption
 {
 public:
-	typedef enum { nocoerce, coerce } coercion_type;
-public:
-	int Init(CString name, varprop::VariantValue defaultVal);
+	COption();
+	COption(const COption& option);
+
+	COption& operator=(const COption& option);
+
+	int Init(LPCTSTR name, varprop::VariantValue defaultVal);
 	varprop::VariantValue Get() const;
 	varprop::VariantValue GetDefault() const;
-	int Set(varprop::VariantValue value, coercion_type coercion=nocoerce);
+	int Set(varprop::VariantValue value, bool allowConversion = false);
 	int SetDefault(varprop::VariantValue defaultValue); 
 	void Reset();
-	bool CoerceType(varprop::VariantValue & value, varprop::VT_TYPE nType);
+
+protected:
+	bool ConvertInteger(varprop::VariantValue & value, varprop::VT_TYPE nType);
+	bool ConvertString(varprop::VariantValue & value, varprop::VT_TYPE nType);
+	bool ConvertType(varprop::VariantValue & value, varprop::VT_TYPE nType);
 
 private:
-	CString m_strName;
-	varprop::VariantValue m_value;
-	varprop::VariantValue m_valueDef;
+	String m_strName; /**< Option's name. */
+	varprop::VariantValue m_value; /**< Option's current value. */
+	varprop::VariantValue m_valueDef; /**< Option's default value. */
 };
 
+typedef std::map<String, COption> OptionsMap;
+
 /**
- * @brief Class to store list of options, and interface to saving & loading same
+ * @brief Class to store list of options.
+ * This class holds a list of all options (known to application). Options
+ * are accessed by their name.
+ *
+ * Option must be first initialized before it can be read/set. Initialization
+ * is done with InitOption() method.
  */
 class COptionsMgr
 {
 public:
-	int AddOption(CString name, varprop::VariantValue defaultValue);
-	varprop::VariantValue Get(CString name) const;
-	CString GetString(CString name) const;
-	int GetInt(const CString & name) const;
-	void SetInt(const CString & name, int value) { SaveOption(name, value); }
-	bool GetBool(CString name) const;
-	void SetBool(const CString & name, bool value) { SaveOption(name, value); }
-	int Set(CString name, varprop::VariantValue value, COption::coercion_type coercion=COption::nocoerce);
-	int Reset(CString name);
-	int GetDefault(CString name, CString & value) const;
-	int GetDefault(CString name, DWORD & value) const;
-	int GetDefault(CString name, bool & value) const;
+	int AddOption(LPCTSTR name, varprop::VariantValue defaultValue);
+	varprop::VariantValue Get(LPCTSTR name) const;
+	String GetString(LPCTSTR name) const;
+	int GetInt(LPCTSTR name) const;
+	void SetInt(LPCTSTR name, int value) { SaveOption(name, value); }
+	bool GetBool(LPCTSTR name) const;
+	void SetBool(LPCTSTR name, bool value) { SaveOption(name, value); }
+	int Set(LPCTSTR name, varprop::VariantValue value);
+	int Reset(LPCTSTR name);
+	int GetDefault(LPCTSTR name, String & value) const;
+	int GetDefault(LPCTSTR name, DWORD & value) const;
+	int GetDefault(LPCTSTR name, bool & value) const;
 
-	virtual int InitOption(CString name,
+	virtual int InitOption(LPCTSTR name,
 		varprop::VariantValue defaultValue) = 0;
-	virtual int InitOption(CString name, LPCTSTR defaultValue) = 0;
-	virtual int InitOption(CString name, int defaultValue, bool serializable=true) = 0;
-	virtual int InitOption(CString name, bool defaultValue) = 0;
+	virtual int InitOption(LPCTSTR name, LPCTSTR defaultValue) = 0;
+	virtual int InitOption(LPCTSTR name, int defaultValue, bool serializable = true) = 0;
+	virtual int InitOption(LPCTSTR name, bool defaultValue) = 0;
 
-	virtual int SaveOption(CString name) = 0;
-	virtual int SaveOption(CString name, varprop::VariantValue value) = 0;
-	virtual int SaveOption(CString name, CString value) = 0;
-	virtual int CoerceAndSaveOption(CString name, CString value) = 0;
-	virtual int SaveOption(CString name, int value) = 0;
-	virtual int SaveOption(CString name, bool value) = 0;
-	virtual int SaveOption(CString name, UINT value);
-	virtual int SaveOption(CString name, COLORREF value);
+	virtual int SaveOption(LPCTSTR name) = 0;
+	virtual int SaveOption(LPCTSTR name, varprop::VariantValue value) = 0;
+	virtual int SaveOption(LPCTSTR name, LPCTSTR value) = 0;
+	virtual int SaveOption(LPCTSTR name, int value) = 0;
+	virtual int SaveOption(LPCTSTR name, bool value) = 0;
+	virtual int SaveOption(LPCTSTR name, UINT value);
+	virtual int SaveOption(LPCTSTR name, COLORREF value);
 
-	virtual int ExportOptions(CString filename);
-	virtual int ImportOptions(CString filename);
+	virtual int RemoveOption(LPCTSTR name);
+
+	virtual int ExportOptions(LPCTSTR filename);
+	virtual int ImportOptions(LPCTSTR filename);
 	
 	virtual void SetSerializing(bool serializing=true) = 0;
 
 private:
-	CMap<CString, LPCTSTR, COption, COption&> m_optionsMap;
+	OptionsMap m_optionsMap; /**< Map where options are stored. */
 };
 
 /**
- * @brief Registry-based implementation of OptionsMgr interface (q.v.)
+ * @brief Registry-based implementation of OptionsMgr interface (q.v.).
  */
 class CRegOptionsMgr: public COptionsMgr
 {
 public:
 	CRegOptionsMgr() : m_serializing(true) { }
 
-	int LoadOption(CString name);
-	int SetRegRootKey(CString path);
+	int LoadOption(LPCTSTR name);
+	int SetRegRootKey(LPCTSTR path);
 
-	virtual int InitOption(CString name, varprop::VariantValue defaultValue);
-	virtual int InitOption(CString name, LPCTSTR defaultValue);
-	virtual int InitOption(CString name, int defaultValue, bool serializable=true);
-	virtual int InitOption(CString name, bool defaultValue);
+	virtual int InitOption(LPCTSTR name, varprop::VariantValue defaultValue);
+	virtual int InitOption(LPCTSTR name, LPCTSTR defaultValue);
+	virtual int InitOption(LPCTSTR name, int defaultValue, bool serializable=true);
+	virtual int InitOption(LPCTSTR name, bool defaultValue);
 
-	virtual int SaveOption(CString name);
-	virtual int SaveOption(CString name, varprop::VariantValue value);
-	virtual int CoerceAndSaveOption(CString name, CString value);
-	virtual int SaveOption(CString name, CString value);
-	virtual int SaveOption(CString name, int value);
-	virtual int SaveOption(CString name, bool value);
+	virtual int SaveOption(LPCTSTR name);
+	virtual int SaveOption(LPCTSTR name, varprop::VariantValue value);
+	virtual int SaveOption(LPCTSTR name, LPCTSTR value);
+	virtual int SaveOption(LPCTSTR name, int value);
+	virtual int SaveOption(LPCTSTR name, bool value);
+
+	virtual int RemoveOption(LPCTSTR name);
 
 	virtual void SetSerializing(bool serializing=true) { m_serializing = serializing; }
 
 protected:
-	void SplitName(CString strName, CString &strPath, CString &strValue);
-	int LoadValueFromReg(HKEY hKey, CString strName,
+	void SplitName(String strName, String &strPath, String &strValue);
+	int LoadValueFromReg(HKEY hKey, LPCTSTR strName,
 		varprop::VariantValue &value);
-	int SaveValueToReg(HKEY hKey, CString strValueName,
+	int SaveValueToReg(HKEY hKey, LPCTSTR strValueName,
 		varprop::VariantValue value);
 
 private:
-	CString m_registryRoot;
+	String m_registryRoot; /**< Registry path where to store options. */
 	bool m_serializing;
 
 };
-COptionsMgr * GetOptionsMgr();
 
 #endif // _OPTIONS_MGR_

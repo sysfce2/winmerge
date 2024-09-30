@@ -3,8 +3,8 @@
  *
  *  @brief Implementation of generic named property classes
  */ 
-// RCS ID line follows -- this is updated by CVS
-// $Id: varprop.cpp 3087 2006-02-20 21:43:58Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: varprop.cpp 4979 2008-01-31 16:15:30Z kimmov $
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
@@ -16,130 +16,177 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-namespace varprop {
-
-/** @brief Construct empty property set */
-PropertySet::PropertySet(int hashsize)
+namespace varprop
 {
-	if (hashsize>0)
-		InitHashTable(hashsize);
-}
-/** @brief Construct object by copying specified source */
-PropertySet::PropertySet(const PropertySet & src)
+/**
+ * @brief Default constructor.
+ */
+VariantValue::VariantValue()
+: m_vtype(VT_NULL), m_bvalue(false), m_ivalue(0), m_fvalue(0),
+  m_tvalue(0)
 {
-	// delegate to CopyFrom, so we only have to write the code once
-	CopyFrom(src);
 }
 
-/** @brief Copy from other object (copy assignment operator) */
-PropertySet & PropertySet::operator=(const PropertySet & src)
+/**
+ * @brief Copy constructor.
+ * @param [in] value Object to copy.
+ */
+VariantValue::VariantValue(const VariantValue &value)
 {
-	// delegate to CopyFrom, so we only have to write the code once
-	CopyFrom(src);
+	m_vtype = value.m_vtype;
+	m_bvalue = value.m_bvalue;
+	m_ivalue = value.m_ivalue;
+	m_fvalue = value.m_fvalue;
+	m_svalue = value.m_svalue;
+	m_tvalue = value.m_tvalue;
+}
+
+/**
+ * @brief Assignment operator override.
+ * @param [in] Object to copy.
+ * @return Copy of given object.
+ */
+VariantValue& VariantValue::operator=(const VariantValue& value)
+{
+	if (this != &value)
+	{
+		m_vtype = value.m_vtype;
+		m_bvalue = value.m_bvalue;
+		m_ivalue = value.m_ivalue;
+		m_fvalue = value.m_fvalue;
+		m_svalue = value.m_svalue;
+		m_tvalue = value.m_tvalue;
+	}
 	return *this;
 }
 
-/** @brief clean up contained memory */
-PropertySet::~PropertySet()
+/**
+ * @brief Set boolean value.
+ * @param [in] v Boolean value to set.
+ */
+void VariantValue::SetBool(bool v)
 {
-	// This looks the same as the base class, but this isn't a virtual method
-	// so we have to override the destructor to call it directly
-	// (Alternately, we could implement the DestructElements template helper)
-	RemoveAll();
+	Clear();
+	m_vtype = VT_BOOL;
+	m_bvalue = v;
 }
 
-/** @brief deallocate & remove elements */
-void PropertySet::RemoveAll()
-{
-	CString name;
-	Property  * ptr=0;
-	for (POSITION pos = this->GetStartPosition(); pos; )
-	{
-		this->GetNextAssoc(pos, name, ptr);
-		delete ptr;
-	}
-	CTypedPtrMap<CMapStringToPtr, CString, Property*>::RemoveAll();
+/**
+ * @brief Set integer value.
+ * @param [in] v Integer value to set.
+ */
+void VariantValue::SetInt(int v)
+{ 
+	Clear();
+	m_vtype = VT_INT;
+	m_ivalue = v;
 }
 
-/** @brief Make this property set (to be) a copy of argument property set */
-void PropertySet::CopyFrom(const PropertySet & src)
+/**
+ * @brief Set floating point value.
+ * @param [in] v Floating point value to set.
+ */
+void VariantValue::SetFloat(double v)
 {
-	RemoveAll();
-	InitHashTable(src.GetHashTableSize());
-
-	CString name;
-	Property  * ptr=0;
-	for (POSITION pos = src.GetStartPosition(); pos; )
-	{
-		src.GetNextAssoc(pos, name, ptr);
-		SetAt(name, new Property(*ptr));
-	}
+	Clear();
+	m_vtype = VT_FLOAT;
+	m_fvalue = v;
 }
 
-/** @brief Assign a new property (or reassign existing) */
-void PropertySet::SetProperty(const Property & property)
+/**
+ * @brief Set string value.
+ * @param [in] sz String value to set. Can be a NULL.
+ */
+void VariantValue::SetString(LPCTSTR sz)
 {
-	Property * ptr = 0;
-	if (Lookup(property.name, ptr))
-		*ptr = property;
-	else
-	{
-		if ((UINT)GetCount() > GetHashTableSize())
-		{
-			// TODO: enlarge hash table for better performance
-		}
-		SetAt(property.name, new Property(property));
-	}
-}
-/** Assign a new time-valued property (or reassign existing) */
-void PropertySet::SetProperty(LPCTSTR name, COleDateTime time)
-{
-	Property prop;
-	prop.name = name;
-	prop.value.SetTime(time);
-	SetProperty(prop);
-}
-/** Assign a new string-valued property (or reassign existing) */
-void PropertySet::SetProperty(LPCTSTR name, LPCTSTR value)
-{
-	Property prop;
-	prop.name = name;
-	prop.value.SetString(value);
-	SetProperty(prop);
-}
-/** Assign a new string-valued property (or reassign existing) */
-void PropertySet::SetProperty(LPCTSTR name, const CString & value)
-{
-	Property prop;
-	prop.name = name;
-	prop.value.SetString(value);
-	SetProperty(prop);
-}
-/** Assign a new int-valued property (or reassign existing) */
-void PropertySet::SetProperty(LPCTSTR name, int value)
-{
-	Property prop;
-	prop.name = name;
-	prop.value.SetInt(value);
-	SetProperty(prop);
+	Clear();
+	m_vtype = VT_STRING;
+	if (sz != NULL)
+		m_svalue = sz;
 }
 
-/** @brief Retrieve a property by name (NULL if no such property) */
-Property * PropertySet::GetProperty(LPCTSTR szname)
+/**
+ * @brief Set string value.
+ * @param [in] sz String value to set.
+ */
+void VariantValue::SetString(String sz)
 {
-	CString name = szname;
-	Property * ptr = 0;
-	Lookup(name, ptr);
-	return ptr;
+	m_svalue = sz;
+	m_vtype = VT_STRING;
 }
 
-/** @brief Retrieve a property by name (NULL if no such property) */
-const Property * PropertySet::GetProperty(LPCTSTR szname) const
+/**
+ * @brief Set time value.
+ * @param [in] v Time value to set.
+ */
+void VariantValue::SetTime(time_t v)
 {
-	CString name = szname;
-	Property * ptr = 0;
-	Lookup(name, ptr);
-	return ptr;
+	Clear();
+	m_vtype = VT_TIME;
+	m_tvalue = v;
+}
+
+/**
+ * @brief Clear variant's value (reset to defaults).
+ */
+void VariantValue::Clear()
+{
+	m_vtype = VT_NULL;
+	m_bvalue = false;
+	m_ivalue = 0;
+	m_fvalue = 0;
+	m_svalue.empty();
+	m_tvalue = 0;
+}
+
+/**
+ * @brief Get boolean value.
+ * @return Boolean value.
+ */
+bool VariantValue::GetBool() const
+{
+	ASSERT(m_vtype == VT_BOOL);
+	return m_bvalue;
+}
+
+/**
+ * @brief Get integer value.
+ * @return Integer value.
+ */
+int VariantValue::GetInt() const
+{
+	ASSERT(m_vtype == VT_INT);
+	return m_ivalue;
+}
+
+/**
+ * @brief Get floating point value.
+ * @return Floating point value.
+ */
+double VariantValue::GetFloat() const
+{
+	ASSERT(m_vtype == VT_FLOAT);
+	return m_fvalue;
+}
+
+/**
+ * @brief Get string value.
+ * @return String value.
+ */
+String VariantValue::GetString() const
+{
+	ASSERT(m_vtype == VT_STRING);
+	return m_svalue;
+}
+
+/**
+ * @brief Get time value.
+ * @return Time value.
+ */
+time_t VariantValue::GetTime() const
+{
+	ASSERT(m_vtype == VT_TIME);
+	return m_tvalue;
 }
 
 } // namespace

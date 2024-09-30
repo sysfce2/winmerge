@@ -19,11 +19,12 @@
  *
  * @brief Implementation of Patch creation dialog
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PatchDlg.cpp 3850 2006-11-26 11:29:07Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: PatchDlg.cpp 5067 2008-02-22 15:48:03Z kimmov $
 
 #include "stdafx.h"
 #include "merge.h"
+#include "PatchTool.h"
 #include "PatchDlg.h"
 #include "diff.h"
 #include "coretools.h"
@@ -57,7 +58,9 @@ CPatchDlg::CPatchDlg(CWnd* pParent /*=NULL*/)
 {
 }
 
-
+/**
+ * @brief Map dialog controls and class member variables.
+ */
 void CPatchDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
@@ -98,7 +101,8 @@ END_MESSAGE_MAP()
 // CPatchDlg message handlers
 
 /** 
- * @brief OK button pressed: check options and filenames and close dialog
+ * @brief Called when dialog is closed with OK.
+ * Check options and filenames given and close the dialog.
  */
 void CPatchDlg::OnOK()
 {
@@ -117,10 +121,10 @@ void CPatchDlg::OnOK()
 		if (!file1Ok || !file2Ok)
 		{
 			if (!file1Ok)
-				AfxMessageBox(IDS_DIFF_ITEM1NOTFOUND, MB_ICONSTOP);
+				LangMessageBox(IDS_DIFF_ITEM1NOTFOUND, MB_ICONSTOP);
 
 			if (!file2Ok)
-				AfxMessageBox(IDS_DIFF_ITEM2NOTFOUND, MB_ICONSTOP);
+				LangMessageBox(IDS_DIFF_ITEM2NOTFOUND, MB_ICONSTOP);
 			return;
 		}
 	}
@@ -128,13 +132,13 @@ void CPatchDlg::OnOK()
 	// Check that a result file was specified
 	if (m_fileResult.IsEmpty())
 	{
-		AfxMessageBox(IDS_MUST_SPECIFY_OUTPUT, MB_ICONSTOP);
+		LangMessageBox(IDS_MUST_SPECIFY_OUTPUT, MB_ICONSTOP);
 		m_ctlResult.SetFocus();
 		return;
 	}
  
 	// Check that result (patch) file is absolute path
-	if (!paths_IsPathAbsolute(m_fileResult))
+	if (!paths_IsPathAbsolute((LPCTSTR)m_fileResult))
 	{
 		ResMsgBox1(IDS_PATH_NOT_ABSOLUTE, m_fileResult, MB_ICONSTOP);
 		m_ctlResult.SetFocus();
@@ -146,7 +150,7 @@ void CPatchDlg::OnOK()
 	// Result file already exists and append not selected
 	if (fileExists && !m_appendFile)
 	{
-		if (AfxMessageBox(IDS_DIFF_FILEOVERWRITE,
+		if (LangMessageBox(IDS_DIFF_FILEOVERWRITE,
 				MB_YESNO | MB_ICONWARNING | MB_DONT_ASK_AGAIN,
 				IDS_DIFF_FILEOVERWRITE) != IDYES)
 		{
@@ -191,6 +195,7 @@ void CPatchDlg::OnOK()
  */
 BOOL CPatchDlg::OnInitDialog()
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
 
 	// Load combobox history
@@ -204,30 +209,26 @@ BOOL CPatchDlg::OnInitDialog()
 	if (count == 1)
 	{
 		PATCHFILES files = m_fileList.GetHead();
-		m_file1 = files.lfile;
-		m_ctlFile1.SetWindowText(files.lfile);
-		m_file2 = files.rfile;
-		m_ctlFile2.SetWindowText(files.rfile);
+		m_file1 = files.lfile.c_str();
+		m_ctlFile1.SetWindowText(files.lfile.c_str());
+		m_file2 = files.rfile.c_str();
+		m_ctlFile2.SetWindowText(files.rfile.c_str());
 	}
 	else if (count > 1)	// Multiple files added, show number of files
 	{
 		CString msg;
 		CString num;
 		num.Format(_T("%d"), count);
-		AfxFormatString1(msg, IDS_DIFF_SELECTEDFILES, num);
+		LangFormatString1(msg, IDS_DIFF_SELECTEDFILES, num);
 		m_file1 = msg;
 		m_file2 = msg;
 	}
 	UpdateData(FALSE);
 
 	// Add patch styles to combobox
-	CString str;
-	VERIFY(str.LoadString(IDS_DIFF_NORMAL));
-	m_comboStyle.AddString(str);
-	VERIFY(str.LoadString(IDS_DIFF_CONTEXT));
-	m_comboStyle.AddString(str);
-	VERIFY(str.LoadString(IDS_DIFF_UNIFIED));
-	m_comboStyle.AddString(str);
+	m_comboStyle.AddString(theApp.LoadString(IDS_DIFF_NORMAL).c_str());
+	m_comboStyle.AddString(theApp.LoadString(IDS_DIFF_CONTEXT).c_str());
+	m_comboStyle.AddString(theApp.LoadString(IDS_DIFF_UNIFIED).c_str());
 
 	m_outputStyle = OUTPUT_NORMAL;
 	m_comboStyle.SetCurSel(0);
@@ -253,12 +254,9 @@ void CPatchDlg::OnDiffBrowseFile1()
 {
 	CString s;
 	CString folder;
-	CString name;
-	CString title;
 
-	VERIFY(title.LoadString(IDS_OPEN_TITLE));
 	folder = m_file1;
-	if (SelectFile(GetSafeHwnd(), s, folder, title, NULL, TRUE))
+	if (SelectFile(GetSafeHwnd(), s, folder, IDS_OPEN_TITLE, NULL, TRUE))
 	{
 		ChangeFile(s, TRUE);
 		m_ctlFile1.SetWindowText(s);
@@ -272,12 +270,9 @@ void CPatchDlg::OnDiffBrowseFile2()
 {
 	CString s;
 	CString folder;
-	CString name;
-	CString title;
 
-	VERIFY(title.LoadString(IDS_OPEN_TITLE));
 	folder = m_file2;
-	if (SelectFile(GetSafeHwnd(), s, folder, title, NULL, TRUE))
+	if (SelectFile(GetSafeHwnd(), s, folder, IDS_OPEN_TITLE, NULL, TRUE))
 	{
 		ChangeFile(s, FALSE);
 		m_ctlFile2.SetWindowText(s);
@@ -330,14 +325,10 @@ void CPatchDlg::OnDiffBrowseResult()
 {
 	CString s;
 	CString folder;
-	CString name;
-	CString title;
 
-	VERIFY(title.LoadString(IDS_SAVE_AS_TITLE));
 	folder = m_fileResult;
-	if (SelectFile(GetSafeHwnd(), s, folder, title, NULL, FALSE))
+	if (SelectFile(GetSafeHwnd(), s, folder, IDS_SAVE_AS_TITLE, NULL, FALSE))
 	{
-		SplitFilename(s, &folder, &name, NULL);
 		m_fileResult = s;
 		m_ctlResult.SetWindowText(s);
 	}
@@ -445,7 +436,8 @@ void CPatchDlg::OnDiffSwapFiles()
 }
 
 /** 
- * @brief Add file to internal list.
+ * @brief Add patch item to internal list.
+ * @param [in] pf Patch item to add.
  */
 void CPatchDlg::AddItem(PATCHFILES pf)
 {
@@ -453,8 +445,8 @@ void CPatchDlg::AddItem(PATCHFILES pf)
 }
 
 /** 
- * @brief Returns amount of files in internal list.
- * @return Count of filepairs in list.
+ * @brief Returns amount of patch items in the internal list.
+ * @return Count of patch items in the list.
  */
 int CPatchDlg::GetItemCount()
 {
@@ -462,8 +454,8 @@ int CPatchDlg::GetItemCount()
 }
 
 /** 
- * @brief Return ref to first files in internal list
- * @return POSITION of first item in list.
+ * @brief Return ref to first item in the internal list
+ * @return POSITION of first item in the list.
  */
 POSITION CPatchDlg::GetFirstItem()
 {
@@ -471,11 +463,11 @@ POSITION CPatchDlg::GetFirstItem()
 }
 
 /** 
- * @brief Return next files in internal list
+ * @brief Return next item in the internal list
  * @param [in, out] pos
  * - in POSITION for item to get
  * - out Next item's POSITION
- * @return PATCHFILE from given position.
+ * @return PATCHFILES from given position.
  */
 PATCHFILES CPatchDlg::GetNextItem(POSITION &pos)
 {
@@ -493,11 +485,41 @@ void CPatchDlg::SetItemAt(POSITION pos, PATCHFILES pf)
 }
 
 /** 
- * @brief Empties internal file list.
+ * @brief Empties internal item list.
  */
 void CPatchDlg::ClearItems()
 {
 	m_fileList.RemoveAll();
+}
+
+/** 
+ * @brief Updates patch dialog settings from member variables.
+ */
+void CPatchDlg::UpdateSettings()
+{
+	UpdateData(FALSE);
+
+	switch (m_outputStyle)
+	{
+	case DIFF_OUTPUT_NORMAL:
+		m_comboStyle.SelectString(-1, theApp.LoadString(IDS_DIFF_NORMAL).c_str());
+		break;
+	case DIFF_OUTPUT_CONTEXT:
+		m_comboStyle.SelectString(-1, theApp.LoadString(IDS_DIFF_CONTEXT).c_str());
+		break;
+	case DIFF_OUTPUT_UNIFIED:
+		m_comboStyle.SelectString(-1, theApp.LoadString(IDS_DIFF_UNIFIED).c_str());
+		break;
+	}
+
+	CString str;
+	str.Format(_T("%d"), m_contextLines);
+	m_comboContext.SelectString(-1, str);
+
+	if (m_outputStyle == OUTPUT_CONTEXT || m_outputStyle == OUTPUT_UNIFIED)
+		m_comboContext.EnableWindow(TRUE);
+	else
+		m_comboContext.EnableWindow(FALSE);
 }
 
 /** 
@@ -527,32 +549,7 @@ void CPatchDlg::LoadSettings()
 	m_openToEditor = theApp.GetProfileInt(_T("PatchCreator"), _T("OpenToEditor"), FALSE);
 	m_includeCmdLine = theApp.GetProfileInt(_T("PatchCreator"), _T("IncludeCmdLine"), FALSE);
 
-	UpdateData(FALSE);
-
-	CString str;
-	switch (m_outputStyle)
-	{
-	case DIFF_OUTPUT_NORMAL:
-		VERIFY(str.LoadString(IDS_DIFF_NORMAL));
-		m_comboStyle.SelectString(-1, str);
-		break;
-	case DIFF_OUTPUT_CONTEXT:
-		VERIFY(str.LoadString(IDS_DIFF_CONTEXT));
-		m_comboStyle.SelectString(-1, str);
-		break;
-	case DIFF_OUTPUT_UNIFIED:
-		VERIFY(str.LoadString(IDS_DIFF_UNIFIED));
-		m_comboStyle.SelectString(-1, str);
-		break;
-	}
-
-	str.Format(_T("%d"), m_contextLines);
-	m_comboContext.SelectString(-1, str);
-
-	if (m_outputStyle == OUTPUT_CONTEXT || m_outputStyle == OUTPUT_UNIFIED)
-		m_comboContext.EnableWindow(TRUE);
-	else
-		m_comboContext.EnableWindow(FALSE);
+	UpdateSettings();
 }
 
 /** 
@@ -582,30 +579,5 @@ void CPatchDlg::OnDefaultSettings()
 	m_openToEditor = FALSE;
 	m_includeCmdLine = FALSE;
 
-	UpdateData(FALSE);
-
-	CString str;
-	switch (m_outputStyle)
-	{
-	case DIFF_OUTPUT_NORMAL:
-		VERIFY(str.LoadString(IDS_DIFF_NORMAL));
-		m_comboStyle.SelectString(-1, str);
-		break;
-	case DIFF_OUTPUT_CONTEXT:
-		VERIFY(str.LoadString(IDS_DIFF_CONTEXT));
-		m_comboStyle.SelectString(-1, str);
-		break;
-	case DIFF_OUTPUT_UNIFIED:
-		VERIFY(str.LoadString(IDS_DIFF_UNIFIED));
-		m_comboStyle.SelectString(-1, str);
-		break;
-	}
-
-	str.Format(_T("%d"), m_contextLines);
-	m_comboContext.SelectString(-1, str);
-
-	if (m_outputStyle == OUTPUT_CONTEXT || m_outputStyle == OUTPUT_UNIFIED)
-		m_comboContext.EnableWindow(TRUE);
-	else
-		m_comboContext.EnableWindow(FALSE);
+	UpdateSettings();
 }

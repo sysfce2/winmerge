@@ -5,8 +5,8 @@
  * @brief Implementation file for CMergeDiffDetailView
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: MergeDiffDetailView.cpp 3937 2006-12-10 14:33:16Z galh $
+// ID line follows -- this is updated by SVN
+// $Id: MergeDiffDetailView.cpp 5085 2008-02-26 15:18:15Z kimmov $
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -689,6 +689,7 @@ void CMergeDiffDetailView::OnContextMenu(CWnd* pWnd, CPoint point)
 	BCMenu menu;
 	VERIFY(menu.LoadMenu(IDR_POPUP_MERGEDETAILVIEW));
 	VERIFY(menu.LoadToolbar(IDR_MAINFRAME));
+	theApp.TranslateMenu(menu.m_hMenu);
 
 	BCMenu *pSub = (BCMenu *)menu.GetSubMenu(0);
 	ASSERT(pSub != NULL);
@@ -722,7 +723,7 @@ void CMergeDiffDetailView::OnL2r()
 
 	if (currentDiff != -1 && pDoc->m_diffList.IsDiffSignificant(currentDiff))
 	{
-		WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_COPYL2R));
+		WaitStatusCursor waitstatus(IDS_STATUS_COPYL2R);
 		pDoc->ListCopy(0, 1, currentDiff);
 	}
 }
@@ -758,7 +759,7 @@ void CMergeDiffDetailView::OnR2l()
 
 	if (currentDiff != -1 && pDoc->m_diffList.IsDiffSignificant(currentDiff))
 	{
-		WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_COPYR2L));
+		WaitStatusCursor waitstatus(IDS_STATUS_COPYR2L);
 		pDoc->ListCopy(1, 0, currentDiff);
 	}
 }
@@ -798,8 +799,9 @@ void CMergeDiffDetailView::DocumentsLoaded()
 {
 	SetTabSize(GetOptionsMgr()->GetInt(OPT_TAB_SIZE));
 	SetViewTabs(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE));
-	SetViewEols(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE),
-			GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL));
+	BOOL bMixedEOL = GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL) ||
+		GetDocument()->IsMixedEOL();
+	SetViewEols(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE), bMixedEOL);
 	SetWordWrapping(FALSE);
 }
 

@@ -20,7 +20,7 @@
  * @brief Declaration file ConfigLog class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ConfigLog.h 4036 2007-01-12 09:11:08Z galh $
+// $Id: ConfigLog.h 4033 2007-01-11 13:51:19Z galh $
 
 #ifndef _CONFIGLOG_H_
 #define _CONFIGLOG_H_

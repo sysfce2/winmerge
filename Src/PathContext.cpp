@@ -4,12 +4,13 @@
  * @brief Implementation file for PathInfo and PathContext
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PathContext.cpp 2838 2005-12-17 04:49:05Z elsapo $
+// ID line follows -- this is updated by SVN
+// $Id: PathContext.cpp 4929 2008-01-18 20:03:57Z kimmov $
 
 #include "stdafx.h"
 #include "PathContext.h"
 #include "paths.h"
+#include "Environment.h"
 
 /**
  * @brief Copy constructor.
@@ -23,11 +24,11 @@ PathInfo::PathInfo(const PathInfo &pi)
  * @brief Get path.
  * @param [in] sbNormalized TRUE if path is wanted in normalized format.
  */
-CString PathInfo::GetPath(BOOL bNormalized /*= TRUE*/) const
+String PathInfo::GetPath(BOOL bNormalized /*= TRUE*/) const
 { 
 	if (!bNormalized)
 	{
-		if (!paths_EndsWithSlash(m_sPath))
+		if (!paths_EndsWithSlash(m_sPath.c_str()))
 			return m_sPath + _T("\\");
 		else
 			return m_sPath;
@@ -40,7 +41,7 @@ CString PathInfo::GetPath(BOOL bNormalized /*= TRUE*/) const
  * @brief Set path.
  * @param [in] sPath New path for item.
  */
-void PathInfo::SetPath(CString sPath)
+void PathInfo::SetPath(LPCTSTR sPath)
 {
 	m_sPath = sPath;
 }
@@ -58,7 +59,7 @@ PathContext::PathContext()
 
 }
 
-PathContext::PathContext(CString sLeft, CString sRight)
+PathContext::PathContext(LPCTSTR sLeft, LPCTSTR sRight)
 {
 	m_pathLeft.SetPath(sLeft);
 	m_pathRight.SetPath(sRight);
@@ -68,7 +69,7 @@ PathContext::PathContext(CString sLeft, CString sRight)
  * @brief Return left path.
  * @param [in] sNormalized If TRUE normalized path is returned.
  */
-CString PathContext::GetLeft(BOOL bNormalized) const
+String PathContext::GetLeft(BOOL bNormalized) const
 {
 	return m_pathLeft.GetPath(bNormalized);
 }
@@ -77,7 +78,7 @@ CString PathContext::GetLeft(BOOL bNormalized) const
  * @brief Return right path.
  * @param [in] sNormalized If TRUE normalized path is returned.
  */
-CString PathContext::GetRight(BOOL bNormalized) const
+String PathContext::GetRight(BOOL bNormalized) const
 {
 	return m_pathRight.GetPath(bNormalized);
 }
@@ -87,7 +88,7 @@ CString PathContext::GetRight(BOOL bNormalized) const
  * @param [in] index index of path to return
  * @param [in] sNormalized If TRUE normalized path is returned.
  */
-CString PathContext::GetPath(int index, BOOL bNormalized) const
+String PathContext::GetPath(int index, BOOL bNormalized) const
 {
 	return index == 0 ? m_pathLeft.GetPath(bNormalized) : m_pathRight.GetPath(bNormalized);
 }
@@ -132,123 +133,9 @@ void PathContext::SetPath(int index, LPCTSTR path)
 }
 
 /**
- * @brief Destructor, deletes existing temp files.
+ * @brief Swap paths.
  */
-TempFileContext::~TempFileContext()
+void PathContext::Swap()
 {
-	if (FilesExist())
-		DeleteFiles();
-}
-
-/**
- * @brief Create temp files.
- *
- * Creates new temp files. Temp files are named based on
- * PathContext paths given as parameter.
- *
- * @param [in] paths PathContext whose paths are used as basis.
- */
-BOOL TempFileContext::CreateFiles(const PathContext &paths)
-{
-	TCHAR strTempPath[MAX_PATH] = {0};
-
-	if (!::GetTempPath(MAX_PATH, strTempPath))
-	{
-		LogErrorString(Fmt(_T("GetTempPath() failed: %s"),
-			GetSysError(GetLastError())));
-		return FALSE;
-	}
-
-	m_sTempPath = strTempPath;
-
-	if (GetLeft().IsEmpty())
-	{
-		int nerr=0;
-		CString sTempPath = paths_GetTempFileName(strTempPath, _T("_LT"), &nerr);
-		if (sTempPath.IsEmpty())
-		{
-			LogErrorString(Fmt(_T("GetTempFileName() for left-side failed: %s"),
-				GetSysError(nerr)));
-			return FALSE;
-		}
-		SetLeft(sTempPath);
-
-		if (!paths.GetLeft().IsEmpty())
-		{
-			if (!::CopyFile(paths.GetLeft(), GetLeft(), FALSE))
-			{
-				LogErrorString(Fmt(_T("CopyFile() (copy left-side temp file) failed: %s"),
-					GetSysError(GetLastError())));
-				return FALSE;
-			}
-		}
-		::SetFileAttributes(GetLeft(), FILE_ATTRIBUTE_NORMAL);
-	}
-	
-	if (GetRight().IsEmpty())
-	{
-		TCHAR name[MAX_PATH];
-		if (!::GetTempFileName(strTempPath, _T("_RT"), 0, name))
-		{
-			LogErrorString(Fmt(_T("GetTempFileName() for right-side failed: %s"),
-				strTempPath, GetSysError(GetLastError())));
-			return FALSE;
-		}
-		SetRight(name);
-
-		if (!paths.GetRight().IsEmpty())
-		{
-			if (!::CopyFile(paths.GetRight(), GetRight(), FALSE))
-			{
-				LogErrorString(Fmt(_T("CopyFile() (copy right-side temp file) failed: %s"),
-					GetSysError(GetLastError())));
-				return FALSE;
-			}
-		}
-		::SetFileAttributes(GetRight(), FILE_ATTRIBUTE_NORMAL);
-	}
-	return TRUE;
-}
-
-/**
- * @brief Check if temp files exist.
- * @return TRUE if one of temp files exist.
- */
-BOOL TempFileContext::FilesExist()
-{
-	BOOL bLeftExists = FALSE;
-	BOOL bRightExists = FALSE;
-
-	if (!GetLeft().IsEmpty())
-		bLeftExists = (paths_DoesPathExist(GetLeft()) == IS_EXISTING_FILE);
-	if (!GetRight().IsEmpty())
-		bLeftExists = (paths_DoesPathExist(GetRight()) == IS_EXISTING_FILE);
-	
-	return bLeftExists || bRightExists;
-}
-
-/**
- * @brief Delete temp files.
- */
-void TempFileContext::DeleteFiles()
-{
-	if (!GetLeft().IsEmpty())
-	{
-		if (!::DeleteFile(GetLeft()))
-		{
-			LogErrorString(Fmt(_T("DeleteFile(%s) (deleting left-side temp file) failed: %s"),
-				GetLeft(), GetSysError(GetLastError())));
-		}
-		SetLeft(_T(""));
-
-	}
-	if (!GetRight().IsEmpty())
-	{
-		if (!::DeleteFile(GetRight()))
-		{
-			LogErrorString(Fmt(_T("DeleteFile(%s) (deleting right-side temp file) failed: %s"),
-				GetRight(), GetSysError(GetLastError())));
-		}
-		SetRight(_T(""));
-	}
+	m_pathLeft.m_sPath.swap(m_pathRight.m_sPath);
 }

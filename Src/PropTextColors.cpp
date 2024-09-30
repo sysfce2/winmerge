@@ -4,10 +4,11 @@
  * @brief Implementation of CPropTextColors propertysheet
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropTextColors.cpp 3366 2006-07-14 06:50:32Z kimmov $
+// $Id: PropTextColors.cpp 4588 2007-10-05 11:35:46Z jtuc $
 
 #include "stdafx.h"
 #include "resource.h"
+#include "Merge.h"
 #include "SyntaxColors.h"
 #include "PropTextColors.h"
 #include "OptionsDef.h"
@@ -71,6 +72,7 @@ END_MESSAGE_MAP()
  */
 BOOL CPropTextColors::OnInitDialog()
 {
+	theApp.TranslateDialog(m_hWnd);
 	CPropertyPage::OnInitDialog();
 
 	if (m_bCustomColors)

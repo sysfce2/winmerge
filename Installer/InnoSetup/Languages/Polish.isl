@@ -1,4 +1,4 @@
-; *** Inno Setup version 5.1.0+ Polish messages ***
+; *** Inno Setup version 5.1.11+ Polish messages ***
 ; Krzysztof Cynarski <krzysztof at cynarski.net>
 ;
 ; To download user-contributed translations of this file, go to:
@@ -9,7 +9,7 @@
 ; Setup adds the periods automatically (appending a period would result in
 ; two periods being displayed).
 ;
-; $jrsoftware: issrc/Files/Languages/Polish.isl,v 1.15 2005/02/27 19:09:39 jr Exp $
+; $jrsoftware: issrc/Files/Languages/Polish.isl,v 1.16 2007/03/09 16:56:52 jr Exp $
 
 [LangOptions]
 LanguageName=Polski
@@ -264,7 +264,7 @@ ErrorReplacingExistingFile=Wyst¹pi³ b³¹d podczas próby zamiany istniej¹cego plik
 ErrorRestartReplace=Próba zast¹pienia plików podczas restartu komputera nie powiod³a siê.
 ErrorRenamingTemp=Wyst¹pi³ b³¹d podczas próby zmiany nazwy pliku w folderze docelowym:
 ErrorRegisterServer=Nie mo¿na zarejestrowaæ DLL/OCX: %1
-ErrorRegisterServerMissingExport=Eksportowana funkcja DllRegisterServer nie zosta³a znaleziona
+ErrorRegSvr32Failed=Funkcja RegSvr32 zakoñczy³a sie z kodem b³êdu %1
 ErrorRegisterTypeLib=Nie mogê zarejestrowaæ biblioteki typów: %1
 
 ; *** Post-installation errors
@@ -321,7 +321,6 @@ CustomInstallation=Instalacja uzytkownika
 ;Components
 AppCoreFiles=WinMerge ? pliki zasadnicze
 ApplicationRuntimes=Moduly wykonywalne
-UsersGuide=Przewodnik uzytkownika
 Filters=Filtry
 Plugins=Wtyczki
 
@@ -331,23 +330,29 @@ BulgarianLanguage=Bulgarski interfejs
 CatalanLanguage=Katalonski interfejs
 ChineseSimplifiedLanguage=Chinski (uproszczony) interfejs
 ChineseTraditionalLanguage=Chinski (tradycyjny) interfejs
+CroatianLanguage=Croatian menus and dialogs
 CzechLanguage=Czeski interfejs
 DanishLanguage=Dunski interfejs
 DutchLanguage=Holenderski interfejs
 FrenchLanguage=Francuski interfejs
 GermanLanguage=Niemiecki interfejs
+GreekLanguage=Greek menus and dialogs
 HungarianLanguage=Wegierski interfejs
 ItalianLanguage=Wloski interfejs
 JapaneseLanguage=Japonski interfejs
 KoreanLanguage=Koreanski interfejs
 NorwegianLanguage=Norweski interfejs
 PolishLanguage=Polski interfejs
-PortugueseLanguage=Portugalski (Brazylijski) interfejs
+PortugueseBrazilLanguage=Portugalski (Brazylijski) interfejs
+PortugueseLanguage=Portugalski interfejs
+RomanianLanguage=Romanian menus and dialogs
 RussianLanguage=Rosyjski interfejs
 SlovakLanguage=Slowacki interfejs
+SlovenianLanguage=Slovenian menus and dialogs
 SpanishLanguage=Hiszpanski interfejs
 SwedishLanguage=Szwedzki interfejs
 TurkishLanguage=turecki interfejs
+UkrainianLanguage=Ukrainian menus and dialogs
 
 ;Tasks
 ExplorerContextMenu=&Wlacz integracje z menu Eksploratora

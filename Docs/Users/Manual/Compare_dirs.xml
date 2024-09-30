@@ -57,84 +57,82 @@
   As usual be careful when changing values directly to registry!</para>
 
   <sect2>
-    <title>Compare Results</title>
-
-    <indexterm>
-      <primary>Folder compare result</primary>
-    </indexterm>
+    <title><indexterm>
+        <primary>Folder Compare Result</primary>
+      </indexterm>Compare Results</title>
 
     <para>Files and folders are compared and divided into several categories.
     Categories are easy to recognize from these icons:<simplelist>
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/equal.gif" format="GIF" />
+              <imagedata fileref="screenshots/equal.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Identical text files</member>
 
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/notequal.gif" format="GIF" />
+              <imagedata fileref="screenshots/notequal.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Differing text files</member>
 
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/binary.gif" format="GIF" />
+              <imagedata fileref="screenshots/binary.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Identical binary files</member>
 
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/binarydiff.gif" format="GIF" />
+              <imagedata fileref="screenshots/binarydiff.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Differing binary files</member>
 
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/lfolder.gif" format="GIF" />
+              <imagedata fileref="screenshots/lfolder.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Left-only folders</member>
 
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/rfolder.gif" format="GIF" />
+              <imagedata fileref="screenshots/rfolder.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Right-only folders</member>
 
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/lfile.gif" format="GIF" />
+              <imagedata fileref="screenshots/lfile.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Left-only files</member>
 
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/rfile.gif" format="GIF" />
+              <imagedata fileref="screenshots/rfile.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Right-only files</member>
 
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/folderskip.gif" format="GIF" />
+              <imagedata fileref="screenshots/folderskip.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Skipped directories (filtered out)</member>
 
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/fileskip.gif" format="GIF" />
+              <imagedata fileref="screenshots/fileskip.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Skipped files (filtered out)</member>
 
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/error.gif" format="GIF" />
+              <imagedata fileref="screenshots/error.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Items that couldn't be compared. This usually
         happens when other program has locked the file.</member>
 
         <member><inlinemediaobject>
             <imageobject>
-              <imagedata fileref="screenshots/aborted.gif" format="GIF" />
+              <imagedata fileref="screenshots/aborted.png" format="PNG" />
             </imageobject>
           </inlinemediaobject> Aborted item. WinMerge did not finish comparing
         this item when compare was stopped. Result is unknown.</member>
@@ -243,7 +241,7 @@
       </listitem>
 
       <listitem>
-        <simpara><guilabel>Directory</guilabel> : Relative folder name for
+        <simpara><guilabel>Folder</guilabel> : Relative folder name for
         compare path. If subfolders are not included this is empty.</simpara>
       </listitem>
 
@@ -269,9 +267,15 @@
 
     <itemizedlist>
       <listitem>
-        <simpara><guilabel>Binary</guilabel> : Column contains asterisk
-        "<guilabel>*</guilabel>" when file is binary. Handy for sorting and to
-        use with "<guilabel>Short Result</guilabel>"-column.</simpara>
+        <simpara><guilabel>Short Result</guilabel> : Result in shorter form
+        ("Right Only").</simpara>
+      </listitem>
+
+      <listitem>
+        <simpara><guilabel>Binary</guilabel> : Column contains an asterisk
+        "<guilabel>*</guilabel>" when the file is a binary file. This is handy
+        for sorting and to use with "<guilabel>Short
+        Result</guilabel>"-column.</simpara>
       </listitem>
 
       <listitem>
@@ -286,18 +290,26 @@
 
       <listitem>
         <simpara><guilabel>Left Encoding</guilabel> &amp; <guilabel>Right
-        Encoding</guilabel> : File encoding.</simpara>
+        Encoding</guilabel> : File encoding. Shows codepage number for ANSI
+        files, and Unicode encoding for Unicode files.</simpara>
       </listitem>
 
       <listitem>
         <simpara><guilabel>Left File Version</guilabel> &amp; <guilabel>Right
         File Version</guilabel> : Version number from file if present. Note
-        that this is read for only some binary files.</simpara>
+        that this is read for only some binary file types known to usually
+        have a version resource.</simpara>
       </listitem>
 
       <listitem>
         <simpara><guilabel>Left Size</guilabel> &amp; <guilabel>Right
         Size</guilabel> : File size in bytes.</simpara>
+      </listitem>
+
+      <listitem>
+        <simpara><guilabel>Left Size (Short)</guilabel> &amp; <guilabel>Right
+        Size (Short)</guilabel> : Shorter versions of file sizes, rounded to
+        kilo-, mega- or gigabytes.</simpara>
       </listitem>
 
       <listitem>
@@ -312,13 +324,14 @@
       </listitem>
 
       <listitem>
-        <simpara><guilabel>Ignored diff.</guilabel> : Amount of ignored
-        differences in files.</simpara>
+        <simpara><guilabel>Ignored Diff.</guilabel> : Amount of ignored
+        differences in files. These are differences ignored by line
+        filters.</simpara>
       </listitem>
 
       <listitem>
-        <simpara><guilabel>Left EOL &amp; Righ EOL</guilabel> : Show EOL style
-        (linefeed style) of files.</simpara>
+        <simpara><guilabel>Left EOL &amp; Right EOL</guilabel> : Show EOL
+        style (linefeed style) of files.</simpara>
       </listitem>
     </itemizedlist>
   </sect2>
@@ -333,23 +346,61 @@
     be compared by double-clicking with mouse over them or selecting them and
     pressing <keycap>Enter</keycap>.</para>
 
-    <para>Parent folder can be opened if it is not same directory. These two
-    icons indicate if parent folder can be opened:</para>
+    <para>Sometimes parent folder cannot be opened (no access to it). These
+    two icons indicate if parent folder can be opened:</para>
 
     <simplelist type="vert">
       <member><inlinemediaobject>
           <imageobject>
-            <imagedata fileref="screenshots/folderup.gif" format="GIF" />
+            <imagedata fileref="screenshots/folderup.png" format="PNG" />
           </imageobject>
         </inlinemediaobject> Parent folder can be opened.</member>
 
       <member><inlinemediaobject>
           <imageobject>
-            <imagedata fileref="screenshots/folderup_disable.gif" format="GIF" />
+            <imagedata fileref="screenshots/folderup_disable.png" format="PNG" />
           </imageobject>
-        </inlinemediaobject> Parent folder cannot be opened. It probably is
-      same directory for both sides.</member>
+        </inlinemediaobject> Parent folder cannot be opened.</member>
     </simplelist>
+
+    <para>It is possible to browse both sides to the same folder (<filename
+    class="directory">C:\Work\</filename> and <filename
+    class="directory">C:\Work\</filename>). 2.6 and earlier versions of
+    WinMerge prevented this, but it restricted usage in some cases. In such
+    case both sides contain the exactly same files and folders.</para>
+
+    <para>It is possible to select two different folders from the folder
+    compare and open them to different sides. First selected folder becomes
+    the left-side folder and second selected folder becomes the right-side
+    folder. This can be used in situation explained in previous paragraph when
+    there is same folder compared as both sides.</para>
+
+    <sect3>
+      <title><indexterm>
+          <primary>Open Unique Folders</primary>
+        </indexterm>Unique Folders</title>
+
+      <para>WinMerge 2.6 and earlier could not open unique folders (folders
+      existing only in other side). An error message was shown about trying to
+      open unique folder. This restriction came from a fact that WinMerge
+      cannot compare existing folder to non-existing folder. If one wanted to
+      copy contents of unique folder, then whole folder structure must been
+      copied.</para>
+
+      <para>Copying whole unique folder structure is many times not wanted.
+      WinMerge 2.8 allows creating the missing folder and browsing then into
+      that created folder. So that contents of original unique folder and
+      created empty folder can be compared. Now it is possible to copy just
+      one file (or subfolder) in unique folder.</para>
+
+      <para>To navigate into unique folder, select the folder, and browse into
+      it as normally (press <keycap>Enter</keycap> -key, double-click over
+      foldername with mouse, or select
+      <guimenu>Merge</guimenu><guimenuitem>Compare</guimenuitem> from the
+      menu. WinMerge shows a message asking if the missing folder should be
+      created. Answer <guilabel>Yes</guilabel> to create the folder, or
+      <guilabel>No</guilabel> to cancel the action.</para>
+    </sect3>
   </sect2>
 
   <sect2>
@@ -392,9 +443,9 @@
       toolbar buttons and context menu. If multiple files are selected, or
       file to overwrite is read-only, confirmation dialog is shown.</para>
 
-      <para>Sometimes it is useful to copy certain files and/or directories to
-      another directory instead of another compared directory. This can be
-      done selecting "<guimenuitem>Copy/Left to...</guimenuitem>" or
+      <para>Sometimes it is useful to copy certain files and/or folders to
+      another folder instead of another compared folder. This can be done
+      selecting "<guimenuitem>Copy/Left to...</guimenuitem>" or
       "<guimenuitem>Copy/Right to...</guimenuitem>" items.</para>
 
       <para>Another file/folder operation is deleting. Items in another or
@@ -405,7 +456,7 @@
       undone if accidents happen. Note however recycle bin does not help if
       its disabled from Windows settings.</para>
 
-      <para>Moving is just shortcut for copy + delete.</para>
+      <para>Moving is just a shortcut for copy + delete.</para>
 
       <warning>
         <para>File/folder deletion cannot be undone if <guilabel>Recycle
@@ -612,6 +663,10 @@
     earlier versions of WinMerge user always had to do full refresh after
     editing files outside WinMerge. WinMerge 2.4 and later can refresh just
     selected items. Select <guimenuitem>Refresh</guimenuitem> from the context
-    menu.</para>
+    menu or <menuchoice>
+        <guimenu>View</guimenu>
+
+        <guimenuitem>Refresh Selected</guimenuitem>
+      </menuchoice> from the main menu.</para>
   </sect2>
 </sect1>

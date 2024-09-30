@@ -121,7 +121,7 @@ void CFindTextDlg::OnOK ()
           &ptTextPos))
         {
           CString prompt;
-          prompt.Format (IDS_EDIT_TEXT_NOT_FOUND, m_sText);
+          prompt.Format (LoadResString(IDS_EDIT_TEXT_NOT_FOUND).c_str(), m_sText);
           AfxMessageBox (prompt, MB_ICONINFORMATION);
           m_ptCurrentPos = CPoint (0, 0);
           return;
@@ -159,6 +159,7 @@ OnChangeSelected ()
 BOOL CFindTextDlg::
 OnInitDialog ()
 {
+  LangTranslateDialog(m_hWnd);
   CDialog::OnInitDialog ();
 
   m_ctlFindText.LoadState(_T("Files\\FindInFile"));

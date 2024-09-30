@@ -10,20 +10,19 @@ Project lead:
 
 Developers:
 * Tim Gerundt
+* Marcel Gosselin
 * Gal Hammer
-* Perry Rapp
 * Takashi Sawanaka
+* Alexander Skinner (Graphic Design)
+* Jochen Tucht
 * Kimmo Varis
 
 Inactive/past developers:
 * Laurent Ganier
 * Dennis Limm
 * Chris Mumford
+* Perry Rapp
 * Christian "Seier" Blackburn (Installer)
-* Jochen Tucht
-
-Graphic Design:
-* Alexander Skinner
 
 Localization:
 * Bulgarian:	
@@ -38,6 +37,9 @@ Localization:
 
 * Traditional Chinese:
   Koko
+
+* Croatian:
+  Hasan Osmanagæ
 
 * Czech:
   Jiri Tax
@@ -61,25 +63,38 @@ Localization:
   Winfried Peter
   Joerg Schneider   
 
+* Greek:
+  Polyvios J. Simopoulos
+
 * Hungarian:
   Márton Balázs  
 
-* Italian:	
+* Italian:
   Andrea Decorte
+  Antonio Angelo
   Michele Merega
-             
+
 * Korean:
   Sukjoon
   Lee Jae-Hong
+  Sushizang
            
 * Norwegian:	
   Hans Fredrik Nordhaug
             
-* Polish:	
+* Polish:
+  Skiff
   Pawel Wawrzysko
 
 * Portuguese (Brazilian):	
   Wender Firmino
+  Felipe Periard Lopes
+
+* Portuguese (Portugal):
+  Nelson Simão
+
+* Romanian:
+  Cristian Arghiroiu
 
 * Russian:	
   Dmitriy S. Aleshkowskiy
@@ -87,8 +102,12 @@ Localization:
 * Slovak:	
   Majvan
   Ivan Masár
+
+* Slovenian:
+  Iztok Osredkar
              
-* Spanish:	
+* Spanish:
+  Mario Angel
   Jesús M. Delgado 'MacK'
   Dean Grimm
              
@@ -99,27 +118,40 @@ Localization:
 * Turkish:
   Ozkan UNVER
 
+* Ukranian
+  Vitaliy Stopchans'kyy
+  Warrior
+
 
 Other Contributors (code, ideas, testing..):
 * Andre Arpin
 * Steve Beaudoin
+* Denis Bradford
+* Adam Carrivick
 * Hern Chen
+* Jeremy Dewey
 * Jim Fougeron
 * Marvin Gouw
+* Robert Grange
 * Jan Hryz
 * Ed_K
 * Alberto Kalb
+* Robert Knienider
 * Ferenc Kubatovics
 * René Leonhardt
 * Vladimir Lukianov
 * David Maisonave
+* Dmitry Maslov
+* Denis Matiukha
 * Harry Mckame
 * Oliver Mellet
 * Andreas Morsing
+* Ryan Mott
 * Tim Musschoot
+* Dan Pidcock
 * Vincent Osele
+* Scott Rasmussen
 * Michael Richter
-* Fanny Ricour
 * Markus Rollmann
 * Philippe Verdy
 * Vikrant
@@ -131,6 +163,7 @@ WinMerge includes code from:
 * Brent Corkum (BCMenu)
 * Paul DiLascia (CStaticLink) 
 * Michael Dunn (CShellFileOp)
+* Francis Irving (original conflict file parser)
 * Michael P. Mehl (CMessageBoxDialog)
 * Cristi Posea (CSizingControlBar)
 * Ferdinand Prantl (CrystalEditor syntax rules)

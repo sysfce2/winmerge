@@ -19,8 +19,8 @@
  *
  * @brief CPropRegistry implementation file
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PropRegistry.cpp 3850 2006-11-26 11:29:07Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: PropRegistry.cpp 5087 2008-02-26 20:15:49Z gerundt $
 
 #include "stdafx.h"
 #include "resource.h"
@@ -28,7 +28,7 @@
 #include "RegKey.h"
 #include "coretools.h"
 #include "FileOrFolderSelect.h"
-#include "MainFrm.h" // GetDefaultEditor()
+#include "Merge.h" // GetDefaultEditor()
 #include "OptionsDef.h"
 #include "OptionsMgr.h"
 
@@ -60,8 +60,8 @@ CPropRegistry::CPropRegistry(COptionsMgr *optionsMgr)
 , m_bContextAdded(FALSE)
 , m_bUseRecycleBin(TRUE)
 , m_bContextAdvanced(FALSE)
-, m_bIgnoreSmallTimeDiff(FALSE)
 , m_bContextSubfolders(FALSE)
+, m_tempFolderType(0)
 {
 }
 
@@ -73,9 +73,10 @@ void CPropRegistry::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EXT_EDITOR_PATH, m_strEditorPath);
 	DDX_Check(pDX, IDC_USE_RECYCLE_BIN, m_bUseRecycleBin);
 	DDX_Check(pDX, IDC_EXPLORER_ADVANCED, m_bContextAdvanced);
-	DDX_Check(pDX, IDC_IGNORE_SMALLTIMEDIFF, m_bIgnoreSmallTimeDiff);
 	DDX_Text(pDX, IDC_FILTER_USER_PATH, m_strUserFilterPath);
 	DDX_Check(pDX, IDC_EXPLORER_SUBFOLDERS, m_bContextSubfolders);
+	DDX_Radio(pDX, IDC_TMPFOLDER_SYSTEM, m_tempFolderType);
+	DDX_Text(pDX, IDC_TMPFOLDER_NAME, m_tempFolder);
 	//}}AFX_DATA_MAP
 }
 
@@ -84,6 +85,7 @@ BEGIN_MESSAGE_MAP(CPropRegistry, CDialog)
 	ON_BN_CLICKED(IDC_EXPLORER_CONTEXT, OnAddToExplorer)
 	ON_BN_CLICKED(IDC_EXT_EDITOR_BROWSE, OnBrowseEditor)
 	ON_BN_CLICKED(IDC_FILTER_USER_BROWSE, OnBrowseFilterPath)
+	ON_BN_CLICKED(IDC_TMPFOLDER_BROWSE, OnBrowseTmpFolder)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -92,11 +94,12 @@ END_MESSAGE_MAP()
  */
 void CPropRegistry::ReadOptions()
 {
-	m_strEditorPath = m_pOptionsMgr->GetString(OPT_EXT_EDITOR_CMD);
+	m_strEditorPath = m_pOptionsMgr->GetString(OPT_EXT_EDITOR_CMD).c_str();
 	GetContextRegValues();
 	m_bUseRecycleBin = m_pOptionsMgr->GetBool(OPT_USE_RECYCLE_BIN);
-	m_bIgnoreSmallTimeDiff = m_pOptionsMgr->GetBool(OPT_IGNORE_SMALL_FILETIME);
-	m_strUserFilterPath = m_pOptionsMgr->GetString(OPT_FILTER_USERPATH);
+	m_strUserFilterPath = m_pOptionsMgr->GetString(OPT_FILTER_USERPATH).c_str();
+	m_tempFolderType = m_pOptionsMgr->GetBool(OPT_USE_SYSTEM_TEMP_PATH) ? 0 : 1;
+	m_tempFolder = m_pOptionsMgr->GetString(OPT_CUSTOM_TEMP_PATH).c_str();
 }
 
 /** 
@@ -104,10 +107,10 @@ void CPropRegistry::ReadOptions()
  */
 void CPropRegistry::WriteOptions()
 {
-	CString sDefaultEditor = GetMainFrame()->GetDefaultEditor();
+	CMergeApp *app = static_cast<CMergeApp*>(AfxGetApp());
+	CString sDefaultEditor = app->GetDefaultEditor();
 
 	m_pOptionsMgr->SaveOption(OPT_USE_RECYCLE_BIN, m_bUseRecycleBin == TRUE);
-	m_pOptionsMgr->SaveOption(OPT_IGNORE_SMALL_FILETIME, m_bIgnoreSmallTimeDiff == TRUE);
 
 	SaveMergePath(); // saves context menu settings as well
 
@@ -122,6 +125,14 @@ void CPropRegistry::WriteOptions()
 	sFilterPath.TrimLeft();
 	sFilterPath.TrimRight();
 	m_pOptionsMgr->SaveOption(OPT_FILTER_USERPATH, sFilterPath);
+
+	bool useSysTemp = m_tempFolderType == 0;
+	m_pOptionsMgr->SaveOption(OPT_USE_SYSTEM_TEMP_PATH, useSysTemp);
+
+	CString tempFolder = m_tempFolder;
+	tempFolder.TrimLeft();
+	tempFolder.TrimRight();
+	m_pOptionsMgr->SaveOption(OPT_CUSTOM_TEMP_PATH, tempFolder);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -129,11 +140,13 @@ void CPropRegistry::WriteOptions()
 
 BOOL CPropRegistry::OnInitDialog()
 {
+	theApp.TranslateDialog(m_hWnd);
 	CPropertyPage::OnInitDialog();
 
 	// Update shell extension checkboxes
 	GetContextRegValues();
 	AdvancedContextMenuCheck();
+	SubfolderOptionCheck();
 	UpdateData(FALSE);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
@@ -234,10 +247,7 @@ void CPropRegistry::SaveMergePath()
 void CPropRegistry::OnBrowseEditor()
 {
 	CString path;
-	CString title;
-	VERIFY(title.LoadString(IDS_OPEN_TITLE));
-
-	if (SelectFile(GetSafeHwnd(), path, NULL, title, IDS_PROGRAMFILES, TRUE))
+	if (SelectFile(GetSafeHwnd(), path, NULL, IDS_OPEN_TITLE, IDS_PROGRAMFILES, TRUE))
 	{
 		m_strEditorPath = path;
 		UpdateData(FALSE);
@@ -274,12 +284,20 @@ void CPropRegistry::SubfolderOptionCheck()
 void CPropRegistry::OnBrowseFilterPath()
 {
 	CString path;
-	CString title;
-	VERIFY(title.LoadString(IDS_OPEN_TITLE));
-
-	if (SelectFolder(path, NULL, title, GetSafeHwnd()))
+	if (SelectFolder(path, NULL, IDS_OPEN_TITLE, GetSafeHwnd()))
 	{
 		m_strUserFilterPath = path;
+		UpdateData(FALSE);
+	}
+}
+
+/// Select temporary files folder.
+void CPropRegistry::OnBrowseTmpFolder()
+{
+	CString path;
+	if (SelectFolder(path, NULL, NULL, GetSafeHwnd()))
+	{
+		m_tempFolder = path;
 		UpdateData(FALSE);
 	}
 }

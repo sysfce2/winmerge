@@ -14,6 +14,7 @@
 
 #include "stdafx.h"
 #include "WaitStatusCursor.h"
+#include "Merge.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -37,29 +38,35 @@ int CustomStatusCursor::stackSize = 0;
 CustomStatusCursor::CustomStatusCursor()
 : m_ended(false)
 {
-};
+}
 
 CustomStatusCursor::CustomStatusCursor(HINSTANCE hinst, LPCTSTR lpCursorName, LPCTSTR fmt, ...)
 : m_ended(false)
 {
 	va_list argp;
 	va_start(argp, fmt);
-	Create(hinst, lpCursorName, fmt, argp);
+	CString msg;
+	msg.FormatV(fmt, argp);
+	Create(hinst, lpCursorName, msg);
 	va_end(argp);
 }
 
-void CustomStatusCursor::Create(HINSTANCE hinst, LPCTSTR lpCursorName, LPCTSTR fmt, ...)
+CustomStatusCursor::CustomStatusCursor(HINSTANCE hinst, LPCTSTR lpCursorName, UINT fmtid, ...)
+: m_ended(false)
 {
-	CString m_msg;
+	va_list argp;
+	va_start(argp, fmtid);
+	CString msg;
+	msg.FormatV(theApp.LoadString(fmtid).c_str(), argp);
+	Create(hinst, lpCursorName, msg);
+	va_end(argp);
+}
+
+void CustomStatusCursor::Create(HINSTANCE hinst, LPCTSTR lpCursorName, LPCTSTR m_msg)
+{
 	CString m_oldmsg;
 	HCURSOR m_prevCursor = NULL;
 	HCURSOR m_myCursor = NULL;
-
-	// update status text
-	va_list args;
-	va_start(args, fmt);
-	m_msg.FormatV(fmt, args);
-	va_end(args);
 
 	if (c_piStatusDisplay)
 		m_oldmsg = c_piStatusDisplay->BeginStatus(m_msg);
@@ -254,3 +261,23 @@ BOOL CustomStatusCursor::TryEnterStackCriticalSection()
 	return TRUE;
 }
 */
+
+WaitStatusCursor::WaitStatusCursor(LPCTSTR fmt, ...)
+{
+	va_list argp;
+	va_start(argp, fmt);
+	CString msg;
+	msg.FormatV(fmt, argp);
+	Create(NULL, IDC_WAIT, fmt);
+	va_end(argp);
+}
+
+WaitStatusCursor::WaitStatusCursor(UINT fmtid, ...)
+{
+	va_list argp;
+	va_start(argp, fmtid);
+	CString msg;
+	msg.FormatV(theApp.LoadString(fmtid).c_str(), argp);
+	Create(NULL, IDC_WAIT, msg);
+	va_end(argp);
+}

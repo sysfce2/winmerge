@@ -3,8 +3,8 @@
  *
  * @brief Implementation of FileTextEncoding structure
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: FileTextEncoding.cpp 3329 2006-06-27 18:08:31Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: FileTextEncoding.cpp 5047 2008-02-16 16:59:25Z kimmov $
 
 #include "stdafx.h"
 #include "unicoder.h"
@@ -54,22 +54,30 @@ void FileTextEncoding::SetUnicoding(int unicoding)
 
 /**
  * @brief Return string representation of encoding, eg "UCS-2LE", or "1252"
+ * @todo This resource lookup should be done in GUI code?
  */
-CString FileTextEncoding::GetName() const
+String FileTextEncoding::GetName() const
 {
-	if (m_unicoding == ucr::UCS2LE)
-		return _T("UCS-2LE");
-	if (m_unicoding == ucr::UCS2BE)
-		return _T("UCS-2BE");
 	if (m_unicoding == ucr::UTF8)
-		return _T("UTF-8");
+	{
+		if (m_bom)
+			return LoadResString(IDS_UNICODING_UTF8_BOM);
+		else
+			return LoadResString(IDS_UNICODING_UTF8);
+	}
 
-	CString str;
+	if (m_unicoding == ucr::UCS2LE)
+		return LoadResString(IDS_UNICODING_UCS2_LE);
+	if (m_unicoding == ucr::UCS2BE)
+		return LoadResString(IDS_UNICODING_UCS2_BE);
+
+	String str;
 	if (m_codepage > -1)
 	{
-		LPTSTR s = str.GetBuffer(32);
-		_sntprintf(s, 32, _T("%d"), m_codepage);
-		str.ReleaseBuffer();
+		str.resize(32);
+		LPTSTR s = &*str.begin(); //GetBuffer(32);
+		int len = _sntprintf(s, 32, _T("%d"), m_codepage);
+		str.resize(len);
 	}
 	return str;
 }

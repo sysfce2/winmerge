@@ -1,6 +1,6 @@
 //Microsoft Developer Studio generated resource script.
 //
-// $Id: ShellExtension.rc 4927 2008-01-17 13:53:55Z kimmov $
+// $Id: ShellExtension.rc 5749 2008-08-07 14:18:38Z kimmov $
 
 #include "resource.h"
 
@@ -84,6 +84,14 @@ BEGIN
     "#endif //_WIN32\r\n"
     "#endif\r\n"
     "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_HRV)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE LANG_CROATIAN, SUBLANG_DEFAULT\r\n"
+    "#pragma code_page(1250)\r\n"
+    "#include ""Languages\\ShellExtensionCroatian.rc""\r\n"
+    "#endif //_WIN32\r\n"
+    "#endif\r\n"
+    "\r\n"
     "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CSY)\r\n"
     "#ifdef _WIN32\r\n"
     "LANGUAGE LANG_CZECH, SUBLANG_DEFAULT\r\n"
@@ -121,6 +129,14 @@ BEGIN
     "LANGUAGE LANG_GERMAN, SUBLANG_GERMAN\r\n"
     "#pragma code_page(1252)\r\n"
     "#include ""Languages\\ShellExtensionGerman.rc""\r\n"
+    "#endif //_WIN32\r\n"
+    "#endif\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ELL)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE LANG_GREEK, SUBLANG_DEFAULT\r\n"
+    "#pragma code_page(1253)\r\n"
+    "#include ""Languages\\ShellExtensionGreek.rc""\r\n"
     "#endif //_WIN32\r\n"
     "#endif\r\n"
     "\r\n"
@@ -172,6 +188,22 @@ BEGIN
     "#endif //_WIN32\r\n"
     "#endif\r\n"
     "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_PTG)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE LANG_PORTUGUESE, SUBLANG_PORTUGUESE\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#include ""Languages\\ShellExtensionPortuguese.rc""\r\n"
+    "#endif //_WIN32\r\n"
+    "#endif\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ROM)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE LANG_ROMANIAN, SUBLANG_DEFAULT\r\n"
+    "#pragma code_page(1250)\r\n"
+    "#include ""Languages\\ShellExtensionRomanian.rc""\r\n"
+    "#endif //_WIN32\r\n"
+    "#endif\r\n"
+    "\r\n"
     "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)\r\n"
     "#ifdef _WIN32\r\n"
     "LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT\r\n"
@@ -211,6 +243,14 @@ BEGIN
     "#include ""Languages\\ShellExtensionTurkish.rc""\r\n"
     "#endif //_WIN32\r\n"
     "#endif\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_UKR)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE LANG_UKRAINIAN, SUBLANG_DEFAULT\r\n"
+    "#pragma code_page(1251)\r\n"
+    "#include ""Languages\\ShellExtensionUkrainian.rc""\r\n"
+    "#endif //_WIN32\r\n"
+    "#endif\r\n"
     "\0"
 END
 
@@ -224,8 +264,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,9,4,0
- PRODUCTVERSION 1,9,4,0
+ FILEVERSION 1,13,5,0
+ PRODUCTVERSION 1,13,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -241,17 +281,17 @@ BEGIN
         BLOCK "040904B0"
         BEGIN
             VALUE "Comments", "\0"
-            VALUE "CompanyName", "\0"
-            VALUE "FileDescription", "ShellExtension Module\0"
-            VALUE "FileVersion", "1.9.4.0\0"
+            VALUE "CompanyName", "http://winmerge.org\0"
+            VALUE "FileDescription", "WinMerge Shell Integration library\0"
+            VALUE "FileVersion", "1.13.5.0\0"
             VALUE "InternalName", "ShellExtension\0"
             VALUE "LegalCopyright", "Copyright 2003-2008\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OLESelfRegister", "\0"
             VALUE "OriginalFilename", "ShellExtension.DLL\0"
             VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "ShellExtension Module\0"
-            VALUE "ProductVersion", "1.9.4.0\0"
+            VALUE "ProductName", "WinMerge Shell Integration library\0"
+            VALUE "ProductVersion", "1.13.5.0\0"
             VALUE "SpecialBuild", "\0"
         END
     END
@@ -349,6 +389,14 @@ LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_TRADITIONAL
 #endif //_WIN32
 #endif
 
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_HRV)
+#ifdef _WIN32
+LANGUAGE LANG_CROATIAN, SUBLANG_DEFAULT
+#pragma code_page(1250)
+#include "Languages\ShellExtensionCroatian.rc"
+#endif //_WIN32
+#endif
+
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CSY)
 #ifdef _WIN32
 LANGUAGE LANG_CZECH, SUBLANG_DEFAULT
@@ -386,6 +434,14 @@ LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
 LANGUAGE LANG_GERMAN, SUBLANG_GERMAN
 #pragma code_page(1252)
 #include "Languages\ShellExtensionGerman.rc"
+#endif //_WIN32
+#endif
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ELL)
+#ifdef _WIN32
+LANGUAGE LANG_GREEK, SUBLANG_DEFAULT
+#pragma code_page(1253)
+#include "Languages\\ShellExtensionGreek.rc"
 #endif //_WIN32
 #endif
 
@@ -437,6 +493,14 @@ LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
 #endif //_WIN32
 #endif
 
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_PTG)
+#ifdef _WIN32
+LANGUAGE LANG_PORTUGUESE, SUBLANG_PORTUGUESE
+#pragma code_page(1250)
+#include "Languages\ShellExtensionPortuguese.rc"
+#endif //_WIN32
+#endif
+
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
 #ifdef _WIN32
 LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
@@ -474,6 +538,14 @@ LANGUAGE LANG_SWEDISH, SUBLANG_DEFAULT
 LANGUAGE LANG_TURKISH, SUBLANG_DEFAULT
 #pragma code_page(1254)
 #include "Languages\ShellExtensionTurkish.rc"
+#endif //_WIN32
+#endif
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_UKR)
+#ifdef _WIN32
+LANGUAGE LANG_UKRAINIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
+#include "Languages\\ShellExtensionUkrainian.rc"
 #endif //_WIN32
 #endif
 

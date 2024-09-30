@@ -20,17 +20,14 @@
  * @brief Declaration file for FileFilterHelper
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: FileFilterHelper.h 3423 2006-08-02 19:36:12Z kimmov $
+// $Id: FileFilterHelper.h 4619 2007-10-14 08:50:20Z jtuc $
 
 #ifndef _FILEFILTERHELPER_H_
 #define _FILEFILTERHELPER_H_
 
 class FileFilterMgr;
+class FilterList;
 struct FileFilter;
-
-#ifndef REGEXP_H
-#include "RegExp.h"
-#endif
 
 /**
  * @brief File extension of file filter files.
@@ -50,7 +47,7 @@ struct FileFilterInfo
 	CString name; 			/**< Name of filter */
 	CString description; 	/**< Description of filter (shown in UI) */
 	CString fullpath;		/**< Full path to filter file */
-	FileInfo fileinfo;		/**< For tracking if file has been modified */
+	DirItem fileinfo;		/**< For tracking if file has been modified */
 };
 
 typedef CArray<FileFilterInfo, FileFilterInfo&> FILEFILTER_INFOLIST;
@@ -102,22 +99,22 @@ public:
 	FileFilterHelper();
 	~FileFilterHelper();
 
-	CString GetGlobalFilterPathWithCreate() const;
-	CString GetUserFilterPathWithCreate() const;
+	String GetGlobalFilterPathWithCreate() const;
+	String GetUserFilterPathWithCreate() const;
 
 	FileFilterMgr * GetManager();
 	void SetFileFilterPath(LPCTSTR szFileFilterPath);
 	void EditFileFilter(LPCTSTR szFileFilterPath);
 	void GetFileFilters(FILEFILTER_INFOLIST * filters, CString & selected) const;
-	CString GetFileFilterName(CString filterPath) const;
-	CString GetFileFilterPath(CString filterName) const;
+	CString GetFileFilterName(LPCTSTR filterPath) const;
+	CString GetFileFilterPath(LPCTSTR filterName) const;
 	void SetUserFilterPath(const CString & filterPath);
 
 	void ReloadUpdatedFilters();
 	void LoadAllFileFilters();
 
 	void LoadFileFilterDirPattern(FILEFILTER_FILEMAP & patternsLoaded,
-		const CString & sPattern);
+		LPCTSTR szPattern);
 
 	void UseMask(BOOL bUseMask);
 	void SetMask(LPCTSTR strMask);
@@ -135,15 +132,14 @@ protected:
 
 
 private:
+	FilterList * m_pMaskFilter;       /*< Filter for filemasks (*.cpp) */
 	FileFilter * m_currentFilter;     /*< Currently selected filefilter */
 	FileFilterMgr * m_fileFilterMgr;  /*< Associated FileFilterMgr */
 	CString m_sFileFilterPath;        /*< Path to current filter */
 	CString m_sMask;   /*< File mask (if defined) "*.cpp *.h" etc */
 	BOOL m_bUseMask;   /*< If TRUE file mask is used, filter otherwise */
-	CString m_sGlobalFilterPath;    /*< Path for shared filters */
-	CString m_sUserSelFilterPath;     /*< Path for user's private filters */
-
-	CRegExp m_rgx;     /*< Compiled file mask regular expression */
+	String m_sGlobalFilterPath;    /*< Path for shared filters */
+	String m_sUserSelFilterPath;     /*< Path for user's private filters */
 };
 
 #endif // _FILEFILTERHELPER_H_

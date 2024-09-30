@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropColors.h 3126 2006-03-04 02:36:46Z elsapo $
+// $Id: PropColors.h 4588 2007-10-05 11:35:46Z jtuc $
 
 #if !defined(AFX_PROPCOLORS_H__9C0A0F92_CDD6_40FE_BEFC_101B1E22FFDD__INCLUDED_)
 #define AFX_PROPCOLORS_H__9C0A0F92_CDD6_40FE_BEFC_101B1E22FFDD__INCLUDED_
@@ -83,6 +83,7 @@ private:
 	//{{AFX_VIRTUAL(CPropMergeColors)
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	virtual BOOL OnInitDialog();
 	//}}AFX_VIRTUAL
 
 // Implementation

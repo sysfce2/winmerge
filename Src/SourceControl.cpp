@@ -1,6 +1,14 @@
+/** 
+ * @file  SourceControl.cpp
+ *
+ * @brief Implementation file for some source control-related functions.
+ */
+// ID line follows -- this is updated by SVN
+// $Id: SourceControl.cpp 4739 2007-11-12 20:41:16Z jtuc $
+
 #include "StdAfx.h"
 #include <direct.h>
-
+#include "UnicodeString.h"
 #include "MainFrm.h"
 #include "Merge.h"
 #include "OptionsDef.h"
@@ -22,17 +30,17 @@ CMainFrame::InitializeSourceControlMembers()
 	m_strCCComment = _T("");
 	m_bCheckinVCS = FALSE;
 
-	CString vssPath = m_options.GetString(OPT_VSS_PATH);
-	if (vssPath.IsEmpty())
+	String vssPath = GetOptionsMgr()->GetString(OPT_VSS_PATH);
+	if (vssPath.empty())
 	{
 		CRegKeyEx reg;
 		if (reg.QueryRegMachine(_T("SOFTWARE\\Microsoft\\SourceSafe")))
 		{
 			TCHAR temp[_MAX_PATH] = {0};
 			reg.ReadChars(_T("SCCServerPath"), temp, _MAX_PATH, _T(""));
-			CString spath = GetPathOnly(temp);
+			String spath = GetPathOnly(temp);
 			vssPath = spath + _T("\\Ss.exe");
-			m_options.SaveOption(OPT_VSS_PATH, vssPath);
+			GetOptionsMgr()->SaveOption(OPT_VSS_PATH, vssPath.c_str());
 		}
 	}
 }
@@ -46,11 +54,10 @@ CMainFrame::InitializeSourceControlMembers()
 BOOL CMainFrame::SaveToVersionControl(CString& strSavePath)
 {
 	CFileStatus status;
-	CString s;
 	UINT userChoice = 0;
 	int nVerSys = 0;
 
-	nVerSys = m_options.GetInt(OPT_VCS_SYSTEM);
+	nVerSys = GetOptionsMgr()->GetInt(OPT_VCS_SYSTEM);
 
 	switch(nVerSys)
 	{
@@ -79,12 +86,13 @@ BOOL CMainFrame::SaveToVersionControl(CString& strSavePath)
 		// process versioning system specific action
 		if (userChoice == IDOK)
 		{
-			VERIFY(s.LoadString(IDS_VSS_CHECKOUT_STATUS));
-			WaitStatusCursor waitstatus(s);
+			WaitStatusCursor waitstatus(IDS_VSS_CHECKOUT_STATUS);
 			m_vssHelper.SetProjectBase(dlg.m_strProject);
 			theApp.WriteProfileString(_T("Settings"), _T("VssProject"), m_vssHelper.GetProjectBase());
-			CString spath, sname;
-			SplitFilename(strSavePath, &spath, &sname, NULL);
+			String path, name;
+			SplitFilename(strSavePath, &path, &name, NULL);
+			CString spath(path.c_str());
+			CString sname(path.c_str());
 			if (!spath.IsEmpty())
 			{
 				_chdrive(_totupper(spath[0]) - 'A' + 1);
@@ -92,8 +100,8 @@ BOOL CMainFrame::SaveToVersionControl(CString& strSavePath)
 			}
 			CString args;
 			args.Format(_T("checkout \"%s/%s\""), m_vssHelper.GetProjectBase(), sname);
-			CString vssPath = m_options.GetString(OPT_VSS_PATH);
-			HANDLE hVss = RunIt(vssPath, args, TRUE, FALSE);
+			String vssPath = GetOptionsMgr()->GetString(OPT_VSS_PATH);
+			HANDLE hVss = RunIt(vssPath.c_str(), args, TRUE, FALSE);
 			if (hVss != INVALID_HANDLE_VALUE)
 			{
 				WaitForSingleObject(hVss, INFINITE);
@@ -102,13 +110,13 @@ BOOL CMainFrame::SaveToVersionControl(CString& strSavePath)
 				CloseHandle(hVss);
 				if (code != 0)
 				{
-					AfxMessageBox(IDS_VSSERROR, MB_ICONSTOP);
+					LangMessageBox(IDS_VSSERROR, MB_ICONSTOP);
 					return FALSE;
 				}
 			}
 			else
 			{
-				AfxMessageBox(IDS_VSS_RUN_ERROR, MB_ICONSTOP);
+				LangMessageBox(IDS_VSS_RUN_ERROR, MB_ICONSTOP);
 				return FALSE;
 			}
 		}
@@ -143,8 +151,7 @@ BOOL CMainFrame::SaveToVersionControl(CString& strSavePath)
 		// process versioning system specific action
 		if (userChoice == IDOK)
 		{
-			VERIFY(s.LoadString(IDS_VSS_CHECKOUT_STATUS));
-			WaitStatusCursor waitstatus(s);
+			WaitStatusCursor waitstatus(IDS_VSS_CHECKOUT_STATUS);
 			BOOL bOpened = FALSE;
 			m_vssHelper.SetProjectBase(dlg.m_strProject);
 			m_strVssUser = dlg.m_strUser;
@@ -208,7 +215,10 @@ BOOL CMainFrame::SaveToVersionControl(CString& strSavePath)
 				END_CATCH_ALL
 			}
 
-			SplitFilename(strSavePath, &spath, &sname, 0);
+			String path, name;
+			SplitFilename(strSavePath, &path, &name, 0);
+			spath = path.c_str();
+			sname = name.c_str();
 
 			// BSP - Combine the project entered on the dialog box with the file name...
 			const UINT nBufferSize = 1024;
@@ -269,7 +279,7 @@ BOOL CMainFrame::SaveToVersionControl(CString& strSavePath)
 				if (strLocalSpec.CompareNoCase(strSavePath))
 				{
 					// BSP - if the directories are different, let the user confirm the CheckOut
-					int iRes = AfxMessageBox(IDS_VSSFOLDER_AND_FILE_NOMATCH, 
+					int iRes = LangMessageBox(IDS_VSSFOLDER_AND_FILE_NOMATCH, 
 							MB_YESNO | MB_YES_TO_ALL | MB_ICONWARNING);
 
 					if (iRes == IDNO)
@@ -320,8 +330,10 @@ BOOL CMainFrame::SaveToVersionControl(CString& strSavePath)
 		if (userChoice == IDOK)
 		{
 			WaitStatusCursor waitstatus(_T(""));
-			CString spath, sname;
-			SplitFilename(strSavePath, &spath, &sname, 0);
+			String path, name;
+			SplitFilename(strSavePath, &path, &name, 0);
+			CString spath(path.c_str());
+			CString sname(name.c_str());
 			if (!spath.IsEmpty())
 			{
 				_chdrive(_totupper(spath[0])-'A'+1);
@@ -333,8 +345,8 @@ BOOL CMainFrame::SaveToVersionControl(CString& strSavePath)
 			// checkout operation
 			m_strCCComment.Replace(_T("\""), _T("\\\""));
 			args.Format(_T("checkout -c \"%s\" \"%s\""), m_strCCComment, sname);
-			CString vssPath = m_options.GetString(OPT_VSS_PATH);
-			HANDLE hVss = RunIt(vssPath, args, TRUE, FALSE);
+			String vssPath = GetOptionsMgr()->GetString(OPT_VSS_PATH);
+			HANDLE hVss = RunIt(vssPath.c_str(), args, TRUE, FALSE);
 			if (hVss!=INVALID_HANDLE_VALUE)
 			{
 				WaitForSingleObject(hVss, INFINITE);
@@ -343,13 +355,13 @@ BOOL CMainFrame::SaveToVersionControl(CString& strSavePath)
 				
 				if (code != 0)
 				{
-					AfxMessageBox(IDS_VSSERROR, MB_ICONSTOP);
+					LangMessageBox(IDS_VSSERROR, MB_ICONSTOP);
 					return FALSE;
 				}
 			}
 			else
 			{
-				AfxMessageBox(IDS_VSS_RUN_ERROR, MB_ICONSTOP);
+				LangMessageBox(IDS_VSS_RUN_ERROR, MB_ICONSTOP);
 				return FALSE;
 			}
 		}

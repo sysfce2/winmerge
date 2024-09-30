@@ -3,8 +3,8 @@
  *
  * @brief Implementation file for Directory compare state dialog
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DirCompProgressDlg.cpp 3566 2006-09-15 21:14:54Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: DirCompProgressDlg.cpp 4596 2007-10-07 09:44:06Z jtuc $
 
 #include "stdafx.h"
 #include "merge.h"
@@ -26,19 +26,13 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-/**
- * @brief ID for timer updating UI.
- */
+/** @brief ID for timer updating UI. */
 static const UINT IDT_UPDATE = 1;
 
-/**
- * @brief Interval (in milliseconds) for UI updates.
- */
+/** @brief Interval (in milliseconds) for UI updates. */
 static const UINT UPDATE_INTERVAL = 400;
 
-/**
- * @brief Reset all UI fields to zero.
- */
+/** @brief Reset all UI fields to zero. */
 void DirCompProgressDlg::ClearStat()
 {
 	CProgressCtrl *pProg = (CProgressCtrl*) GetDlgItem(IDC_PROGRESSCOMPARE);
@@ -56,21 +50,15 @@ IMPLEMENT_DYNAMIC(DirCompProgressDlg, CDialog)
 
 /**
  * @brief Constructor.
+ * @param [in] pParent Parent window for progress dialog.
  */
 DirCompProgressDlg::DirCompProgressDlg(CWnd* pParent /*=NULL*/)
 : m_bCompareReady(FALSE)
 , m_prevState(CompareStats::STATE_IDLE)
 , m_pDirDoc(NULL)
+, m_pCompareStats(NULL)
 {
 }
-
-/**
- * @brief Loads strings from resource.
- */
-BOOL DirCompProgressDlg::Create(UINT nIDTemplate, CWnd* pParentWnd)
-{
-	return CDialog::Create(nIDTemplate, pParentWnd);
-};
 
 void DirCompProgressDlg::DoDataExchange(CDataExchange* pDX)
 {
@@ -89,8 +77,14 @@ END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Initialize the dialog.
+ * Center the dialog to main window.
+ * @return TRUE (see the comment inside function).
+ */
 BOOL DirCompProgressDlg::OnInitDialog() 
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
 
 	GetMainFrame()->CenterToMainFrame(this);
@@ -100,8 +94,11 @@ BOOL DirCompProgressDlg::OnInitDialog()
 }
 
 /**
- * @brief Handle WM_KEYDOWN messages before normal processing
- * to allow any key close stateDlg.
+ * @brief Handle Windows messages before normal processing.
+ * Handle WM_KEYDOWN messages before normal processing to allow any key
+ * to stop the compare.
+ * @param [in] pMsg Message to handle.
+ * @return TRUE if message was handled and no more handling is needed.
  */
 BOOL DirCompProgressDlg::PreTranslateMessage(MSG* pMsg)
 {
@@ -120,6 +117,7 @@ BOOL DirCompProgressDlg::PreTranslateMessage(MSG* pMsg)
 
 /**
  * @brief Set pointer to compare stats.
+ * @param [in] pCompareStats Pointer to stats.
  */
 void DirCompProgressDlg::SetCompareStat(CompareStats * pCompareStats)
 {
@@ -128,6 +126,8 @@ void DirCompProgressDlg::SetCompareStat(CompareStats * pCompareStats)
 
 /**
  * @brief Timer message received.
+ * Handle timer messages. When timer fires, update the dialog.
+ * @param [in] nIDEvent ID of the timer that fired.
  */
 void DirCompProgressDlg::OnTimer(UINT_PTR nIDEvent)
 {
@@ -140,20 +140,20 @@ void DirCompProgressDlg::OnTimer(UINT_PTR nIDEvent)
 		
 		// New compare started
 		if (m_prevState == CompareStats::STATE_IDLE &&
-			state == CompareStats::STATE_COLLECT)
+			state == CompareStats::STATE_START)
 		{
-			m_prevState = CompareStats::STATE_COLLECT;
+			m_prevState = CompareStats::STATE_START;
 		}
 		// Collecting items to compare
-		else if (m_prevState == CompareStats::STATE_COLLECT &&
-			state == CompareStats::STATE_COLLECT)
+		else if (m_prevState == CompareStats::STATE_START &&
+			state == CompareStats::STATE_START)
 		{
 			TCHAR num[15] = {0};
 			_itot(m_pCompareStats->GetTotalItems(), num, 10);
 			pTotal->SetWindowText(num);
 		}
 		// Started comparing items
-		else if ((m_prevState == CompareStats::STATE_COLLECT ||
+		else if ((m_prevState == CompareStats::STATE_START ||
 				m_prevState == CompareStats::STATE_IDLE) &&
 				state == CompareStats::STATE_COMPARE)
 		{
@@ -176,10 +176,15 @@ void DirCompProgressDlg::OnTimer(UINT_PTR nIDEvent)
 				state == CompareStats::STATE_COMPARE)
 		{
 			TCHAR num[15] = {0};
+			const int totalItems = m_pCompareStats->GetTotalItems();
 			int comparedItems = m_pCompareStats->GetComparedItems();
+			_itot(totalItems, num, 10);
+			pProg->SetRange32(0, totalItems);
+			pTotal->SetWindowText(num);
 			_itot(comparedItems, num, 10);
 			pCompared->SetWindowText(num);
 			pProg->SetPos(comparedItems);
+
 		}
 		// Compare is ready
 		// Update total items too since we might get only this one state
@@ -253,6 +258,7 @@ void DirCompProgressDlg::CloseDialog()
  *
  * We need pointer to DirDoc for aborting the scan when Stop
  * button is clicked.
+ * @param [in] pDirDoc Pointer to folder compare doc.
  */
 void DirCompProgressDlg::SetDirDoc(CDirDoc *pDirDoc)
 {

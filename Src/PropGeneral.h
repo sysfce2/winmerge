@@ -3,8 +3,8 @@
  *
  * @brief Declaration of CPropGeneral class
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PropGeneral.h 3195 2006-03-27 22:37:31Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: PropGeneral.h 4875 2008-01-08 20:57:23Z kimmov $
 
 #if !defined(AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_)
 #define AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_
@@ -32,16 +32,17 @@ public:
 
 // Dialog Data
 	//{{AFX_DATA(CPropGeneral)
-	enum { IDD = IDD_PROPPAGE_LARGE };
-	BOOL  m_bBackup;
+	enum { IDD = IDD_PROPPAGE_GENERAL };
 	BOOL  m_bScroll;
 	BOOL  m_bDisableSplash;
 	BOOL  m_bSingleInstance;
 	BOOL  m_bVerifyPaths;
 	BOOL  m_bCloseWindowWithEsc;
+	BOOL  m_bAskMultiWindowClose;
 	BOOL	m_bMultipleFileCmp;
 	BOOL	m_bMultipleDirCmp;
 	int		m_nAutoCompleteSource;
+	BOOL	m_bPreserveFiletime;
 	//}}AFX_DATA
 
 

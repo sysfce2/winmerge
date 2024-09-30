@@ -7,8 +7,8 @@
  * (http://www.abstractspoon.com/) but is modified to use in
  * WinMerge.
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: PreferencesDlg.h 3450 2006-08-08 14:28:49Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: PreferencesDlg.h 4099 2007-02-07 18:37:52Z kimmov $
 
 
 #if !defined(AFX_PREFERENCESDLG_H__C3FCC72A_6C69_49A6_930D_D5C94EC31298__INCLUDED_)
@@ -28,6 +28,7 @@
 #include "PropSyntaxColors.h"
 #include "PropCodepage.h"
 #include "PropArchive.h"
+#include "PropBackups.h"
 
 #include "propertypagehost.h"
 
@@ -66,6 +67,7 @@ protected:
 	CPropTextColors m_pageTextColors;
 	CPropSyntaxColors m_pageSyntaxColors;
 	CPropArchive m_pageArchive;
+	CPropBackups m_pageBackups;
 
 	SyntaxColors *m_pSyntaxColors;
 

@@ -28,8 +28,8 @@
  *
  * @brief Declaration file for CCrystalTextView
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: ccrystaltextview.h 4878 2008-01-08 22:36:41Z gerundt $
+// ID line follows -- this is updated by SVN
+// $Id: ccrystaltextview.h 4983 2008-01-31 21:08:06Z jtuc $
 
 #if !defined(AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_)
 #define AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_
@@ -128,6 +128,8 @@ private :
     initialize the member objects. This would destroy a CArray object.
     */
     CArray<int, int> *m_panSubLines;
+    CArray<int, int> *m_panSubLineIndexCache;
+    int m_nLastLineIndexCalculatedSubLineIndex;
     //END SW
 
     int m_nMaxLineLength;
@@ -138,6 +140,7 @@ protected:
     CPoint m_ptAnchor;
 private:
     LOGFONT m_lfBaseFont;
+	LOGFONT m_lfSavedBaseFont;
     CFont *m_apFonts[4];
 
     //  Parsing stuff
@@ -212,7 +215,7 @@ protected :
     CPoint m_ptDraggedTextBegin, m_ptDraggedTextEnd;
     void UpdateCaret ();
     void SetAnchor (const CPoint & ptNewAnchor);
-    UINT GetMarginWidth ();
+    UINT GetMarginWidth (CDC *pdc = NULL);
     bool IsValidTextPos (const CPoint &point);
     bool IsValidTextPosX (const CPoint &point);
     bool IsValidTextPosY (const CPoint &point);
@@ -233,13 +236,13 @@ protected :
 
     //  Printing
     int m_nPrintPages;
-    int *m_pnPages;
     CFont *m_pPrintFont;
     int m_nPrintLineHeight;
     BOOL m_bPrintHeader, m_bPrintFooter;
     CRect m_ptPageArea, m_rcPrintArea;
-    int PrintLineHeight (CDC * pdc, int nLine);
-    void RecalcPageLayouts (CDC * pdc, CPrintInfo * pInfo);
+    BOOL m_bPrinting;
+    void GetPrintMargins (long & nLeft, long & nTop, long & nRight, long & nBottom);
+    virtual void RecalcPageLayouts (CDC * pdc, CPrintInfo * pInfo);
     virtual void PrintHeader (CDC * pdc, int nPageNum);
     virtual void PrintFooter (CDC * pdc, int nPageNum);
     virtual void GetPrintHeaderText (int nPageNum, CString & text);
@@ -438,7 +441,7 @@ protected:
 
     //  Clipboard overridable
     virtual BOOL TextInClipboard ();
-    virtual BOOL PutToClipboard (LPCTSTR pszText);
+    virtual BOOL PutToClipboard (LPCTSTR pszText, int cchText);
     virtual BOOL GetFromClipboard (CString & text);
 
     //  Drag-n-drop overrideable
@@ -539,6 +542,7 @@ protected:
 	-1 (default) all lines from nLineIndex1 to the end are invalidated.
 	*/
 	virtual void InvalidateLineCache( int nLineIndex1, int nLineIndex2 );
+	virtual void InvalidateSubLineIndexCache( int nLineIndex1 );
 	void InvalidateScreenRect();
 	//END SW
 
@@ -564,6 +568,12 @@ protected:
 
 	int MergeTextBlocks(TEXTBLOCK *pBuf1, int nBlocks1, TEXTBLOCK *pBuf2, int nBlocks2, TEXTBLOCK *&pBufMerged);
 	virtual int GetAdditionalTextBlocks (int nLineIndex, TEXTBLOCK *pBuf);
+
+public:
+    virtual CString GetHTMLLine (int nLineIndex, LPCTSTR pszTag);
+    virtual CString GetHTMLStyles ();
+protected:
+    virtual CString GetHTMLAttribute (int nColorIndex, int nBgColorIndex, COLORREF crText, COLORREF crBkgnd);
 
 	//BEGIN SW
 	// helpers for incremental search

@@ -6,6 +6,14 @@
   <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
   <style type="text/css">
   <!--
+    body {
+      font-family: Verdana,Helvetica,Arial,sans-serif;
+      font-size: small;
+    }
+    code,pre {
+      font-family: "Courier New",Courier,monospace;
+      font-size: 1em;
+    }
     h3 {
       padding: 2px;
       border-left: 4px solid #FFCC00;
@@ -65,6 +73,13 @@ that's not subject of this document, refer to <a href="readme-developers.html">r
   <code>Build/</code>
   <ul>
     <li>
+     <code>expat</code>
+     <ul>
+      <li><code>libexpat.dll</code></li>
+      <li><code>libexpatw.dll</code></li>
+     </ul>
+    </li>
+    <li>
      <code>Languages</code>
      <ul>
       <li><code>*.lang</code></li>
@@ -88,6 +103,12 @@ that's not subject of this document, refer to <a href="readme-developers.html">r
     <ul>
      <li><code>ShellExtensionU.dll</code></li>
      <li><code>WinMergeU.exe</code></li>
+    </ul>
+   </li>
+   <li>
+    <code>pcre/</code>
+    <ul>
+      <li><code>pcre.dll</code></li>
     </ul>
    </li>
    <li>
@@ -117,9 +138,20 @@ that's not subject of this document, refer to <a href="readme-developers.html">r
   </ul>
  </li>
  <li>
-  <code>Installer/InnoSetup/</code>
+  <code>Installer/</code>
   <ul>
-   <li><em>Copy the entire InnoSetup source folder to here</em></li>
+   <li>
+    <code>InnoSetup/</code>
+     <ul>
+      <li><em>Copy the entire Installer/InnoSetup folder to here</em></li>
+     </ul>
+   </li>
+   <li>
+    <code>Runtimes/</code>
+     <ul>
+      <li><em>Copy the entire Installer/Runtimes folder to here</em></li>
+     </ul>
+    </li>
   </ul>
  </li>
  <li>
@@ -137,11 +169,11 @@ that's not subject of this document, refer to <a href="readme-developers.html">r
 
 <p><strong>NOTE</strong><br>
 If you don't need or can't compile <code>ShellExtensionX64.dll</code> component,
-comment or remove line:<pre>
-; 64-bit version of ShellExtension
+comment or remove line:</p>
+<pre>; 64-bit version of ShellExtension
 Source: ..\..\Build\ShellExtensionX64\ShellExtensionX64.dll; [...]
 </pre>
-from <code>WinMerge.iss</code></p>
+<p>from <code>WinMerge.iss</code></p>
 
 <h3>Running Inno Setup to create installer</h3>
 

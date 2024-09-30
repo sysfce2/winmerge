@@ -19,10 +19,11 @@
  *
  * @brief Implementation of FileFilters -dialog
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: FileFiltersDlg.cpp 3850 2006-11-26 11:29:07Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: FileFiltersDlg.cpp 5349 2008-05-19 20:24:12Z gerundt $
 
 #include "stdafx.h"
+#include "UnicodeString.h"
 #include "merge.h"
 #include "MainFrm.h"
 #include "FileFiltersDlg.h"
@@ -50,11 +51,16 @@ static const TCHAR FilterHelpLocation[] = _T("::/htmlhelp/Filters.html");
 // CFiltersDlg dialog
 IMPLEMENT_DYNCREATE(FileFiltersDlg, CPropertyPage)
 
+/**
+ * @brief Constructor.
+ */
 FileFiltersDlg::FileFiltersDlg() : CPropertyPage(FileFiltersDlg::IDD)
 {
-	//{{AFX_DATA_INIT(FileFiltersDlg)
-		// NOTE: the ClassWizard will add member initialization here
-	//}}AFX_DATA_INIT
+	m_strCaption = theApp.LoadDialogCaption(m_lpszTemplateName).c_str();
+	m_psp.pszTitle = m_strCaption;
+	m_psp.dwFlags |= PSP_USETITLE;
+	m_psp.hIcon = AfxGetApp()->LoadIcon(IDI_FILEFILTER);
+	m_psp.dwFlags |= PSP_USEHICON;
 }
 
 void FileFiltersDlg::DoDataExchange(CDataExchange* pDX)
@@ -127,17 +133,17 @@ void FileFiltersDlg::InitList()
 		newstyle |= LVS_EX_INFOTIP;
 	m_listFilters.SetExtendedStyle(m_listFilters.GetExtendedStyle() | newstyle);
 
-	CString title = LoadResString(IDS_FILTERFILE_NAMETITLE);
-	m_listFilters.InsertColumn(0, title,LVCFMT_LEFT, 150);
-	title = LoadResString(IDS_FILTERFILE_DESCTITLE);
-	m_listFilters.InsertColumn(1, title, LVCFMT_LEFT, 350);
-	title = LoadResString(IDS_FILTERFILE_PATHTITLE);
-	m_listFilters.InsertColumn(2, title,LVCFMT_LEFT, 350);
+	String title = theApp.LoadString(IDS_FILTERFILE_NAMETITLE);
+	m_listFilters.InsertColumn(0, title.c_str(), LVCFMT_LEFT, 150);
+	title = theApp.LoadString(IDS_FILTERFILE_DESCTITLE);
+	m_listFilters.InsertColumn(1, title.c_str(), LVCFMT_LEFT, 350);
+	title = theApp.LoadString(IDS_FILTERFILE_PATHTITLE);
+	m_listFilters.InsertColumn(2, title.c_str(), LVCFMT_LEFT, 350);
 
-	title = LoadResString(IDS_USERCHOICE_NONE);
-	m_listFilters.InsertItem(1, title);
-	m_listFilters.SetItemText(0, 1, title);
-	m_listFilters.SetItemText(0, 2, title);
+	title = theApp.LoadString(IDS_USERCHOICE_NONE);
+	m_listFilters.InsertItem(1, title.c_str());
+	m_listFilters.SetItemText(0, 1, title.c_str());
+	m_listFilters.SetItemText(0, 2, title.c_str());
 
 	int count = m_Filters->GetSize();
 
@@ -160,9 +166,11 @@ void FileFiltersDlg::SelectFilterByIndex(int index)
 
 /**
  * @brief Called before dialog is shown.
+ * @return Always TRUE.
  */
 BOOL FileFiltersDlg::OnInitDialog()
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
 
 	InitList();
@@ -239,7 +247,9 @@ void FileFiltersDlg::OnFiltersEditbtn()
 }
 
 /**
- * @brief Edit selected filter when its double-clicked
+ * @brief Edit selected filter when its double-clicked.
+ * @param [in] pNMHDR List control item data.
+ * @param [out] pResult Result of the action is returned in here.
  */
 void FileFiltersDlg::OnDblclkFiltersList(NMHDR* pNMHDR, LRESULT* pResult)
 {
@@ -267,16 +277,18 @@ static void EnableDlgItem(CWnd * parent, int item, bool enable)
  */
 bool FileFiltersDlg::IsFilterItemNone(int item) const
 {
-	CString txtNone = LoadResString(IDS_USERCHOICE_NONE);
+	String txtNone = theApp.LoadString(IDS_USERCHOICE_NONE);
 	CString txt = m_listFilters.GetItemText(item, 0);
 
-	return (txt.CompareNoCase(txtNone) == 0);
+	return (txt.CompareNoCase(txtNone.c_str()) == 0);
 }
 
 /**
  * @brief Called when item state is changed.
  *
  * Disable Edit-button when "None" filter is selected.
+ * @param [in] pNMHDR Listview item data.
+ * @param [out] pResult Result of the action is returned in here.
  */
 void FileFiltersDlg::OnLvnItemchangedFilterfileList(NMHDR *pNMHDR, LRESULT *pResult)
 {
@@ -285,11 +297,10 @@ void FileFiltersDlg::OnLvnItemchangedFilterfileList(NMHDR *pNMHDR, LRESULT *pRes
 	// If item got selected
 	if (pNMLV->uNewState & LVIS_SELECTED)
 	{
-		CString txtNone;
-		VERIFY(txtNone.LoadString(IDS_USERCHOICE_NONE));
+		String txtNone = theApp.LoadString(IDS_USERCHOICE_NONE);
 		CString txt = m_listFilters.GetItemText(pNMLV->iItem, 0);
 
-		bool isNone = (txt.CompareNoCase(txtNone) == 0);
+		bool isNone = txt.CompareNoCase(txtNone.c_str()) == 0;
 
 		EnableDlgItem(this, IDC_FILTERFILE_TEST_BTN, !isNone);
 		EnableDlgItem(this, IDC_FILTERFILE_EDITBTN, !isNone);
@@ -298,7 +309,11 @@ void FileFiltersDlg::OnLvnItemchangedFilterfileList(NMHDR *pNMHDR, LRESULT *pRes
 	*pResult = 0;
 }
 
-/// Called before infotip is shown to get infotip text
+/**
+ * @brief Called before infotip is shown to get infotip text.
+ * @param [in] pNMHDR Listview item data.
+ * @param [out] pResult Result of the action is returned in here.
+ */
 void FileFiltersDlg::OnInfoTip(NMHDR * pNMHDR, LRESULT * pResult)
 {
 	LVHITTESTINFO lvhti = {0};
@@ -327,7 +342,11 @@ void FileFiltersDlg::OnInfoTip(NMHDR * pNMHDR, LRESULT * pResult)
 	}
 }
 
-/// Track mouse position for showing tooltips
+/**
+ * @brief Track mouse position for showing tooltips.
+ * @param [in] nFlags Mouse movement flags.
+ * @param [in] point Current mouse position.
+ */
 void FileFiltersDlg::OnMouseMove(UINT nFlags, CPoint point) 
 {
 	m_ptLastMousePos = point;
@@ -348,8 +367,10 @@ void FileFiltersDlg::OnBnClickedFilterfileTestButton()
 	UpdateData(TRUE);
 
 	int sel = m_listFilters.GetNextItem(-1, LVNI_SELECTED);
-	if (sel == -1) return;
-	if (IsFilterItemNone(sel)) return;
+	if (sel == -1)
+		return;
+	if (IsFilterItemNone(sel))
+		return;
 	
 	m_sFileFilterPath = m_listFilters.GetItemText(sel, 2);
 
@@ -358,7 +379,8 @@ void FileFiltersDlg::OnBnClickedFilterfileTestButton()
 
 	FileFilterMgr *pMgr = theApp.m_globalFileFilter.GetManager();
 	FileFilter * pFileFilter = pMgr->GetFilterByPath(m_sFileFilterPath);
-	if (!pFileFilter) return;
+	if (!pFileFilter)
+		return;
 
 	CTestFilterDlg dlg(this, pFileFilter, pMgr);
 	dlg.DoModal();
@@ -376,40 +398,43 @@ void FileFiltersDlg::OnBnClickedFilterfileTestButton()
  */
 void FileFiltersDlg::OnBnClickedFilterfileNewbutton()
 {
-	CString title = LoadResString(IDS_FILEFILTER_SAVENEW);
-	CString globalPath = theApp.m_globalFileFilter.GetGlobalFilterPathWithCreate();
-	CString userPath = theApp.m_globalFileFilter.GetUserFilterPathWithCreate();
+	String globalPath = theApp.m_globalFileFilter.GetGlobalFilterPathWithCreate();
+	String userPath = theApp.m_globalFileFilter.GetUserFilterPathWithCreate();
 
-	if (globalPath.IsEmpty() && userPath.IsEmpty())
+	if (globalPath.empty() && userPath.empty())
 	{
-		AfxMessageBox(IDS_FILEFILTER_NO_USERFOLDER, MB_ICONSTOP);
+		LangMessageBox(IDS_FILEFILTER_NO_USERFOLDER, MB_ICONSTOP);
 		return;
 	}
 
-	CString templatePath(globalPath);
-	if (templatePath[templatePath.GetLength()-1] != '\\')
-		templatePath += "\\";
+	// Format path to template file
+	String templatePath(globalPath);
+	if (templatePath[templatePath.length() - 1] != '\\')
+		templatePath += '\\';
 	templatePath += FILE_FILTER_TEMPLATE;
 
-	if (paths_DoesPathExist(templatePath) != IS_EXISTING_FILE)
+	if (paths_DoesPathExist(templatePath.c_str()) != IS_EXISTING_FILE)
 	{
-		ResMsgBox1(IDS_FILEFILTER_TMPL_MISSING, templatePath, MB_ICONERROR);
+		CString msg;
+		LangFormatString2(msg, IDS_FILEFILTER_TMPL_MISSING,
+			FILE_FILTER_TEMPLATE, templatePath.c_str());
+		AfxMessageBox(msg, MB_ICONERROR);
 		return;
 	}
 
-	CString path = (globalPath.IsEmpty() ? userPath : globalPath);
+	String path = globalPath.empty() ? userPath : globalPath;
 
-	if (!globalPath.IsEmpty() && !userPath.IsEmpty())
+	if (!globalPath.empty() && !userPath.empty())
 	{
 		path = CSharedFilterDlg::PromptForNewFilter(this, globalPath, userPath);
-		if (path.IsEmpty()) return;
+		if (path.empty()) return;
 	}
 
-	if (path.GetLength() && path[path.GetLength()-1] != '\\')
+	if (path.length() && path[path.length() - 1] != '\\')
 		path += '\\';
 	
 	CString s;
-	if (SelectFile(GetSafeHwnd(), s, path, title, IDS_FILEFILTER_FILEMASK,
+	if (SelectFile(GetSafeHwnd(), s, path.c_str(), IDS_FILEFILTER_SAVENEW, IDS_FILEFILTER_FILEMASK,
 		FALSE))
 	{
 		// Fix file extension
@@ -432,9 +457,9 @@ void FileFiltersDlg::OnBnClickedFilterfileNewbutton()
 
 		// Open-dialog asks about overwriting, so we can overwrite filter file
 		// user has already allowed it.
-		if (!CopyFile(templatePath, s, FALSE))
+		if (!CopyFile(templatePath.c_str(), s, FALSE))
 		{
-			ResMsgBox1(IDS_FILEFILTER_TMPL_COPY, templatePath, MB_ICONERROR);
+			ResMsgBox1(IDS_FILEFILTER_TMPL_COPY, templatePath.c_str(), MB_ICONERROR);
 			return;
 		}
 		theApp.m_globalFileFilter.EditFileFilter(s);
@@ -470,7 +495,7 @@ void FileFiltersDlg::OnBnClickedFilterfileDelete()
 		path.ReleaseBuffer();
 
 		CString sConfirm;
-		AfxFormatString1(sConfirm, IDS_CONFIRM_DELETE_SINGLE, path);
+		LangFormatString1(sConfirm, IDS_CONFIRM_DELETE_SINGLE, path);
 		int res = AfxMessageBox(sConfirm, MB_ICONWARNING | MB_YESNO);
 		if (res == IDYES)
 		{
@@ -490,7 +515,6 @@ void FileFiltersDlg::OnBnClickedFilterfileDelete()
 			{
 				ResMsgBox1(IDS_FILEFILTER_DELETE_FAIL, path, MB_ICONSTOP);
 			}
-			
 		}
 	}
 }
@@ -504,11 +528,10 @@ void FileFiltersDlg::UpdateFiltersList()
 
 	m_listFilters.DeleteAllItems();
 
-	CString title;
-	VERIFY(title.LoadString(IDS_USERCHOICE_NONE));
-	m_listFilters.InsertItem(1, title);
-	m_listFilters.SetItemText(0, 1, title);
-	m_listFilters.SetItemText(0, 2, title);
+	String title = theApp.LoadString(IDS_USERCHOICE_NONE);
+	m_listFilters.InsertItem(1, title.c_str());
+	m_listFilters.SetItemText(0, 1, title.c_str());
+	m_listFilters.SetItemText(0, 2, title.c_str());
 
 	for (int i = 0; i < count; i++)
 	{
@@ -535,43 +558,43 @@ void FileFiltersDlg::OnHelp()
 void FileFiltersDlg::OnBnClickedFilterfileInstall()
 {
 	CString s;
-	CString path;
-	CString userPath = theApp.m_globalFileFilter.GetUserFilterPathWithCreate();
-	CString title = LoadResString(IDS_FILEFILTER_INSTALL);
+	String path;
+	String userPath = theApp.m_globalFileFilter.GetUserFilterPathWithCreate();
 
-	if (SelectFile(GetSafeHwnd(), s, path, title, IDS_FILEFILTER_FILEMASK,
+	if (SelectFile(GetSafeHwnd(), s, path.c_str(), IDS_FILEFILTER_INSTALL, IDS_FILEFILTER_FILEMASK,
 		TRUE))
 	{
-		CString filename, ext;
-		SplitFilename(s, NULL, &filename, &ext);
+		String sfile, sext;
+		SplitFilename(s, NULL, &sfile, &sext);
+		String filename = sfile;
 		filename += _T(".");
-		filename += ext;
+		filename += sext;
 		userPath = paths_ConcatPath(userPath, filename);
-		if (!CopyFile(s, userPath, TRUE))
+		if (!CopyFile(s, userPath.c_str(), TRUE))
 		{
 			// If file already exists, ask from user
 			// If user wants to, overwrite existing filter
-			if (paths_DoesPathExist(userPath) == IS_EXISTING_FILE)
+			if (paths_DoesPathExist(userPath.c_str()) == IS_EXISTING_FILE)
 			{
-				int res = AfxMessageBox(IDS_FILEFILTER_OVERWRITE, MB_YESNO |
+				int res = LangMessageBox(IDS_FILEFILTER_OVERWRITE, MB_YESNO |
 					MB_ICONWARNING);
 				if (res == IDYES)
 				{
-					if (!CopyFile(s, userPath, FALSE))
+					if (!CopyFile(s, userPath.c_str(), FALSE))
 					{
-						AfxMessageBox(IDS_FILEFILTER_INSTALLFAIL, MB_ICONSTOP);
+						LangMessageBox(IDS_FILEFILTER_INSTALLFAIL, MB_ICONSTOP);
 					}
 				}
 			}
 			else
 			{
-				AfxMessageBox(IDS_FILEFILTER_INSTALLFAIL, MB_ICONSTOP);
+				LangMessageBox(IDS_FILEFILTER_INSTALLFAIL, MB_ICONSTOP);
 			}
 		}
 		else
 		{
 			FileFilterMgr *pMgr = theApp.m_globalFileFilter.GetManager();
-			pMgr->AddFilter(userPath);
+			pMgr->AddFilter(userPath.c_str());
 
 			// Remove all from filterslist and re-add so we can update UI
 			CString selected;

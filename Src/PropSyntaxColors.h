@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropSyntaxColors.h 3126 2006-03-04 02:36:46Z elsapo $
+// $Id: PropSyntaxColors.h 4588 2007-10-05 11:35:46Z jtuc $
 
 #ifndef _PROP_SYNTAX_COLORS_H_
 #define _PROP_SYNTAX_COLORS_H_
@@ -43,6 +43,7 @@ protected:
 
 
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	virtual BOOL OnInitDialog();
 	afx_msg void OnBnClickedEcolorKeywords();
 	afx_msg void OnBnClickedEcolorFunctions();
 	afx_msg void OnBnClickedEcolorComments();

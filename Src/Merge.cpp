@@ -24,12 +24,13 @@
  * @brief Defines the class behaviors for the application.
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: Merge.cpp 3958 2006-12-12 22:26:09Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: Merge.cpp 5074 2008-02-23 22:55:41Z sdottaka $
 
 #include "stdafx.h"
+#include "UnicodeString.h"
+#include "OptionsMgr.h"
 #include "Merge.h"
-
 #include "AboutDlg.h"
 #include "MainFrm.h"
 #include "ChildFrm.h"
@@ -41,13 +42,15 @@
 #include "logfile.h"
 #include "coretools.h"
 #include "paths.h"
-#include "sinstance.h"
 #include "FileFilterHelper.h"
 #include "Plugins.h"
 #include "DirScan.h" // for DirScan_InitializeDefaultCodepage
 #include "ProjectFile.h"
 #include "MergeEditView.h"
 #include "LanguageSelect.h"
+#include "OptionsDef.h"
+#include "MergeCmdLineInfo.h"
+#include "ConflictFileParser.h"
 
 // For shutdown cleanup
 #include "charsets.h"
@@ -58,6 +61,17 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+/**
+ * @brief Default relative path to "My Documents" for private filters.
+ * We want to use WinMerge folder as general user-file folder in future.
+ * So it makes sense to have own subfolder for filters.
+ */
+static const TCHAR DefaultRelativeFilterPath[] = _T("WinMerge\\Filters");
+
+
+/** @brief Location for command line help to open. */
+static TCHAR CommandLineHelpLocation[] = _T("::/htmlhelp/CommandLine.html");
+
 /////////////////////////////////////////////////////////////////////////////
 // CMergeApp
 
@@ -67,6 +81,7 @@ BEGIN_MESSAGE_MAP(CMergeApp, CWinApp)
 	ON_COMMAND(ID_VIEW_LANGUAGE, OnViewLanguage)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_LANGUAGE, OnUpdateViewLanguage)
 	ON_COMMAND(ID_HELP, OnHelp)
+	ON_COMMAND_EX_RANGE(ID_FILE_MRU_FILE1, ID_FILE_MRU_FILE16, OnOpenRecentFile)
 	//}}AFX_MSG_MAP
 	// Standard file based document commands
 	//ON_COMMAND(ID_FILE_NEW, CWinApp::OnFileNew)
@@ -75,51 +90,44 @@ BEGIN_MESSAGE_MAP(CMergeApp, CWinApp)
 	ON_COMMAND(ID_FILE_PRINT_SETUP, CWinApp::OnFilePrintSetup)
 END_MESSAGE_MAP()
 
-extern CLogFile gLog;
-
 static void AddEnglishResourceHook();
 
-class CMergeCmdLineInfo : public CCommandLineInfo
+/**
+* @brief Mapping from command line argument name (eg, ignorews) to WinMerge
+* option name (eg, Settings/IgnoreSpace).
+*
+* These arguments take an optional colon and number, like so:
+*
+*  "/ignoreblanklines"  (makes WinMerge ignore blank lines)
+*  "/ignoreblanklines:1"  (makes WinMerge ignore blank lines)
+*  "/ignoreblanklines:0"  (makes WinMerge not ignore blank lines)
+*/
+struct ArgSetting
 {
-	public:
-
-		CMergeCmdLineInfo();
-
-		~CMergeCmdLineInfo() { }
-
-		virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
-
-	public:
-
-		BOOL m_bSingleInstance; /**< Allow only one instance of WinMerge executable. */
-		int m_nCmdShow /**< Initial state of the application's window. */;
+	LPCTSTR CmdArgName;
+	LPCTSTR WinMergeOptionName;
 };
 
-CMergeCmdLineInfo::CMergeCmdLineInfo() : CCommandLineInfo(),
-	m_bSingleInstance(FALSE),
-	m_nCmdShow(SW_SHOWNORMAL)
+/**
+ * @brief Get Options Manager.
+ * @return Pointer to OptionsMgr.
+ */
+COptionsMgr * GetOptionsMgr()
 {
-
+	CMergeApp *pApp = static_cast<CMergeApp *>(AfxGetApp());
+	return pApp->GetMergeOptionsMgr();
 }
 
-void CMergeCmdLineInfo::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast)
+/**
+ * @brief Get Log.
+ * @return Pointer to Log.
+ */
+CLogFile * GetLog()
 {
-	// Give our base class a chance to figure out what is the parameter.
-	CCommandLineInfo::ParseParam(pszParam, bFlag, bLast);
-
-	if (TRUE == bFlag)
-	{
-		if (pszParam[0] == _T('s'))
-		{
-			m_bSingleInstance = TRUE;
-		}
-		else if (!lstrcmpi(pszParam, _T("minimize")))
-		{
-			// /minimize means minimize the main window.
-			m_nCmdShow = SW_MINIMIZE;
-		}
-	}
+	CMergeApp *pApp = static_cast<CMergeApp *>(AfxGetApp());
+	return pApp->GetMergeLog();
 }
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CMergeApp construction
@@ -128,11 +136,11 @@ CMergeApp::CMergeApp() :
   m_bNeedIdleTimer(FALSE)
 , m_pDiffTemplate(0)
 , m_pDirTemplate(0)
-// FileFilterHelper m_globalFileFilter
 , m_mainThreadScripts(NULL)
 , m_nLastCompareResult(0)
-, m_bNoninteractive(false)
-, m_bShowUsage(false)
+, m_bNonInteractive(false)
+, m_pOptions(NULL)
+, m_pLog(NULL)
 {
 	// add construction code here,
 	// Place all significant initialization in InitInstance
@@ -141,7 +149,9 @@ CMergeApp::CMergeApp() :
 
 CMergeApp::~CMergeApp()
 {
-	delete m_pLangDlg; m_pLangDlg = NULL;
+	delete m_pOptions;
+	delete m_pLangDlg;
+	delete m_pLog;
 }
 /////////////////////////////////////////////////////////////////////////////
 // The one and only CMergeApp object
@@ -151,6 +161,13 @@ CMergeApp theApp;
 /////////////////////////////////////////////////////////////////////////////
 // CMergeApp initialization
 
+/**
+ * @brief Initialize WinMerge application instance.
+ * @return TRUE if application initialization succeeds (and we'll run it),
+ *   FALSE if something failed and we exit the instance.
+ * @todo We could handle these failure situations more gratefully, i.e. show
+ *  at least some error message to the user..
+ */
 BOOL CMergeApp::InitInstance()
 {
 	InitCommonControls();    // initialize common control library
@@ -165,6 +182,7 @@ BOOL CMergeApp::InitInstance()
 		// Keep freed memory blocks in the heap's linked list and mark them as freed
 		tmpFlag |= _CRTDBG_DELAY_FREE_MEM_DF;
 		// Call _CrtCheckMemory at every allocation and deallocation request.
+		// WARNING: This slows down WinMerge *A LOT*
 		tmpFlag |= _CRTDBG_CHECK_ALWAYS_DF;
 		// Set the new state for the flag
 		_CrtSetDbgFlag( tmpFlag );
@@ -190,9 +208,32 @@ BOOL CMergeApp::InitInstance()
 #endif
 #endif
 
+	m_pOptions = new CRegOptionsMgr;
+	OptionsInit(); // Implementation in OptionsInit.cpp
+
+	m_pLog = new CLogFile();
+
+	int logging = GetOptionsMgr()->GetInt(OPT_LOGGING);
+	if (logging > 0)
+	{
+		m_pLog->EnableLogging(TRUE);
+		m_pLog->SetFile(_T("WinMerge.log"));
+
+		if (logging == 1)
+			m_pLog->SetMaskLevel(CLogFile::LALL);
+		else if (logging == 2)
+			m_pLog->SetMaskLevel(CLogFile::LERROR | CLogFile::LWARNING);
+	}
+
 	// Parse command-line arguments.
-	CMergeCmdLineInfo cmdInfo;
+	MergeCmdLineInfo cmdInfo(*__targv);
 	ParseCommandLine(cmdInfo);
+
+	// If paths were given to commandline we consider this being an invoke from
+	// commandline (from other application, shellextension etc).
+	BOOL bCommandLineInvoke = FALSE;
+	if (cmdInfo.m_nFiles > 0)
+		bCommandLineInvoke = TRUE;
 
 	// Set default codepage
 	DirScan_InitializeDefaultCodepage();
@@ -201,25 +242,32 @@ BOOL CMergeApp::InitInstance()
 	// This is the name of the company of the original author (Dean Grimm)
 	SetRegistryKey(_T("Thingamahoochie"));
 
-	BOOL bSingleInstance = GetProfileInt(_T("Settings"), _T("SingleInstance"), FALSE) ||
-		(TRUE == cmdInfo.m_bSingleInstance);
+	BOOL bSingleInstance = GetOptionsMgr()->GetBool(OPT_SINGLE_INSTANCE) ||
+		(true == cmdInfo.m_bSingleInstance);
 	
-	HANDLE hMutex = NULL;
-	if (bSingleInstance)
-	{
-		hMutex = CreateMutex(NULL, FALSE, _T("WinMerge{05963771-8B2E-11d8-B3B9-000000000000}"));
+	// Create exclusion mutex name
+	TCHAR szDesktopName[_MAX_PATH] = _T("Win9xDesktop");
+	DWORD dwLengthNeeded;
+	GetUserObjectInformation(GetThreadDesktop(GetCurrentThreadId()), UOI_NAME, 
+		szDesktopName, sizeof(szDesktopName), &dwLengthNeeded);
+	String mutexName = 
+		String(_T("WinMerge{05963771-8B2E-11d8-B3B9-000000000000}-")) 
+			+ szDesktopName;
+
+	HANDLE hMutex = CreateMutex(NULL, FALSE, mutexName.c_str());
+	if (hMutex)
 		WaitForSingleObject(hMutex, INFINITE);
-	}
-
-	CInstanceChecker instanceChecker(_T("{05963771-8B2E-11d8-B3B9-000000000000}"));
-	if (bSingleInstance)
+	if (bSingleInstance && GetLastError() == ERROR_ALREADY_EXISTS)
 	{
-		if (instanceChecker.PreviousInstanceRunning())
-		{
-			USES_CONVERSION;
+		USES_CONVERSION;
 
-			// Activate previous instance and send commandline to it
-			HWND hWnd = instanceChecker.ActivatePreviousInstance();
+		// Activate previous instance and send commandline to it
+		HWND hWnd = FindWindow(_T("WinMergeWindowClass"), NULL);
+		if (hWnd)
+		{
+			if (IsIconic(hWnd))
+				ShowWindow(hWnd, SW_RESTORE);
+			SetForegroundWindow(GetLastActivePopup(hWnd));
 			
 			WCHAR *pszArgs = new WCHAR[_tcslen(__targv[0]) + _tcslen(m_lpCmdLine) + 3];
 			WCHAR *p = pszArgs;
@@ -233,27 +281,38 @@ BOOL CMergeApp::InitInstance()
 			data.cbData = (DWORD)(p - pszArgs) * sizeof(WCHAR);
 			data.lpData = pszArgs;
 			data.dwData = __argc;
+			SetLastError(ERROR_SUCCESS);
 			SendMessage(hWnd, WM_COPYDATA, NULL, (LPARAM)&data);
 			delete[] pszArgs;
-
-			ReleaseMutex(hMutex);
-			CloseHandle(hMutex);
-
-			return FALSE;
+			if (GetLastError() == ERROR_SUCCESS)
+			{
+				ReleaseMutex(hMutex);
+				CloseHandle(hMutex);
+				return FALSE;
+			}
 		}
 	}
 
-	LoadStdProfileSettings(0);  // Load standard INI file options (including MRU)
-	BOOL bDisableSplash	= GetProfileInt(_T("Settings"), _T("DisableSplash"), FALSE);
+	LoadStdProfileSettings(8);  // Load standard INI file options (including MRU)
+	BOOL bDisableSplash	= GetOptionsMgr()->GetBool(OPT_DISABLE_SPLASH);
 
 	InitializeFileFilters();
-	m_globalFileFilter.SetFilter(_T("*.*"));
+
+	// Read last used filter from registry
+	// If filter fails to set, reset to default
+	const String filterString = m_pOptions->GetString(OPT_FILEFILTER_CURRENT);
+	BOOL bFilterSet = theApp.m_globalFileFilter.SetFilter(filterString.c_str());
+	if (!bFilterSet)
+	{
+		CString filter = theApp.m_globalFileFilter.GetFilterNameOrMask();
+		m_pOptions->SaveOption(OPT_FILEFILTER_CURRENT, filter);
+	}
 
 	CSplashWnd::EnableSplashScreen(bDisableSplash==FALSE && cmdInfo.m_nShellCommand == CCommandLineInfo::FileNew);
 
 	// Initialize i18n (multiple language) support
 
-	m_pLangDlg->SetLogFile(&gLog);
+	m_pLangDlg->SetLogFile(GetLog());
 	m_pLangDlg->InitializeLanguage();
 
 	AddEnglishResourceHook(); // Use English string when l10n (foreign) string missing
@@ -305,46 +364,38 @@ BOOL CMergeApp::InitInstance()
 	CMenu * pNewMenu = CMenu::FromHandle(pMainFrame->m_hMenuDefault);
 	pMainFrame->MDISetMenu(pNewMenu, NULL);
 
-	// Command line parsing is handled not by MFC wizard's CComandLineInfo
-	// but rather by ParseArgsAndDoOpen below
-
-	//Track it so any other instances can find it.
-	instanceChecker.TrackFirstInstanceRunning();
-
 	// The main window has been initialized, so activate and update it.
 	pMainFrame->ActivateFrame(cmdInfo.m_nCmdShow);
 	pMainFrame->UpdateWindow();
 
 	// Since this function actually opens paths for compare it must be
 	// called after initializing CMainFrame!
-	ParseArgsAndDoOpen(__argc, __targv, pMainFrame);
-
-	if (m_bShowUsage)
-	{
-		CString s = GetUsageDescription();
-		AfxMessageBox(s, MB_ICONINFORMATION);
-		m_bNoninteractive = false;
-	}
+	BOOL bContinue = TRUE;
+	if (ParseArgsAndDoOpen(cmdInfo, pMainFrame) == FALSE && bCommandLineInvoke)
+		bContinue = FALSE;
 
 	if (hMutex)
-	{
 		ReleaseMutex(hMutex);
-		CloseHandle(hMutex);
-	}
 
-	if (m_bNoninteractive)
+	if (m_bNonInteractive)
 	{
 		DirViewList DirViews;
 		pMainFrame->GetDirViews(&DirViews);
 		if (DirViews.GetCount() == 1)
 		{
-			CDirView * pDirView = DirViews.RemoveHead();
+			CDirView *pDirView = DirViews.RemoveHead();
 			CDirFrame *pf = pDirView->GetParentFrame();
 		}
+		bContinue = FALSE;
+	}
+
+	// If user wants to cancel the compare, close WinMerge
+	if (bContinue == FALSE)
+	{
 		pMainFrame->PostMessage(WM_CLOSE, 0, 0);
 	}
 
-	return TRUE;
+	return bContinue;
 }
 
 // App command to run the dialog
@@ -399,7 +450,7 @@ int CMergeApp::ExitInstance()
 	charsets_cleanup();
 	delete m_mainThreadScripts;
 	CWinApp::ExitInstance();
-	return m_nLastCompareResult;
+	return 0;
 }
 
 static void AddEnglishResourceHook()
@@ -451,7 +502,7 @@ int CMergeApp::DoMessageBox( LPCTSTR lpszPrompt, UINT nType, UINT nIDPrompt )
 	// do not show again checkbox, and implements it on subsequent calls
 	// (if caller set the style)
 
-	if (m_bNoninteractive)
+	if (m_bNonInteractive)
 		return IDCANCEL;
 
 	// Create the message box dialog.
@@ -502,6 +553,121 @@ void CMergeApp::InitializeFileFilters()
 	m_globalFileFilter.LoadAllFileFilters();
 }
 
+/** @brief Read command line arguments and open files for comparison.
+ *
+ * The name of the function is a legacy code from the time that this function
+ * actually parsed the command line. Today the parsing is done using the
+ * MergeCmdLineInfo class.
+ * @param [in] cmdInfo Commandline parameters info.
+ * @param [in] pMainFrame Pointer to application main frame.
+ * @return TRUE if we opened the compare, FALSE if the compare was canceled.
+ */
+BOOL CMergeApp::ParseArgsAndDoOpen(MergeCmdLineInfo& cmdInfo, CMainFrame* pMainFrame)
+{
+	BOOL bCompared = FALSE;
+	m_bNonInteractive = cmdInfo.m_bNonInteractive;
+
+	SetOptionsFromCmdLine(cmdInfo);
+
+	// Do not load or remember options (preferences).
+	if (cmdInfo.m_bNoPrefs)
+	{
+		// Turn off serializing to registry.
+		GetOptionsMgr()->SetSerializing(false);
+		// Load all default settings.
+		ResetOptions();
+	}
+
+	// Set the global file filter.
+	if (!cmdInfo.m_sFileFilter.IsEmpty())
+	{
+		m_globalFileFilter.SetFilter(cmdInfo.m_sFileFilter);
+	}
+
+	// Unless the user has requested to see WinMerge's usage open files for
+	// comparison.
+	if (cmdInfo.m_bShowUsage)
+	{
+		pMainFrame->ShowHelp(CommandLineHelpLocation);
+	}
+	else
+	{
+		// Set the required information we need from the command line:
+
+		pMainFrame->m_bClearCaseTool = cmdInfo.m_bClearCaseTool;
+		pMainFrame->m_bExitIfNoDiff = cmdInfo.m_bExitIfNoDiff;
+		pMainFrame->m_bEscShutdown = cmdInfo.m_bEscShutdown;
+
+		pMainFrame->m_strSaveAsPath = _T("");
+
+		pMainFrame->m_strDescriptions[0] = cmdInfo.m_sLeftDesc;
+		pMainFrame->m_strDescriptions[1] = cmdInfo.m_sRightDesc;
+
+		if (cmdInfo.m_nFiles > 2)
+		{
+			pMainFrame->m_strSaveAsPath = cmdInfo.m_Files[2];
+			bCompared = pMainFrame->DoFileOpen(cmdInfo.m_Files[0],
+				cmdInfo.m_Files[1],	cmdInfo.m_dwLeftFlags,
+				cmdInfo.m_dwRightFlags, cmdInfo.m_bRecurse, NULL,
+				cmdInfo.m_sPreDiffer);
+		}
+		else if (cmdInfo.m_nFiles > 1)
+		{
+			cmdInfo.m_dwLeftFlags |= FFILEOPEN_CMDLINE;
+			cmdInfo.m_dwRightFlags |= FFILEOPEN_CMDLINE;
+			bCompared = pMainFrame->DoFileOpen(cmdInfo.m_Files[0],
+				cmdInfo.m_Files[1],	cmdInfo.m_dwLeftFlags,
+				cmdInfo.m_dwRightFlags, cmdInfo.m_bRecurse, NULL,
+				cmdInfo.m_sPreDiffer);
+		}
+		else if (cmdInfo.m_nFiles == 1)
+		{
+			CString sFilepath = cmdInfo.m_Files[0];
+			if (IsProjectFile(sFilepath))
+			{
+				bCompared = LoadAndOpenProjectFile(sFilepath);
+			}
+			else if (IsConflictFile((LPCTSTR)sFilepath))
+			{
+				bCompared = pMainFrame->DoOpenConflict(sFilepath);
+			}
+			else
+			{
+				cmdInfo.m_dwRightFlags = FFILEOPEN_NONE;
+				bCompared = pMainFrame->DoFileOpen(sFilepath, _T(""),
+					cmdInfo.m_dwLeftFlags, cmdInfo.m_dwRightFlags,
+					cmdInfo.m_bRecurse, NULL, cmdInfo.m_sPreDiffer);
+			}
+		}
+	}
+	return bCompared;
+}
+
+/** @brief Handle all command line arguments which are mapped to WinMerge options. */
+void CMergeApp::SetOptionsFromCmdLine(const MergeCmdLineInfo& cmdInfo)
+{
+	static const ArgSetting f_ArgSettings[] = 
+	{
+		{ _T("ignorews"), OPT_CMP_IGNORE_WHITESPACE },
+		{ _T("ignoreblanklines"), OPT_CMP_IGNORE_BLANKLINES },
+		{ _T("ignorecase"), OPT_CMP_IGNORE_CASE },
+		{ _T("ignoreeol"), OPT_CMP_IGNORE_EOL }
+	};
+
+	for (int i = 0; i < countof(f_ArgSettings); ++i)
+	{
+		const ArgSetting& argSetting = f_ArgSettings[i];
+		LPCTSTR szCmdArgName = argSetting.CmdArgName;
+		LPCTSTR szOptionName = argSetting.WinMergeOptionName;
+		CString	sValue;
+
+		if (cmdInfo.m_Settings.Lookup(szCmdArgName, sValue))
+		{
+			GetOptionsMgr()->SaveOption(szOptionName, sValue);
+		}
+	}
+}
+
 /** @brief Open help from mainframe when user presses F1*/
 void CMergeApp::OnHelp()
 {
@@ -514,10 +680,11 @@ void CMergeApp::OnHelp()
  * @param [in] filepath Full path to file to check.
  * @return true if file is a projectfile.
  */
-bool CMergeApp::IsProjectFile(const CString & filepath) const
+bool CMergeApp::IsProjectFile(LPCTSTR filepath) const
 {
-	CString sExt;
-	SplitFilename(filepath, NULL, NULL, &sExt);
+	String ext;
+	SplitFilename(filepath, NULL, NULL, &ext);
+	CString sExt(ext.c_str());
 	if (sExt.CompareNoCase(PROJECTFILE_EXT) == 0)
 		return true;
 	else
@@ -529,19 +696,19 @@ bool CMergeApp::IsProjectFile(const CString & filepath) const
  * @param [in] sProject Full path to project file.
  * @return TRUE if loading project file and starting compare succeeded.
  */
-bool CMergeApp::LoadAndOpenProjectFile(const CString & sProject)
+bool CMergeApp::LoadAndOpenProjectFile(LPCTSTR sProject)
 {
-	if (sProject.IsEmpty())
+	if (*sProject == '\0')
 		return false;
 
 	ProjectFile project;
-	CString sErr;
+	String sErr;
 	if (!project.Read(sProject, &sErr))
 	{
-		if (sErr.IsEmpty())
-			sErr = LoadResString(IDS_UNK_ERROR_READING_PROJECT);
+		if (sErr.empty())
+			sErr = theApp.LoadString(IDS_UNK_ERROR_READING_PROJECT);
 		CString msg;
-		AfxFormatString2(msg, IDS_ERROR_FILEOPEN, sProject, sErr);
+		LangFormatString2(msg, IDS_ERROR_FILEOPEN, sProject, sErr.c_str());
 		AfxMessageBox(msg, MB_ICONSTOP);
 		return false;
 	}
@@ -579,6 +746,8 @@ bool CMergeApp::LoadAndOpenProjectFile(const CString & sProject)
 	WriteProfileInt(_T("Settings"), _T("Recurse"), bRecursive);
 
 	BOOL rtn = GetMainFrame()->DoFileOpen(sLeft, sRight, dwLeftFlags, dwRightFlags, bRecursive);
+
+	AddToRecentProjectsMRU(sProject);
 	return !!rtn;
 }
 
@@ -591,9 +760,125 @@ WORD CMergeApp::GetLangId() const
 }
 
 /**
+ * @brief Lang aware version of CStatusBar::SetIndicators()
+ */
+void CMergeApp::SetIndicators(CStatusBar &sb, const UINT *rgid, int n) const
+{
+	m_pLangDlg->SetIndicators(sb, rgid, n);
+}
+
+/**
+ * @brief Translate menu to current WinMerge GUI language
+ */
+void CMergeApp::TranslateMenu(HMENU h) const
+{
+	m_pLangDlg->TranslateMenu(h);
+}
+
+/**
+ * @brief Translate dialog to current WinMerge GUI language
+ */
+void CMergeApp::TranslateDialog(HWND h) const
+{
+	m_pLangDlg->TranslateDialog(h);
+}
+
+/**
+ * @brief Load string and translate to current WinMerge GUI language
+ */
+String CMergeApp::LoadString(UINT id) const
+{
+	return m_pLangDlg->LoadString(id);
+}
+
+/**
+ * @brief Load dialog caption and translate to current WinMerge GUI language
+ */
+std::wstring CMergeApp::LoadDialogCaption(LPCTSTR lpDialogTemplateID) const
+{
+	return m_pLangDlg->LoadDialogCaption(lpDialogTemplateID);
+}
+
+/**
  * @brief Reload main menu(s) (for language change)
  */
 void CMergeApp::ReloadMenu()
 {
 	m_pLangDlg->ReloadMenu();
+}
+
+/** @brief Wrap one line of cmdline help in appropriate whitespace */
+static String CmdlineOption(int idres)
+{
+	String str = theApp.LoadString(idres) + _T(" \n");
+	return str;
+}
+
+/**
+ * @brief Get default editor path.
+ * @return full path to the editor program executable.
+ */
+CString CMergeApp::GetDefaultEditor()
+{
+	CString path = paths_GetWindowsDirectory().c_str();
+	path += _T("\\NOTEPAD.EXE");
+	return path;
+}
+
+/**
+ * @brief Get default user filter folder path.
+ * This function returns the default filter path for user filters.
+ * If wanted so (@p bCreate) path can be created if it does not
+ * exist yet. But you really want to create the patch only when
+ * there is no user path defined.
+ * @param [in] bCreate If TRUE filter path is created if it does
+ *  not exist.
+ * @return Default folder for user filters.
+ */
+CString CMergeApp::GetDefaultFilterUserPath(BOOL bCreate /*=FALSE*/)
+{
+	CString pathMyFolders = paths_GetMyDocuments(NULL).c_str();
+	CString pathFilters(pathMyFolders);
+	if (pathFilters.Right(1) != _T("\\"))
+		pathFilters += _T("\\");
+	pathFilters += DefaultRelativeFilterPath;
+
+	if (bCreate && !paths_CreateIfNeeded(pathFilters))
+	{
+		// Failed to create a folder, check it didn't already
+		// exist.
+		DWORD errCode = GetLastError();
+		if (errCode != ERROR_ALREADY_EXISTS)
+		{
+			// Failed to create a folder for filters, fallback to
+			// "My Documents"-folder. It is not worth the trouble to
+			// bother user about this or user more clever solutions.
+			pathFilters = pathMyFolders;
+		}
+	}
+	return pathFilters;
+}
+
+
+/**
+ * @brief Adds specified file to the recent projects list.
+ * @param [in] sPathName Path to project file
+ */
+void CMergeApp::AddToRecentProjectsMRU(LPCTSTR sPathName)
+{
+	// sPathName will be added to the top of the MRU list. 
+	// If sPathName already exists in the MRU list, it will be moved to the top
+	if (m_pRecentFileList != NULL)    {
+		m_pRecentFileList->Add(sPathName);
+		m_pRecentFileList->WriteList();
+	}
+}
+
+/**
+ * @brief Handles menu selection from recent projects list
+ * @param [in] nID Menu ID of the selected item
+ */
+BOOL CMergeApp::OnOpenRecentFile(UINT nID)
+{
+	return LoadAndOpenProjectFile(m_pRecentFileList->m_arrNames[nID-ID_FILE_MRU_FILE1]);
 }

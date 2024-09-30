@@ -18,12 +18,18 @@
 //    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //
 /////////////////////////////////////////////////////////////////////////////
-// PropVss.cpp : implementation file
-//
+/** 
+ * @file  PropVss.cpp
+ *
+ * @brief VSS properties dialog implementation.
+ */
+// ID line follows -- this is updated by SVN
+// $Id: PropVss.cpp 4588 2007-10-05 11:35:46Z jtuc $
 
 #include "stdafx.h"
 #include "FileOrFolderSelect.h"
 #include "MainFrm.h" // VCS_* constants
+#include "Merge.h"
 #include "PropVss.h"
 #include "OptionsDef.h"
 #include "OptionsMgr.h"
@@ -37,13 +43,13 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPropVss property page
 
+/**
+ * @brief Constructor.
+ * @param [in] optionsMgr Pointer to options manager.
+ */
 CPropVss::CPropVss(COptionsMgr *optionsMgr) : CPropertyPage(CPropVss::IDD)
 , m_pOptionsMgr(optionsMgr)
 , m_nVerSys(-1)
-{
-}
-
-CPropVss::~CPropVss()
 {
 }
 
@@ -73,7 +79,7 @@ END_MESSAGE_MAP()
 void CPropVss::ReadOptions()
 {
 	m_nVerSys = m_pOptionsMgr->GetInt(OPT_VCS_SYSTEM);
-	m_strPath = m_pOptionsMgr->GetString(OPT_VSS_PATH);
+	m_strPath = m_pOptionsMgr->GetString(OPT_VSS_PATH).c_str();
 }
 
 /** 
@@ -88,7 +94,10 @@ void CPropVss::WriteOptions()
 /////////////////////////////////////////////////////////////////////////////
 // CPropVss message handlers
 
-void CPropVss::OnBrowseButton() 
+/**
+ * @brief Called when Browse-button is selected.
+ */
+void CPropVss::OnBrowseButton()
 {
 	CString s;
 	if (SelectFile(GetSafeHwnd(), s))
@@ -98,8 +107,13 @@ void CPropVss::OnBrowseButton()
 	}
 }
 
+/**
+ * @brief Initialized the dialog.
+ * @return Always TRUE.
+ */
 BOOL CPropVss::OnInitDialog() 
 {
+	theApp.TranslateDialog(m_hWnd);
 	CPropertyPage::OnInitDialog();
 
 	LoadVssOptionStrings();
@@ -110,11 +124,14 @@ BOOL CPropVss::OnInitDialog()
 	return TRUE;
 }
 
+/**
+ * @brief Called when user has selected VSS version.
+ */
 void CPropVss::OnSelendokVerSys() 
 {
 	UpdateData(TRUE);
-	CString tempStr((LPCTSTR)(m_nVerSys == VCS_CLEARCASE ? IDS_CC_CMD : IDS_VSS_CMD));
-	m_ctlVssL1.SetWindowText(tempStr);
+	String tempStr = theApp.LoadString(m_nVerSys == VCS_CLEARCASE ? IDS_CC_CMD : IDS_VSS_CMD);
+	m_ctlVssL1.SetWindowText(tempStr.c_str());
 	m_ctlPath.EnableWindow(m_nVerSys == VCS_VSS4 || m_nVerSys == VCS_CLEARCASE);
 	m_ctlVssL1.EnableWindow(m_nVerSys == VCS_VSS4 || m_nVerSys == VCS_CLEARCASE);
 	m_ctlBrowse.EnableWindow(m_nVerSys == VCS_VSS4 || m_nVerSys == VCS_CLEARCASE);
@@ -133,8 +150,8 @@ void CPropVss::LoadVssOptionStrings()
 	VCS_CLEARCASE,
 	*/
 
-	m_ctlVerSys.AddString(LoadResString(IDS_VCS_NONE));
-	m_ctlVerSys.AddString(LoadResString(IDS_VCS_VSS4));
-	m_ctlVerSys.AddString(LoadResString(IDS_VCS_VSS5));
-	m_ctlVerSys.AddString(LoadResString(IDS_VCS_CLEARCASE));
+	m_ctlVerSys.AddString(theApp.LoadString(IDS_VCS_NONE).c_str());
+	m_ctlVerSys.AddString(theApp.LoadString(IDS_VCS_VSS4).c_str());
+	m_ctlVerSys.AddString(theApp.LoadString(IDS_VCS_VSS5).c_str());
+	m_ctlVerSys.AddString(theApp.LoadString(IDS_VCS_CLEARCASE).c_str());
 }

@@ -1,20 +1,18 @@
 ; ******************************************************
 ; ***                                                ***
-; *** Inno Setup version 5.1.0+ Slovak messages      ***
+; *** Inno Setup version 5.1.11+ Slovak messages     ***
 ; ***                                                ***
 ; *** Original Author:                               ***
 ; ***                                                ***
-; ***  Milan Potancok (milan.potancok@gmail.com)     ***
+; ***  Milan Potancok (milan.potancok AT gmail.com)  ***
 ; ***                                                ***
 ; *** Contributors:                                  ***
 ; ***                                                ***
-; ***   Ivo Bauer (bauer@ozm.cz)                     ***
+; ***   Ivo Bauer (bauer AT ozm.cz)                  ***
 ; ***                                                ***
-; ***   Tomas Falb (tomasf@pobox.sk)                 ***
+; ***   Tomas Falb (tomasf AT pobox.sk)              ***
 ; ***                                                ***
-; ***   Ivan Masár (helix84@centrum.sk)              ***
-; ***                                                ***
-; *** Update: 30.11.2006                             ***
+; *** Update: 19.3.2007                              ***
 ; ***                                                ***
 ; ******************************************************
 ;
@@ -37,12 +35,12 @@ SetupLdrStartupMessage=Toto je sprievodca inštaláciou produktu %1. Prajete si po
 LdrCannotCreateTemp=Nie je moné vytvori doèasnı súbor. Sprievodca inštaláciou bude ukonèenı
 LdrCannotExecTemp=Nie je moné spusti súbor v doèasnom adresári. Sprievodca inštaláciou bude ukonèenı
 LastErrorMessage=%1.%n%nChyba %2: %3
-SetupFileMissing=Instalaènı adresár neobsahuje súbor %1. Opravte, prosím, túto chybu alebo si zaobstarajte novú kópiu tohto produktu.
+SetupFileMissing=Inštalaènı adresár neobsahuje súbor %1. Opravte, prosím, túto chybu alebo si zaobstarajte novú kópiu tohto produktu.
 SetupFileCorrupt=Súbory sprievodcu inštaláciou sú poškodené. Zaobstarajte si, prosím, novú kópiu tohto produktu.
 SetupFileCorruptOrWrongVer=Súbory sprievodcu inštaláciou sú poškodené alebo sa nezhodujú s touto verziou sprievodcu instaláciou. Opravte, prosím, túto chybu alebo si zaobstarajte novú kópiu tohto produktu.
 NotOnThisPlatform=Tento produkt sa nedá spusti v %1.
 OnlyOnThisPlatform=Tento produkt musí by spustenı v %1.
-OnlyOnTheseArchitectures=Tento produkt je moné nainštalovat iba vo verziách MS Windows s podporou architektúry procesorov:%n%n%1
+OnlyOnTheseArchitectures=Tento produkt je moné nainštalova iba vo verziách MS Windows s podporou architektúry procesorov:%n%n%1
 MissingWOW64APIs=Aktuálna verzia MS Windows neobsahuje funkcie, ktoré vyaduje sprievodca inštaláciou pre 64-bitovú inštaláciu. Opravte prosím túto chybu nainštalovaním aktualizácie Service Pack %1.
 WinVersionTooLowError=Tento produkt vyaduje %1 verzie %2 alebo vyššej.
 WinVersionTooHighError=Tento produkt sa nedá nainštalova vo %1 verzie %2 alebo vyššej.
@@ -58,7 +56,7 @@ AboutSetupMenuItem=&O sprievodcovi inštalácie...
 AboutSetupTitle=O sprievodcovi inštalácie
 AboutSetupMessage=%1 verzia %2%n%3%n%n%1 domovská stránka:%n%4
 AboutSetupNote=
-TranslatorNote=Slovak translation maintained by Milan Potancok (milan.potancok@gmail.com), Ivo Bauer (bauer@ozm.cz) and Tomas Falb (tomasf@pobox.sk)
+TranslatorNote=Slovak translation maintained by Milan Potancok (milan.potancok AT gmail.com), Ivo Bauer (bauer AT ozm.cz) and Tomas Falb (tomasf AT pobox.sk)
 ButtonBack=< &Spä
 ButtonNext=&Ïalej >
 ButtonInstall=&Inštalova
@@ -211,7 +209,7 @@ ErrorReplacingExistingFile=Došlo k chybe pri pokuse o nahradenie existujúceho sú
 ErrorRestartReplace=Zlyhala funkcia "RestartReplace" sprievodcu inštaláciou:
 ErrorRenamingTemp=Došlo k chybe pri pokuse o premenovanie súboru v cie¾ovom adresári:
 ErrorRegisterServer=Nedá sa vykona registrácia DLL/OCX: %1
-ErrorRegisterServerMissingExport=Nedá sa nájs export DllRegisterServer
+ErrorRegSvr32Failed=Volanie RegSvr32 zlyhalo s návratovım kódom %1
 ErrorRegisterTypeLib=Nedá sa vykona registrácia typovej kninice: %1
 ErrorOpeningReadme=Došlo k chybe pri pokuse o otvorenie dokumentu "ÈITAJMA".
 ErrorRestartingComputer=Sprievodcovi inštaláciou sa nepodarilo reštartova Váš poèítaè. Reštartujte ho, prosím, manuálne.
@@ -249,7 +247,8 @@ ProgramOnTheWeb=Aplikácia %1 na internete
 UninstallProgram=Odinštalova aplikáciu %1 
 LaunchProgram=Spusti aplikáciu %1
 AssocFileExtension=Vytvori &asociáciu medzi súbormi typu %2 a aplikáciou %1
-AssocingFileExtension=Vytvára sa asociácia medzi súbormi typu %2 a aplikáciou %1...;Things we can also localize
+AssocingFileExtension=Vytvára sa asociácia medzi súbormi typu %2 a aplikáciou %1...
+;Things we can also localize
 CompanyName=Thingamahoochie Software
 
 ;Types
@@ -261,7 +260,6 @@ CustomInstallation=Vlastná inštalácia
 ;Components
 AppCoreFiles=Základné súbory WinMerge
 ApplicationRuntimes=Súbory aplikácie vyadované poèas behu
-UsersGuide=Príruèka pouívate¾a
 Filters=Filtre
 Plugins=Zásuvné moduly
 
@@ -271,23 +269,29 @@ BulgarianLanguage=Bulharské ponuky a dialógy
 CatalanLanguage=Katalánske ponuky a dialógy
 ChineseSimplifiedLanguage=Èínske (zjednodušená) ponuky a dialógy
 ChineseTraditionalLanguage=Èínske (tradièná) ponuky a dialógy
+CroatianLanguage=Croatian menus and dialogs
 CzechLanguage=Èeské ponuky a dialógy
 DanishLanguage=Dánske ponuky a dialógy
 DutchLanguage=Holandské ponuky a dialógy
 FrenchLanguage=Francúzske ponuky a dialógy
 GermanLanguage=Nemecké ponuky a dialógy
+GreekLanguage=Greek menus and dialogs
 HungarianLanguage=Maïarské ponuky a dialógy
 ItalianLanguage=Talianske ponuky a dialógy
 JapaneseLanguage=Japonské ponuky a dialógy
 KoreanLanguage=Kórejské ponuky a dialógy
 NorwegianLanguage=Nórske ponuky a dialógy
 PolishLanguage=Po¾ské ponuky a dialógy
-PortugueseLanguage=Portugalské (Brazilian) ponuky a dialógy
+PortugueseBrazilLanguage=Portugalské (Brazilian) ponuky a dialógy
+PortugueseLanguage=Portugalské ponuky a dialógy
+RomanianLanguage=Romanian menus and dialogs
 RussianLanguage=Ruské ponuky a dialógy
 SlovakLanguage=Slovenské ponuky a dialógy
+SlovenianLanguage=Slovenian menus and dialogs
 SpanishLanguage=Španielske ponuky a dialógy
 SwedishLanguage=Švédske ponuky a dialógy
 TurkishLanguage=Turecké ponuky a dialógy
+UkrainianLanguage=Ukrainian menus and dialogs
 
 ;Tasks
 ExplorerContextMenu=&Zapni integráciu do kontextovej ponuky Prieskumníka

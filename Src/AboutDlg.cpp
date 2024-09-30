@@ -20,8 +20,8 @@
  * @brief Implementation of the About-dialog.
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: AboutDlg.cpp 3934 2006-12-10 04:57:47Z sdottaka $
+// ID line follows -- this is updated by SVN
+// $Id: AboutDlg.cpp 4719 2007-11-07 06:11:38Z kimmov $
 
 #include "stdafx.h"
 #include "Merge.h"
@@ -31,7 +31,7 @@
 #include "coretools.h"
 
 
-// URL for hyperlink in About-dialog
+/** URL for hyperlink in About-dialog. */
 static const TCHAR WinMergeURL[] = _T("http://winmerge.org");
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
@@ -42,8 +42,6 @@ END_MESSAGE_MAP()
 
 CAboutDlg::CAboutDlg() : CDialog(CAboutDlg::IDD)
 {
-	//{{AFX_DATA_INIT(CAboutDlg)
-	//}}AFX_DATA_INIT
 }
 
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
@@ -62,23 +60,29 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
  */
 BOOL CAboutDlg::OnInitDialog() 
 {
+	theApp.TranslateDialog(m_hWnd);
 	CDialog::OnInitDialog();
+
+	// Load application icon
+	HICON icon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	if (icon != NULL) {
+		CStatic * pIcon = (CStatic *) GetDlgItem(IDC_ABOUTBOX_ICON);
+		pIcon->SetIcon(icon);
+	}
 
 	CVersionInfo version(AfxGetResourceHandle());
 	CString sVersion = version.GetFixedProductVersion();
-	AfxFormatString1(m_strVersion, IDS_VERSION_FMT, sVersion);
+	LangFormatString1(m_strVersion, IDS_VERSION_FMT, sVersion);
 
 #ifdef _UNICODE
-	CString strUnicode;
-	VERIFY(strUnicode.LoadString(IDS_UNICODE));
 	m_strVersion += _T(" ");
-	m_strVersion += strUnicode;
+	m_strVersion += theApp.LoadString(IDS_UNICODE).c_str();
 #endif
 
 	CString sPrivateBuild = version.GetPrivateBuild();
 	if (!sPrivateBuild.IsEmpty())
 	{
-		AfxFormatString1(m_strPrivateBuild, IDS_PRIVATEBUILD_FMT, sPrivateBuild);
+		LangFormatString1(m_strPrivateBuild, IDS_PRIVATEBUILD_FMT, sPrivateBuild);
 	}
 
 	CString copyright = version.GetLegalCopyright();
@@ -91,33 +95,36 @@ BOOL CAboutDlg::OnInitDialog()
 	              // EXCEPTION: OCX Property Pages should return FALSE
 }
 
-/** @brief Open Contributors.rtf */
+/**
+ * @brief Show contributors list.
+ * Opens Contributors.txt into notepad.
+ */
 void CAboutDlg::OnBnClickedOpenContributors()
 {
-	CString defPath = GetModulePath();
+	String defPath = GetModulePath();
 	// Don't add quotation marks yet, CFile doesn't like them
-	CString docPath = defPath + _T("\\contributors.txt");
+	String docPath = defPath + _T("\\contributors.txt");
 	HINSTANCE ret = 0;
 	
-	if (paths_DoesPathExist(docPath) == IS_EXISTING_FILE)
+	if (paths_DoesPathExist(docPath.c_str()) == IS_EXISTING_FILE)
 	{
 		// Now, add quotation marks so ShellExecute() doesn't fail if path
 		// includes spaces
-		docPath.Insert(0, _T("\""));
-		docPath.Insert(docPath.GetLength(), _T("\""));
-		ret = ShellExecute(m_hWnd, NULL, _T("notepad"), docPath, defPath, SW_SHOWNORMAL);
+		docPath.insert(0, _T("\""));
+		docPath.insert(docPath.length(), _T("\""));
+		ret = ShellExecute(m_hWnd, NULL, _T("notepad"), docPath.c_str(), defPath.c_str(), SW_SHOWNORMAL);
 
 		// values < 32 are errors (ref to MSDN)
 		if ((int)ret < 32)
 		{
 			// Try to open with associated application (.txt)
-			ret = ShellExecute(m_hWnd, _T("open"), docPath, NULL, NULL, SW_SHOWNORMAL);
+			ret = ShellExecute(m_hWnd, _T("open"), docPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
 			if ((int)ret < 32)
 				ResMsgBox1(IDS_ERROR_EXECUTE_FILE, _T("Notepad.exe"), MB_ICONSTOP);
 		}
 	}
 	else
-		ResMsgBox1(IDS_ERROR_FILE_NOT_FOUND, docPath, MB_ICONSTOP);
+		ResMsgBox1(IDS_ERROR_FILE_NOT_FOUND, docPath.c_str(), MB_ICONSTOP);
 }
 
 

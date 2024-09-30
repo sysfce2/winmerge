@@ -25,7 +25,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirFrame.cpp 2837 2005-12-17 04:24:40Z elsapo $
+// $Id: DirFrame.cpp 4739 2007-11-12 20:41:16Z jtuc $
 
 #include "stdafx.h"
 #include "Merge.h"
@@ -124,13 +124,12 @@ int CDirFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // fail to create
 	}	
 	
-	CString sText;
-	VERIFY(sText.LoadString(IDS_STATUSBAR_READONLY));
+	String sText = theApp.LoadString(IDS_STATUSBAR_READONLY);
 	m_wndStatusBar.SetPaneInfo(PANE_FILTER, ID_STATUS_FILTER, 0, FILTER_PANEL_WIDTH);
 	m_wndStatusBar.SetPaneInfo(PANE_LEFT_RO, ID_STATUS_LEFTDIR_RO, 0, RO_PANEL_WIDTH);
 	m_wndStatusBar.SetPaneInfo(PANE_RIGHT_RO, ID_STATUS_RIGHTDIR_RO, 0, RO_PANEL_WIDTH);
-	m_wndStatusBar.SetPaneText(PANE_LEFT_RO, sText, TRUE); 
-	m_wndStatusBar.SetPaneText(PANE_RIGHT_RO, sText, TRUE);
+	m_wndStatusBar.SetPaneText(PANE_LEFT_RO, sText.c_str(), TRUE); 
+	m_wndStatusBar.SetPaneText(PANE_RIGHT_RO, sText.c_str(), TRUE);
 	return 0;
 }
 

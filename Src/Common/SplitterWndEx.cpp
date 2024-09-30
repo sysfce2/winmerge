@@ -5,14 +5,18 @@
  * @brief Implementation file for CSplitterWndEx
  *
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: SplitterWndEx.cpp 4857 2008-01-05 12:46:03Z sdottaka $
+// ID line follows -- this is updated by SVN
+// $Id: SplitterWndEx.cpp 4856 2008-01-05 12:45:34Z sdottaka $
 //
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
 #include "SplitterWndEx.h"
-#include "MergeEditView.h"  // For printing - MasterPrint()
+
+#ifdef COMPILE_MULTIMON_STUBS
+#undef COMPILE_MULTIMON_STUBS
+#endif
+#include <multimon.h>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -38,6 +42,7 @@ CSplitterWndEx::CSplitterWndEx()
 {
 	m_bBarLocked = FALSE;
 	m_bResizePanes = FALSE;
+	m_bAutoResizePanes = FALSE;
 }
 
 CSplitterWndEx::~CSplitterWndEx()
@@ -54,6 +59,10 @@ int CSplitterWndEx::HitTest(CPoint pt) const
 
 void CSplitterWndEx::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar *pScrollBar)
 {
+  // Ignore scroll events sent directly to the splitter (i.e. not from a
+  // scroll bar)
+  if (pScrollBar == NULL)
+    return;
 	// maintain original synchronization functionality (all panes above the scrollbar)
 	CSplitterWnd::OnHScroll(nSBCode, nPos, pScrollBar);
 
@@ -101,6 +110,11 @@ void CSplitterWndEx::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar *pScrollBar)
 
 void CSplitterWndEx::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar *pScrollBar)
 {
+  // Ignore scroll events sent directly to the splitter (i.e. not from a
+  // scroll bar)
+  if (pScrollBar == NULL)
+    return;
+
 	// only sync if shared vertical bars
 	if((GetScrollStyle()&WS_VSCROLL) == 0)
 		return;
@@ -123,7 +137,7 @@ void CSplitterWndEx::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar *pScrollBar)
 		if(row==curRow)
 			continue;
 
-		CScrollBar* curBar = GetPane(0, curRow)->GetScrollBarCtrl(SB_VERT);
+		CScrollBar* curBar = GetPane(curRow, 0)->GetScrollBarCtrl(SB_VERT);
 		double temp = ((double) pScrollBar->GetScrollPos()) * curBar->GetScrollLimit() + oldLimit/2;
 		int newPos = (int) (temp/oldLimit);
 
@@ -160,15 +174,18 @@ void CSplitterWndEx::EqualizeRows()
 		GetRowInfo(i, h, hmin);
 		sum += h;
 	}
-	int hEqual = sum/m_nRows;
-	for (i = 0 ; i < m_nRows-1 ; i++)
+	if (sum > 0)
 	{
-		SetRowInfo(i, hEqual, hmin);
-		sum -= hEqual;
-	}
-	SetRowInfo(i, sum, hmin);
+		int hEqual = sum/m_nRows;
+		for (i = 0 ; i < m_nRows-1 ; i++)
+		{
+			SetRowInfo(i, hEqual, hmin);
+			sum -= hEqual;
+		}
+		SetRowInfo(i, sum, hmin);
 
-	RecalcLayout();
+		RecalcLayout();
+	}
 }
 
 void CSplitterWndEx::EqualizeCols() 
@@ -202,9 +219,49 @@ void CSplitterWndEx::EqualizeCols()
 	}
 }
 
+void CSplitterWndEx::RecalcLayout()
+{
+	if (m_nCols == 2 && m_bAutoResizePanes)
+	{
+		// If WinMerge spans multiple monitors, split the panes on the monitor split.
+		CRect vSplitterWndRect;
+		GetWindowRect(vSplitterWndRect);
+		HMONITOR hLeftMonitor = MonitorFromPoint(vSplitterWndRect.TopLeft(), MONITOR_DEFAULTTONEAREST);
+		HMONITOR hRightMonitor = MonitorFromPoint(CPoint(vSplitterWndRect.right, vSplitterWndRect.top), MONITOR_DEFAULTTONEAREST);
 
+		bool bSplitPanesInHalf = true;
+		if (hLeftMonitor != hRightMonitor)
+		{
+			MONITORINFO info;
+			info.cbSize = sizeof(MONITORINFO);
+			GetMonitorInfo(hLeftMonitor, &info);
 
+			int iDesiredWidthOfLeftPane = info.rcMonitor.right - vSplitterWndRect.left;
+			int iDesiredWidthOfRightPane = vSplitterWndRect.right - info.rcMonitor.right;
 
+			// Edge case - don't split if either pane would be less than 100 pixels.
+			if (iDesiredWidthOfLeftPane > 100 && iDesiredWidthOfRightPane > 100)
+			{
+				bSplitPanesInHalf = false;
+				SetColumnInfo(0, iDesiredWidthOfLeftPane, 0);
+				SetColumnInfo(1, iDesiredWidthOfRightPane, 0);
+			}
+		}
+		
+		// If we don't want to split panes across monitors, just split them in half.
+		// We want to do this so that if the window used to be split across monitors,
+		// but now occupies only a single monitor, then the panes are updated correctly.
+		if (bSplitPanesInHalf)
+		{
+			CRect vSplitterWndRect;
+			GetWindowRect(vSplitterWndRect);
+			SetColumnInfo(0, vSplitterWndRect.Width() / 2, 0);
+			SetColumnInfo(1, vSplitterWndRect.Width() / 2, 0);
+		}
+	}
+
+	CSplitterWnd::RecalcLayout();
+}
 
 void CSplitterWndEx::OnSize(UINT nType, int cx, int cy) 
 {
@@ -217,23 +274,4 @@ void CSplitterWndEx::OnSize(UINT nType, int cx, int cy)
 		EqualizeRows();
 	}
 
-}
-
-void CSplitterWndEx::MasterPrint(CDC* pDC, CPrintInfo* pInfo)
-{
-	CRect rDraw = pInfo->m_rectDraw;
-	CSize sz = rDraw.Size();
-	int midX = sz.cx / 2;
-	
-	// print left pane	
-	pInfo->m_rectDraw.right	= midX;
-	CMergeEditView* pLeftPane = (CMergeEditView*)GetPane(0,0);
-	pLeftPane->SlavePrint(pDC,pInfo);
-
-	// print right pane
-	pInfo->m_rectDraw = rDraw;
-	pInfo->m_rectDraw.left = midX;
-
-	CMergeEditView* pRightPane = (CMergeEditView*)GetPane(0,1);
-	pRightPane->SlavePrint(pDC,pInfo);
 }

@@ -4,7 +4,7 @@
  * @brief Implementation of CPropEditor propertysheet
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropEditor.cpp 3394 2006-07-25 13:14:34Z kimmov $
+// $Id: PropEditor.cpp 4616 2007-10-14 08:22:14Z jtuc $
 
 #include "stdafx.h"
 #include "merge.h"
@@ -112,9 +112,9 @@ void CPropEditor::WriteOptions()
  */
 BOOL CPropEditor::OnInitDialog() 
 {
-	CDialog::OnInitDialog();
-	
+	theApp.TranslateDialog(m_hWnd);
 	CPropertyPage::OnInitDialog();
+
 	CEdit * pEdit = (CEdit *) GetDlgItem(IDC_TAB_EDIT);
 
 	// Limit max text of tabsize to 2 chars
@@ -135,8 +135,8 @@ BOOL CPropEditor::OnInitDialog()
 void CPropEditor::LoadBreakTypeStrings()
 {
 	CComboBox * cbo = (CComboBox *)GetDlgItem(IDC_BREAK_TYPE);
-	cbo->AddString(LoadResString(IDS_BREAK_ON_WHITESPACE));
-	cbo->AddString(LoadResString(IDS_BREAK_ON_PUNCTUATION));
+	cbo->AddString(theApp.LoadString(IDS_BREAK_ON_WHITESPACE).c_str());
+	cbo->AddString(theApp.LoadString(IDS_BREAK_ON_PUNCTUATION).c_str());
 }
 
 /**
@@ -150,7 +150,7 @@ void CPropEditor::OnLineDiffControlClicked()
 /**
  * @brief Shortcut to enable or disable a control
  * @param [in] item ID of dialog control to enable/disable.
- * @paran [in] enable if true control is enabled, else disabled.
+ * @param [in] enable if true control is enabled, else disabled.
  */
 void CPropEditor::EnableDlgItem(int item, bool enable)
 {
@@ -185,7 +185,7 @@ void CPropEditor::OnEnKillfocusTabEdit()
 		CString msg;
 		CString num;
 		num.Format(_T("%d"), MAX_TABSIZE);
-		AfxFormatString1(msg, IDS_OPTIONS_INVALID_TABSIZE, num);
+		LangFormatString1(msg, IDS_OPTIONS_INVALID_TABSIZE, num);
 		AfxMessageBox(msg, MB_ICONWARNING);
 	}
 }

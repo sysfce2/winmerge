@@ -6,8 +6,8 @@
  *
  *  @brief  Implementation of utility unicode conversion routines
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: unicoder.cpp 3927 2006-12-07 18:15:50Z kimmov $
+// ID line follows -- this is updated by SVN
+// $Id: unicoder.cpp 4959 2008-01-26 00:05:00Z kimmov $
 
 /* The MIT License
 Copyright (c) 2003 Perry Rapp
@@ -19,6 +19,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "StdAfx.h"
 #include "unicoder.h"
 #include "codepage.h"
+#include "Utf8FileDetect.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -47,18 +48,6 @@ fetch_verinfo()
 	f_osvi.dwOSVersionInfoSize = sizeof(f_osvi);
 	GetVersionEx(&f_osvi);
 	f_osvi_fetched = true;
-}
-
-static LPCTSTR f_unicodesetNames[] = { _T("<NONE>"), _T("UCS-2LE"), _T("UCS-2BE"), _T("UTF-8") };
-/**
- * @brief return string for enum value
- */
-CString GetUnicodesetName(UNICODESET unicoding)
-{
-	if (unicoding>=0 && unicoding<sizeof(f_unicodesetNames)/sizeof(f_unicodesetNames[0]))
-		return f_unicodesetNames[unicoding];
-	else
-		return _T("?");
 }
 
 /**
@@ -484,7 +473,7 @@ get_unicode_char(unsigned char * ptr, UNICODESET codeset, int codepage)
  */
 CString maketstring(LPCSTR lpd, UINT len, int codepage, bool * lossy)
 {
-	static int defcodepage = getDefaultCodepage();
+	int defcodepage = getDefaultCodepage();
 
 	if (!len) return _T("");
 
@@ -499,59 +488,41 @@ CString maketstring(LPCSTR lpd, UINT len, int codepage, bool * lossy)
 	DWORD flags = MB_ERR_INVALID_CHARS;
 	int wlen = len*2+6;
 	LPWSTR wbuff = str.GetBuffer(wlen);
-	int n = MultiByteToWideChar(codepage, flags, lpd, len, wbuff, wlen-1);
-	if (n)
+	do
 	{
-		/*
-		NB: MultiByteToWideChar is documented as only zero-terminating 
-		if input was zero-terminated, but it appears that it can 
-		zero-terminate even if input wasn't.
-		So we check if it zero-terminated and adjust count accordingly.
-		*/
-		if (wbuff[n-1] == 0)
-			--n;
-
-		str.ReleaseBuffer(n);
-		return str;
-	}
-	else
-	{
-		*lossy = true;
-		if (GetLastError() == ERROR_NO_UNICODE_TRANSLATION)
+		int n = MultiByteToWideChar(codepage, flags, lpd, len, wbuff, wlen-1);
+		if (n)
 		{
-			flags = 0;
-			// wlen & wbuff are still fine
-			n = MultiByteToWideChar(codepage, flags, lpd, len, wbuff, wlen-1);
-			if (n)
+			/*
+			NB: MultiByteToWideChar is documented as only zero-terminating 
+			if input was zero-terminated, but it appears that it can 
+			zero-terminate even if input wasn't.
+			So we check if it zero-terminated and adjust count accordingly.
+			*/
+			//>2007-01-11 jtuc: We must preserve an embedded zero even if it is
+			// the last input character. As we don't expect MultiByteToWideChar to
+			// add a zero that does not originate from the input string, it is a
+			// good idea to ASSERT that the assumption holds.
+			if (wbuff[n-1] == 0 && lpd[len-1] != 0)
 			{
-				/*
-				NB: MultiByteToWideChar is documented as only zero-terminating 
-				if input was zero-terminated, but it appears that it can 
-				zero-terminate even if input wasn't.
-				So we check if it zero-terminated and adjust count accordingly.
-				*/
-				if (wbuff[n-1] == 0)
-					--n;
-
-				str.ReleaseBuffer(n);
-				return str;
+				ASSERT(FALSE);
+				--n;
 			}
+			str.ReleaseBuffer(n);
+			return str;
 		}
-		str = _T("?");
-		return str;
-	}
+		*lossy = true;
+		flags ^= MB_ERR_INVALID_CHARS;
+	} while (flags == 0 && GetLastError() == ERROR_NO_UNICODE_TRANSLATION);
+	str = _T('?');
+	return str;
 
 #else
-	if (EqualCodepages(codepage, getDefaultCodepage()))
+	if (EqualCodepages(codepage, defcodepage))
 	{
 		// trivial case, they want the bytes in the file interpreted in our current codepage
 		// Only caveat is that input (lpd) is not zero-terminated
-		CString str;
-		LPTSTR strbuff = str.GetBuffer(len+1);
-		_tcsncpy(strbuff, lpd, len);
-		strbuff[len] = 0; // Cannot call str.SetAt(...) until after ReleaseBuffer call
-		str.ReleaseBuffer();
-		return str;
+		return CString(lpd, len);
 	}
 
 	CString str = CrossConvertToStringA(lpd, len, codepage, defcodepage, lossy);
@@ -713,6 +684,55 @@ bool convert(UNICODESET unicoding1, int codepage1, const unsigned char * src, in
 		dest->used = wchars * 2;
 		return true;
 	}
+}
+
+/**
+ * @brief Determine encoding from byte buffer.
+ * @param [in] pBuffer Pointer to the begin of the buffer.
+ * @param [in] size Size of the buffer.
+ * @param [out] pBom Returns true if buffer had BOM bytes, false otherwise.
+ * @return One of UNICODESET values as encoding.
+ */
+UNICODESET DetermineEncoding(LPBYTE pBuffer, int size, bool * pBom)
+{
+	UNICODESET unicoding = ucr::NONE;
+	*pBom = false;
+
+	if (size >= 2)
+	{
+		if (pBuffer[0] == 0xFF && pBuffer[1] == 0xFE)
+		{
+			unicoding = ucr::UCS2LE;
+			*pBom = true;
+		}
+		else if (pBuffer[0] == 0xFE && pBuffer[1] == 0xFF)
+		{
+			unicoding = ucr::UCS2BE;
+			*pBom = true;
+		}
+	}
+	if (size >= 3)
+	{
+		if (pBuffer[0] == 0xEF && pBuffer[1] == 0xBB && pBuffer[2] == 0xBF)
+		{
+			unicoding = ucr::UTF8;
+			*pBom = true;
+		}
+	}
+
+	// If not any of the above, check if it is UTF-8 without BOM?
+	if (unicoding == ucr::NONE)
+	{
+		int bufSize = min(size, 8 * 1024);
+		bool invalidUtf8 = CheckForInvalidUtf8(pBuffer, bufSize);
+		if (!invalidUtf8)
+		{
+			// No BOM!
+			unicoding = ucr::UTF8;
+		}
+	}
+
+	return unicoding;
 }
 
 } // namespace ucr

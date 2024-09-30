@@ -167,10 +167,14 @@ private :
         //  of any pointer will be != 0. So we can store 1 character strings without
         //  allocating memory.
         //
-
+        struct TextBuffer
+          {
+            int size;
+            TCHAR data[1];
+          };
         union
           {
-            TCHAR *m_pszText;     //  For cases when we have > 1 character strings
+            TextBuffer *m_pszText;     //  For cases when we have > 1 character strings
             TCHAR m_szText[2];    //  For single-character strings
           };
 
@@ -190,12 +194,12 @@ public :
           m_ptStartPos = src.m_ptStartPos;
           m_ptEndPos = src.m_ptEndPos;
           m_nAction = src.m_nAction;
-          SetText(src.GetText());
-          int size = src.m_paSavedRevisonNumbers->GetSize();
+          SetText(src.GetText(), src.GetTextLength());
+          INT_PTR size = src.m_paSavedRevisonNumbers->GetSize();
           if (!m_paSavedRevisonNumbers)
             m_paSavedRevisonNumbers = new CDWordArray();
           m_paSavedRevisonNumbers->SetSize(size);
-          int i;
+          INT_PTR i;
           for (i = 0; i < size; i++)
             (*m_paSavedRevisonNumbers)[i] = (*src.m_paSavedRevisonNumbers)[i];
           return *this;
@@ -207,16 +211,24 @@ public :
             delete m_paSavedRevisonNumbers;
         }
 
-        void SetText (LPCTSTR pszText);
+        void SetText (LPCTSTR pszText, int cchText);
         void FreeText ();
 
         LPCTSTR GetText () const
         {
-          // see the m_szText/m_pszText definition about the use of HIWORD
-          if (HIWORD ((DWORD) m_pszText) != 0)
-            return m_pszText;
+          // See the m_szText/m_pszText definition
+          // Check if m_pszText is a pointer by removing bits having
+          // possible char value
+          if (((INT_PTR)m_pszText >> 16) != 0)
+            return m_pszText->data;
           return m_szText;
-        };
+        }
+        int GetTextLength () const
+        {
+          if (((INT_PTR)m_pszText >> 16) != 0)
+            return m_pszText->size;
+          return 1;
+        }
       };
 
 #pragma pack(pop)
@@ -253,19 +265,19 @@ public :
     CList < CCrystalTextView *, CCrystalTextView * >m_lpViews;
 
     //  Helper methods
-    void InsertLine (LPCTSTR pszLine, int nLength = -1, int nPosition = -1, int nCount = 1);
-    void AppendLine (int nLineIndex, LPCTSTR pszChars, int nLength = -1);
+    void InsertLine (LPCTSTR pszLine, int nLength, int nPosition = -1, int nCount = 1);
+    void AppendLine (int nLineIndex, LPCTSTR pszChars, int nLength);
     void MoveLine(int line1, int line2, int newline1);
     void SetEmptyLine(int nPosition, int nCount = 1);
 
     //  Implementation
-    BOOL InternalInsertText (CCrystalTextView * pSource, int nLine, int nPos, LPCTSTR pszText, int &nEndLine, int &nEndChar);
+    BOOL InternalInsertText (CCrystalTextView * pSource, int nLine, int nPos, LPCTSTR pszText, int cchText, int &nEndLine, int &nEndChar);
     BOOL InternalDeleteText (CCrystalTextView * pSource, int nStartLine, int nStartPos, int nEndLine, int nEndPos);
     CString StripTail (int i, int bytes);
 
     //  [JRT] Support For Descriptions On Undo/Redo Actions
     virtual void AddUndoRecord (BOOL bInsert, const CPoint & ptStartPos, const CPoint & ptEndPos,
-                                LPCTSTR pszText, int nActionType = CE_ACTION_UNKNOWN, CDWordArray *paSavedRevisonNumbers = NULL);
+                                LPCTSTR pszText, int cchText, int nActionType = CE_ACTION_UNKNOWN, CDWordArray *paSavedRevisonNumbers = NULL);
 
     //  Overridable: provide action description
     virtual BOOL GetActionDescription (int nAction, CString & desc);
@@ -319,15 +331,15 @@ public :
     void SetCRLFMode (int nCRLFMode);
     /// Adjust all the lines in the buffer to the buffer default EOL Mode
     virtual BOOL applyEOLMode();
-    LPCTSTR CCrystalTextBuffer::GetDefaultEol() const;
-    LPCTSTR CCrystalTextBuffer::GetStringEol(int nCRLFMode) const;
+    LPCTSTR GetDefaultEol() const;
+    static LPCTSTR GetStringEol(int nCRLFMode);
     BOOL GetReadOnly () const;
     void SetReadOnly (BOOL bReadOnly = TRUE);
 
     void SetIgnoreEol(BOOL IgnoreEol) { m_IgnoreEol = IgnoreEol; }
 
     //  Text modification functions
-    virtual BOOL InsertText (CCrystalTextView * pSource, int nLine, int nPos, LPCTSTR pszText, int &nEndLine, int &nEndChar, int nAction = CE_ACTION_UNKNOWN, BOOL bHistory =TRUE);
+    virtual BOOL InsertText (CCrystalTextView * pSource, int nLine, int nPos, LPCTSTR pszText, int cchText, int &nEndLine, int &nEndChar, int nAction = CE_ACTION_UNKNOWN, BOOL bHistory =TRUE);
     virtual BOOL DeleteText (CCrystalTextView * pSource, int nStartLine, int nStartPos, int nEndLine, int nEndPos, int nAction = CE_ACTION_UNKNOWN, BOOL bHistory =TRUE);
 
     //  Undo/Redo

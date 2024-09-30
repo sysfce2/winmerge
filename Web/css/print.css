@@ -3,7 +3,13 @@ body {
 	padding: 0;
 	color: black;
 	background: white;
-	font-family: sans-serif;
+	font-family: Verdana,Helvetica,Arial,sans-serif;
+	font-size: small;
+}
+
+code,pre {
+	font-family: "Courier New",Courier,monospace;
+	font-size: 1em;
 }
 
 #head {
@@ -17,11 +23,19 @@ body {
 	padding: 0;
 }
 
+#rightcorner {
+	display: none;
+}
+
 #tabs {
 	display: none;
 }
 
-#nav {
+#subtabs {
+	display: none;
+}
+
+#ads {
 	display: none;
 }
 
@@ -34,9 +48,15 @@ body {
 	margin-top: 0;
 }
 
-h1, h2, h3, h4 {
-	font-family: serif;
+/* Heading list */
+.headinglist dt {
 	font-weight: bold;
+}
+
+.headinglist dd {
+	margin: 0;
+	margin-bottom: 1em;
+	padding: 0;
 }
 
 p.important {
@@ -60,6 +80,11 @@ pre.code {
 	border: 1px solid black;
 }
 
+img.thumbnail {
+	padding-top: 2px;
+	padding-bottom: 3px;
+}
+
 acronym {
 	cursor: help;
 	border-bottom: 1px dotted black;
@@ -69,27 +94,42 @@ acronym {
 	display: none;
 }
 
-/* Status of translations */
-#status {
-	margin-bottom: 10px;
+/* Inline list */
+ul.inline {
+	margin: 1em;
+	padding: 0;
+}
+
+ul.inline li {
+	margin: 0;
+	margin-right: 1em;
+	padding: 0;
+	display: inline;
+	list-style: none;
+}
+
+/* Translations Status */
+.status {
 	border-collapse: collapse;
-}
-
-#status th {
-	padding: 3px;
 	border: 1px solid black;
 }
 
-#status td {
+.status th {
 	padding: 3px;
+	background: white;
 	border: 1px solid black;
 }
+
+.status td {
+	padding: 3px;
+	background: white;
+	border: 1px solid black;
+}
+
+.translated { color: black; }
+.fuzzy { color: black; }
+.untranslated { color: black; }
 
 .left { text-align: left; }
 .center { text-align: center; }
 .right { text-align: right; }
-
-.actively { background-color: white; }
-.maintained { background-color: white; }
-.unmaintained { background-color: white; }
-.unknown { background-color: white; }

@@ -5,7 +5,7 @@
  */ 
 //
 // RCS ID line follows -- this is updated by CVS
-// $Id: CompareStats.h 2505 2005-07-23 20:07:28Z kimmov $
+// $Id: CompareStats.h 4596 2007-10-07 09:44:06Z jtuc $
 
 #ifndef _COMPARESTATS_H_
 #define _COMPARESTATS_H_
@@ -26,14 +26,14 @@ public:
 	/**
 	* @brief Different states for compare procedure.
 	* These states form state-machine for directory compare. States go like:
-	* STATE_IDLE --> STATE_COLLECT --> STATE_COMPARE --> STATE_IDLE.
+	* STATE_IDLE --> STATE_START --> STATE_COMPARE --> STATE_IDLE.
 	* @note GUI doesn't change state, but only backend code. GUI must track
 	* state changes to update itself.
 	*/
 	enum CMP_STATE
 	{
 		STATE_IDLE, /**< No compare running */
-		STATE_COLLECT, /**< Collecting dir/filenames to compare */
+		STATE_START, /**< Start folder compare */
 		STATE_COMPARE, /**< Comparing collected items */
 	};
 
@@ -61,7 +61,7 @@ public:
 	~CompareStats();
 	void AddItem(int code);
 	void IncreaseTotalItems(int count = 1);
-	int GetCount(CompareStats::RESULT result);
+	int GetCount(CompareStats::RESULT result) const;
 	int GetTotalItems() const;
 	int GetComparedItems() const { return m_nComparedItems; }
 	void Reset();
