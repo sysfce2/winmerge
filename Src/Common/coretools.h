@@ -4,7 +4,7 @@
  * @brief Declaration file for Coretools.cpp
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: coretools.h,v 1.13.2.1 2006/02/15 20:19:50 kimmov Exp $
+// $Id: coretools.h 3116 2006-03-01 17:08:23Z kimmov $
 
 #ifndef CORETOOLS_H
 #define CORETOOLS_H

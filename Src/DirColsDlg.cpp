@@ -6,7 +6,7 @@
  * @date  Created: 2003-08-19
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirColsDlg.cpp,v 1.6 2004/07/09 12:48:35 kimmov Exp $
+// $Id: DirColsDlg.cpp 3374 2006-07-19 06:32:01Z kimmov $
 
 
 #include "stdafx.h"
@@ -52,6 +52,8 @@ BEGIN_MESSAGE_MAP(CDirColsDlg, CDialog)
 	//}}AFX_MSG_MAP
 	ON_LBN_SELCHANGE(IDC_LIST_SHOW, OnLbnSelchangeListShow)
 	ON_LBN_SELCHANGE(IDC_LIST_HIDE, OnLbnSelchangeListHide)
+	ON_LBN_DBLCLK(IDC_LIST_SHOW, OnLbnDblclkListShow)
+	ON_LBN_DBLCLK(IDC_LIST_HIDE, OnLbnDblclkListHide)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -124,7 +126,8 @@ void CDirColsDlg::OnUp()
 {
 	CHScrollListBox * list = &m_list_show;
 	// find the first item not selected
-	for (int i=0; i<list->GetCount(); ++i)
+	int i=0;
+	for (i=0; i<list->GetCount(); ++i)
 	{
 		if (!list->GetSel(i))
 			break;
@@ -159,7 +162,8 @@ void CDirColsDlg::OnDown()
 {
 	CHScrollListBox * list = &m_list_show;
 	// find the lst item not selected
-	for (int i=list->GetCount()-1; i>=0; --i)
+	int i=0;
+	for (i=list->GetCount()-1; i>=0; --i)
 	{
 		if (!list->GetSel(i))
 			break;
@@ -244,7 +248,8 @@ void CDirColsDlg::UpdateEnables()
 void CDirColsDlg::OnOK() 
 {
 	// Update all the data in m_cols according to layout on screen
-	for (int i=0; i<m_list_show.GetCount(); ++i)
+	int i=0;
+	for (i=0; i<m_list_show.GetCount(); ++i)
 	{
 		column * col1 = &m_cols[m_list_show.GetItemData(i)];
 		col1->phy_col = i;
@@ -281,7 +286,8 @@ void CDirColsDlg::OnLbnSelchangeListShow()
 			int data = m_list_show.GetItemData(i);
 			CString str;
 			
-			for (int j = 0; j < m_cols.GetSize(); j++)
+			int j=0;
+			for (j = 0; j < m_cols.GetSize(); j++)
 			{
 				if (m_cols.GetAt(j).log_col == data)
 					break;
@@ -304,7 +310,8 @@ void CDirColsDlg::OnLbnSelchangeListHide()
 			int data = m_list_hide.GetItemData(i);
 			CString str;
 			
-			for (int j = 0; j < m_cols.GetSize(); j++)
+			int j=0;
+			for (j = 0; j < m_cols.GetSize(); j++)
 			{
 				if (m_cols.GetAt(j).log_col == data)
 					break;
@@ -315,6 +322,9 @@ void CDirColsDlg::OnLbnSelchangeListHide()
 	}
 }
 
+/**
+ * @brief Handle keyboard events.
+ */
 BOOL CDirColsDlg::PreTranslateMessage(MSG* pMsg)
 {
 	if (pMsg->message == WM_KEYDOWN && pMsg->wParam != VK_CONTROL)
@@ -356,4 +366,20 @@ BOOL CDirColsDlg::PreTranslateMessage(MSG* pMsg)
 	}
 
 	return CDialog::PreTranslateMessage(pMsg);
+}
+
+/**
+ * @brief Called when mouse is double-clicked over shown columns list.
+ */
+void CDirColsDlg::OnLbnDblclkListShow()
+{
+	OnRemove();
+}
+
+/**
+ * @brief Called when mouse is double-clicked over hidden columns list.
+ */
+void CDirColsDlg::OnLbnDblclkListHide()
+{
+	OnAdd();
 }

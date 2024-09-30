@@ -12,11 +12,16 @@ if not exist "%docbook_outputdir_final%" mkdir "%docbook_outputdir_final%"
 
 echo Copy images...
 if not exist "%docbook_outputdir%\images" mkdir "%docbook_outputdir%\images"
+copy "..\images\*.gif" "%docbook_outputdir%\images\."
 copy "..\images\*.png" "%docbook_outputdir%\images\."
 
 echo Copy screenshots...
 if not exist "%docbook_outputdir%\screenshots" mkdir "%docbook_outputdir%\screenshots"
 copy "..\screenshots\*.*" "%docbook_outputdir%\screenshots\."
+
+echo Copy art...
+if not exist "%docbook_outputdir%\art" mkdir "%docbook_outputdir%\art"
+copy "..\art\*.*" "%docbook_outputdir%\art\."
 
 echo Copy stylesheets...
 if not exist "%docbook_outputdir%\css" mkdir "%docbook_outputdir%\css"
@@ -36,6 +41,7 @@ echo Cleaning...
 del "%docbook_outputdir%\*.html"
 del "htmlhelp.hhp"
 del "toc.hhc"
+del "index.hhk"
 
 rem if Windows NT/2000/XP...
 if "%OS%" == "Windows_NT" goto cleannt
@@ -45,6 +51,7 @@ if "%OS%" == "" goto clean9x
 :clean9x
 deltree /Y "%docbook_outputdir%\images"
 deltree /Y "%docbook_outputdir%\screenshots"
+deltree /Y "%docbook_outputdir%\art"
 deltree /Y "%docbook_outputdir%\css"
 if not "%docbook_build_path%" == "." deltree /Y "%docbook_outputdir%"
 echo Finished!
@@ -53,6 +60,7 @@ goto end
 :cleannt
 rd /S /Q "%docbook_outputdir%\images"
 rd /S /Q "%docbook_outputdir%\screenshots"
+rd /S /Q "%docbook_outputdir%\art"
 rd /S /Q "%docbook_outputdir%\css"
 if not "%docbook_build_path%" == "." rd /S /Q "%docbook_outputdir%"
 echo Finished!

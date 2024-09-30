@@ -8,21 +8,27 @@ Original developer, project admin:
 Project lead:
 * Christian List
 
-Other developers:
-* Laurent Ganier
+Developers:
 * Tim Gerundt
-* Dennis Limm
-* Chris Mumford
+* Gal Hammer
 * Perry Rapp
 * Takashi Sawanaka
-* Christian "Seier" Blackburn (Installer)
-* Jochen Tucht
 * Kimmo Varis
 
+Inactive/past developers:
+* Laurent Ganier
+* Dennis Limm
+* Chris Mumford
+* Christian "Seier" Blackburn (Installer)
+* Jochen Tucht
+
+Graphic Design:
+* Alexander Skinner
 
 Localization:
 * Bulgarian:	
   Sld
+  tigertron
 
 * Catalan:	
   Jordi Vilar
@@ -80,6 +86,7 @@ Localization:
               
 * Slovak:	
   Majvan
+  Ivan Masár
              
 * Spanish:	
   Jesús M. Delgado 'MacK'
@@ -99,18 +106,25 @@ Other Contributors (code, ideas, testing..):
 * Hern Chen
 * Jim Fougeron
 * Marvin Gouw
-* Gal Hammer
 * Jan Hryz
+* Ed_K
+* Alberto Kalb
 * Ferenc Kubatovics
+* René Leonhardt
 * Vladimir Lukianov
+* David Maisonave
 * Harry Mckame
+* Oliver Mellet
 * Andreas Morsing
 * Tim Musschoot
 * Vincent Osele
 * Michael Richter
+* Fanny Ricour
+* Markus Rollmann
 * Philippe Verdy
 * Vikrant
 * Gilbert Wellisch
+* Paul Welter
 
 
 WinMerge includes code from:

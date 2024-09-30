@@ -4,11 +4,14 @@
  * @brief Declaration of CPropGeneral class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropGeneral.h,v 1.20 2005/06/07 20:56:33 kimmov Exp $
+// $Id: PropGeneral.h 3195 2006-03-27 22:37:31Z kimmov $
 
 #if !defined(AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_)
 #define AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_
 
+#include "IOptionsPanel.h"
+
+class COptionsMgr;
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropGeneral dialog
@@ -16,14 +19,16 @@
 /**
  * @brief Class for General options -propertypage.
  */
-class CPropGeneral : public CPropertyPage
+class CPropGeneral : public CPropertyPage, public IOptionsPanel
 {
-	DECLARE_DYNCREATE(CPropGeneral)
-
 // Construction
 public:
-	CPropGeneral();
+	CPropGeneral(COptionsMgr *optionsMgr);
 	~CPropGeneral();
+
+// Implement IOptionsPanel
+	virtual void ReadOptions();
+	virtual void WriteOptions();
 
 // Dialog Data
 	//{{AFX_DATA(CPropGeneral)
@@ -31,12 +36,12 @@ public:
 	BOOL  m_bBackup;
 	BOOL  m_bScroll;
 	BOOL  m_bDisableSplash;
-	BOOL  m_bAutoCloseCmpPane;
 	BOOL  m_bSingleInstance;
 	BOOL  m_bVerifyPaths;
 	BOOL  m_bCloseWindowWithEsc;
 	BOOL	m_bMultipleFileCmp;
 	BOOL	m_bMultipleDirCmp;
+	int		m_nAutoCompleteSource;
 	//}}AFX_DATA
 
 
@@ -57,6 +62,8 @@ protected:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
+private:
+	COptionsMgr *m_pOptionsMgr;
 };
 
 //{{AFX_INSERT_LOCATION}}

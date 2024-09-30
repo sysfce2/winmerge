@@ -24,7 +24,7 @@
  * @brief Code for CVssPrompt class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: VssPrompt.cpp,v 1.8 2005/05/24 02:48:42 elsapo Exp $
+// $Id: VssPrompt.cpp 2381 2005-05-24 02:48:42Z elsapo $
 
 #include "stdafx.h"
 #include "VssPrompt.h"

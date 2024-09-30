@@ -4,7 +4,7 @@
  * @brief Implementation of the ToolBarXPThemes class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ToolBarXPThemes.cpp,v 1.1 2005/08/18 19:52:49 kimmov Exp $
+// $Id: ToolBarXPThemes.cpp 2563 2005-08-18 19:52:48Z kimmov $
 
 #include "stdafx.h"
 #include "ToolBarXPThemes.h"

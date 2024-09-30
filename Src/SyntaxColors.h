@@ -4,13 +4,15 @@
  * @brief Declaration file for SyntaxColors class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: SyntaxColors.h,v 1.1 2005/05/06 18:17:28 kimmov Exp $
+// $Id: SyntaxColors.h 3126 2006-03-04 02:36:46Z elsapo $
 
 #ifndef _SYNTAX_COLORS_H_
 #define _SYNTAX_COLORS_H_
 
 #include "stdafx.h"
 #include <Windows.h>
+
+class COptionsMgr;
 
 /** 
  * @brief Indexes to color table
@@ -56,7 +58,14 @@ typedef CArray<COLORREF, COLORREF&> ColorArray;
 typedef CArray<BOOL, BOOL&> BoolArray;
 
 /** 
- * @brief Stores color information for syntax highlight.
+ * @brief Wrapper for Syntax coloring colors.
+ *
+ * This class is wrapper for syntax colors. We can use this class in editor
+ * class and everywhere we need to refer to syntax colors. Class uses our
+ * normal options-manager for loading / saving values to storage.
+ *
+ * @todo We don't really need those arrays to store color values since we now
+ * use options-manager.
  */
 class SyntaxColors
 {
@@ -69,13 +78,22 @@ public:
 	BOOL GetBold(UINT index) const { return m_bolds[index]; }
 	void SetBold(UINT index, BOOL bold);
 	void SetDefaults();
+	void Initialize(COptionsMgr *pOptionsMgr);
 	void SaveToRegistry();
-	void ReadFromRegistry();
 
+// Implementation methods
+private:
+	bool IsThemeableColorIndex(int nColorIndex) const;
+	bool GetSystemColorIndex(int nColorIndex, int * pSysIndex) const;
+
+// Implementation data
 private:
 	ColorArray m_colors; /**< Syntax highlight colors */
 	BoolArray m_bolds; /**< Bold font enable/disable */
+	COptionsMgr * m_pOptionsMgr; /**< Options-manager for storage */
 };
 
+void SyntaxColors_Load(COLORREF * colors, int count);
+void SyntaxColors_Save(COLORREF * colors, int count);
 
 #endif // _SYNTAX_COLORS_H_

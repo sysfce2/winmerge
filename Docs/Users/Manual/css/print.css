@@ -1,7 +1,21 @@
+body,th,td {
+  font-family: Verdana,Helvetica,Arial,sans-serif;
+  font-size: 80%;
+}
+
+pre,code,tt {
+  font-family: "Courier New",Courier,monospace;
+  font-size: 100%;
+}
+
 .navheader {
   display: none;
 }
 .navfooter {
+  display: none;
+}
+
+#ads {
   display: none;
 }
 
@@ -10,25 +24,76 @@
 }
 
 .screen {
-  margin-left: 25px;
-  margin-right: 25px;
-  padding: 5px;
-  background-color: #FFFFFF;
-  border: 1px solid black;
+  padding: 0;
+  background-color: white;
+  border: 0;
 }
 
 .caution {
+  background-color: white;
   border: 1px solid black;
 }
 .important {
+  background-color: white;
   border: 1px solid black;
 }
 .note {
+  background-color: white;
   border: 1px solid black;
 }
 .tip {
+  background-color: white;
   border: 1px solid black;
 }
 .warning {
+  background-color: white;
+  border: 1px solid black;
+}
+
+/* Examples */
+.example,.informalexample {
+  padding-left: 7px;
+  border-left: 3px solid black;
+}
+
+/* Command synopsis */
+.cmdsynopsis p {
+  padding: 0;
+  color: black;
+  background-color: white;
+  border: 0;
+}
+
+.command,.option,.replaceable {
+  color: black;
+}
+
+/* GUI elements */
+.guimenu,.guisubmenu,.guimenuitem,.guilabel {
+  font-style: italic;
+}
+
+/* FAQ */
+.question {
+  font-weight: bold;
+}
+
+/* tables */
+.table table {
+  border-collapse: collapse;
+  border: 1px solid black;
+}
+
+.table th {
+  padding: 2px;
+  text-align: left;
+  color: black;
+  background: white;
+  border: 1px solid black;
+  border-bottom: 2px solid black;
+}
+
+.table td {
+  padding: 2px;
   border: 1px solid black;
 }

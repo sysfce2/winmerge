@@ -24,7 +24,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ChildFrm.h,v 1.19 2005/08/24 15:24:28 kimmov Exp $
+// $Id: ChildFrm.h 3566 2006-09-15 21:14:54Z kimmov $
 
 #if !defined(AFX_CHILDFRM_H__BBCD4F8E_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_CHILDFRM_H__BBCD4F8E_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -35,6 +35,8 @@
 #include "DiffViewBar.h"
 #include "LocationBar.h"
 
+class CMergeDoc;
+
 /** 
  * @brief Frame class for file compare, handles panes, statusbar etc.
  */
@@ -43,8 +45,14 @@ class CChildFrame : public CMDIChildWnd
 	DECLARE_DYNCREATE(CChildFrame)
 public:
 	CChildFrame();
+
+// Operations
+public:
+	void UpdateResources();
+	void CloseNow();
 	IHeaderBar * GetHeaderInterface();
 	void SetSharedMenu(HMENU hMenu) { m_hMenuShared = hMenu; };
+	CMergeDoc * GetMergeDoc() { return m_pMergeDoc; }
 
 // Attributes
 protected:
@@ -81,43 +89,38 @@ protected:
 	MergeStatus m_leftStatus;
 	MergeStatus m_rightStatus;
 
-// Operations
-public:
-	void UpdateResources();
-private:
-	BOOL EnsureValidDockState(CDockState& state);
 
-public:
 
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CChildFrame)
 	public:
 	virtual BOOL OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext);
-	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual void ActivateFrame(int nCmdShow = -1);
 	virtual BOOL DestroyWindow();
 	protected:
-	virtual BOOL OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult);
 	//}}AFX_VIRTUAL
 
 // Implementation
-public:
+private:
+	BOOL EnsureValidDockState(CDockState& state);
 	void UpdateDiffDockbarHeight(int DiffPanelHeight);
 	void SavePosition();
 	virtual ~CChildFrame();
-	void CloseNow();
 
 // Generated message map functions
-protected:
+private:
 	int m_nLastSplitPos;
 	void UpdateHeaderSizes();
 	BOOL m_bActivated;
+	CMergeDoc * m_pMergeDoc;
+
 	//{{AFX_MSG(CChildFrame)
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnClose();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnTimer(UINT nIDEvent);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg LRESULT OnStorePaneSizes(WPARAM wParam, LPARAM lParam);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

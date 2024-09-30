@@ -33,7 +33,7 @@ Attribute VB_Exposed = True
 '/////////////////////////////////////////////////////////////////////////////
 '
 ' RCS ID line follows -- this is updated by CVS
-' $Id: WinMergeScript.cls,v 1.1 2005/09/22 00:55:03 christianlist Exp $
+' $Id: WinMergeScript.cls 2672 2005-09-22 00:59:59Z christianlist $
 
 Option Explicit
 

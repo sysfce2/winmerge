@@ -1,11 +1,13 @@
 /**
  *  @file   unicoder.cpp
- *  @author Perry Rapp, Creator, 2003-2004
+ *  @author Perry Rapp, Creator, 2003-2006
  *  @date   Created: 2003-10
- *  @date   Edited:  2005-01-28 (Perry Rapp)
+ *  @date   Edited:  2006-02-20 (Perry Rapp)
  *
  *  @brief  Implementation of utility unicode conversion routines
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: unicoder.cpp 3927 2006-12-07 18:15:50Z kimmov $
 
 /* The MIT License
 Copyright (c) 2003 Perry Rapp
@@ -486,27 +488,58 @@ CString maketstring(LPCSTR lpd, UINT len, int codepage, bool * lossy)
 
 	if (!len) return _T("");
 
-	// NO ! codepage = 0 is the value of CP_ACP !
-	// if (!codepage)
-	// 	codepage = defcodepage;
+	// 0 is a valid value (CP_ACP)!
+	if (codepage == -1)
+		codepage = defcodepage;
 
 #ifdef UNICODE
 	// Convert input to Unicode, using specified codepage
 	// TCHAR is wchar_t, so convert into CString (str)
 	CString str;
-	DWORD flags = 0;
+	DWORD flags = MB_ERR_INVALID_CHARS;
 	int wlen = len*2+6;
 	LPWSTR wbuff = str.GetBuffer(wlen);
-	int n = MultiByteToWideChar(codepage, flags, (LPCSTR)lpd, len, wbuff, wlen-1);
+	int n = MultiByteToWideChar(codepage, flags, lpd, len, wbuff, wlen-1);
 	if (n)
 	{
+		/*
+		NB: MultiByteToWideChar is documented as only zero-terminating 
+		if input was zero-terminated, but it appears that it can 
+		zero-terminate even if input wasn't.
+		So we check if it zero-terminated and adjust count accordingly.
+		*/
+		if (wbuff[n-1] == 0)
+			--n;
+
 		str.ReleaseBuffer(n);
+		return str;
 	}
 	else
 	{
+		*lossy = true;
+		if (GetLastError() == ERROR_NO_UNICODE_TRANSLATION)
+		{
+			flags = 0;
+			// wlen & wbuff are still fine
+			n = MultiByteToWideChar(codepage, flags, lpd, len, wbuff, wlen-1);
+			if (n)
+			{
+				/*
+				NB: MultiByteToWideChar is documented as only zero-terminating 
+				if input was zero-terminated, but it appears that it can 
+				zero-terminate even if input wasn't.
+				So we check if it zero-terminated and adjust count accordingly.
+				*/
+				if (wbuff[n-1] == 0)
+					--n;
+
+				str.ReleaseBuffer(n);
+				return str;
+			}
+		}
 		str = _T("?");
+		return str;
 	}
-	return str;
 
 #else
 	if (EqualCodepages(codepage, getDefaultCodepage()))
@@ -567,12 +600,19 @@ CrossConvert(LPCSTR src, UINT srclen, LPSTR dest, UINT destsize, int cpin, int c
 		dest[0] = '?';
 		return 1;
 	}
+	/*
+	NB: MultiByteToWideChar is documented as only zero-terminating 
+	if input was zero-terminated, but it appears that it can 
+	zero-terminate even if input wasn't.
+	So we check if it zero-terminated and adjust count accordingly.
+	*/
+	if (wbuff[n-1] == 0)
+		--n;
 	wbuff[n] = 0; // zero-terminate string
 
 	// Now convert to TCHAR (which means defcodepage)
 	flags = WC_NO_BEST_FIT_CHARS; // TODO: Think about this
 	wlen = n;
-	int clen = wlen * 2 + 6;
 	BOOL defaulted=FALSE;
 	BOOL * pdefaulted = &defaulted;
 	if (cpout == CP_UTF8)

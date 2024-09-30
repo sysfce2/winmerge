@@ -20,7 +20,7 @@
  * @brief Declaration file for FileInfo
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: FileInfo.h,v 1.3 2005/06/17 19:21:17 kimmov Exp $
+// $Id: FileInfo.h 3825 2006-11-21 20:09:16Z kimmov $
 
 #ifndef _FILE_INFO_H_INCLUDED
 #define _FILE_INFO_H_INCLUDED
@@ -36,12 +36,13 @@ struct FileFlags
 };
 
 /**
- * @brief Information for file
+ * @brief Information for file.
+ * This class stores basic information from a file or folder.
+ * Information consists of file times, size and attributes.
+ * Also version info can be get for files supporting it.
  */
 struct FileInfo
 {
-	// storing __time_t if MSVC6 (__MSC_VER<1300)
-	// storing __time64_t if MSVC7 (VC.NET)
 	__int64 ctime; /**< time of creation */
 	__int64 mtime; /**< time of last modify */
 	__int64 size; /**< file size in bytes, -1 means file does not exist*/
@@ -49,7 +50,7 @@ struct FileInfo
 	FileFlags flags; /**< file attributes */
 	FileInfo() { Clear(); }
 
-	void Update(CString sFilePath);
+	BOOL Update(CString sFilePath);
 	void Clear();
 };
 

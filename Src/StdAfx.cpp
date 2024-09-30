@@ -21,6 +21,9 @@
 // stdafx.cpp : source file that includes just the standard includes
 //	Merge.pch will be the pre-compiled header
 //	stdafx.obj will contain the pre-compiled type information
+//
+// RCS ID line follows -- this is updated by CVS
+// $Id: StdAfx.cpp 3584 2006-09-19 16:35:48Z kimmov $
 
 #include "stdafx.h"
 #include "LogFile.h"
@@ -31,7 +34,7 @@ CLogFile gLog;
 /** @brief Report DeleteFile() failure to gLog */
 UINT gLog::DeleteFileFailed(LPCTSTR path)
 {
-	return::gLog.Write(LOGLEVEL::LERROR|LOGLEVEL::LOSERROR|LOGLEVEL::LDEBUG, _T("DeleteFile(%s) failed: "), path);
+	return::gLog.Write(CLogFile::LERROR|CLogFile::LOSERROR|CLogFile::LDEBUG, _T("DeleteFile(%s) failed: "), path);
 }
 
 // Convert any negative inputs to negative char equivalents
@@ -130,7 +133,7 @@ void LogErrorString(LPCTSTR sz)
 	TRACE(_T("%s: %s\n"), (LPCTSTR)now, sz);
 
 #if defined (_DEBUG) || defined (ENABLE_LOG)
-	gLog.Write(LOGLEVEL::LERROR, sz);
+	gLog.Write(CLogFile::LERROR, sz);
 #endif
 }
 
@@ -153,4 +156,16 @@ int GetClipTcharTextFormat()
 #else
 	return CF_TEXT;
 #endif // _UNICODE
+}
+
+/**
+ * @brief Return true if Unicode (16-bit) build
+ */
+bool IsUnicodeBuild()
+{
+#ifdef UNICODE
+	return true;
+#else
+	return false;
+#endif
 }

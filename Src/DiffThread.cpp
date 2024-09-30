@@ -20,7 +20,7 @@
  * @brief Code for DiffThread class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffThread.cpp,v 1.20 2005/08/25 22:48:26 elsapo Exp $
+// $Id: DiffThread.cpp 3059 2006-02-13 03:10:29Z elsapo $
 
 #include "stdafx.h"
 #include "diffcontext.h"
@@ -48,7 +48,6 @@ struct DiffFuncStruct
 	CString path2;
 	CDiffContext * context;
 	UINT msgUIUpdate;
-	UINT msgStatusUpdate;
 	HWND hWindow;
 	UINT nThreadState;
 	BOOL bRecursive;
@@ -57,7 +56,6 @@ struct DiffFuncStruct
 	DiffFuncStruct()
 		: context(0)
 		, msgUIUpdate(0)
-		, msgStatusUpdate(0)
 		, hWindow(0)
 		, nThreadState(THREAD_NOTSTARTED)
 		, bRecursive(FALSE)
@@ -90,7 +88,6 @@ CDiffThread::CDiffThread()
 	m_pDiffParm = new DiffFuncStruct;
 	m_pAbortgate = new DiffThreadAbortable(this);
 	m_msgUpdateUI = 0;
-	m_msgUpdateStatus = 0;
 	m_hWnd = 0;
 	m_bAborting = FALSE;
 }
@@ -157,7 +154,6 @@ void CDiffThread::SetHwnd(HWND hWnd)
 void CDiffThread::SetMessageIDs(UINT updateMsg, UINT statusMsg)
 {
 	m_msgUpdateUI = updateMsg;
-	m_msgUpdateStatus = statusMsg;
 }
 
 /**
@@ -221,7 +217,7 @@ UINT DiffThread(LPVOID lpParam)
 		_CrtMemCheckpoint(&memStateBefore);
 #endif
 
-		// Build resultes list (except delaying file comparisons until below)
+		// Build results list (except delaying file comparisons until below)
 		DirScan_GetItems(paths, subdir, subdir, &itemList, casesensitive, depth,  myStruct->context);
 
 #ifdef _DEBUG
@@ -239,6 +235,7 @@ UINT DiffThread(LPVOID lpParam)
 
 	// Send message to UI to update
 	myStruct->nThreadState = THREAD_COMPLETED;
+	// msgID=MSG_UI_UPDATE=1025 (2005-11-29, Perry)
 	PostMessage(hWnd, msgID, NULL, NULL);
 	return 1;
 }

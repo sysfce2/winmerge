@@ -13,6 +13,7 @@
   define ('WINMERGE_1_7', '1.7');
   define ('WINMERGE_2_0', '2.0');
   define ('WINMERGE_2_2', '2.2');
+  define ('WINMERGE_2_4', '2.4');
   define ('WINMERGE_DEV', 'dev');
 
   /**
@@ -27,11 +28,11 @@
      * Constructor
      */
     function Page() {
-      $this->_title = 'WinMerge 2.2';
+      $this->_title = 'WinMerge 2.4';
       $this->_charset = 'ISO-8859-1';
       $this->_description = 'WinMerge HomePage: Visual text file comparison and merging (Open Source software).';
       $this->_keywords = 'WinMerge, free, download, Beyond Compare, Scooter Software, DLSuperC, DLSubCF, Component Software Diff, Viff, TreeDiff, FileSync, WMatch, Quick Spot, NTDMatch, windiff, WDIFF, FolderMatch, Merge 99, Merge99, PMdiff, PMDiff, PMDIFF, pmdiff, visual, visually, file, folder, directory, synchronization, comparison, graphical, document, text, compare, diff, difference, revision, Araxis, compare folders, compare files, synchronize folders, merge files, merge folders, Y2K, Year 2000, Year 2K, side-by-side, VFC, GFC, gdiff, CSDiff, OS2GFC, vdiff, ediff, fc';
-      $this->_version = WINMERGE_2_2;
+      $this->_version = WINMERGE_2_4;
     }
 
     /**
@@ -93,15 +94,20 @@
       $temp .= "</head>\n\n";
       $temp .= "<body>\n";
       $temp .= "<div id=\"head\">\n";
-      $temp .= "<h1><a href=\"/index.php\"><img src=\"/images/icon.gif\" height=\"32\" width=\"32\" align=\"top\" alt=\"WinMerge logo\" border=\"0\"></a> WinMerge</h1>\n";
-      $temp .= "</div>\n";
-      $temp .= "<div id=\"tabs\">\n";
+      $temp .= "<h1><a href=\"/index.php\"><img src=\"/images/icon.gif\" height=\"32\" width=\"32\" align=\"top\" alt=\"WinMerge logo\" border=\"0\"></a> <img src=\"/images/logo.gif\" height=\"50\" width=\"218\" align=\"top\" alt=\"WinMerge\" border=\"0\"></h1>\n";
+      $temp .= "  <div id=\"tabs\">\n";
       $temp .= "<ul>\n";
       if ($this->_version == WINMERGE_USR) { //if "Users" ...
         $temp .= "  <li class=\"selected\"><a href=\"/index.php\">Users</a></li>\n";
       }
       else { //if NOT "Users" ...
         $temp .= "  <li><a href=\"/index.php\">Users</a></li>\n";
+      }
+      if ($this->_version == WINMERGE_2_4) { //if WinMerge 2.4 ...
+        $temp .= "  <li class=\"selected\"><a href=\"/2.4/index.php\">2.4</a></li>\n";
+      }
+      else { //if WinMerge 2.4 ...
+        $temp .= "  <li><a href=\"/2.4/index.php\">2.4</a></li>\n";
       }
       if ($this->_version == WINMERGE_2_2) { //if WinMerge 2.2 ...
         $temp .= "  <li class=\"selected\"><a href=\"/2.2/index.php\">2.2</a></li>\n";
@@ -118,9 +124,6 @@
       if ($this->_version == WINMERGE_1_7) { //if WinMerge 1.7 ...
         $temp .= "  <li class=\"selected\"><a href=\"/1.7/index.php\">1.7</a></li>\n";
       }
-      else { //if NOT WinMerge 1.7 ...
-        $temp .= "  <li><a href=\"/1.7/index.php\">1.7</a></li>\n";
-      }
       if ($this->_version == WINMERGE_DEV) { //if "Developers" ...
         $temp .= "  <li class=\"selected\"><a href=\"/developer/index.php\">Developers</a></li>\n";
       }
@@ -128,11 +131,16 @@
         $temp .= "  <li><a href=\"/developer/index.php\">Developers</a></li>\n";
       }
       $temp .= "</ul>\n";
+      $temp .= "  </div>\n";
       $temp .= "</div>\n";
-      $temp .= "<div id=\"nav\">\n";
+      $temp .= "<div id=\"main\">\n";
+      $temp .= "  <div id=\"nav\">\n";
       $temp .= $this->getMenu();
-      $temp .= "</div>\n";
-      $temp .= "<div id=\"content\">\n";
+      $temp .= "  </div>\n";
+      $temp .= "  <div id=\"ads\">\n";
+      $temp .= $this->getAds();
+      $temp .= "  </div>\n";
+      $temp .= "  <div id=\"content\">\n";
       print($temp);
     }
 
@@ -140,10 +148,35 @@
      * print the foot from the page
      */
     function printFoot() {
-      $temp = "</div>\n";
+      $temp = "  </div>\n";
+      $temp .= "</div>\n";
       $temp .= "</body>\n\n";
       $temp .= "</html>\n";
       print($temp);
+    }
+
+    /**
+     * get the right side ads to display on the page
+     *
+     */
+    function getAds() {
+      $temp = "<script type=\"text/javascript\"><!--\n";
+      $temp .= "google_ad_client = \"pub-1411904495533584\";\n";
+      $temp .= "google_ad_width = 728;\n";
+      $temp .= "google_ad_height = 90;\n";
+      $temp .= "google_ad_format = \"728x90_as\";\n";
+      $temp .= "google_ad_type = \"text\";\n";
+      $temp .= "google_ad_channel =\"\";\n";
+      $temp .= "google_color_border = \"FFCC00\";\n";
+      $temp .= "google_color_bg = \"FFFFCC\";\n";
+      $temp .= "google_color_link = \"0000FF\";\n";
+      $temp .= "google_color_text = \"000000\";\n";
+      $temp .= "google_color_url = \"008000\";\n";
+      $temp .= "//--></script>\n";
+      $temp .= "<script type=\"text/javascript\"\n";
+      $temp .= "  src=\"http://pagead2.googlesyndication.com/pagead/show_ads.js\">\n";
+      $temp .= "</script>\n";
+      return $temp;
     }
 
     /**
@@ -186,7 +219,6 @@
           $temp .= "</ul>\n";
           break;
         case WINMERGE_2_2: //if WinMerge 2.2 ...
-        case WINMERGE_USR: //OR if "Users" ...
           $temp .= "<h2><a href=\"/2.2/index.php\">WinMerge 2.2</a></h2>\n";
           $temp .= "<ul>\n";
           $temp .= "  <li><a href=\"/2.2/manual/index.html\">Manual</a></li>\n";
@@ -194,7 +226,7 @@
           $temp .= "  <li><a href=\"/2.2/changes.php\">Change History</a></li>\n";
           $temp .= "</ul>\n";
           $temp .= "<ul>\n";
-          $temp .= "  <li>Downloads\n";
+          $temp .= "  <li><a href=\"/2.2/downloads.php\">Downloads</a>\n";
           $temp .= "    <ul>\n";
           $temp .= "      <li><a href=\"http://sourceforge.net/project/showfiles.php?group_id=13216&amp;package_id=11248&amp;release_id=331334\">WinMerge</a> (<a href=\"http://sourceforge.net/project/shownotes.php?release_id=331334\" title=\"Release Notes\">Notes</a>)</li>\n";
           $temp .= "      <li><a href=\"http://sourceforge.net/project/showfiles.php?group_id=13216&amp;package_id=143957\">7-Zip Plugin</a></li>\n";
@@ -204,15 +236,33 @@
           $temp .= "  </li>\n";
           $temp .= "</ul>\n";
           break;
+        case WINMERGE_2_4: //if WinMerge 2.4 ...
+        case WINMERGE_USR: //OR if "Users" ...
+          $temp .= "<h2><a href=\"/2.4/index.php\">WinMerge 2.4</a></h2>\n";
+          $temp .= "<ul>\n";
+          $temp .= "  <li><a href=\"/2.4/manual/index.html\">Manual</a></li>\n";
+          $temp .= "  <li><a href=\"/2.4/screenshots.php\">Screenshots</a></li>\n";
+          $temp .= "  <li><a href=\"/2.4/changes.php\">Change History</a></li>\n";
+          $temp .= "  <li><a href=\"/2.4/limitations.php\">Known Limitations</a></li>\n";
+          $temp .= "</ul>\n";
+          $temp .= "<ul>\n";
+          $temp .= "  <li><a href=\"/downloads.php\">Downloads</a>\n";
+          $temp .= "    <ul>\n";
+          $temp .= "      <li><a href=\"http://sourceforge.net/project/showfiles.php?group_id=13216&amp;package_id=11248&amp;release_id=438554\">WinMerge</a> (<a href=\"http://sourceforge.net/project/shownotes.php?release_id=438554\" title=\"Release Notes\">Notes</a>)</li>\n";
+          $temp .= "      <li><a href=\"http://sourceforge.net/project/showfiles.php?group_id=13216&amp;package_id=143957\">7-Zip Plugin</a></li>\n";
+          $temp .= "      <li><a href=\"http://sourceforge.net/project/showfiles.php?group_id=13216&amp;package_id=11254&amp;release_id=438564\">Documentation</a></li>\n";
+          $temp .= "    </ul>\n";
+          $temp .= "  </li>\n";
+          $temp .= "</ul>\n";
+          break;
         case WINMERGE_DEV: //if "Developers" ...
           $temp .= "<h2><a href=\"/developer/index.php\">Developers</a></h2>\n";
           $temp .= "<ul>\n";
           $temp .= "  <li><a href=\"http://sourceforge.net/projects/winmerge/\">Project Home</a></li>\n";
-          $temp .= "  <li>CVS\n";
+          $temp .= "  <li>Subversion\n";
           $temp .= "    <ul>\n";
-          $temp .= "      <li><a href=\"http://cvs.sourceforge.net/viewcvs.py/winmerge/\">Go to CVSWeb</a></li>\n";
-          $temp .= "      <li><a href=\"http://sourceforge.net/cvs/?group_id=13216\">CVS Client Access</a></li>\n";
-          $temp .= "      <li><a href=\"/developer/wincvs.php\">WinCVS Hints</a></li>\n";
+          $temp .= "      <li><a href=\"http://svn.sourceforge.net/winmerge\">Browse Subversion Tree</a></li>\n";
+          $temp .= "      <li><a href=\"http://sourceforge.net/svn/?group_id=13216\">Subversion Access</a></li>\n";
           $temp .= "    </ul>\n";
           $temp .= "  </li>\n";
           $temp .= "  <li><a href=\"/developer/l10n/index.php\">Translations</a>\n";
@@ -248,9 +298,12 @@
           $temp .= "  <li><a href=\"/2.0/docs/faq.htm\" title=\"Frequently asked questions\">FAQ</a></li>\n";
           break;
         case WINMERGE_2_2: //if WinMerge 2.2 ...
+          $temp .= "  <li><a href=\"/2.2/manual/faq.html\" title=\"Frequently asked questions\">FAQ</a></li>\n";
+          break;
+        case WINMERGE_2_4: //if WinMerge 2.4 ...
         case WINMERGE_USR: //OR if "Users" ...
         case WINMERGE_DEV: //OR if "Developers" ...
-          $temp .= "  <li><a href=\"/2.2/manual/faq.html\" title=\"Frequently asked questions\">FAQ</a></li>\n";
+          $temp .= "  <li><a href=\"/2.4/manual/faq.html\" title=\"Frequently asked questions\">FAQ</a></li>\n";
           break;
       }
       $temp .= "</ul>\n";
@@ -263,11 +316,6 @@
       $temp .= "<p align=\"center\">\n";
       $temp .= "  <a href=\"/WinMergePAD.php\">\n";
       $temp .= "    <img src=\"/images/padbutton.gif\" alt=\"PAD Enabled\" border=\"0\">\n";
-      $temp .= "  </a>\n";
-      $temp .= "</p>\n";
-      $temp .= "<p align=\"center\">\n";
-      $temp .= "  <a href=\"http://sourceforge.net/projects/winmerge\">\n";
-      $temp .= "    <img src=\"/images/sourceforge.png\" alt=\"SourceForge Logo\" border=\"0\">\n";
       $temp .= "  </a>\n";
       $temp .= "</p>\n";
       $temp .= "<p align=\"center\">\n";

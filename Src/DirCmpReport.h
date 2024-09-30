@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirCmpReport.h,v 1.1 2005/07/25 11:48:20 kimmov Exp $
+// $Id: DirCmpReport.h 3456 2006-08-09 06:38:07Z jtuc $
 
 #ifndef _DIRCMPREPORT_H_
 #define _DIRCMPREPORT_H_
@@ -13,6 +13,8 @@
 #ifndef _PATHCONTEXT_H_
 #include "PathContext.h"
 #endif
+
+#include "DirReportTypes.h"
 
 /**
  * @brief This class creates directory compare reports.
@@ -23,43 +25,39 @@
  * reports. Downside is we only have data that is visible in GUI.
  *
  * @todo We should read DIFFITEMs from CDirDoc and format data to better
- * fit for reporting. Dublicating formatting and sorting code should be
+ * fit for reporting. Duplicating formatting and sorting code should be
  * avoided.
  */
 class DirCmpReport
 {
 public:
-	/**
-	 * @brief Report types in selection list.
-	 */
-	enum REPORT_TYPE
-	{
-		REPORT_COMMALIST = 0, /**< Comma-separated list */
-		REPORT_TABLIST, /**< Tab-separated list */
-		REPORT_SIMPLEHTML, /**< Simple html table */
-	};
 
-	DirCmpReport();
+	DirCmpReport(const CStringArray & colRegKeys);
 	void SetList(CListCtrl *pList);
 	void SetRootPaths(const PathContext &paths);
 	void SetColumns(int columns);
 	BOOL GenerateReport(CString &errStr);
 
 protected:
+	void GenerateReport(REPORT_TYPE nReportType);
+	void WriteString(LPCTSTR);
 	void GenerateHeader();
 	void GenerateContent();
 	void GenerateHTMLHeader();
-	void GenerateHTMLContent();
+	void GenerateHTMLHeaderBodyPortion();
+	void GenerateXmlHeader();
+	void GenerateXmlHtmlContent(bool xml);
 	void GenerateHTMLFooter();
-	BOOL SaveToFile(CString &sError);
+	void GenerateXmlFooter();
 
 private:
 	CListCtrl * m_pList; /**< Pointer to UI-list */
 	PathContext m_rootPaths; /**< Root paths, printed to report */
+	CString m_sTitle; /**< Report title, built from root paths */
 	int m_nColumns; /**< Columns in UI */
 	CString m_sSeparator; /**< Column separator for report */
-	CString m_sReport; /**< Report as string */
-	CString m_sReportFile; /**< Filename for report */
+	CFile *m_pFile; /**< File to write report to */
+	const CStringArray & m_colRegKeys; /**< Key names for currently displayed columns */
 };
 
 #endif // _DIRCMPREPORT_H_

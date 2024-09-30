@@ -3,11 +3,13 @@
   <title>Quick Start</title>
 
   <sect2>
-    <title>Opening Files and Folders</title>
+    <title><indexterm>
+        <primary>Open Dialog</primary>
+      </indexterm>Opening Files and Folders</title>
 
-    <para>Start <productname>WinMerge</productname> and either select
-    <guimenuitem>Open</guimenuitem> from the <guimenu>File</guimenu>-menu, or
-    click the yellow folder icon on the toolbar, or press <keycombo>
+    <para>Start WinMerge and either select <guimenuitem>Open</guimenuitem>
+    from the <guimenu>File</guimenu>-menu, or click the yellow folder icon on
+    the toolbar, or press <keycombo>
         <keycap>Ctrl</keycap>
 
         <keycap>O</keycap>
@@ -19,38 +21,46 @@
         </imageobject>
       </mediaobject></para>
 
-    <para>Two topmost fields in Open dialog are for selecting
-    files/directories to compare. Comparison objects can be specified in one
-    of four ways:</para>
+    <para>Two topmost fields in Open dialog are for selecting files and
+    folders to compare. Comparison objects can be specified in one of four
+    ways:</para>
 
     <para><orderedlist>
         <listitem>
-          <para>Enter the path names directly into the edit fields</para>
+          <simpara>Enter the path names directly into the edit
+          fields</simpara>
         </listitem>
 
         <listitem>
-          <para>Click the <guibutton>Browse</guibutton> button and use the
-          file chooser to navigate to the desired object</para>
+          <simpara>Click the <guibutton>Browse</guibutton> button and use the
+          file chooser to navigate to the desired path</simpara>
         </listitem>
 
         <listitem>
-          <para>Expand the combo box and select a previously entered path
-          (WinMerge remembers the last 20)</para>
+          <simpara>Expand the combo box and select a previously used
+          path</simpara>
         </listitem>
 
         <listitem>
-          <para>Drag &amp; drop something into the edit field from
-          Explorer</para>
+          <simpara>Drag &amp; drop path into the edit field from
+          Explorer</simpara>
         </listitem>
       </orderedlist></para>
+
+    <para>If <guilabel>Open-dialog Auto-completion</guilabel> -option is
+    enabled in options WinMerge shows a list of paths available when typing
+    into the fields. Auto-completion can be restricted to earlier used paths
+    only, which makes selecting frequently used paths fast.</para>
 
     <para>Folder can be selected from Windows Open dialog (opens when
     <guibutton>Browse</guibutton>-button is selected) by browsing into folder
     and selecting <guibutton>Open</guibutton>-button. It does not require
     selecting a file. When <guilabel>Filename</guilabel> field in Windows Open
-    dialog contains text "<guilabel>Directory Selection</guilabel>" selecting
-    <guibutton>Open</guibutton> button selects currently visible folder. Open
-    dialog always shows backslash "\" at end of folder name.</para>
+    dialog contains text "<guilabel>Folder Selection</guilabel>" selecting
+    <guibutton>Open</guibutton> button selects currently visible folder. Also
+    if filename in Windows Open dialog does not match any real file parent
+    folder is selected. Open dialog always shows backslash "\" at end of
+    folder name.</para>
 
     <para><note>
         <para>There can be only file &amp; file or folder &amp; folder
@@ -64,8 +74,8 @@
     listing one or more extensions restricts compare to only files with those
     extensions. Multiple extensions are separated with space or semicolon. For
     example, entering the file filter <filename>*.cpp;*.hpp;*.c;*.h</filename>
-    will cause WinMerge to ignore all files except C and C++ source
-    files.</para>
+    will cause WinMerge to ignore all files except C and C++ source files. You
+    can only filter by file extension, not by filename.</para>
 
     <para>File filters are a much more powerful way (than extension filters)
     to select files and folders. Use the <guibutton>Select</guibutton> button
@@ -81,10 +91,51 @@
     <para>Unpacker selection is for plugins.</para>
 
     <tip>
-      <para>Status of currently selected files or directories is shown with
-      text in bottom of the dialog. If one of the paths is invalid this text
-      tells which one it is.</para>
+      <para>Status of currently selected files or folders is shown with text
+      in bottom of the dialog. If one of the paths is invalid this text tells
+      which one it is.</para>
     </tip>
+
+    <para>Project files are the easiest and fastest way to open frequently
+    used paths. Usually project files are opened using separate dialog
+    accessible from <guimenu>File</guimenu>-menu. A project file can be also
+    selected as left path in Open-dialog. Selecting project files to
+    <guilabel>Left</guilabel>- and <guilabel>Right</guilabel>-paths WinMerge
+    compares selected project files. See <link linkend="OpenPaths">Opening
+    Files and Folders</link> for more information about project files.</para>
+
+    <sect3>
+      <title>Other Ways to Open Files and Folders</title>
+
+      <para>Open-dialog is the main interface for opening files and folders.
+      But WinMerge allows many other ways too:</para>
+
+      <itemizedlist>
+        <listitem>
+          <simpara>Shell integration allows selecting files and folders to
+          compare from Windows Explorer</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Command-line allows starting WinMerge from other
+          applications, command prompt or batch/script file</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Files and folders can be drag&amp;drop'ed directly to
+          WinMerge window</simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>Project-file can be opened from command-line or from
+          <menuchoice>
+              <guimenu>File</guimenu>
+
+              <guimenuitem>Open Project...</guimenuitem>
+            </menuchoice> -menuitem</simpara>
+        </listitem>
+      </itemizedlist>
+    </sect3>
   </sect2>
 
   <sect2>
@@ -92,34 +143,45 @@
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="screenshots/dircomp1.gif" format="GIF" />
+          <imagedata fileref="screenshots/foldercomp1.png" format="PNG" />
         </imageobject>
       </inlinemediaobject></para>
 
     <para>If two folders were selected in the Open dialog then the folder
-    compare window is opened. Folder compare shows list of files and
-    subfolders found by WinMerge. Using <guimenu>Merge</guimenu> menu items,
-    toolbar items, or context menu items, files and folders can be managed in
-    many ways.</para>
+    compare window is opened. Folder compare is basically a list of found
+    items. Found file- and folder-names are shown in rightmost column and
+    other columns show other related information.</para>
+
+    <para>WinMerge does not have a concept of "original" and "changed" sides.
+    WinMerge just shows what is different between two selected folders. This
+    is especially the case for files and folders that are found only in other
+    side. WinMerge does not show them as "added" or "removed" but unique
+    items.</para>
+
+    <para>Using <guimenu>Merge</guimenu> menu items, toolbar items, or context
+    menu items, files and folders can be managed in many ways. Most important
+    action is making files and folders identical in both sides. This is done
+    by selecting one of several Copy -items. When file or folder is copied to
+    other side it becomes identical.</para>
 
     <para>If the selected file exists in both sides (and it is not a binary
     file) it can be opened to file compare. File can be opened by:<orderedlist>
         <listitem>
-          <para>selecting <guimenuitem>Compare</guimenuitem> from
-          <guimenu>Merge</guimenu> menu</para>
+          <simpara>selecting <guimenuitem>Compare</guimenuitem> from
+          <guimenu>Merge</guimenu> menu</simpara>
         </listitem>
 
         <listitem>
-          <para>selecting <guimenuitem>Compare</guimenuitem> from context
-          menu</para>
+          <simpara>selecting <guimenuitem>Compare</guimenuitem> from context
+          menu</simpara>
         </listitem>
 
         <listitem>
-          <para>double-clicking with mouse</para>
+          <simpara>double-clicking with mouse</simpara>
         </listitem>
 
         <listitem>
-          <para>pressing <keycap>Enter</keycap> key</para>
+          <simpara>pressing <keycap>Enter</keycap> key</simpara>
         </listitem>
       </orderedlist></para>
 
@@ -132,7 +194,7 @@
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="screenshots/filecomp1.gif" format="GIF" />
+          <imagedata fileref="screenshots/filecomp1.png" format="PNG" />
         </imageobject>
       </inlinemediaobject></para>
 

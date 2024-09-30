@@ -1,3 +1,13 @@
+/**
+ *  @file SortHeaderCtrl.h
+ *
+ *  @brief Declaration of CSortHeaderCtrl
+ */ 
+// RCS ID line follows -- this is updated by CVS
+// $Id: SortHeaderCtrl.h 3087 2006-02-20 21:43:58Z elsapo $
+//////////////////////////////////////////////////////////////////////
+
+
 #ifndef __SORTHEADERCTRL_H__
 #define __SORTHEADERCTRL_H__
 

@@ -4,7 +4,7 @@
  *  @brief Declaration of DirScan module (see DirScan function)
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirScan.h,v 1.9 2005/08/25 22:48:26 elsapo Exp $
+// $Id: DirScan.h 2591 2005-08-25 22:48:26Z elsapo $
 
 #ifndef DirScan_h_included
 #define DirScan_h_included

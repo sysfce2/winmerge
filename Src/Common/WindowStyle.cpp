@@ -4,7 +4,7 @@
  * @brief Utilities (trivial) for manipulating window style
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: WindowStyle.cpp,v 1.2 2005/03/07 13:47:22 elsapo Exp $
+// $Id: WindowStyle.cpp 2177 2005-03-07 13:47:22Z elsapo $
 
 #include "StdAfx.h"
 #include "WindowStyle.h"

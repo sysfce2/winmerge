@@ -24,7 +24,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirDoc.h,v 1.55 2005/08/31 18:02:16 jtuc Exp $
+// $Id: DirDoc.h 3228 2006-04-25 16:58:05Z kimmov $
 
 #if !defined(AFX_DIRDOC_H__0B17B4C1_356F_11D1_95CD_444553540000__INCLUDED_)
 #define AFX_DIRDOC_H__0B17B4C1_356F_11D1_95CD_444553540000__INCLUDED_
@@ -48,11 +48,17 @@ class DirDocFilterGlobal;
 class DirDocFilterByExtension;
 class CustomStatusCursor;
 class CTempPathContext;
+struct FileActionItem;
+
 /////////////////////////////////////////////////////////////////////////////
 // CDirDoc document
 
 /**
- * @brief Documentclass for directory compare
+ * @brief Class for folder compare data.
+ * This class is "document" class for folder compare. It has compare context,
+ * which in turn has a list of differences and other compare result data.
+ * This class also has compare statistics which are updated during compare.
+ * GUI calls this class to operate with results.
  */
 class CDirDoc : public CDocument
 {
@@ -99,6 +105,7 @@ public:
 	void SetDiffCompare(UINT diffcode, int idx);
 	void UpdateResources();
 	void InitStatusStrings();
+	void UpdateStatusFromDisk(POSITION diffPos, BOOL bLeft, BOOL bRight);
 	void ReloadItemStatus(UINT nIdx, BOOL bLeft, BOOL bRight);
 	void Redisplay();
 	virtual ~CDirDoc();
@@ -108,6 +115,7 @@ public:
 	CDiffThread m_diffThread;
 	void SetDiffStatus(UINT diffcode, UINT mask, int idx);
 	void SetDiffCounts(UINT diffs, UINT ignored, int idx);
+	void UpdateDiffAfterOperation(const FileActionItem & act, POSITION pos);
 	void UpdateHeaderPath(BOOL bLeft);
 	void AbortCurrentScan();
 	bool IsCurrentScanAbortable() const;
@@ -116,6 +124,7 @@ public:
 	void ApplyRightDisplayRoot(CString &);
 
 	void SetPluginPrediffSetting(const CString & filteredFilenames, int newsetting);
+	void SetPluginPrediffer(const CString & filteredFilenames, const CString & prediffer);
 	void FetchPluginInfos(const CString& filteredFilenames, 
 	                      PackingInfo ** infoUnpacker, PrediffingInfo ** infoPrediffer);
 	BOOL IsShowable(const DIFFITEM & di);
@@ -141,6 +150,7 @@ public:
 	AllowUpwardDirectory::ReturnCode AllowUpwardDirectory(CString &leftParent, CString &rightParent);
 	void SetItemViewFlag(POSITION key, UINT flag, UINT mask);
 	void SetItemViewFlag(UINT flag, UINT mask);
+	const CompareStats * GetCompareStats() const { return m_pCompareStats; };
 
 protected:
 	CDiffWrapper m_diffWrapper;
@@ -153,10 +163,10 @@ protected:
 
 	// Implementation data
 private:
-	CDiffContext *m_pCtxt; /**< Pointer to diff-data */
-	CDirView *m_pDirView;
-	CompareStats *m_pCompareStats;
-	MergeDocPtrList m_MergeDocs;
+	CDiffContext *m_pCtxt; /**< Pointer to compare results-data */
+	CDirView *m_pDirView; /**< Pointer to GUI */
+	CompareStats *m_pCompareStats; /**< Compare statistics */
+	MergeDocPtrList m_MergeDocs; /**< List of file compares opened from this compare */
 	BOOL m_bROLeft; /**< Is left side read-only */
 	BOOL m_bRORight; /**< Is right side read-only */
 	BOOL m_bRecursive; /**< Is current compare recursive? */

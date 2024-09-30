@@ -16,20 +16,20 @@
         <answer>
           <itemizedlist>
             <listitem>
-              <para><filename>WinMerge.exe</filename> is an ANSI (8-bit) executable which
-              works in all 32-bit Windows systems. It does not have Unicode
-              support.</para>
+              <para><filename>WinMerge.exe</filename> is an ANSI (8-bit)
+              executable which works in all 32-bit Windows systems. It does
+              not have Unicode support.</para>
 
               <para>Internally, it stores only ANSI characters (256
-              possibilities). If you open a Unicode file, the characters 
-              must be converted to the ANSI codepage. As there are
-              over 100,000 Unicode characters, and only 256 can be
-              represented in the ANSI codepage, data loss may
-              occur. Conversion may be approximative (accents are
-              lost), or impossible (characters appear as "?").</para>
+              possibilities). If you open a Unicode file, the characters must
+              be converted to the ANSI codepage. As there are over 100,000
+              Unicode characters, and only 256 can be represented in the ANSI
+              codepage, data loss may occur. Conversion may be approximative
+              (accents are lost), or impossible (characters appear as
+              "?").</para>
 
               <para><filename>WinMerge.exe</filename> also can not open files
-              with names outside the current ANSI codepag (e.g., WinMerge.exe
+              with names outside the current ANSI codepage (e.g., WinMerge.exe
               can not open a file with a Hebrew name, if run on an English
               system. WinMergeU.exe can open such files.</para>
             </listitem>
@@ -63,15 +63,19 @@
 
       <qandaentry>
         <question>
-          <para>When wanting to compare directories, I cannot select a
-          directory in Browse?</para>
+          <para>When wanting to compare folders, I cannot select a folder in
+          Browse-dialog?</para>
         </question>
 
         <answer>
-          <para>Are you trying to select a directory by clicking on it in the
-          upper part of the Open File dialog ? The Open File dialog will then
-          open it, and you have to push <guibutton>Ok</guibutton> again to get
-          out.</para>
+          <para>Browse to the folder you want to compare (folder contents is
+          shown in the dialog). Do not select any of the files or subfolders,
+          just select the <guibutton>Open</guibutton>-button when
+          "<guilabel>Folder Selection</guilabel>" is shown in filename
+          editbox. If you already selected any of the files or subfolders,
+          just write some nonsense to the filename editbox and select the
+          Open-button. When the filename editbox doesn't contain any existing
+          filename then WinMerge opens the folder.</para>
         </answer>
       </qandaentry>
 
@@ -85,7 +89,9 @@
         <answer>
           <para>Unfortunately not. We acknowledge it would be good feature but
           have no plans to implement it in near future. This can be somewhat
-          worked around by using two WinMerge instances.</para>
+          worked around by using two WinMerge instances. (One developer has
+          begun preliminary work on this feature, but it is not yet available,
+          even in experimental releases.)</para>
         </answer>
       </qandaentry>
 
@@ -111,8 +117,8 @@
         <answer>
           <para>Which kind of CVS integration WinMerge should have? Adding CVS
           client features to WinMerge is questionable since there are many
-          good CVS clients already. Conflict file resolution is a feature we are
-          planning to add in future releases.</para>
+          good CVS clients already. Conflict file resolution is a feature we
+          are planning to add in future releases.</para>
         </answer>
       </qandaentry>
 
@@ -143,7 +149,7 @@
       <qandaentry>
         <question>
           <para>Why do large files sometimes show as different in the
-          directory view, but come up as identical in the merge editor?</para>
+          folder view, but come up as identical in the merge editor?</para>
         </question>
 
         <answer>
@@ -160,6 +166,81 @@
           is stored in the registry as:</para>
 
           <screen>HKEY_CURRENT_USER\Software\Thingamahoochie\WinMerge\Settings\QuickMethodLimit</screen>
+        </answer>
+      </qandaentry>
+
+      <qandaentry>
+        <question>
+          <para>WinMerge shows an error (or even crashes!) complaining it
+          cannot load CompareMSWordFiles.dll and/or
+          CompareMSExcelFiles.dll!</para>
+        </question>
+
+        <answer>
+          <para>Mentioned files are plugins written with Visual Basic (6.0).
+          WinMerge installer does not contain Visual Basic runtime files so
+          those plugins cannot be loaded. You can:</para>
+
+          <orderedlist>
+            <listitem>
+              <para>Remove those files from <filename
+              class="directory">WinMerge/Plugins</filename> -folder or</para>
+            </listitem>
+
+            <listitem>
+              <para>Download the Visual Basic 6.0 runtime distribution from
+              <trademark class="registered">Microsoft</trademark>:<ulink
+              url="http://support.microsoft.com/kb/290887">http://support.microsoft.com/kb/290887</ulink>
+              and install it. Or download just the one needed file from:
+              <ulink
+              url="http://www.dll-files.com/dllindex/dll-files.shtml?msvbvm60">http://www.dll-files.com/dllindex/dll-files.shtml?msvbvm60</ulink>
+              and copy it to the <filename
+              class="directory">WinMerge</filename> folder.</para>
+            </listitem>
+          </orderedlist>
+        </answer>
+      </qandaentry>
+    </qandaset>
+  </sect2>
+
+  <sect2>
+    <title>Installing</title>
+
+    <qandaset>
+      <qandaentry>
+        <question>
+          <para>WinMerge does not start and complains about missing DLL
+          files (mfc71.dll, mfc71u.dll, msvcr71.dll, msvcp71.dll)</para>
+        </question>
+
+        <answer>
+          <para>When installing from archive (zip, 7z) file you need also
+          Runtimes-package, which contains those files. See the <link
+          linkend="InstallFromArchive">Install instructions</link>.</para>
+        </answer>
+      </qandaentry>
+    </qandaset>
+  </sect2>
+
+  <sect2>
+    <title>File Comparing</title>
+
+    <qandaset>
+      <qandaentry>
+        <question>
+          <para>Why my files have all lines marked different (colored) even if
+          I know all lines are not different?</para>
+        </question>
+
+        <answer>
+          <para>Maybe your files have different line-ending styles (e.g. DOS
+          and UNIX?). WinMerge by default compares also line-ending styles,
+          but you can disable it from <menuchoice>
+              <guimenu>Edit</guimenu>
+
+              <guimenuitem>Options</guimenuitem>
+            </menuchoice> / Compare / Ignore carriage return
+          differences.</para>
         </answer>
       </qandaentry>
     </qandaset>
@@ -194,7 +275,9 @@
         <answer>
           <para>Windows registry files
           (<filename><replaceable>*</replaceable>.reg</filename>) are Unicode
-          files (UTF-16 or UCS-2) -- see previous answer.</para>
+          files (UTF-16 or UCS-2) -- see the question "<link
+          linkend="qmergebinaryfiles">I cannot merge binary files?</link>" for
+          a workaround.</para>
         </answer>
       </qandaentry>
 
@@ -206,22 +289,27 @@
 
         <answer>
           <para>There is one or more zero-bytes in your file(s). If WinMerge
-          finds zero-bytes from files, it considers the files to be binary files. You
-          can try to remove those zero-bytes from files. Alternatively, you may open 
-          the files with the DisplayBinaryFiles plugin. This plugin allows viewing 
-          binary files, but not editing them.</para>
+          finds zero-bytes from files, it considers the files to be binary
+          files. You can try to remove those zero-bytes from files.
+          Alternatively, you may open the files with the DisplayBinaryFiles
+          plugin. This plugin allows viewing binary files, but not editing
+          them. If you have a very recent version of WinMerge (2.6.0 and
+          newer), you may use the new EditBinaryFiles plugin, which does allow
+          editing binary files (using an escape scheme for representing
+          non-printable characters).</para>
         </answer>
       </qandaentry>
 
       <qandaentry>
-        <question>
+        <question id="qmergebinaryfiles">
           <para>I cannot merge binary files?</para>
         </question>
 
         <answer>
-          <para>WinMerge does not include binary file viewer/editor so
-          WinMerge can only show if binary files are identical or
-          different.</para>
+          <para>WinMerge 2.4.0 (and newer) includes a binary file viewer
+          (plugin <filename>DisplayBinaryFiles.dll</filename>). WinMerge 2.6.0
+          (and newer) includes a binary file editor (plugin
+          <filename>EditBinaryFiles.dll</filename>).</para>
         </answer>
       </qandaentry>
     </qandaset>
@@ -242,18 +330,6 @@
 
               <guimenuitem>Select Font...</guimenuitem>
             </menuchoice></para>
-        </answer>
-      </qandaentry>
-
-      <qandaentry>
-        <question>
-          <para>I would like to see the line numbers?</para>
-        </question>
-
-        <answer>
-          <para>WinMerge shows current line in editor statusbar. WinMerge
-          cannot show in-editor linenumbers. That is one feature we might
-          consider for future releases.</para>
         </answer>
       </qandaentry>
 
@@ -281,8 +357,8 @@
         </question>
 
         <answer>
-          <para>Unfortunately WinMerge supports only
-          non-proportional fonts.</para>
+          <para>Unfortunately WinMerge supports only non-proportional
+          fonts.</para>
         </answer>
       </qandaentry>
 
@@ -293,13 +369,13 @@
         </question>
 
         <answer>
-          <para>When <guilabel>Automatic Rescan</guilabel> is enabled, WinMerge
-          delays rescanning while user edits files. So there is no rescanning
-          happening when user types text but shortly after user has finished
-          typing. Without this delaying WinMerge would do rescan after every
-          typed letter and editing files would become slow. This delaying
-          especially improves editing of bigger files which can take several
-          seconds to rescan.</para>
+          <para>When <guilabel>Automatic Rescan</guilabel> is enabled,
+          WinMerge delays rescanning while user edits files. So there is no
+          rescanning happening when user types text but shortly after user has
+          finished typing. Without this delaying WinMerge would do rescan
+          after every typed letter and editing files would become slow. This
+          delaying especially improves editing of bigger files which can take
+          several seconds to rescan.</para>
         </answer>
       </qandaentry>
 
@@ -309,8 +385,12 @@
         </question>
 
         <answer>
-          <para>Unfortunately printing is not supported. This is one area
-          where we would really appreciate help in implementation!</para>
+          <para>There is basic printing support in WinMerge 2.6.0 and later
+          versions. Select <menuchoice>
+              <guimenu>File</guimenu>
+
+              <guimenuitem>Print...</guimenuitem>
+            </menuchoice> from the menu.</para>
         </answer>
       </qandaentry>
 
@@ -335,12 +415,24 @@
     <qandaset>
       <qandaentry>
         <question>
-          <para>I want WinMerge to close with a single
-          <keycap>ESC</keycap> press after I'm done?</para>
+          <para>I want WinMerge to close with a single <keycap>ESC</keycap>
+          press after I'm done?</para>
         </question>
 
         <answer>
-          <para>Use <option>-e</option> commandline switch.</para>
+          <para>Use <option>-e</option> command line switch.</para>
+        </answer>
+      </qandaentry>
+
+      <qandaentry>
+        <question>
+          <para>I don't want to see the "<guilabel>Files Are
+          Identical</guilabel>" -messagebox when I compare identical files, I
+          just want WinMerge to quit.</para>
+        </question>
+
+        <answer>
+          <para>Use <option>-x</option> command line switch.</para>
         </answer>
       </qandaentry>
 
@@ -351,8 +443,9 @@
         </question>
 
         <answer>
-          <para>Tell your external program to invoke WinMerge with the <option>/ub</option>
-          option, which tells WinMerge to not add the files to the MRU.</para>
+          <para>Tell your external program to invoke WinMerge with the
+          <option>/ub</option> option, which tells WinMerge to not add the
+          files to the MRU.</para>
         </answer>
       </qandaentry>
 
@@ -388,6 +481,27 @@
     <qandaset>
       <qandaentry>
         <question>
+          <para>I installed 7-Zip but archive support does not work?</para>
+        </question>
+
+        <answer>
+          <para>Do you have plugin installed and or the plugin version matches
+          7-Zip version? If not, see Installing chapter for instructions for
+          installing.</para>
+        </answer>
+
+        <answer>
+          <para>If the error is something like: "<emphasis>7-zip x.xx missing
+          / Plugin present</emphasis>", then you probably have installed 7-Zip
+          using MSI-installer. There are 7-Zip MSI installers that do not
+          install all the files WinMerge needs (namely
+          <filename>7zip_pad.xml</filename> in 7-Zip program folder). Download
+          and run the EXE version of the 7-Zip installer.</para>
+        </answer>
+      </qandaentry>
+
+      <qandaentry>
+        <question>
           <para>How can I open "Perry-style" patch files WinMerge developers
           use when submitting patches?</para>
         </question>
@@ -397,7 +511,7 @@
           changed files in different directories. WinMerge has internal
           support (surprise?) for handling these files. Just select zip file
           in question to left side and right side and WinMerge opens zip files
-          contents to directory compare comparing original and altered
+          contents to folder compare comparing original and altered
           files.</para>
         </answer>
       </qandaentry>
@@ -434,8 +548,8 @@
     <qandaset>
       <qandaentry>
         <question>
-          <para>How do I tell if my file is coded in the local windows (ie, ANSI)
-          codepage?</para>
+          <para>How do I tell if my file is coded in the local windows (ie,
+          ANSI) codepage?</para>
         </question>
 
         <answer>
@@ -539,14 +653,15 @@
     <qandaset>
       <qandaentry>
         <question>
-          <para>Is there way to create patch files from the commandline?</para>
+          <para>Is there way to create patch files from the
+          commandline?</para>
         </question>
 
         <answer>
           <para>No. It may be added in later versions but until then Win32
-          port of diffutils can be used. The Win32 port of diffutils (and patch)
-          can be downloaded from <productname>GnuWin32</productname> project
-          from SourceForge: <ulink
+          port of diffutils can be used. The Win32 port of diffutils (and
+          patch) can be downloaded from <application>GnuWin32</application>
+          project from SourceForge: <ulink
           url="http://sourceforge.net/projects/gnuwin32/">
           http://sourceforge.net/projects/gnuwin32</ulink></para>
         </answer>

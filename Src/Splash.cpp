@@ -19,17 +19,18 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 /** 
- * @file Splash.cpp
+ * @file Src/Splash.cpp
  *
  * @brief Implementation of splashscreen class
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: Splash.cpp,v 1.5 2005/05/24 14:28:11 elsapo Exp $
+// $Id: Splash.cpp 3957 2006-12-12 22:17:41Z kimmov $
 
 #include "stdafx.h"
 #include "resource.h"
 
+#include "Picture.h"
 #include "Splash.h"
 #include "version.h"
 
@@ -38,6 +39,22 @@
 #undef THIS_FILE
 static char BASED_CODE THIS_FILE[] = __FILE__;
 #endif
+
+/** 
+ * @brief Area for version text in splash image.
+ * Text is right-aligned, so reserve space to left side for longer text.
+ * @note Translations may have language name after version number.
+ */
+static const CRect VersionTextArea(255, 5, 469, 20);
+
+/** @brief Area for developers list. */
+static const CRect DevelopersArea(20, 88, 190, 210);
+
+/** @brief Area for copyright text. */
+static const CRect CopyrightArea(20, 210, 190, 330);
+
+/** @brief ID for the timer closing splash screen. */
+static const UINT_PTR SplashTimerID = 1;
 
 /////////////////////////////////////////////////////////////////////////////
 //   Splash Screen class
@@ -49,6 +66,7 @@ CSplashWnd* CSplashWnd::c_pSplashWnd;
  * @brief Default constructor.
  */
 CSplashWnd::CSplashWnd()
+ : m_pPicture(NULL)
 {
 }
 
@@ -120,26 +138,36 @@ BOOL CSplashWnd::PreTranslateAppMessage(MSG* pMsg)
 }
 
 /** 
- * @brief Loads splashscreen bitmap
+ * @brief Loads splashscreen image.
+ * Loads splashscreen image from resource and creates window with same size.
  */
 BOOL CSplashWnd::Create(CWnd* pParentWnd /*= NULL*/)
 {
-	if (!m_bitmap.LoadBitmap(IDB_SPLASH))
+	if (m_pPicture == NULL)
+		m_pPicture = new CPicture();
+
+	if (m_pPicture == NULL)
 		return FALSE;
 
-	BITMAP bm;
-	m_bitmap.GetBitmap(&bm);
+	if (!m_pPicture->Load(IDR_SPLASH))
+		return FALSE;
+
+	CSize imgSize = m_pPicture->GetImageSize();
 
 	return CreateEx(0,
 		AfxRegisterWndClass(0, AfxGetApp()->LoadStandardCursor(IDC_ARROW)),
-		NULL, WS_POPUP | WS_VISIBLE, 0, 0, bm.bmWidth, bm.bmHeight, pParentWnd->GetSafeHwnd(), NULL);
+		NULL, WS_POPUP | WS_VISIBLE, 0, 0, imgSize.cx, imgSize.cy, pParentWnd->GetSafeHwnd(), NULL);
 }
 
 /** 
- * @brief Destroy the window, and update the mainframe.
+ * @brief Destroy the window and splash image then update the mainframe.
  */
 void CSplashWnd::HideSplashScreen()
 {
+	KillTimer(SplashTimerID);
+	m_pPicture->Free();
+	delete m_pPicture;
+	m_pPicture = NULL;
 	DestroyWindow();
 	AfxGetMainWnd()->UpdateWindow();
 }
@@ -164,54 +192,69 @@ int CSplashWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CenterWindow();
 
 	// Set a timer to destroy the splash screen.
-	SetTimer(1, 5000, NULL);
+	SetTimer(SplashTimerID, 5000, NULL);
 
 	return 0;
 }
 
 /** 
- * @brief Add version text to bitmap.
+ * @brief Paint splashscreen.
+ * Draws image to window size (which is already set to image size).
+ * Then adds texts over image.
  */
 void CSplashWnd::OnPaint()
 {
 	CPaintDC dc(this);
+	m_pPicture->Render(&dc);
 
-	CDC dcImage;
-	if (!dcImage.CreateCompatibleDC(&dc))
-		return;
-
-	BITMAP bm;
-	m_bitmap.GetBitmap(&bm);
-
-	// Paint the image.
-	CBitmap* pOldBitmap = dcImage.SelectObject(&m_bitmap);
-	dc.BitBlt(0, 0, bm.bmWidth, bm.bmHeight, &dcImage, 0, 0, SRCCOPY);
-	dcImage.SelectObject(pOldBitmap);
-
-	CVersionInfo version;
+	CVersionInfo version(TRUE);
 	CString s;
-	CFont ft,*oldfont=NULL;
+	CFont versionFont;
+	CFont textFont;
+	CFont *oldfont = NULL;
 
-	int fontHeight = -MulDiv(10, dc.GetDeviceCaps(LOGPIXELSY), 72);
-	BOOL fontSuccess = ft.CreateFont(fontHeight, 0, 0, 0, FW_BOLD, FALSE, FALSE,
+	int fontHeight = -MulDiv(9, dc.GetDeviceCaps(LOGPIXELSY), 72);
+	BOOL fontSuccess = versionFont.CreateFont(fontHeight, 0, 0, 0, FW_BOLD, FALSE, FALSE,
 		0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
 		DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("Arial"));
 	if (fontSuccess)
-		oldfont = dc.SelectObject(&ft);
+		oldfont = dc.SelectObject(&versionFont);
 
 	CString sVersion = version.GetFixedProductVersion();
 	AfxFormatString1(s, IDS_VERSION_FMT, sVersion);
 	dc.SetBkMode(TRANSPARENT);
-	dc.TextOut(69, 131, s);
+	
+	CRect area = VersionTextArea;
+	dc.DrawText(s, &area, DT_RIGHT | DT_TOP);
+
+	fontSuccess = textFont.CreateFont(fontHeight, 0, 0, 0, 0, FALSE, FALSE,
+		0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+		DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, _T("Arial"));
+	if (fontSuccess)
+	{
+		// We already stored oldfont in previous font change
+		if (oldfont == NULL)
+			oldfont = dc.SelectObject(&textFont);
+		else
+			dc.SelectObject(&textFont);
+	}
+
+	CString text;
+	VERIFY(text.LoadString(IDS_SPLASH_DEVELOPERS));
+	area = DevelopersArea;
+	dc.DrawText(text, &area, DT_NOPREFIX | DT_TOP | DT_WORDBREAK);
+	VERIFY(text.LoadString(IDS_SPLASH_GPLTEXT));
+	area = CopyrightArea;
+	dc.DrawText(text, &area, DT_NOPREFIX | DT_TOP | DT_WORDBREAK);
+
 	if (oldfont != NULL)
 		dc.SelectObject(oldfont);
-
 }
 
 /** 
  * @brief Hide splashscreen after specified time.
  */
-void CSplashWnd::OnTimer(UINT /*nIDEvent*/)
+void CSplashWnd::OnTimer(UINT_PTR nIDEvent)
 {
 	// Destroy the splash screen window.
 	HideSplashScreen();

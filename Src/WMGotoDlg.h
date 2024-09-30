@@ -21,7 +21,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: WMGotoDlg.h,v 1.2 2004/01/23 02:16:38 puddle Exp $
+// $Id: WMGotoDlg.h 977 2004-01-23 02:16:42Z puddle $
 
 #if !defined(AFX_WMGOTODLG_H__A9D2366D_6358_4A74_9A45_6681D22EC786__INCLUDED_)
 #define AFX_WMGOTODLG_H__A9D2366D_6358_4A74_9A45_6681D22EC786__INCLUDED_

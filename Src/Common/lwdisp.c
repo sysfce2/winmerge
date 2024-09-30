@@ -38,7 +38,7 @@ DATE:		BY:					DESCRIPTION:
 2004/01/08      Perry                           Updated function comment preceding ReportError 
 */
 // RCS ID line follows -- this is updated by CVS
-// $Id: lwdisp.c,v 1.10 2004/01/08 18:21:42 puddle Exp $
+// $Id: lwdisp.c 926 2004-01-08 18:21:42Z puddle $
 
 //#define _WIN32_IE		0x0300
 //#define _WIN32_WINNT	0x0400	

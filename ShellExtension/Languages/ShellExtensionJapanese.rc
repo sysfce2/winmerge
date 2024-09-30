@@ -1,8 +1,8 @@
 //Microsoft Developer Studio generated resource script.
 //
-// $Id: ShellExtensionJapanese.rc,v 1.2.2.1 2005/09/22 18:35:07 kimmov Exp $
+// $Id: ShellExtensionJapanese.rc 3204 2006-04-09 12:58:21Z kimmov $
 
-#include "resource.h"
+#include "../resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////

@@ -5,7 +5,7 @@
  * @brief Declaration of CMergeDiffDetailView class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: MergeDiffDetailView.h,v 1.9 2005/08/07 20:27:57 elsapo Exp $
+// $Id: MergeDiffDetailView.h 3937 2006-12-10 14:33:16Z galh $
 //
 //////////////////////////////////////////////////////////////////////
 #ifndef __MERGEDIFFDETAILVIEW_H__
@@ -38,7 +38,7 @@ protected:
 
 // Attributes
 public:
-	BOOL m_bIsLeft;
+	int m_nThisPane;
 protected:
 	/// first line of diff (first displayable line)
 	int m_lineBegin;
@@ -54,7 +54,11 @@ protected:
 	/// memorize cursor position
 	CPoint m_ptCursorPosPushed;
 	/// memorize top line positions
-	int m_nTopLinePushed;
+	int m_nTopSubLinePushed;
+
+private:
+	HWND m_hwndFrame; //*< Frame window handle */
+	UINT m_nPrevPaneHeight;
 
 // Operations
 private:
@@ -62,13 +66,16 @@ private:
 
 public:
 	virtual CCrystalTextBuffer *LocateTextBuffer ();
-	void DoScroll(UINT code, UINT pos, BOOL bDoScroll);
 	CMergeDoc* GetDocument();
 	void UpdateResources();
 	BOOL IsModified() { return FALSE; }
 	BOOL PrimeListWithFile();
-	int ComputeInitialHeight(); 
-	void SetDisplayHeight(int h); 
+	int ComputeInitialHeight();
+	void SetDisplayHeight(int h);
+	void SetFrameHwnd(HWND hwndFrame);
+	BOOL IsReadOnly(int pane);
+	void DocumentsLoaded();
+
 	virtual void UpdateSiblingScrollPos (BOOL bHorz);
 	virtual void RecalcHorzScrollBar (BOOL bPositionOnly = FALSE );
 
@@ -93,7 +100,7 @@ public:
 
 protected:
 	BOOL EnsureInDiff(CPoint & pt);
-  virtual void ScrollToSubLine (int nNewTopLine, BOOL bNoSmoothScroll = FALSE, BOOL bTrackScrollBar = TRUE);
+	virtual void ScrollToSubLine (int nNewTopLine, BOOL bNoSmoothScroll = FALSE, BOOL bTrackScrollBar = TRUE);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -120,12 +127,16 @@ protected:
 	//{{AFX_MSG(CMergeDiffDetailView)
 	afx_msg void OnRefresh();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnShowlineworddiff();
-	afx_msg void OnShowlinechardiff();
-	afx_msg void OnUpdateShowlineworddiff(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateShowlinechardiff(CCmdUI* pCmdUI);
+	afx_msg void OnSelectLineDiff();
+	afx_msg void OnUpdateSelectLineDiff(CCmdUI* pCmdUI);
 	afx_msg void OnChangePane();
 	afx_msg void OnUpdateChangePane(CCmdUI* pCmdUI);
+	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
+	afx_msg void OnL2r();
+	afx_msg void OnUpdateL2r(CCmdUI* pCmdUI);
+	afx_msg void OnR2l();
+	afx_msg void OnUpdateR2l(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateViewWordWrap(CCmdUI *pCmdUI);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

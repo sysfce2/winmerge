@@ -24,7 +24,7 @@
  *  @brief Exceptions handlers (currently, only SE handler for try/catch)
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: Exceptions.h,v 1.2 2003/11/23 23:34:05 puddle Exp $
+// $Id: Exceptions.h 862 2003-11-23 23:34:05Z puddle $
 
 #include "StdAfx.h"
 #include "eh.h"

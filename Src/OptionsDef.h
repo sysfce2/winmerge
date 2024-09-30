@@ -4,7 +4,7 @@
  * @brief Constants for option-names
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: OptionsDef.h,v 1.34.2.1 2005/10/23 18:59:14 kimmov Exp $
+// $Id: OptionsDef.h 3394 2006-07-25 13:14:34Z kimmov $
 
 #ifndef _OPTIONS_DEF_H_
 #define _OPTIONS_DEF_H_
@@ -36,18 +36,19 @@ const TCHAR OPT_AUTOMATIC_RESCAN[] = _T("Settings/AutomaticRescan");
 const TCHAR OPT_ALLOW_MIXED_EOL[] = _T("Settings/AllowMixedEOL");
 const TCHAR OPT_TAB_SIZE[] = _T("Settings/TabSize");
 const TCHAR OPT_TAB_TYPE[] = _T("Settings/TabType");
-const TCHAR OPT_UNREC_APPLYSYNTAX[] = _T("Settings/ApplyUnrecSyntax");
 const TCHAR OPT_BREAK_ON_WORDS[] = _T("Settings/BreakOnWords");
 const TCHAR OPT_BREAK_TYPE[] = _T("Settings/BreakType");
+const TCHAR OPT_WORDWRAP[] = _T("Settings/WordWrap");
+const TCHAR OPT_VIEW_LINENUMBERS[] = _T("Settings/ViewLineNumbers");
 
 const TCHAR OPT_EXT_EDITOR_CMD[] = _T("Settings/ExternalEditor");
 const TCHAR OPT_USE_RECYCLE_BIN[] = _T("Settings/UseRecycleBin");
-const TCHAR OPT_AUTOCLOSE_CMPPANE[] = _T("Settings/AutoCloseCmpPane");
 const TCHAR OPT_SINGLE_INSTANCE[] = _T("Settings/SingleInstance");
 const TCHAR OPT_MERGE_MODE[] = _T("Settings/MergingMode");
 const TCHAR OPT_CLOSE_WITH_ESC[] = _T("Settings/CloseWithEsc");
 const TCHAR OPT_LOGGING[] = _T("Settings/Logging");
 const TCHAR OPT_VERIFY_OPEN_PATHS[] = _T("Settings/VerifyOpenPaths");
+const TCHAR OPT_AUTO_COMPLETE_SOURCE[] = _T("Settings/AutoCompleteSource");
 const TCHAR OPT_IGNORE_SMALL_FILETIME[] = _T("Settings/IgnoreSmallFileTime");
 
 const TCHAR OPT_CP_DEFAULT_MODE[] = _T("Settings/CodepageDefaultMode");
@@ -95,12 +96,15 @@ const TCHAR OPT_CLR_SELECTED_WORDDIFF[] = _T("Settings/SelectedWordDifferenceCol
 const TCHAR OPT_CLR_WORDDIFF_TEXT[] = _T("Settings/WordDifferenceTextColor");
 // The selected word difference text color
 const TCHAR OPT_CLR_SELECTED_WORDDIFF_TEXT[] = _T("Settings/SelectedWordDifferenceTextColor");
+// Whether to use default (theme) text colors
+const TCHAR OPT_CLR_DEFAULT_TEXT_COLORING[] = _T("Settings/DefaultTextColoring");
 
 // Compare options
 const TCHAR OPT_CMP_IGNORE_WHITESPACE[] = _T("Settings/IgnoreSpace");
 const TCHAR OPT_CMP_IGNORE_BLANKLINES[] = _T("Settings/IgnoreBlankLines");
+const TCHAR OPT_CMP_FILTER_COMMENTLINES[] = _T("Settings/FilterCommentsLines");
 const TCHAR OPT_CMP_IGNORE_CASE[] = _T("Settings/IgnoreCase");
-const TCHAR OPT_CMP_EOL_SENSITIVE[] = _T("Settings/EolSensitive");
+const TCHAR OPT_CMP_IGNORE_EOL[] = _T("Settings/IgnoreEol");
 const TCHAR OPT_CMP_METHOD[] = _T("Settings/CompMethod");
 const TCHAR OPT_CMP_MOVED_BLOCKS[] = _T("Settings/MovedBlocks");
 const TCHAR OPT_CMP_STOP_AFTER_FIRST[] = _T("Settings/StopAfterFirst");
@@ -116,6 +120,7 @@ const TCHAR OPT_LINEFILTER_ENABLED[] = _T("Settings/IgnoreRegExp");
 const TCHAR OPT_LINEFILTER_REGEXP[] = _T("Settings/RegExps");
 /// Currently selected filefilter
 const TCHAR OPT_FILEFILTER_CURRENT[] = _T("Settings/FileFilterCurrent");
+const TCHAR OPT_FILTER_USERPATH[] = _T("Settings/UserFilterPath");
 
 // Fonts
 const TCHAR OPT_FONT_FILECMP_USECUSTOM[] = _T("Font/Specified");

@@ -20,7 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // SelectUnpackerDlg.cpp : implementation file
 //
-// $Id: SelectUnpackerDlg.cpp,v 1.7 2004/03/08 19:41:21 kimmov Exp $
+// $Id: SelectUnpackerDlg.cpp 1069 2004-03-08 19:41:21Z kimmov $
 //
 
 #include "stdafx.h"

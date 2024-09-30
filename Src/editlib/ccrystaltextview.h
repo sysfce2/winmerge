@@ -23,6 +23,13 @@
 //  ... it's being edited very rapidly so sorry for non-commented
 //        and maybe "ugly" code ...
 ////////////////////////////////////////////////////////////////////////////
+/** 
+ * @file  ccrystaltextview.h
+ *
+ * @brief Declaration file for CCrystalTextView
+ */
+// RCS ID line follows -- this is updated by CVS
+// $Id: ccrystaltextview.h 4878 2008-01-08 22:36:41Z gerundt $
 
 #if !defined(AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_)
 #define AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_
@@ -54,7 +61,7 @@ enum
   FIND_REGEXP = 0x0004,
   FIND_DIRECTION_UP = 0x0010,
   REPLACE_SELECTION = 0x0100, 
-  REPLACE_NO_WRAP = 0x200
+  FIND_NO_WRAP = 0x200
 };
 
 //  CCrystalTextView::UpdateView() flags
@@ -68,13 +75,18 @@ enum
   UPDATE_RESET = 0x1000       //  document was reloaded, update all!
 };
 
+/**
+ * @brief Class for text view.
+ * This class implements class for text viewing. Class implements all
+ * the routines we need for showing, selecting text etc. BUT it does
+ * not implement text editing. There are classes inherited from this
+ * class which implement text editing.
+ */
 class EDITPADC_CLASS CCrystalTextView : public CView
   {
     DECLARE_DYNCREATE (CCrystalTextView)
 
-	//BEGIN SW
-	friend CCrystalParser;
-	//END SW
+    friend CCrystalParser;
 
 protected:
     //  Search parameters
@@ -98,6 +110,7 @@ private :
     BOOL m_bViewEols;
     BOOL m_bDistinguishEols;
     BOOL m_bSelMargin;
+    BOOL m_bViewLineNumbers;
     DWORD m_dwFlags;
 
     //  Amount of lines/characters that completely fits the client area
@@ -174,6 +187,7 @@ protected:
     BOOL IsInsideSelBlock (CPoint ptTextPos);
 
     BOOL m_bBookmarkExist;        // More bookmarks
+    void ToggleBookmark(UINT nLine);
 
 public :
     virtual void ResetView ();
@@ -198,7 +212,7 @@ protected :
     CPoint m_ptDraggedTextBegin, m_ptDraggedTextEnd;
     void UpdateCaret ();
     void SetAnchor (const CPoint & ptNewAnchor);
-    int GetMarginWidth ();
+    UINT GetMarginWidth ();
     bool IsValidTextPos (const CPoint &point);
     bool IsValidTextPosX (const CPoint &point);
     bool IsValidTextPosY (const CPoint &point);
@@ -215,7 +229,7 @@ protected :
     CPoint ClientToText (const CPoint & point);
     CPoint TextToClient (const CPoint & point);
     void InvalidateLines (int nLine1, int nLine2, BOOL bInvalidateMargin = FALSE);
-    int CalculateActualOffset (int nLineIndex, int nCharIndex);
+    int CalculateActualOffset (int nLineIndex, int nCharIndex, BOOL bAccumulate = FALSE);
 
     //  Printing
     int m_nPrintPages;
@@ -274,6 +288,9 @@ protected :
 	@return Number of sublines the given line contains of
 	*/
 	int GetSubLines( int nLineIndex );
+
+	virtual int GetEmptySubLines( int nLineIndex );
+	BOOL IsEmptySubLineIndex( int nSubLineIndex );
 
 	/**
 	Converts the given character position for the given line into a point.
@@ -401,15 +418,13 @@ protected :
 	*/
 	virtual int GetSubLineIndex( int nLineIndex );
 
-	/**
-	Splits the given subline index into line and sub line of this line.
-
-	@param nSubLineIndex The zero based index of the subline to get info about
-	@param nLine Gets the line number the give subline is included in
-	@param nSubLine Get the subline of the given subline relative to nLine
-	*/
-	virtual void GetLineBySubLine( int nSubLineIndex, int &nLine, int &nSubLine );
-	//END SW
+    /**
+     * @brief Splits the given subline index into line and sub line of this line.
+     * @param [in] nSubLineIndex The zero based index of the subline to get info about
+     * @param [out] nLine Gets the line number the give subline is included in
+     * @param [out] nSubLine Get the subline of the given subline relative to nLine
+     */
+    virtual void GetLineBySubLine(int nSubLineIndex, int &nLine, int &nSubLine);
 
 public:
     virtual int GetLineLength (int nLineIndex) const;
@@ -441,7 +456,7 @@ protected:
     void DrawLineHelper (CDC * pdc, CPoint & ptOrigin, const CRect & rcClip, int nColorIndex, int nBgColorIndex,
                          COLORREF crText, COLORREF crBkgnd, LPCTSTR pszChars, int nOffset, int nCount, int &nActualOffset, CPoint ptTextPos);
     virtual void DrawSingleLine (CDC * pdc, const CRect & rect, int nLineIndex);
-    virtual void DrawMargin (CDC * pdc, const CRect & rect, int nLineIndex);
+    virtual void DrawMargin (CDC * pdc, const CRect & rect, int nLineIndex, int nLineNumber);
 
     int GetCharWidthFromChar(TCHAR ch);
 	int GetCharWidthFromString(LPCTSTR lpsz);
@@ -524,6 +539,7 @@ protected:
 	-1 (default) all lines from nLineIndex1 to the end are invalidated.
 	*/
 	virtual void InvalidateLineCache( int nLineIndex1, int nLineIndex2 );
+	void InvalidateScreenRect();
 	//END SW
 
     //  Syntax coloring overrides
@@ -613,6 +629,7 @@ public :
     DWORD ParseLineBatch (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineC (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineCSharp (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
+    DWORD ParseLineCss (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineDcl (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineFortran (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineHtml (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
@@ -625,9 +642,12 @@ public :
     DWORD ParseLinePascal (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLinePerl (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLinePhp (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
+    DWORD ParseLinePo (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
+    DWORD ParseLinePowerShell (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLinePython (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineRexx (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineRsrc (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
+	DWORD ParseLineRuby (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineSgml (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineSh (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineSiod (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
@@ -647,6 +667,8 @@ public :
     void SetTabSize (int nTabSize);
     BOOL GetSelectionMargin ();
     void SetSelectionMargin (BOOL bSelMargin);
+	BOOL GetViewLineNumbers() const;
+	void SetViewLineNumbers(BOOL bViewLineNumbers);
     void GetFont (LOGFONT & lf);
     void SetFont (const LOGFONT & lf);
     DWORD GetFlags ();
@@ -688,6 +710,7 @@ public :
       SRC_BATCH,
       SRC_C,
 	  SRC_CSHARP,
+      SRC_CSS,
       SRC_DCL,
       SRC_FORTRAN,
       SRC_HTML,
@@ -700,9 +723,12 @@ public :
       SRC_PASCAL,
       SRC_PERL,
       SRC_PHP,
+      SRC_PO,
+      SRC_POWERSHELL,
       SRC_PYTHON,
       SRC_REXX,
       SRC_RSRC,
+	  SRC_RUBY,
       SRC_SGML,
       SRC_SH,
       SRC_SIOD,
@@ -780,9 +806,10 @@ public :
     BOOL FindText (LPCTSTR pszText, const CPoint & ptStartPos, DWORD dwFlags, BOOL bWrapSearch, CPoint * pptFoundPos);
     BOOL FindTextInBlock (LPCTSTR pszText, const CPoint & ptStartPos, const CPoint & ptBlockBegin, const CPoint & ptBlockEnd,
                           DWORD dwFlags, BOOL bWrapSearch, CPoint * pptFoundPos);
-    BOOL HighlightText (const CPoint & ptStartPos, int nLength, BOOL bReverse = FALSE);
+    BOOL HighlightText (const CPoint & ptStartPos, int nLength,
+      BOOL bCursorToLeft = FALSE);
 
-	// IME (input method editor)
+    // IME (input method editor)
     void UpdateCompositionWindowPos();
     void UpdateCompositionWindowFont();
 
@@ -832,7 +859,7 @@ protected :
     afx_msg void OnHScroll (UINT nSBCode, UINT nPos, CScrollBar * pScrollBar);
     afx_msg void OnLButtonUp (UINT nFlags, CPoint point);
     afx_msg void OnMouseMove (UINT nFlags, CPoint point);
-    afx_msg void OnTimer (UINT nIDEvent);
+    afx_msg void OnTimer (UINT_PTR nIDEvent);
     afx_msg void OnKillFocus (CWnd * pNewWnd);
     afx_msg void OnLButtonDblClk (UINT nFlags, CPoint point);
     afx_msg void OnEditCopy ();

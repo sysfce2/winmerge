@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: codepage_detect.cpp,v 1.3.2.1 2006/01/09 00:23:06 elsapo Exp $
+// $Id: codepage_detect.cpp 3059 2006-02-13 03:10:29Z elsapo $
 
 #include "StdAfx.h"
 #include <shlwapi.h>
@@ -14,6 +14,7 @@
 #include "codepage.h"
 #include "charsets.h"
 #include "markdown.h"
+#include "FileTextEncoding.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -21,6 +22,85 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+/**
+ * @brief Prefixes to handle when searching for codepage names
+ */
+static LPCTSTR f_wincp_prefixes[] =
+{
+	_T("WINDOWS-")
+	, _T("WINDOWS")
+	, _T("CP")
+	, _T("CP-")
+	, _T("MSDOS")
+	, _T("MSDOS-")
+};
+
+/**
+ * @brief Is string non-empty and comprised entirely of numbers?
+ */
+static bool
+isNumeric(const CString & str)
+{
+	if (str.IsEmpty())
+		return false;
+	for (int i=0; i<str.GetLength(); ++i)
+	{
+		TCHAR ch = str[i];
+		if (!_istascii(ch) || !_istdigit(ch))
+			return false;
+	}
+	return true;
+}
+
+/**
+ * @brief Try to to match codepage name from codepages module, & watch for f_wincp_prefixes aliases
+ */
+static int
+FindEncodingIdFromNameOrAlias(CString encodingName)
+{
+	USES_CONVERSION;
+
+	// Try name as given
+	unsigned encodingId = GetEncodingIdFromName(T2CA(encodingName));
+	if (encodingId) return encodingId;
+
+	// Handle purely numeric values (codepages)
+	if (isNumeric(encodingName))
+	{
+		unsigned codepage = _ttoi(encodingName);
+		if (codepage)
+			encodingId = GetEncodingIdFromCodePage(codepage);
+		return encodingId;
+	}
+
+	for (int i=0; i<sizeof(f_wincp_prefixes)/sizeof(f_wincp_prefixes[0]); ++i)
+	{
+		// prefix is, eg, "WINDOWS-"
+		CString prefix = f_wincp_prefixes[i];
+		prefix.MakeUpper();
+		// check if encodingName starts with prefix
+		if (encodingName.GetLength() > prefix.GetLength())
+		{
+			CString encpref = encodingName.Left(prefix.GetLength());
+			encpref.MakeUpper();
+			if (prefix == encpref)
+			{
+				// encoding is, eg, "windows-1251"
+				CString remainder = encodingName.Mid(prefix.GetLength());
+				// remainder is, eg, "1251"
+				if (isNumeric(remainder))
+				{
+					unsigned codepage = _ttoi(remainder);
+					if (codepage)
+						encodingId = GetEncodingIdFromCodePage(codepage);
+					return encodingId;
+				}
+			}
+		}
+	}
+
+	return 0; // failed
+}
 
 /**
  * @brief Parser for HTML files to find encoding information
@@ -46,14 +126,7 @@ static unsigned demoGuessEncoding_html(const char *src, size_t len)
 					{
 						pchValue[cchValue] = '\0';
 						// Is it an encoding name known to charsets module ?
-						unsigned encodingId = GetEncodingIdFromName(pchValue);
-						if (encodingId == 0)
-						{
-							if (unsigned codepage = atoi(pchValue))
-							{
-								encodingId = GetEncodingIdFromCodePage(codepage);
-							}
-						}
+						unsigned encodingId = FindEncodingIdFromNameOrAlias(pchValue);
 						if (encodingId)
 						{
 							return GetEncodingCodePageFromId(encodingId);
@@ -79,15 +152,8 @@ static unsigned demoGuessEncoding_xml(const char *src, size_t len)
 		CMarkdown::String encoding = xml.GetAttribute("encoding");
 		if (encoding.A)
 		{
-			// Is it an encoding name known to charsets module ?
-			unsigned encodingId = GetEncodingIdFromName(encoding.A);
-			if (encodingId == 0)
-			{
-				if (unsigned codepage = atoi(encoding.A))
-				{
-					encodingId = GetEncodingIdFromCodePage(codepage);
-				}
-			}
+			// Is it an encoding name we can find in charsets module ?
+			unsigned encodingId = FindEncodingIdFromNameOrAlias(encoding.A);
 			if (encodingId)
 			{
 				return GetEncodingCodePageFromId(encodingId);
@@ -127,7 +193,7 @@ static unsigned demoGuessEncoding_rc(const char *src, size_t len)
 /**
  * @brief Try to deduce encoding for this file
  */
-unsigned GuessEncoding_from_bytes(LPCTSTR ext, const char *src, size_t len)
+static unsigned GuessEncoding_from_bytes(LPCTSTR ext, const char *src, size_t len)
 {
 	if (len > 4096)
 		len = 4096;
@@ -150,7 +216,7 @@ unsigned GuessEncoding_from_bytes(LPCTSTR ext, const char *src, size_t len)
 /**
  * @brief Try to deduce encoding for this file
  */
-bool GuessEncoding_from_bytes(LPCTSTR ext, const char **data, int count, int *codepage)
+bool GuessEncoding_from_bytes(LPCTSTR ext, const char **data, int count, FileTextEncoding * encoding)
 {
 	if (data)
 	{
@@ -158,7 +224,8 @@ bool GuessEncoding_from_bytes(LPCTSTR ext, const char **data, int count, int *co
 		size_t len = data[count] - src;
 		if (unsigned cp = GuessEncoding_from_bytes(ext, src, len))
 		{
-			*codepage = cp;
+			encoding->Clear();
+			encoding->SetCodepage(cp);
 			return true;
 		}
 	}
@@ -168,29 +235,40 @@ bool GuessEncoding_from_bytes(LPCTSTR ext, const char **data, int count, int *co
 /**
  * @brief Try to deduce encoding for this file
  */
-void GuessCodepageEncoding(LPCTSTR filepath, int *unicoding, int *codepage, BOOL bGuessEncoding)
+void GuessCodepageEncoding(LPCTSTR filepath, FileTextEncoding * encoding, BOOL bGuessEncoding)
 {
 	CMarkdown::FileImage fi(filepath, 4096);
-	*unicoding = ucr::NONE;
-	*codepage = getDefaultCodepage();
+	encoding->SetCodepage(getDefaultCodepage());
+	encoding->m_bom = false;
+	encoding->m_guessed = false;
 	switch (fi.nByteOrder)
 	{
 	case 8 + 2 + 0:
-		*unicoding = ucr::UCS2LE;
+		encoding->SetUnicoding(ucr::UCS2LE);
+		encoding->m_bom = true;
 		break;
 	case 8 + 2 + 1:
-		*unicoding = ucr::UCS2BE;
+		encoding->SetUnicoding(ucr::UCS2BE);
+		encoding->m_bom = true;
 		break;
-	case 8:
-		*unicoding = ucr::UTF8;
+	case 8 + 1:
+		encoding->SetUnicoding(ucr::UTF8);
+		encoding->m_bom = true;
 		break;
+	default:
+		encoding->m_bom = false;
+		break;
+
 	}
 	if (fi.nByteOrder == 1 && bGuessEncoding)
 	{
 		LPCTSTR ext = PathFindExtension(filepath);
-		if (unsigned cp = GuessEncoding_from_bytes(ext, (char *)fi.pImage, fi.cbImage))
+		const char *src = (char *)fi.pImage;
+		size_t len = fi.cbImage;
+		if (unsigned cp = GuessEncoding_from_bytes(ext, src, len))
 		{
-			*codepage = cp;
+			encoding->SetCodepage(cp);
+			encoding->m_guessed = true;
 		}
 	}
 }

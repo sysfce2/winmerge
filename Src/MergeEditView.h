@@ -24,7 +24,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: MergeEditView.h,v 1.60.2.2 2006/05/07 14:41:44 kimmov Exp $
+// $Id: MergeEditView.h 4539 2007-09-15 10:55:17Z kimmov $
 
 #if !defined(AFX_MERGEEDITVIEW_H__0CE31CFD_4BEE_4378_ADB4_B7C9F50A9F53__INCLUDED_)
 #define AFX_MERGEEDITVIEW_H__0CE31CFD_4BEE_4378_ADB4_B7C9F50A9F53__INCLUDED_
@@ -70,27 +70,6 @@ const UINT CONTEXT_LINES_BELOW = 3;
 
 
 /////////////////////////////////////////////////////////////////////////////
-
-/** 
-We use the current ccrystalEditor flags 
-
-This flag must be cleared and set in MergeEditView.cpp 
-and MergeDoc.cpp (Rescan) only.
-
-GetLineColors reads it to choose the line color.
-*/
-enum MERGE_LINEFLAGS
-{
-	LF_DIFF = 0x00200000L,
-	LF_TRIVIAL = 0x00800000L,
-	LF_MOVED = 0x01000000L,
-};
-
-// WINMERGE_FLAGS is MERGE_LINEFLAGS | GHOST_LINEFLAGS | LF_TRIVIAL | LF_MOVED
-#define LF_WINMERGE_FLAGS    0x01E00000
-
-
-/////////////////////////////////////////////////////////////////////////////
 // CMergeEditView view
 #ifndef __EDTLIB_H
 #include "edtlib.h"
@@ -99,6 +78,8 @@ enum MERGE_LINEFLAGS
 
 class IMergeEditStatus;
 class CLocationView;
+class CMergeDoc;
+struct DIFFRANGE;
 
 /**
 This class is the base class for WinMerge editor panels.
@@ -106,6 +87,7 @@ It hooks the painting of ghost lines (GetLineColors), the shared
 scrollbar (OnUpdateSibling...).
 It offers the UI interface commands to work with diffs 
 
+@todo
 If we keep GetLineColors here, we should clear DIFF flag here
 and not in CGhostTextBuffer (when insertText/deleteText). 
 Small problem... This class doesn't derives from CGhostTextBuffer... 
@@ -122,7 +104,7 @@ protected:
 
 // Attributes
 public:
-	BOOL m_bIsLeft;
+	int m_nThisPane;
 	LONG m_nModifications;
 	IMergeEditStatus * m_piMergeEditStatus; /**< interface to status bar */
 
@@ -144,13 +126,15 @@ private:
 	/// active prediffer ID : helper to check the radio button
 	int m_CurrentPredifferID;
 
+	BOOL m_bCurrentLineIsDiff; /**< TRUE if current line is diff-line */
 	CLocationView * m_pLocationView; /**< Pointer to locationview */
 	HWND m_hLocationview; /**< Handle to locationview */
+
 // Operations
 public:
 	void RefreshOptions();
 	BOOL EnableRescan(BOOL bEnable);
-	BOOL IsReadOnly(BOOL bLeft);
+	BOOL IsReadOnly(int pane);
 	void ShowDiff(BOOL bScroll, BOOL bSelectText);
 	virtual void OnEditOperation(int nAction, LPCTSTR pszText);
 	void UpdateLineLengths();
@@ -158,12 +142,9 @@ public:
 	void SelectNone();
 	void SelectDiff(int nDiff, BOOL bScroll =TRUE, BOOL bSelectText =TRUE);
 	virtual CCrystalTextBuffer *LocateTextBuffer ();
-	void ResetMod();
-	void AddMod();
 	void GetFullySelectedDiffs(int & firstDiff, int & lastDiff);
 	CString GetSelectedText();
 	CString GetLineText(int idx);
-	void DoScroll(UINT code, UINT pos, BOOL bDoScroll);
 	CMergeDoc* GetDocument();
 	void UpdateResources();
 	BOOL IsModified() { return (LocateTextBuffer()->IsModified()); }
@@ -178,10 +159,15 @@ public:
 	virtual void GetLineColors2 (int nLineIndex, DWORD ignoreFlags
 		, COLORREF & crBkgnd, COLORREF & crText, BOOL & bDrawWhitespace);
 	void WMGoto() { OnWMGoto(); };
-	void GotoLine(UINT nLine, BOOL bRealLine, BOOL bLeft);
+	void GotoLine(UINT nLine, BOOL bRealLine, int pane);
 	int GetTopLine() { return m_nTopLine; };
 	int GetScreenLines() { return CCrystalTextView::GetScreenLines(); };
+	virtual int GetEmptySubLines( int nLineIndex );
 	void RepaintLocationPane();
+	void SlavePrint(CDC* pDC, CPrintInfo* pInfo);
+	bool SetPredifferByName(const CString & prediffer);
+	void SetPredifferByMenu(UINT nID);
+	void DocumentsLoaded();
 	void SetLocationView(HWND hView, const CLocationView * pView = NULL);
 	void UpdateLocationViewPosition(int nTopLine = -1, int nBottomLine = -1);
 
@@ -190,8 +176,10 @@ public:
 	HMENU createPrediffersSubmenu(HMENU hMenu);
 
 	bool IsInitialized() const;
+	BOOL IsCursorInDiff() const;
+	BOOL IsDiffVisible(int nDiff);
 
-// Overrides
+	// Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CMergeEditView)
 	public:
@@ -200,6 +188,7 @@ public:
 	virtual void OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView);
 	virtual void OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	virtual void OnPrint(CDC* pDC, CPrintInfo* pInfo);
 	//}}AFX_VIRTUAL
 
 // Implementation
@@ -208,6 +197,8 @@ protected:
 	virtual void OnUpdateSibling (CCrystalTextView * pUpdateSource, BOOL bHorz);
 	virtual void OnUpdateCaret();
 	BOOL MergeModeKeyDown(MSG* pMsg);
+	int FindPrediffer(const CString & prediffer) const;
+	BOOL IsDiffVisible(const DIFFRANGE& diff, int nLinesBelow = 0);
 
 	// Generated message map functions
 protected:
@@ -242,15 +233,13 @@ protected:
 	afx_msg void OnUpdateEditUndo(CCmdUI* pCmdUI);
 	afx_msg void OnEditRedo();
 	afx_msg void OnUpdateEditRedo(CCmdUI* pCmdUI);
-	afx_msg void OnTimer(UINT nIDEvent);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnUpdateFileSaveLeft(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateFileSaveRight(CCmdUI* pCmdUI);
 	afx_msg void OnRefresh();
 	afx_msg void OnUpdateFileSave(CCmdUI* pCmdUI);
-	afx_msg void OnShowlineworddiff();
-	afx_msg void OnShowlinechardiff();
-	afx_msg void OnUpdateShowlineworddiff(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateShowlinechardiff(CCmdUI* pCmdUI);
+	afx_msg void OnSelectLineDiff();
+	afx_msg void OnUpdateSelectLineDiff(CCmdUI* pCmdUI);
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	afx_msg void OnUpdateEditReplace(CCmdUI* pCmdUI);
 	afx_msg void OnLeftReadOnly();
@@ -273,6 +262,7 @@ protected:
 	afx_msg void OnUpdateWMGoto(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateScripts(CCmdUI* pCmdUI);
 	afx_msg void OnScripts(UINT nID );
+	afx_msg void OnUpdateNoPrediffer(CCmdUI* pCmdUI);
 	afx_msg void OnUpdatePrediffer(CCmdUI* pCmdUI);
 	afx_msg void OnNoPrediffer();
 	afx_msg void OnPrediffer(UINT nID );
@@ -285,9 +275,18 @@ protected:
 	afx_msg void OnUpdateEditCopyLinenumbers(CCmdUI* pCmdUI);
 	afx_msg void OnViewLineDiffs();
 	afx_msg void OnUpdateViewLineDiffs(CCmdUI* pCmdUI);
+	afx_msg void OnViewLineNumbers();
+	afx_msg void OnUpdateViewLineNumbers(CCmdUI* pCmdUI);
+	afx_msg void OnViewWordWrap();
+	afx_msg void OnUpdateViewWordWrap(CCmdUI* pCmdUI);
 	afx_msg void OnOpenFile();
 	afx_msg void OnOpenFileWith();
 	afx_msg void OnOpenFileWithEditor();
+	afx_msg void OnViewSwapPanes();
+	afx_msg void OnUpdateViewSwapPanes(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateNoEditScripts(CCmdUI* pCmdUI);
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnHelp();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

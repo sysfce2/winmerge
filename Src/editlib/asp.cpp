@@ -629,6 +629,13 @@ ParseLineAsp (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItem
   int I=0;
   for (I = 0;; nPrevI = I, I = ::CharNext(pszChars+I) - pszChars)
     {
+      if (I == nPrevI)
+        {
+          // CharNext did not advance, so we're at the end of the string
+          // and we already handled this character, so stop
+          break;
+        }
+
       if (bRedefineBlock)
         {
           int nPos = I;
@@ -869,6 +876,7 @@ next:
           //  Preprocessor start: < or bracket
           if (!(dwCookie & COOKIE_EXT_USER1) && I < nLength && pszChars[I] == '<' && !(I < nLength - 3 && pszChars[I + 1] == '!' && pszChars[I + 2] == '-' && pszChars[I + 3] == '-'))
             {
+              DEFINE_BLOCK (I, COLORINDEX_OPERATOR);
               DEFINE_BLOCK (I + 1, COLORINDEX_PREPROCESSOR);
               dwCookie |= COOKIE_PREPROCESSOR;
               nIdentBegin = -1;

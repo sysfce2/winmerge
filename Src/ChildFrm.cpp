@@ -25,7 +25,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ChildFrm.cpp,v 1.34 2005/04/22 17:32:27 kimmov Exp $
+// $Id: ChildFrm.cpp 3625 2006-09-23 20:16:47Z kimmov $
 
 #include "stdafx.h"
 #include "Merge.h"
@@ -63,6 +63,7 @@ BEGIN_MESSAGE_MAP(CChildFrame, CMDIChildWnd)
 	ON_COMMAND_EX(ID_VIEW_DETAIL_BAR, OnBarCheck)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_LOCATION_BAR, OnUpdateControlBarMenu)
 	ON_COMMAND_EX(ID_VIEW_LOCATION_BAR, OnBarCheck)
+	ON_MESSAGE(MSG_STORE_PANESIZES, OnStorePaneSizes)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -103,6 +104,7 @@ CChildFrame::CChildFrame()
 {
 	m_bActivated = FALSE;
 	m_nLastSplitPos = 0;
+	m_pMergeDoc = 0;
 }
 
 CChildFrame::~CChildFrame()
@@ -113,18 +115,12 @@ CChildFrame::~CChildFrame()
 BOOL CChildFrame::OnCreateClient( LPCREATESTRUCT /*lpcs*/,
 	CCreateContext* pContext)
 {
-	//lpcs->style |= WS_MAXIMIZE;
 	// create a splitter with 1 row, 2 columns
 	if (!m_wndSplitter.CreateStatic(this, 1, 2, WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL) )
 	{
 		TRACE0("Failed to CreateStaticSplitter\n");
 		return FALSE;
 	}
-	
-	// add the first splitter pane - the default view in column 0
-	//int width=theApp.GetProfileInt(_T("Settings"), _T("WLeft"), 0);
-	//if (width<=0)
-	//	width = rc.Width()/2;
 
 	if (!m_wndSplitter.CreateView(0, 0,
 		RUNTIME_CLASS(CMergeEditView), CSize(-1, 200), pContext))
@@ -145,7 +141,9 @@ BOOL CChildFrame::OnCreateClient( LPCREATESTRUCT /*lpcs*/,
 	// Merge frame has also a dockable bar at the very left
 	// This is not the client area, but we create it now because we want
 	// to use the CCreateContext
-	if (!m_wndLocationBar.Create(this, _T(""), WS_CHILD | WS_VISIBLE, ID_VIEW_LOCATION_BAR))
+	CString sCaption;
+	VERIFY(sCaption.LoadString(IDS_LOCBAR_CAPTION));
+	if (!m_wndLocationBar.Create(this, sCaption, WS_CHILD | WS_VISIBLE, ID_VIEW_LOCATION_BAR))
 	{
 		TRACE0("Failed to create LocationBar\n");
 		return FALSE;
@@ -158,7 +156,8 @@ BOOL CChildFrame::OnCreateClient( LPCREATESTRUCT /*lpcs*/,
 	// Merge frame has also a dockable bar at the very bottom
 	// This is not the client area, but we create it now because we want
 	// to use the CCreateContext
-	if (!m_wndDetailBar.Create(this, _T(""), WS_CHILD | WS_VISIBLE, ID_VIEW_DETAIL_BAR))
+	VERIFY(sCaption.LoadString(IDS_DIFFBAR_CAPTION));
+	if (!m_wndDetailBar.Create(this, sCaption, WS_CHILD | WS_VISIBLE, ID_VIEW_DETAIL_BAR))
 	{
 		TRACE0("Failed to create DiffViewBar\n");
 		return FALSE;
@@ -189,8 +188,6 @@ BOOL CChildFrame::OnCreateClient( LPCREATESTRUCT /*lpcs*/,
 	m_wndDetailSplitter.ResizablePanes(TRUE);
 	m_wndDetailBar.setSplitter(&m_wndDetailSplitter);
 
-
-
 	// stash left & right pointers into the mergedoc
 	CMergeEditView * pLeft = (CMergeEditView *)m_wndSplitter.GetPane(0,0);
 	CMergeEditView * pRight = (CMergeEditView *)m_wndSplitter.GetPane(0,1);
@@ -198,26 +195,26 @@ BOOL CChildFrame::OnCreateClient( LPCREATESTRUCT /*lpcs*/,
 	pLeft->SetStatusInterface(&m_leftStatus);
 	pRight->SetStatusInterface(&m_rightStatus);
 	// tell merge doc about these views
-	CMergeDoc * pDoc = dynamic_cast<CMergeDoc *>(pContext->m_pCurrentDoc);
-	pDoc->SetMergeViews(pLeft, pRight);
-	pLeft->m_bIsLeft = TRUE;
-	pRight->m_bIsLeft = FALSE;
+	m_pMergeDoc = dynamic_cast<CMergeDoc *>(pContext->m_pCurrentDoc);
+	m_pMergeDoc->SetMergeViews(pLeft, pRight);
+	pLeft->m_nThisPane = 0;
+	pRight->m_nThisPane = 1;
 
 	// stash left & right detail pointers into the mergedoc
 	CMergeDiffDetailView * pLeftDetail = (CMergeDiffDetailView *)m_wndDetailSplitter.GetPane(0,0);
 	CMergeDiffDetailView * pRightDetail = (CMergeDiffDetailView *)m_wndDetailSplitter.GetPane(1,0);
 	// tell merge doc about these views
-	pDoc->SetMergeDetailViews(pLeftDetail, pRightDetail);
-	pLeftDetail->m_bIsLeft = TRUE;
-	pRightDetail->m_bIsLeft = FALSE;
+	m_pMergeDoc->SetMergeDetailViews(pLeftDetail, pRightDetail);
+	pLeftDetail->m_nThisPane = 0;
+	pRightDetail->m_nThisPane = 1;
 	
+	// Set frame window handles so we can post stage changes back
+	((CLocationView *)pWnd)->SetFrameHwnd(GetSafeHwnd());
+	pLeftDetail->SetFrameHwnd(GetSafeHwnd());
+	pRightDetail->SetFrameHwnd(GetSafeHwnd());
+	m_wndLocationBar.SetFrameHwnd(GetSafeHwnd());
+	m_wndDetailBar.SetFrameHwnd(GetSafeHwnd());
 	return TRUE;
-}
-
-BOOL CChildFrame::PreCreateWindow(CREATESTRUCT& cs)
-{
-
-	return CMDIChildWnd::PreCreateWindow(cs);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -255,8 +252,6 @@ int CChildFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	EnableDocking(CBRS_ALIGN_TOP|CBRS_ALIGN_BOTTOM|CBRS_ALIGN_LEFT | CBRS_ALIGN_RIGHT);
 
-//	ModifyStyle(WS_THICKFRAME,0); // this is necessary to prevent the sizing tab on right
-
 	// Merge frame has a header bar at top
 	if (!m_wndFilePathBar.Create(this))
 	{
@@ -264,7 +259,9 @@ int CChildFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // fail to create
 	}
 
-//	ModifyStyle(0,WS_THICKFRAME);
+	// Set filename bars inactive so colors get initialized
+	m_wndFilePathBar.SetActive(0, FALSE);
+	m_wndFilePathBar.SetActive(1, FALSE);
 
 	// Merge frame also has a dockable bar at the very left
 	// created in OnCreateClient 
@@ -392,8 +389,6 @@ void CChildFrame::ActivateFrame(int nCmdShow)
 	{
 		m_bActivated = TRUE;
 
-		// TODO : delete oldkey /*		if(theApp.GetProfileInt(_T("Settings"), _T("LeftMax"), TRUE))
-		// TODO : delete oldkey /*		if(theApp.GetProfileInt(_T("Settings"), _T("DirViewMax"), TRUE))
 		// get the active child frame, and a flag whether it is maximized
 		if (oldActiveFrame == NULL)
 			// for the first frame, get the restored/maximized state from the registry
@@ -409,10 +404,10 @@ void CChildFrame::ActivateFrame(int nCmdShow)
 	int initialDiffHeight = ((CMergeDiffDetailView*)m_wndDetailSplitter.GetPane(1,0))->ComputeInitialHeight();
 	UpdateDiffDockbarHeight(initialDiffHeight);
 	// load docking positions and sizes
-	CDockState m_pDockState;
-	m_pDockState.LoadState(_T("Settings"));
-	if (EnsureValidDockState(m_pDockState)) // checks for valid so won't ASSERT
-		SetDockState(m_pDockState);
+	CDockState pDockState;
+	pDockState.LoadState(_T("Settings"));
+	if (EnsureValidDockState(pDockState)) // checks for valid so won't ASSERT
+		SetDockState(pDockState);
 	// for the dimensions of the diff and location pane, use the CSizingControlBar loader
 	m_wndLocationBar.LoadState(_T("Settings"));
 	m_wndDetailBar.LoadState(_T("Settings"));
@@ -557,18 +552,12 @@ void CChildFrame::UpdateHeaderSizes()
 	}
 }
 
-IHeaderBar * CChildFrame::GetHeaderInterface() {
+IHeaderBar * CChildFrame::GetHeaderInterface()
+{
 	return &m_wndFilePathBar;
 }
 
-BOOL CChildFrame::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult) 
-{
-	// TODO: Add your specialized code here and/or call the base class
-	
-	return CMDIChildWnd::OnNotify(wParam, lParam, pResult);
-}
-
-void CChildFrame::OnTimer(UINT nIDEvent) 
+void CChildFrame::OnTimer(UINT_PTR nIDEvent) 
 {
 	if (IsWindowVisible())
 	{
@@ -650,8 +639,8 @@ static CString EolString(const CString & sEol)
 void CChildFrame::MergeStatus::SetLineInfo(LPCTSTR szLine, int nColumn,
 		int nColumns, int nChar, int nChars, LPCTSTR szEol)
 {
-	if (m_sLine.Compare(szLine) != 0 || m_nColumn != nColumn ||
-		m_nChars != nChars || m_sEol.Compare(szEol) != 0)
+	if (m_sLine.Compare(szLine) != 0 || m_nColumn != nColumn || m_nColumns != nColumns ||
+		m_nChar != nChar || m_nChars != nChars || m_sEol.Compare(szEol) != 0)
 	{
 		m_sLine = szLine;
 		m_nColumn = nColumn;
@@ -671,4 +660,13 @@ void CChildFrame::UpdateResources()
 {
 	m_leftStatus.UpdateResources();
 	m_rightStatus.UpdateResources();
+}
+
+/**
+ * @brief Save pane sizes and positions when one of panes requests it.
+ */
+LRESULT CChildFrame::OnStorePaneSizes(WPARAM wParam, LPARAM lParam)
+{
+	SavePosition();
+	return 0;
 }

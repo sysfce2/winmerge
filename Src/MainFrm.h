@@ -24,7 +24,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: MainFrm.h,v 1.105.2.1 2006/02/15 20:20:48 kimmov Exp $
+// $Id: MainFrm.h 4034 2007-01-11 13:57:37Z galh $
 
 #if !defined(AFX_MAINFRM_H__BBCD4F8C_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MAINFRM_H__BBCD4F8C_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -32,6 +32,7 @@
 #include "ToolBarXPThemes.h"
 #include "OptionsMgr.h"
 #include "VSSHelper.h"
+struct FileLocation;
 
 #define BACKUP_FILE_EXT   _T(".bak")
 
@@ -77,7 +78,6 @@ typedef CTypedPtrList<CPtrList, CDirView *> DirViewList;
 typedef CTypedPtrList<CPtrList, CMergeDoc *> MergeDocList;
 typedef CTypedPtrList<CPtrList, CDirDoc *> DirDocList;
 
-class CRegOptions;
 class PackingInfo;
 
 /**
@@ -91,7 +91,7 @@ public:
 
 // Attributes
 public:	
-	BOOL m_bShowErrors;
+	BOOL m_bShowErrors; /**< Show folder compare error items? */
 	LOGFONT m_lfDiff; /**< MergeView user-selected font */
 	LOGFONT m_lfDir; /**< DirView user-selected font */
 
@@ -107,29 +107,35 @@ public:
 	BOOL SyncFileToVCS(LPCTSTR pszSrc, LPCTSTR pszDest,	BOOL &bApplyToAll,
 		CString *psError);
 	BOOL DoFileOpen(LPCTSTR pszLeft = NULL, LPCTSTR pszRight = NULL,
-		DWORD dwLeftFlags = 0, DWORD dwRightFlags = 0, BOOL bRecurse = FALSE, CDirDoc *pDirDoc = NULL);
-	int ShowMergeDoc(CDirDoc * pDirDoc, LPCTSTR szLeft, LPCTSTR szRight, BOOL bROLeft, BOOL bRORight, int cpleft =-1, int cpright =-1, PackingInfo * infoUnpacker = NULL);
+		DWORD dwLeftFlags = 0, DWORD dwRightFlags = 0, BOOL bRecurse = FALSE, CDirDoc *pDirDoc = NULL, CString prediffer = _T(""));
+	int ShowMergeDoc(CDirDoc * pDirDoc, const FileLocation & filelocLeft,
+		const FileLocation & filelocRight, BOOL bROLeft, BOOL bRORight, PackingInfo * infoUnpacker = NULL);
 	void UpdateResources();
 	BOOL CreateBackup(LPCTSTR pszPath);
 	int HandleReadonlySave(CString& strSavePath, BOOL bMultiFile, BOOL &bApplyToAll);
-	BOOL SaveToVersionControl(CString& strSavePath);
 	CString SetStatus(LPCTSTR status);
 	void ApplyViewWhitespace();
 	BOOL OpenFileToExternalEditor(CString file);
 	CString GetDefaultEditor();
+	CString GetDefaultFilterUserPath(BOOL bCreate = FALSE);
 	void SetEOLMixed(BOOL bAllow);
 	void SelectFilter();
 	void ShowVSSError(CException *e, CString strItem);
-	void ShowHelp();
+	void ShowHelp(LPCTSTR helpLocation = NULL);
 	void UpdateCodepageModule();
 	void GetDirViews(DirViewList * pDirViews);
 	void GetMergeEditViews(MergeEditViewList * pMergeViews);
+	void CheckinToClearCase(CString strDestinationPath);
+	COptionsMgr * GetTheOptionsMgr() { return &m_options; }
+	void ResetOptions() { OptionsInit(); }
+	static void CenterToMainFrame(CDialog * dlg);
+	static void SetMainIcon(CDialog * dlg);
+	void StartFlashing();
 
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CMainFrame)
 	public:
-	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual void ActivateFrame(int nCmdShow = -1);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	//}}AFX_VIRTUAL
@@ -137,24 +143,34 @@ public:
 // Implementation methods
 protected:
 	virtual ~CMainFrame();
+// Implementation in SourceControl.cpp
+	void InitializeSourceControlMembers();
+	BOOL SaveToVersionControl(CString& strSavePath);
+// End SourceControl.cpp
+
 
 // Public implementation data
 public:
-	CRegOptions m_options; /**< Options manager */
 	BOOL m_bFirstTime; /**< If first time frame activated, get  pos from reg */
 	CString m_strSaveAsPath; /**< "3rd path" where output saved if given */
 	BOOL m_bEscShutdown; /**< If commandline switch -e given ESC closes appliction */
-	VSSHelper m_vssHelper;
-	SyntaxColors *m_pSyntaxColors; /**< Syntax color container */
+	VSSHelper m_vssHelper; /**< Helper class for VSS integration */
+	SyntaxColors * GetMainSyntaxColors() { return m_pSyntaxColors; }
 	BOOL m_bClearCaseTool; /**< WinMerge is executed as an external Rational ClearCase compare/merge tool. */
+	BOOL m_bFlashing; /**< Window is flashing. */
+	BOOL m_bExitIfNoDiff; /**< If command line switch -x given close application if files are identical. */
 
 	/**
 	 * @name Version Control System (VCS) integration.
 	 */
 	/*@{*/ 
+protected:
 	CString m_strVssUser; /**< Visual Source Safe User ID */
 	CString m_strVssPassword; /**< Visual Source Safe Password */
-	CString m_strVssDatabase;
+	CString m_strVssDatabase; /**< Visual Source Safe database */
+	CString m_strCCComment; /**< ClearCase comment */
+public:
+	BOOL m_bCheckinVCS;     /**< TRUE if files should be checked in after checkout */
 	BOOL m_CheckOutMulti; /**< Suppresses VSS int. code asking checkout for every file */
 	BOOL m_bVCProjSync; /**< VC project opened from VSS sync? */
 	BOOL m_bVssSuppressPathCheck; /**< Suppresses VSS int code asking about different path */
@@ -175,10 +191,21 @@ public:
 	/*@}*/
 
 // Implementation data
+protected:
 
-protected:  // control bar embedded members
+
+	// control bar embedded members
 	CStatusBar  m_wndStatusBar;
 	ToolBarXPThemes m_wndToolBar;
+
+	enum
+	{
+		TOOLBAR_IMAGES_ENABLED,
+		TOOLBAR_IMAGES_DISABLED,
+		TOOLBAR_IMAGES_COUNT
+	};
+
+	CImageList m_ToolbarImages[TOOLBAR_IMAGES_COUNT];
 
 	enum
 	{
@@ -187,7 +214,10 @@ protected:  // control bar embedded members
 		MENU_DIRVIEW,
 		MENU_COUNT, // Add new items before this item
 	};
-	BCMenu * m_pMenus[MENU_COUNT];
+	BCMenu * m_pMenus[MENU_COUNT]; /**< Menus for different views */
+
+	CRegOptionsMgr m_options; /**< Options manager */
+	SyntaxColors *m_pSyntaxColors; /**< Syntax color container */
 
 // Generated message map functions
 protected:
@@ -218,6 +248,10 @@ protected:
 	afx_msg void OnUpdateViewUsedefaultfont(CCmdUI* pCmdUI);
 	afx_msg void OnHelpContents();
 	afx_msg void OnUpdateHelpContents(CCmdUI* pCmdUI);
+	afx_msg void OnHelpIndex();
+	afx_msg void OnUpdateHelpIndex(CCmdUI* pCmdUI);
+	afx_msg void OnHelpSearch();
+	afx_msg void OnUpdateHelpSearch(CCmdUI* pCmdUI);
 	afx_msg void OnClose();
 	afx_msg void OnViewWhitespace();
 	afx_msg void OnUpdateViewWhitespace(CCmdUI* pCmdUI);
@@ -231,7 +265,7 @@ protected:
 	afx_msg void OnSaveConfigData();
 	afx_msg void OnFileNew();
 	afx_msg void OnToolsFilters();
-	afx_msg void OnToolsLoadConfig();
+	afx_msg void OnDebugLoadConfig();
 	afx_msg void OnHelpMerge7zmismatch();
 	afx_msg void OnUpdateHelpMerge7zmismatch(CCmdUI* pCmdUI);
 	afx_msg void OnViewStatusBar();
@@ -239,9 +273,12 @@ protected:
 	afx_msg void OnFileOpenproject();
 	afx_msg LRESULT OnCopyData(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnUser(WPARAM wParam, LPARAM lParam);
-	afx_msg void OnTimer(UINT nIDEvent);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnWindowCloseAll();
 	afx_msg void OnUpdateWindowCloseAll(CCmdUI* pCmdUI);
+	afx_msg void OnSaveProject();
+	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
+	afx_msg void OnNcDestroy();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
@@ -262,9 +299,13 @@ private:
 	CDirDoc * GetDirDocToShow(BOOL * pNew);
 	void ShowFontChangeMessage();
 	void OptionsInit();
+	void OpenFileOrUrl(LPCTSTR szFile, LPCTSTR szUrl);
+	BOOL CreateToobar();
+	CMergeEditView * GetActiveMergeEditView();
 };
 
-extern CMainFrame *mf;
+CMainFrame * GetMainFrame(); // access to the singleton main frame object
+SyntaxColors * GetMainSyntaxColors(); // access to the singleton set of syntax colors
 
 /////////////////////////////////////////////////////////////////////////////
 

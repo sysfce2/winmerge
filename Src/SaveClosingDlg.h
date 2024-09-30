@@ -20,7 +20,7 @@
  * @brief Declaration file for SaveClosingDlg dialog
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: SaveClosingDlg.h,v 1.3 2005/05/25 00:14:21 elsapo Exp $
+// $Id: SaveClosingDlg.h 2389 2005-05-25 00:14:21Z elsapo $
 
 
 #ifndef _SAVECLOSINGDLG_H_

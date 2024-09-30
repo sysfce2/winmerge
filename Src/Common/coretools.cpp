@@ -5,11 +5,9 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: coretools.cpp,v 1.22.2.2 2006/02/15 20:19:50 kimmov Exp $
+// $Id: coretools.cpp 3128 2006-03-04 03:47:22Z elsapo $
+
 #include "stdafx.h"
-#ifndef __AFXDISP_H__
-#include <afxdisp.h>
-#endif // __AFXDISP_H__
 #include <stdio.h>
 #include <io.h>
 #include <mbctype.h> // MBCS (multibyte codepage stuff)
@@ -18,9 +16,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <math.h>
-#include "coretools.h"
 #include <winsock.h>
 #include <assert.h>
+
+#ifndef __AFXDISP_H__
+#include <afxdisp.h>
+#endif
+
+#include "coretools.h"
 
 #ifndef countof
 #define countof(array)  (sizeof(array)/sizeof((array)[0]))
@@ -532,6 +535,50 @@ SwapEndian(short int val)
 #endif
 }
 
+// Get user language description of error, if available
+static CString MyGetSysError(int nerr)
+{
+	LPVOID lpMsgBuf;
+	CString str = _T("?");
+	if (FormatMessage( 
+		FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+		FORMAT_MESSAGE_FROM_SYSTEM | 
+		FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL,
+		nerr,
+		0, // Default language
+		(LPTSTR) &lpMsgBuf,
+		0,
+		NULL 
+		))
+	{
+		str = (LPCTSTR)lpMsgBuf;
+	}
+	// Free the buffer.
+	LocalFree( lpMsgBuf );
+	return str;
+}
+
+// Create directory (via Win32 API)
+// if success, or already exists, return TRUE
+// if failure, return system error string
+// (NB: Win32 CreateDirectory reports failure if already exists)
+static BOOL MyCreateDirectoryIfNeeded(LPCTSTR lpPathName, CString * perrstr)
+{
+	LPSECURITY_ATTRIBUTES lpSecurityAttributes = NULL;
+	int rtn = CreateDirectory(lpPathName, lpSecurityAttributes);
+	if (!rtn)
+	{
+		int errnum = GetLastError();
+		// Consider it success if directory already exists
+		if (errnum == ERROR_ALREADY_EXISTS)
+			return TRUE;
+		CString errdesc = MyGetSysError(errnum);
+		if (perrstr)
+			perrstr->Format(_T("%d: %s"), errnum, (LPCTSTR)errdesc);
+	}
+	return rtn;
+}
 
 BOOL MkDirEx(LPCTSTR filename)
 {
@@ -545,28 +592,35 @@ BOOL MkDirEx(LPCTSTR filename)
 		p=_tcschr(_tcsinc(tempPath),_T('\\'));
 	else
 		p=tempPath;
+	CString errstr;
 	if (p!=NULL)
 		for (; *p != _T('\0'); p = _tcsinc(p))
 		{
 			if (*p == _T('\\'))
 			{
 				_tccpy(p, _T("\0"));
-				if (!CreateDirectory(tempPath, NULL)
-					&& !CreateDirectory(tempPath, NULL))
-					TRACE(_T("Failed to create folder %s (%ld)\n"),tempPath, GetLastError());
-				_tccpy(p, _T("\\"));
+				if (0 && _tcscmp(tempPath, _T(".")) == 0)
+				{
+					// Don't call CreateDirectory(".")
+				}
+				else
+				{
+					if (!MyCreateDirectoryIfNeeded(tempPath, &errstr)
+						&& !MyCreateDirectoryIfNeeded(tempPath, &errstr))
+						TRACE(_T("Failed to create folder %s: %s\n"), tempPath, (LPCTSTR)errstr);
+					_tccpy(p, _T("\\"));
+				}
 			}
 
 		}
 
-		if (!CreateDirectory(filename, NULL)
-			&& !CreateDirectory(filename, NULL))
-			TRACE(_T("Failed to create folder %s (%ld)\n"),filename, GetLastError());
+		if (!MyCreateDirectoryIfNeeded(filename, &errstr)
+			&& !MyCreateDirectoryIfNeeded(filename, &errstr))
+			TRACE(_T("Failed to create folder %s: %s\n"), filename, (LPCTSTR)errstr);
 
 	CFileStatus status;
 	return (CFile::GetStatus(filename, status));
 }
-
 
 float
 RoundMeasure(float measure, float units)
@@ -660,6 +714,13 @@ CString LegalizeFileName(LPCTSTR szFileName)
 	return CString(tempname);
 }
 
+static double tenpow(int expon)
+{
+	double base=10;
+	double rtn = pow(base, expon);
+	return rtn;
+}
+
 void DDX_Float( CDataExchange* pDX, int nIDC, float& value )
 {
 	pDX->PrepareEditCtrl(nIDC);
@@ -722,7 +783,7 @@ void DDX_Float( CDataExchange* pDX, int nIDC, float& value )
 			p = _tcstok(fstr, negsign);
 			if (p != NULL)
 			{
-				double shift = (pow(10, _tcslen(p)));
+				double shift = tenpow(_tcslen(p));
 				if (shift)
 					value += (float)(_tcstod(p,NULL)/shift);
 				else
@@ -806,7 +867,7 @@ void DDX_Double( CDataExchange* pDX, int nIDC, double& value )
 			p = _tcstok(fstr, negsign);
 			if (p != NULL)
 			{
-				double shift = (pow(10, _tcslen(p)));
+				double shift = tenpow(_tcslen(p));
 				if (shift)
 					value += /*(float)*/(_tcstod(p,NULL)/shift);
 				else
@@ -1001,7 +1062,7 @@ HANDLE RunIt(LPCTSTR szExeFile, LPCTSTR szArgs, BOOL bMinimized /*= TRUE*/, BOOL
     si.lpDesktop = _T("");
     si.lpTitle = NULL;
     si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = (WORD)(bMinimized? SW_MINIMIZE : SW_NORMAL);
+    si.wShowWindow = (WORD)(SW_HIDE);
     si.cbReserved2 = 0;
     si.lpReserved2 = NULL;
 
@@ -1030,7 +1091,8 @@ BOOL HasExited(HANDLE hProcess, DWORD *pCode)
      return FALSE;
 }
 
-
+#ifdef BROKEN
+// This function assigns to path, which is clearly bad as path is LPCTSTR
 BOOL IsLocalPath(LPCTSTR path)
 {
 
@@ -1042,10 +1104,9 @@ BOOL IsLocalPath(LPCTSTR path)
   BOOL bUNC=FALSE;
   BOOL bLocal=FALSE;
 
-  _TCHAR* pLoc;
+  TCHAR* pLoc=0;
 
   CString szInfo;
-
 
   //We need to get the root directory into an sz
   if((pLoc=_tcsstr(path, _T("\\\\")))!=NULL)
@@ -1077,7 +1138,6 @@ BOOL IsLocalPath(LPCTSTR path)
     }
     _tcscpy(finalpath, temppath);
   }
-
 
   if(bUNC)
   {
@@ -1136,6 +1196,7 @@ BOOL IsLocalPath(LPCTSTR path)
 
   return bLocal;
 }
+#endif
 
 // return module's path component (without filename)
 CString GetModulePath(HMODULE hModule /* = NULL*/)

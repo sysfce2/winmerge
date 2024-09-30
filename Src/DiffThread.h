@@ -20,7 +20,7 @@
  * @brief Declaration file for CDiffThread
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffThread.h,v 1.6 2005/06/13 17:33:07 kimmov Exp $
+// $Id: DiffThread.h 2773 2005-12-02 02:00:50Z elsapo $
 
 #ifndef _DIFFTTHREAD_H
 #define _DIFFTHREAD_H
@@ -72,7 +72,6 @@ private:
 	DiffFuncStruct * m_pDiffParm;
 	DiffThreadAbortable * m_pAbortgate;
 	UINT m_msgUpdateUI;
-	UINT m_msgUpdateStatus;
 	HWND m_hWnd;
 	bool m_bAborting;
 	bool m_bOnlyRequested;

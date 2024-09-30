@@ -21,13 +21,15 @@
 /////////////////////////////////////////////////////////////////////////////
 
 // RCS ID line follows -- this is updated by CVS
-// $Id: WinMergeScript.cpp,v 1.2.2.2 2006/08/10 15:12:33 kimmov Exp $
+// $Id: WinMergeScript.cpp 2807 2005-12-10 05:29:05Z elsapo $
 
 #include "stdafx.h"
 #include <stdio.h>
 #include "DisplayXMLFiles.h"
 #include "WinMergeScript.h"
 #include "expat.h"
+#include "expat_maps.h"
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CWinMergeScript
@@ -47,7 +49,13 @@ STDMETHODIMP CWinMergeScript::get_PluginDescription(BSTR *pVal)
 
 STDMETHODIMP CWinMergeScript::get_PluginFileFilters(BSTR *pVal)
 {
-	*pVal = SysAllocString(L"\\.xml$");
+	// xml - XML files
+	// xsd - XML schema files
+	// xsl - XML style sheet, xslt-fo, whatever
+	// xslt - XML style sheet
+	// svg - Scalable Vector graphics
+	// wsf - Windows Scripting Host files
+	*pVal = SysAllocString(L"\\.xml;\\.xsd;\\.xsl;\\.xslt;\\.svg;\\.wsf$");
 	return S_OK;
 }
 
@@ -248,6 +256,15 @@ static void XMLCALL XmlDeclHandler(void *userData, const char *version, const ch
 	fprintf(pData->pOutput," ?>\n");
 }
 
+static int
+WinMerge_Plug_UnknownEncodingHandler(void *encodingHandlerData,
+	const XML_Char *name,
+	XML_Encoding *info)
+{
+	return expat_maps_getMap(name, info);
+}
+
+
 STDMETHODIMP CWinMergeScript::UnpackFile(BSTR fileSrc, BSTR fileDst, VARIANT_BOOL *pbChanged, INT *pSubcode, VARIANT_BOOL *pbSuccess)
 {
 	USES_CONVERSION;
@@ -271,6 +288,7 @@ STDMETHODIMP CWinMergeScript::UnpackFile(BSTR fileSrc, BSTR fileDst, VARIANT_BOO
 	//XML_SetProcessingInstructionHandler(parser, ProcessingInstructionHandler);
 	XML_SetCommentHandler(parser, CommentHandler);
 	XML_SetXmlDeclHandler(parser, XmlDeclHandler);
+	XML_SetUnknownEncodingHandler(parser, WinMerge_Plug_UnknownEncodingHandler, this);
 	int done;
 	do
 	{

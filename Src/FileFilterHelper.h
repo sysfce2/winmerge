@@ -20,7 +20,7 @@
  * @brief Declaration file for FileFilterHelper
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: FileFilterHelper.h,v 1.14 2005/07/26 06:11:23 elsapo Exp $
+// $Id: FileFilterHelper.h 3423 2006-08-02 19:36:12Z kimmov $
 
 #ifndef _FILEFILTERHELPER_H_
 #define _FILEFILTERHELPER_H_
@@ -111,6 +111,7 @@ public:
 	void GetFileFilters(FILEFILTER_INFOLIST * filters, CString & selected) const;
 	CString GetFileFilterName(CString filterPath) const;
 	CString GetFileFilterPath(CString filterName) const;
+	void SetUserFilterPath(const CString & filterPath);
 
 	void ReloadUpdatedFilters();
 	void LoadAllFileFilters();
@@ -140,7 +141,7 @@ private:
 	CString m_sMask;   /*< File mask (if defined) "*.cpp *.h" etc */
 	BOOL m_bUseMask;   /*< If TRUE file mask is used, filter otherwise */
 	CString m_sGlobalFilterPath;    /*< Path for shared filters */
-	CString m_sUserFilterPath;     /*< Path for user's private filters */
+	CString m_sUserSelFilterPath;     /*< Path for user's private filters */
 
 	CRegExp m_rgx;     /*< Compiled file mask regular expression */
 };

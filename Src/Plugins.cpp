@@ -24,7 +24,7 @@
  *  @brief Support for VBS Scriptlets, VB ActiveX DLL, VC++ COM DLL
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: Plugins.cpp,v 1.24 2005/03/18 17:42:11 elsapo Exp $
+// $Id: Plugins.cpp 3584 2006-09-19 16:35:48Z kimmov $
 
 #include "StdAfx.h"
 #ifndef __AFXMT_H__
@@ -96,10 +96,12 @@ int GetFunctionsFromScript(LPDISPATCH piDispatch, BSTR *& namesArray, int *& IdA
 	UINT iValidFunc = 0;
 	if (piDispatch)
 	{
-		ITypeInfo *piTypeInfo;
-		if SUCCEEDED(hr = piDispatch->GetTypeInfo(0, 0, &piTypeInfo))
+		ITypeInfo *piTypeInfo=0;
+		unsigned int  iTInfo = 0; // 0 for type information of IDispatch itself
+		LCID  lcid=0; // locale for localized method names (ignore if no localized names)
+		if SUCCEEDED(hr = piDispatch->GetTypeInfo(iTInfo, lcid, &piTypeInfo))
 		{
-			TYPEATTR *pTypeAttr;
+			TYPEATTR *pTypeAttr=0;
 			if SUCCEEDED(hr = piTypeInfo->GetTypeAttr(&pTypeAttr))
 			{
 				// allocate arrays for the returned structures
@@ -510,6 +512,9 @@ static int LoadPlugin(PluginInfo & plugin, const CString & scriptletFilepath, LP
 	drv.m_lpDispatch = NULL;
 
 	plugin.lpDispatch = lpDispatch;
+
+	plugin.filepath = scriptletFilepath;
+
 	return 1;
 }
 
@@ -553,7 +558,7 @@ static CStringArray & LoadTheScriptletList()
 		if (IsWindowsScriptThere())
 			GetScriptletsAt(path, _T(".sct"), theScriptletList );		// VBS/JVS scriptlet
 		else
-			gLog.Write(LOGLEVEL::LWARNING, _T("\n  .sct plugins disabled (Windows Script Host not found)"));
+			gLog.Write(CLogFile::LWARNING, _T("\n  .sct plugins disabled (Windows Script Host not found)"));
 		GetScriptletsAt(path, _T(".ocx"), theScriptletList );		// VB COM object
 		GetScriptletsAt(path, _T(".dll"), theScriptletList );		// VC++ COM object
 		scriptletsLoaded = true;

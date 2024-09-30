@@ -6,7 +6,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffViewBar.cpp,v 1.3.2.1 2006/01/07 12:03:21 kimmov Exp $
+// $Id: DiffViewBar.cpp 2913 2006-01-04 21:36:46Z kimmov $
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -29,6 +29,7 @@ IMPLEMENT_DYNAMIC(CDiffViewBar, TViewBarBase);
 
 CDiffViewBar::CDiffViewBar()
 : m_pwndDetailSplitter(0)
+, m_hwndFrame(NULL)
 {
 }
 
@@ -43,6 +44,7 @@ BEGIN_MESSAGE_MAP(CDiffViewBar, TViewBarBase)
 	ON_WM_CREATE()
 	ON_WM_SIZE()
 	ON_WM_LBUTTONDOWN()
+	ON_WM_WINDOWPOSCHANGED()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -131,4 +133,29 @@ void CDiffViewBar::OnLButtonDown(UINT nFlags, CPoint point)
 		if (IsHorzDocked() == FALSE)
 			m_pDockContext->ToggleDocking();
 	}
+}
+
+/** 
+ * @brief Informs parent frame (CChildFrame) when bar is closed.
+ *
+ * After bar is closed parent frame saves bar states.
+ */
+void CDiffViewBar::OnWindowPosChanged(WINDOWPOS* lpwndpos)
+{
+	TViewBarBase::OnWindowPosChanged(lpwndpos);
+
+	if (m_hwndFrame != NULL)
+	{
+		// If WINDOWPOS.flags has SWP_HIDEWINDOW flag set
+		if ((lpwndpos->flags & SWP_HIDEWINDOW) != 0)
+			::PostMessage(m_hwndFrame, MSG_STORE_PANESIZES, 0, 0);
+	}
+}
+
+/** 
+ * @brief Stores HWND of frame window (CChildFrame).
+ */
+void CDiffViewBar::SetFrameHwnd(HWND hwndFrame)
+{
+	m_hwndFrame = hwndFrame;
 }

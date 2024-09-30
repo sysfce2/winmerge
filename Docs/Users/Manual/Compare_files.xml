@@ -3,9 +3,15 @@
   <title>Comparing Files</title>
 
   <para>File compare window is basically two files opened to editor into two
-  horizontal panes. Editing files is the big difference between 1.7.1 and
-  newer versions. Editing allows user to easily do small changes without the
-  need to open the files to other editor or development environment.</para>
+  horizontal panes. The editor allows user to do basic file editing inside
+  WinMerge without needing to open files to external editor program or
+  devepment environment.</para>
+
+  <mediaobject>
+    <imageobject>
+      <imagedata fileref="screenshots/filecomp1.png" format="PNG" />
+    </imageobject>
+  </mediaobject>
 
   <para>WinMerge editor is not comparable to specialized editor programs, but
   it has basic features like
@@ -20,12 +26,6 @@
     <para>If <guilabel>Automatic rescan</guilabel> is not enabled manual
     refresh is recommended after editing.</para>
   </tip>
-
-  <mediaobject>
-    <imageobject>
-      <imagedata fileref="screenshots/filecomp1.gif" format="GIF" />
-    </imageobject>
-  </mediaobject>
 
   <sect2>
     <title>Showing the Differences</title>
@@ -45,7 +45,7 @@
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="screenshots/File_headerbar1.gif" format="GIF" />
+          <imagedata fileref="screenshots/file_headerbar1.png" format="PNG" />
         </imageobject>
       </inlinemediaobject></para>
 
@@ -53,15 +53,15 @@
     than available space one part of the path is replaced with an ellipsis
     (...). Headerbar also shows:<itemizedlist>
         <listitem>
-          <para>the current active file with sunken border (like in the above
-          screenshot), the non-active file is shown with flat
-          headerbar.</para>
+          <simpara>the current active file with sunken border (like in the
+          above screenshot), the non-active file is shown with flat
+          headerbar.</simpara>
         </listitem>
 
         <listitem>
-          <para>if the file has been modified (has unsaved changes). This is
-          indicated by adding asterisk (<guilabel>*</guilabel>) before the
-          filename, like in the screenshot.</para>
+          <simpara>if the file has been modified (has unsaved changes). This
+          is indicated by adding asterisk (<guilabel>*</guilabel>) before the
+          filename, like in the screenshot.</simpara>
         </listitem>
       </itemizedlist></para>
 
@@ -84,23 +84,23 @@
 
     <itemizedlist>
       <listitem>
-        <para><guilabel>Ln</guilabel> : current linenumber</para>
+        <simpara><guilabel>Ln</guilabel> : current linenumber</simpara>
       </listitem>
 
       <listitem>
-        <para><guilabel>Col</guilabel>: current column for cursor and total
-        number of columns in line</para>
+        <simpara><guilabel>Col</guilabel>: current column for cursor and total
+        number of columns in line</simpara>
       </listitem>
 
       <listitem>
-        <para><guilabel>Ch</guilabel> : current char for cursor and total
-        number of chars in line</para>
+        <simpara><guilabel>Ch</guilabel> : current char for cursor and total
+        number of chars in line</simpara>
       </listitem>
 
       <listitem>
-        <para><guilabel>EOL</guilabel> : current line EOL style (shown only
+        <simpara><guilabel>EOL</guilabel> : current line EOL style (shown only
         when <guilabel>Preserve original EOL chars</guilabel>-option is
-        enabled)</para>
+        enabled)</simpara>
       </listitem>
     </itemizedlist>
 
@@ -127,32 +127,64 @@
     <para>Lower line in statusbar shows current difference and amount of
     differences. Text can be:<itemizedlist>
         <listitem>
-          <para><guilabel>Identical</guilabel> : files are identical there are
-          no differences</para>
+          <simpara><guilabel>Identical</guilabel> : files are identical there
+          are no differences</simpara>
         </listitem>
 
         <listitem>
-          <para><guilabel>X differences</guilabel> : amount of differences, no
-          difference is selected</para>
+          <simpara><guilabel>X differences</guilabel> : amount of differences,
+          no difference is selected</simpara>
         </listitem>
 
         <listitem>
-          <para><guilabel>Difference X of Y</guilabel> : amount of differences
-          (<guilabel>Y</guilabel>) and number of selected difference
-          (<guilabel>X</guilabel>)</para>
+          <simpara><guilabel>Difference X of Y</guilabel> : amount of
+          differences (<guilabel>Y</guilabel>) and number of selected
+          difference (<guilabel>X</guilabel>)</simpara>
         </listitem>
       </itemizedlist></para>
   </sect2>
 
   <sect2>
-    <title>Difference Navigation</title>
+    <title>Editor Margin</title>
+
+    <para>The editor panes (file panes) have gray margin area reserved for
+    line numbers and some symbols. If line numbers are not shown then margin
+    is shown like screenshot below.</para>
+
+    <para><inlinemediaobject>
+        <imageobject>
+          <imagedata fileref="screenshots/filecomp_margin1.png" format="PNG" />
+        </imageobject>
+      </inlinemediaobject></para>
+
+    <para>Blue circle is a Bookmark. And arrow marks word-wrapped line. Next
+    screenshot shows same lines without word-wrap and with linenumbers.</para>
+
+    <para><inlinemediaobject>
+        <imageobject>
+          <imagedata fileref="screenshots/filecomp_margin2.png" format="PNG" />
+        </imageobject>
+      </inlinemediaobject></para>
+
+    <para>The editor margin cannot be hidden, it is always visible. If
+    linenubmers are not visible it takes pretty minimal width. Note that with
+    linenumbers the margin width is set so that the longest line number fits
+    into it. So with long files it needs space for several numbers.</para>
+  </sect2>
+
+  <sect2>
+    <title><indexterm>
+        <primary>Difference Navigation</primary>
+
+        <secondary>File Compare</secondary>
+      </indexterm>Difference Navigation</title>
 
     <para>Difference navigation commands are in <guimenu>Merge</guimenu>
     menu:</para>
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="screenshots/Merge_menu.gif" format="GIF" />
+          <imagedata fileref="screenshots/merge_menu.png" format="PNG" />
         </imageobject>
       </inlinemediaobject></para>
 
@@ -165,12 +197,12 @@
 
       <itemizedlist>
         <listitem>
-          <para>Double-click over difference with mouse</para>
+          <simpara>Double-click over difference with mouse</simpara>
         </listitem>
 
         <listitem>
-          <para>Move cursor inside difference and select it with
-          <guimenuitem>Current Difference</guimenuitem>.</para>
+          <simpara>Move cursor inside difference and select it with
+          <guimenuitem>Current Difference</guimenuitem>.</simpara>
         </listitem>
       </itemizedlist>
     </sect3>
@@ -195,16 +227,16 @@
 
       <para>This command has two important functions:<itemizedlist>
           <listitem>
-            <para>When there is no difference selected and cursor is inside
+            <simpara>When there is no difference selected and cursor is inside
             difference, it selects this difference. This is very handy way to
-            select difference from keyboard.</para>
+            select difference from keyboard.</simpara>
           </listitem>
 
           <listitem>
-            <para>When there is selected difference, it scrolls to selected
+            <simpara>When there is selected difference, it scrolls to selected
             difference. This is handy if user has scrolled selected difference
             out of screen. So this allows user to scroll files to see other
-            contents and quickly return back to selected difference.</para>
+            contents and quickly return back to selected difference.</simpara>
           </listitem>
         </itemizedlist></para>
     </sect3>
@@ -227,7 +259,9 @@
   </sect2>
 
   <sect2>
-    <title>Merging Differences</title>
+    <title><indexterm>
+        <primary>Merging Differences</primary>
+      </indexterm>Merging Differences</title>
 
     <para>Merging commands are located in <guimenu>Merge</guimenu>-menu after
     navigation commands. Basically there are only two types of merging
@@ -286,7 +320,9 @@
   </sect2>
 
   <sect2>
-    <title>Merge Mode</title>
+    <title><indexterm>
+        <primary>Merge Mode</primary>
+      </indexterm>Merge Mode</title>
 
     <para>Merge mode can be enabled from the <guimenu>File</guimenu>-menu. It
     restores the WinMerge 1.7.1 single keys for difference merging and
@@ -294,13 +330,13 @@
 
     <itemizedlist>
       <listitem>
-        <para><keycap>Up-</keycap> and <keycap>Down arrow</keycap> keys select
-        previous and next difference</para>
+        <simpara><keycap>Up-</keycap> and <keycap>Down arrow</keycap> keys
+        select previous and next difference</simpara>
       </listitem>
 
       <listitem>
-        <para><keycap>Left-</keycap> and <keycap>Right arrow</keycap> keys
-        merge difference to left side or right side.</para>
+        <simpara><keycap>Left-</keycap> and <keycap>Right arrow</keycap> keys
+        merge difference to left side or right side.</simpara>
       </listitem>
     </itemizedlist>
 
@@ -364,12 +400,13 @@
   <sect2>
     <title>Line Difference Highlight</title>
 
-    <para>Maybe the greatest new feature in WinMerge 2.4 is the difference
-    highlight in all differences of the files.</para>
+    <para>WinMerge can automatically highlight all differences it finds in
+    lines. This makes it fast to look through and find differences. See
+    screenshot below for an example of highlighted differences.</para>
 
     <mediaobject>
       <imageobject>
-        <imagedata fileref="screenshots/filecomp_inlinediff.gif" />
+        <imagedata fileref="screenshots/filecomp_inlinediff.png" format="PNG" />
       </imageobject>
     </mediaobject>
 
@@ -398,17 +435,57 @@
 
     <para>Many times it is useful to see exact differences inside lines.
     WinMerge can highlight different area between lines. This feature is
-    called <guilabel>Highlight File Diff</guilabel>. It is available in
+    called <guilabel>Select Line Difference</guilabel>. It is available in
     <guimenu>Edit</guimenu>-menu, toolbar and shortcut key
     (<keycap>F4</keycap>). In screenshot below there is one difference
-    highlighted. First time whole difference area in one line is highlighted.
-    Repeating cycles through individual changed words.</para>
+    highlighted</para>
 
     <mediaobject>
       <imageobject>
-        <imagedata fileref="screenshots/linediff.gif" format="GIF" />
+        <imagedata fileref="screenshots/linediff.png" format="PNG" />
       </imageobject>
     </mediaobject>
+  </sect2>
+
+  <sect2>
+    <title>Location Pane</title>
+
+    <para>Location pane is a handy side-pane showing a overall (difference)
+    map of files compared.</para>
+
+    <para><inlinemediaobject>
+        <imageobject>
+          <imagedata fileref="screenshots/filecomp_locpane.png" format="PNG" />
+        </imageobject>
+      </inlinemediaobject></para>
+
+    <para>Location Pane shows differences as they are located in the files. So
+    it gives a good overall view for files compared. Location Pane shows
+    differences with same colors than editor panes. There are different
+    indicators in Location Pane:</para>
+
+    <itemizedlist>
+      <listitem>
+        <simpara>small triangles point to begin of the selected
+        difference</simpara>
+      </listitem>
+
+      <listitem>
+        <simpara>selected difference is shown with different color</simpara>
+      </listitem>
+
+      <listitem>
+        <simpara>area visible in editor panes is shown with different
+        background color</simpara>
+      </listitem>
+    </itemizedlist>
+
+    <para>Clicking with mouse in Location Pane moves cursor to place clicked
+    in file. Right-clicking with mouse opens the context menu with items to
+    select line to go to. And the visible area locator (area with different
+    background color) can be used like a scrollbar thumb - after pressing down
+    the left mouse butto over it it can be dragged upwards and downwards to
+    scroll the files.</para>
   </sect2>
 
   <sect2>
@@ -419,7 +496,7 @@
 
     <para><inlinemediaobject>
         <imageobject>
-          <imagedata fileref="screenshots/filecomp_context1.gif" format="GIF" />
+          <imagedata fileref="screenshots/filecomp_context1.png" format="PNG" />
         </imageobject>
       </inlinemediaobject></para>
 
@@ -445,25 +522,25 @@
 
     <itemizedlist>
       <listitem>
-        <para>Simplified Chinese texts with the <guilabel>SimSun</guilabel> or
-        <guilabel>SimHei</guilabel> fixed-width fonts</para>
+        <simpara>Simplified Chinese texts with the <guilabel>SimSun</guilabel>
+        or <guilabel>SimHei</guilabel> fixed-width fonts</simpara>
       </listitem>
 
       <listitem>
-        <para>Traditional Chinese texts with the <guilabel>MingLiU</guilabel>
-        fixed-width font, or</para>
+        <simpara>Traditional Chinese texts with the
+        <guilabel>MingLiU</guilabel> fixed-width font, or</simpara>
       </listitem>
 
       <listitem>
-        <para>Japanese texts with the <guilabel>MS Gothic</guilabel> or
-        <guilabel>MS Mincho</guilabel> fixed-width fonts</para>
+        <simpara>Japanese texts with the <guilabel>MS Gothic</guilabel> or
+        <guilabel>MS Mincho</guilabel> fixed-width fonts</simpara>
       </listitem>
 
       <listitem>
-        <para>Korean texts with the <guilabel>GulimChe</guilabel> fixed-width
-        font (not Gulim as this variant uses proportional-spacing glyphs that
-        are not centered in grid cells and then poorly aligned in fixed-width
-        mode)</para>
+        <simpara>Korean texts with the <guilabel>GulimChe</guilabel>
+        fixed-width font (not Gulim as this variant uses proportional-spacing
+        glyphs that are not centered in grid cells and then poorly aligned in
+        fixed-width mode)</simpara>
       </listitem>
     </itemizedlist>
   </sect2>

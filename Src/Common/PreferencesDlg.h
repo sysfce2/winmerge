@@ -8,7 +8,7 @@
  * WinMerge.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PreferencesDlg.h,v 1.4 2005/08/29 16:27:34 kimmov Exp $
+// $Id: PreferencesDlg.h 3450 2006-08-08 14:28:49Z kimmov $
 
 
 #if !defined(AFX_PREFERENCESDLG_H__C3FCC72A_6C69_49A6_930D_D5C94EC31298__INCLUDED_)
@@ -24,8 +24,9 @@
 #include "PropVss.h"
 #include "PropRegistry.h"
 #include "PropColors.h"
-#include "PropCodepage.h"
+#include "PropTextColors.h"
 #include "PropSyntaxColors.h"
+#include "PropCodepage.h"
 #include "PropArchive.h"
 
 #include "propertypagehost.h"
@@ -45,7 +46,6 @@ public:
 		UINT nMenuID = 0, CWnd* pParent = NULL);   // standard constructor
 	virtual ~CPreferencesDlg();
 
-	void SetDefaultEditor(LPCTSTR szDefaultEditor);
 	void SetSyntaxColors(SyntaxColors *pColors);
 
 protected:
@@ -61,8 +61,9 @@ protected:
 	CPropEditor m_pageEditor;
 	CPropVss m_pageVss;	
 	CPropRegistry m_pageSystem;
-	CPropColors m_pageColors;
 	CPropCodepage m_pageCodepage;
+	CPropMergeColors m_pageMergeColors;
+	CPropTextColors m_pageTextColors;
 	CPropSyntaxColors m_pageSyntaxColors;
 	CPropArchive m_pageArchive;
 
@@ -85,6 +86,8 @@ protected:
 	virtual BOOL OnInitDialog();
 	afx_msg void OnDestroy();
 	afx_msg void OnHelpButton();
+	afx_msg void OnImportButton();
+	afx_msg void OnExportButton();
 	afx_msg void OnSelchangedPages(NMHDR* pNMHDR, LRESULT* pResult);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
@@ -94,12 +97,12 @@ protected:
 	void AddPage(CPropertyPage* pPage, LPCTSTR szPath);
 	void SetActivePage(int nPage);
 	CString GetItemPath(HTREEITEM hti);
-	void ReadOptions();
+	void ReadOptions(BOOL bUpdate = FALSE);
 	void SaveOptions();
+	void SafeUpdatePage(CPropertyPage* pPage, BOOL bSaveAndValidate);
 
 private:
 	COptionsMgr *m_pOptionsMgr;
-	CString m_sDefaultEditor;
 
 };
 

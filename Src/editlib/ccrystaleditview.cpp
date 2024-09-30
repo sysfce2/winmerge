@@ -1274,7 +1274,7 @@ OnEditReplace ()
       lastSearch->m_bMatchCase = (m_dwLastReplaceFlags & FIND_MATCH_CASE) != 0;
       lastSearch->m_bWholeWord = (m_dwLastReplaceFlags & FIND_WHOLE_WORD) != 0;
       lastSearch->m_bRegExp = (m_dwLastReplaceFlags & FIND_REGEXP) != 0;
-      lastSearch->m_bReplaceNoWrap = (m_dwLastReplaceFlags & REPLACE_NO_WRAP) != 0;
+      lastSearch->m_bNoWrap = (m_dwLastReplaceFlags & FIND_NO_WRAP) != 0;
       if (m_pszLastFindWhat != NULL)
         lastSearch->m_sText = m_pszLastFindWhat;
     }
@@ -1286,9 +1286,7 @@ OnEditReplace ()
       lastSearch->m_bMatchCase = (dwFlags & FIND_MATCH_CASE) != 0;
       lastSearch->m_bWholeWord = (dwFlags & FIND_WHOLE_WORD) != 0;
       lastSearch->m_bRegExp = (dwFlags & FIND_REGEXP) != 0;
-      lastSearch->m_bReplaceNoWrap = (dwFlags & REPLACE_NO_WRAP) != 0;
-      // lastSearch->m_sText = pApp->GetProfileString (REG_REPLACE_SUBKEY, REG_FIND_WHAT, _T (""));
-      // lastSearch->m_sNewText = pApp->GetProfileString (REG_REPLACE_SUBKEY, REG_REPLACE_WITH, _T (""));
+      lastSearch->m_bNoWrap = (dwFlags & FIND_NO_WRAP) != 0;
     }
   dlg.UseLastSearch ();
 
@@ -1303,6 +1301,10 @@ OnEditReplace ()
       dlg.m_bEnableScopeSelection = TRUE;
       dlg.m_ptBlockBegin = m_ptSavedSelStart;
       dlg.m_ptBlockEnd = m_ptSavedSelEnd;
+
+      // If the selection is in one line, copy text to dialog
+      if (m_ptSavedSelStart.y == m_ptSavedSelEnd.y)
+        GetText(m_ptSavedSelStart, m_ptSavedSelEnd, dlg.m_sText);
     }
   else
     {
@@ -1310,7 +1312,9 @@ OnEditReplace ()
       dlg.m_ptCurrentPos = GetCursorPos ();
       dlg.m_bEnableScopeSelection = FALSE;
 
-      CPoint ptCursorPos = GetCursorPos (), ptStart = WordToLeft (ptCursorPos), ptEnd = WordToRight (ptCursorPos);
+      CPoint ptCursorPos = GetCursorPos ();
+      CPoint ptStart = WordToLeft (ptCursorPos);
+      CPoint ptEnd = WordToRight (ptCursorPos);
       if (IsValidTextPos (ptStart) && IsValidTextPos (ptEnd) && ptStart != ptEnd)
         GetText (ptStart, ptEnd, dlg.m_sText);
     }
@@ -1335,8 +1339,8 @@ OnEditReplace ()
     m_dwLastReplaceFlags |= FIND_WHOLE_WORD;
   if (lastSearch->m_bRegExp)
     m_dwLastReplaceFlags |= FIND_REGEXP;
-  if (lastSearch->m_bReplaceNoWrap)
-    m_dwLastReplaceFlags |= REPLACE_NO_WRAP;
+  if (lastSearch->m_bNoWrap)
+    m_dwLastReplaceFlags |= FIND_NO_WRAP;
 
   //  Restore selection
   if (m_bSelectionPushed)
@@ -1356,9 +1360,9 @@ ReplaceSelection (LPCTSTR pszNewText, DWORD dwFlags)
 {
   if (!pszNewText)
     pszNewText = _T ("");
-  /*ASSERT (pszNewText != NULL);
-  if (!IsSelection ())
-    return FALSE;*/
+
+  if (!lstrlen(pszNewText))
+    return DeleteCurrentSelection();
 
   m_pTextBuffer->BeginUndoGroup();
 
@@ -1643,7 +1647,7 @@ OnEditOperation (int nAction, LPCTSTR pszText)
                     {
                       int nTabSize = GetTabSize ();
                       int nChars = nTabSize - nPos % nTabSize;
-                      pszInsertStr = (TCHAR *) _alloca (sizeof (TCHAR) * (nPos + nChars));
+                      pszInsertStr = (TCHAR *) _alloca (sizeof (TCHAR) * (nPos + nChars + 1));
                       _tcsncpy (pszInsertStr, pszLineChars, nPos);
                       while (nChars--)
                         {

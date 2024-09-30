@@ -20,7 +20,7 @@
  * @brief Declaration file for File Filters dialog
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: FileFiltersDlg.h,v 1.6 2005/02/13 00:17:42 kimmov Exp $
+// $Id: FileFiltersDlg.h 3487 2006-08-22 15:08:45Z kimmov $
 
 #if !defined(AFX_FILTERSDLG_H__6180CBC3_99BB_4C85_B0EA_BA85D219285E__INCLUDED_)
 #define AFX_FILTERSDLG_H__6180CBC3_99BB_4C85_B0EA_BA85D219285E__INCLUDED_
@@ -42,31 +42,35 @@ public:
 	FileFiltersDlg();   // standard constructor
 	void SetFilterArray(FILEFILTER_INFOLIST * fileFilters);
 	CString GetSelected();
-	void SetSelected(CString selected);
-	void InitList();
-	void UpdateFiltersList();
+	void SetSelected(const CString & selected);
 
+// Implementation data
+private:
 	CString m_sFileFilterPath;
+	CPoint m_ptLastMousePos;
+	FILEFILTER_INFOLIST * m_Filters;
 
 // Dialog Data
 	//{{AFX_DATA(FileFiltersDlg)
 	enum { IDD = IDD_FILEFILTERS };
-	CListCtrl	m_listFilters;
+	CListCtrl m_listFilters;
 	//}}AFX_DATA
 
+// Implementation methods
+private:
+	void InitList();
+	void SelectFilterByIndex(int index);
+	void AddToGrid(int filterIndex);
+	bool IsFilterItemNone(int item) const;
+	void UpdateFiltersList();
 
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(FileFiltersDlg)
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
 
-// Implementation
-protected:
-	FILEFILTER_INFOLIST * m_Filters;
-
-	void AddToGrid(int filterIndex);
 	// Generated message map functions
 	//{{AFX_MSG(FileFiltersDlg)
 	virtual BOOL OnInitDialog();
@@ -76,15 +80,13 @@ protected:
 	afx_msg void OnLvnItemchangedFilterfileList(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnInfoTip(NMHDR * pNMHDR, LRESULT * pResult);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
-	afx_msg void OnBnClickedReload();
+	afx_msg void OnBnClickedFilterfileTestButton();
 	afx_msg void OnBnClickedFilterfileNewbutton();
 	afx_msg void OnBnClickedFilterfileDelete();
+	afx_msg void OnHelp();
+	afx_msg void OnBnClickedFilterfileInstall();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-
-private:
-	CPoint m_ptLastMousePos;
-
 };
 
 //{{AFX_INSERT_LOCATION}}

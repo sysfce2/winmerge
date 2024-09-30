@@ -24,7 +24,7 @@
  *  @brief Declaration file for VBS Scriptlets, VB ActiveX DLL, VC++ COM DLL
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: Plugins.h,v 1.13 2005/02/13 00:17:43 kimmov Exp $
+// $Id: Plugins.h 2877 2005-12-30 00:57:48Z elsapo $
 
 #ifndef __PLUGINS_H__
 #define __PLUGINS_H__
@@ -67,8 +67,9 @@ public:
 	BOOL TestAgainstRegList(LPCTSTR szTest);
 
 public:
+	CString     filepath;
 	LPDISPATCH  lpDispatch;
-	CString     name;
+	CString     name; // usually filename, except for special cases (like auto or no)
 	CString     filtersText;
 	CString     description;
 	BOOL        bUnicodeMode;

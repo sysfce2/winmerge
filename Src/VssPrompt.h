@@ -20,7 +20,7 @@
  * @brief Declaration file for CVssPrompt
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: VssPrompt.h,v 1.5 2004/01/19 18:34:38 puddle Exp $
+// $Id: VssPrompt.h 960 2004-01-19 18:34:38Z puddle $
 
 #if !defined(AFX_VSSPROMPT_H__F767E53B_90F4_11D1_BB11_00A024706EDC__INCLUDED_)
 #define AFX_VSSPROMPT_H__F767E53B_90F4_11D1_BB11_00A024706EDC__INCLUDED_

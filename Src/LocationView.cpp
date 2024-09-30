@@ -9,13 +9,16 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include <stdlib.h>
+
 #include "merge.h"
-#include "MainFrm.h"
+#include "OptionsMgr.h"
 #include "MergeEditView.h"
 #include "LocationView.h"
 #include "MergeDoc.h"
 #include "BCMenu.h"
 #include "OptionsDef.h"
+#include "MergeLineFlags.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -23,27 +26,33 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-/** 
- * @brief Size of empty frame above and below bars (in pixels)
- */
+/** @brief Size of empty frame above and below bars (in pixels). */
 static const DWORD Y_OFFSET = 5;
 
-/** 
- * @brief Size of y-margin for visible area indicator (in pixels)
- */
-static const UINT INDICATOR_MARGIN = 2;
+/** @brief Size of y-margin for visible area indicator (in pixels). */
+static const long INDICATOR_MARGIN = 2;
 
-/** 
- * @brief Max pixels in view per line in file
- */
+/** @brief Max pixels in view per line in file. */
 static const double MAX_LINEPIX = 4.0;
 
+/** @brief Top of difference marker, relative to difference start. */
+static const int DIFFMARKER_TOP = 3;
+
+/** @brief Bottom of difference marker, relative to difference start. */
+static const int DIFFMARKER_BOTTOM = 3;
+
+/** @brief Width of difference marker. */
+static const int DIFFMARKER_WIDTH = 6;
+
+static int getColorBrightness(DWORD c1);
+static DWORD getColorDistance(DWORD c1, DWORD c2);
+static DWORD getContrastColor(DWORD areaColor, DWORD bkColor, int amount);
 /** 
  * @brief Bars in location pane
  */
 enum LOCBAR_TYPE
 {
-	BAR_NONE = 0,	/**< No bar in given coords */
+	BAR_NONE = -1,	/**< No bar in given coords */
 	BAR_LEFT,		/**< Left side bar in given coords */
 	BAR_RIGHT,		/**< Right side bar in given coords */
 	BAR_YAREA,		/**< Y-Coord in bar area */
@@ -56,17 +65,21 @@ IMPLEMENT_DYNCREATE(CLocationView, CView)
 
 
 CLocationView::CLocationView()
-	: m_view0(0)
-	, m_view1(0)
-	, m_visibleTop(-1)
+	: m_visibleTop(-1)
 	, m_visibleBottom(-1)
 //	MOVEDLINE_LIST m_movedLines; //*< List of moved block connecting lines */
 	, m_bIgnoreTrivials(true)
+	, m_hwndFrame(NULL)
+	, m_nPrevPaneWidth(0)
+	, m_DiffMarkerCoord(-1)
 {
 	// NB: set m_bIgnoreTrivials to false to see trivial diffs in the LocationView
 	// There is no GUI to do this
 
-	SetConnectMovedBlocks(mf->m_options.GetInt(OPT_CONNECT_MOVED_BLOCKS));
+	SetConnectMovedBlocks(GetOptionsMgr()->GetInt(OPT_CONNECT_MOVED_BLOCKS));
+
+	m_view[MERGE_VIEW_LEFT] = NULL;
+	m_view[MERGE_VIEW_RIGHT] = NULL;
 }
 
 BEGIN_MESSAGE_MAP(CLocationView, CView)
@@ -77,6 +90,7 @@ BEGIN_MESSAGE_MAP(CLocationView, CView)
 	ON_WM_LBUTTONDBLCLK()
 	ON_WM_CONTEXTMENU()
 	ON_WM_CLOSE()
+	ON_WM_SIZE()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -86,7 +100,7 @@ void CLocationView::SetConnectMovedBlocks(int displayMovedBlocks)
 	if (m_displayMovedBlocks == displayMovedBlocks)
 		return;
 
-	mf->m_options.SaveOption(OPT_CONNECT_MOVED_BLOCKS, displayMovedBlocks);
+	GetOptionsMgr()->SaveOption(OPT_CONNECT_MOVED_BLOCKS, displayMovedBlocks);
 	m_displayMovedBlocks = displayMovedBlocks;
 	if (this->GetSafeHwnd() != NULL)
 		if (IsWindowVisible())
@@ -111,13 +125,15 @@ CMergeDoc* CLocationView::GetDocument() // non-debug version is inline
  */
 void CLocationView::OnUpdate( CView* pSender, LPARAM lHint, CObject* pHint )
 {
+	UNREFERENCED_PARAMETER(pSender);
+	UNREFERENCED_PARAMETER(lHint);
 	CMergeDoc* pDoc = GetDocument();
-	m_view0 = pDoc->GetLeftView();
-	m_view1 = pDoc->GetRightView();
+	m_view[MERGE_VIEW_LEFT] = pDoc->GetLeftView();
+	m_view[MERGE_VIEW_RIGHT] = pDoc->GetRightView();
 
 	// Give pointer to MergeEditView
-	m_view0->SetLocationView(GetSafeHwnd(), this);
-	m_view1->SetLocationView(GetSafeHwnd(), this);
+	m_view[MERGE_VIEW_LEFT]->SetLocationView(GetSafeHwnd(), this);
+	m_view[MERGE_VIEW_RIGHT]->SetLocationView(GetSafeHwnd(), this);
 
 	Invalidate();
 }
@@ -136,13 +152,16 @@ void CLocationView::OnUpdate( CView* pSender, LPARAM lHint, CObject* pHint )
  */
 void CLocationView::OnDraw(CDC* pDC)
 {
-	if (!m_view0->IsInitialized()) return;
+	ASSERT(m_view[MERGE_VIEW_LEFT] != NULL);
+	ASSERT(m_view[MERGE_VIEW_RIGHT] != NULL);
+
+	if (m_view[MERGE_VIEW_LEFT] == NULL || m_view[MERGE_VIEW_RIGHT] == NULL)
+		return;
+
+	if (!m_view[MERGE_VIEW_LEFT]->IsInitialized()) return;
 
 	CRect rc;
 	GetClientRect(rc);
-
-	if (m_view0 == NULL || m_view1 == NULL)
-		return;
 
 	CMergeDoc *pDoc = GetDocument();
 	const int w = rc.Width() / 4;
@@ -151,7 +170,8 @@ void CLocationView::OnDraw(CDC* pDC)
 	m_nRightBarLeft = 2 * m_nLeftBarLeft + w;
 	m_nRightBarRight = m_nRightBarLeft + w;
 	const double hTotal = rc.Height() - (2 * Y_OFFSET); // Height of draw area
-	const int nbLines = min(m_view0->GetLineCount(), m_view1->GetLineCount());
+	const int nbLines = min(m_view[MERGE_VIEW_LEFT]->GetLineCount(),
+			m_view[MERGE_VIEW_RIGHT]->GetLineCount());
 	double LineInPix = hTotal / nbLines;
 	COLORREF cr0 = CLR_NONE; // Left side color
 	COLORREF cr1 = CLR_NONE; // Right side color
@@ -177,6 +197,12 @@ void CLocationView::OnDraw(CDC* pDC)
 	// Adjust line coloring if ignoring trivials
 	DWORD ignoreFlags = (m_bIgnoreTrivials ? LF_TRIVIAL : 0);
 
+	// Draw bar outlines
+	CPen* oldObj = (CPen*)pDC->SelectStockObject(BLACK_PEN);
+	pDC->Rectangle(m_nLeftBarLeft, Y_OFFSET - 1, m_nLeftBarRight, LineInPix * nbLines + Y_OFFSET + 1);
+	pDC->Rectangle(m_nRightBarLeft, Y_OFFSET - 1, m_nRightBarRight, LineInPix * nbLines + Y_OFFSET + 1);
+	pDC->SelectObject(oldObj);
+
 	while (true)
 	{
 		// here nstart0 = last line before block
@@ -191,15 +217,19 @@ void CLocationView::OnDraw(CDC* pDC)
 		// here nstart0 = first line of block
 		int nBeginY = (int) (nstart0 * LineInPix + Y_OFFSET);
 		int nEndY = (int) ((blockHeight + nstart0) * LineInPix + Y_OFFSET);
-		BOOL bInsideDiff = ((CMergeEditView*)m_view0)->IsLineInCurrentDiff(nstart0);
+		BOOL bInsideDiff = m_view[MERGE_VIEW_LEFT]->IsLineInCurrentDiff(nstart0);
+
+		// If no selected diff, remove diff marker
+		if (pDoc->GetCurrentDiff() == -1)
+			DrawDiffMarker(pDC, -1);
 
 		// Draw left side block
-		m_view0->GetLineColors2(nstart0, ignoreFlags, cr0, crt, bwh);
+		m_view[MERGE_VIEW_LEFT]->GetLineColors2(nstart0, ignoreFlags, cr0, crt, bwh);
 		CRect r0(m_nLeftBarLeft, nBeginY, m_nLeftBarRight, nEndY);
 		DrawRect(pDC, r0, cr0, bInsideDiff);
 		
 		// Draw right side block
-		m_view1->GetLineColors2(nstart0, ignoreFlags, cr1, crt, bwh);
+		m_view[MERGE_VIEW_RIGHT]->GetLineColors2(nstart0, ignoreFlags, cr1, crt, bwh);
 		CRect r1(m_nRightBarLeft, nBeginY, m_nRightBarRight, nEndY);
 		DrawRect(pDC, r1, cr1, bInsideDiff);
 
@@ -296,19 +326,26 @@ void CLocationView::OnDraw(CDC* pDC)
 BOOL CLocationView::GetNextRect(int &nLineIndex)
 {
 	CMergeDoc *pDoc = GetDocument();
-	const int nbLines = min(m_view0->GetLineCount(), m_view1->GetLineCount());
+	const int nbLines = min(m_view[MERGE_VIEW_LEFT]->GetLineCount(),
+				m_view[MERGE_VIEW_RIGHT]->GetLineCount());
 
 	while(1)
 	{
-
 		++nLineIndex;
 		if (nLineIndex >= nbLines)
 			return FALSE;
 
+		// If no diffs, return last line of file.
+		if (!pDoc->m_diffList.HasSignificantDiffs())
+		{
+			nLineIndex = nbLines - 1;
+			return TRUE;
+		}
+
 		int nextDiff = -1;
 		BOOL bInDiff = pDoc->m_diffList.GetNextDiff(nLineIndex, nextDiff);
 		
-		// No diffs left, return last line of file.
+		// No diffs after line, return last line of file.
 		if (nextDiff == -1)
 		{
 			nLineIndex = nbLines - 1;
@@ -317,19 +354,26 @@ BOOL CLocationView::GetNextRect(int &nLineIndex)
 
 		const DIFFRANGE * dfi = pDoc->m_diffList.DiffRangeAt(nextDiff);
 		if (!dfi)
+		{
+			_RPTF1(_CRT_ERROR, "DiffList error, GetNextDiff() returned "
+					"%d but DiffRangeAt() failed to get that diff!",
+					nextDiff);
 			return FALSE;
+		}
 
 		bool ignoreDiff = (m_bIgnoreTrivials && dfi->op == OP_TRIVIAL);
 
 		if (!ignoreDiff && !bInDiff)
 		{
-			// Line not in diff. Return last non-diff line.
+			// Next diff to line was found and line is not inside it.
+			// Return previous line to diff. This is safe since line has
+			// next diff so there must be lines before the diff.
 			nLineIndex = dfi->dbegin0 - 1;
 			return TRUE;
 		}
 
-		// find end of diff
-		int nLineEndDiff = (dfi->blank0 == -1) ? dfi->dend1 : dfi->dend0;
+		// Find end of diff. If first side has blank lines use other side.
+		int nLineEndDiff = (dfi->blank0 > 0) ? dfi->dend1 : dfi->dend0;
 
 		nLineIndex = nLineEndDiff;
 
@@ -341,32 +385,29 @@ BOOL CLocationView::GetNextRect(int &nLineIndex)
 
 /** 
  * @brief Draw one block of map.
+ * @param [in] pDC Draw context.
+ * @param [in] r Rectangle to draw.
+ * @param [in] cr Color for rectange.
+ * @param [in] bSelected Is rectangle for selected difference?
  */
-void CLocationView::DrawRect(CDC* pDC, const CRect& r, COLORREF cr, BOOL border)
+void CLocationView::DrawRect(CDC* pDC, const CRect& r, COLORREF cr, BOOL bSelected)
 {
-	if (cr == CLR_NONE || cr == GetSysColor(COLOR_WINDOW))
-	{
-		CPen* oldObj = (CPen*)pDC->SelectStockObject(BLACK_PEN);
-		pDC->Rectangle(r);
-		pDC->SelectObject(oldObj);
-	}
-	// colored rectangle
-	else
+	// Draw only colored blocks
+	if (cr != CLR_NONE && cr != GetSysColor(COLOR_WINDOW))
 	{
 		CBrush brush(cr);
-		pDC->FillSolidRect(r, cr);
-		if (border)
+		CRect drawRect(r);
+		drawRect.DeflateRect(1, 0);
+
+		// With long files and small difference areas rect may become 0-height.
+		// Make sure all diffs are drawn at least one pixel height.
+		if (drawRect.Height() < 1)
+			++drawRect.bottom;
+		pDC->FillSolidRect(drawRect, cr);
+
+		if (bSelected)
 		{
-			// outter rectangle
-			CRect outter = r;
-			outter.InflateRect(2,2);
-			// dont erase inside rect
-			CBrush* oldBrush = (CBrush*)pDC->SelectStockObject(NULL_BRUSH);
-			CPen pen(PS_SOLID, 2, RGB(0, 0, 0));
-			CPen* oldPen = pDC->SelectObject(&pen);
-			pDC->Rectangle(outter);
-			pDC->SelectObject(oldPen);
-			pDC->SelectObject(oldBrush);
+			DrawDiffMarker(pDC, r.top);
 		}
 	}
 }
@@ -438,7 +479,7 @@ BOOL CLocationView::GotoLocation(CPoint point, BOOL bRealLine)
 	CRect rc;
 	GetClientRect(rc);
 
-	if (m_view0 == NULL || m_view1 == NULL)
+	if (m_view[MERGE_VIEW_LEFT] == NULL || m_view[MERGE_VIEW_RIGHT] == NULL)
 		return FALSE;
 
 	int line = -1;
@@ -457,11 +498,9 @@ BOOL CLocationView::GotoLocation(CPoint point, BOOL bRealLine)
 	else
 		return FALSE;
 
-	m_view0->GotoLine(line, bRealLine, bar == BAR_LEFT);
-	if (bar == BAR_LEFT)
-		m_view0->SetFocus();
-	else if (bar == BAR_RIGHT)
-		m_view1->SetFocus();
+	m_view[MERGE_VIEW_LEFT]->GotoLine(line, bRealLine, bar);
+	if (bar == BAR_LEFT || bar == BAR_RIGHT)
+		m_view[bar]->SetFocus();
 
 	return TRUE;
 }
@@ -540,14 +579,12 @@ void CLocationView::OnContextMenu(CWnd* pWnd, CPoint point)
 	switch (command)
 	{
 	case ID_LOCBAR_GOTODIFF:
-		m_view0->GotoLine(nLine, TRUE, bar == BAR_LEFT);
-		if (bar == BAR_LEFT)
-			m_view0->SetFocus();
-		else
-			m_view1->SetFocus();
+		m_view[MERGE_VIEW_LEFT]->GotoLine(nLine, TRUE, bar);
+	if (bar == BAR_LEFT || bar == BAR_RIGHT)
+		m_view[bar]->SetFocus();
 		break;
 	case ID_EDIT_WMGOTO:
-		m_view0->WMGoto();
+		m_view[MERGE_VIEW_LEFT]->WMGoto();
 		break;
 	case ID_DISPLAY_MOVED_NONE:
 		SetConnectMovedBlocks(DISPLAY_MOVED_NONE);
@@ -576,7 +613,8 @@ int CLocationView::GetLineFromYPos(int nYCoord, CRect rc, int bar,
 	BOOL bRealLine)
 {
 	CMergeDoc* pDoc = GetDocument();
-	const int nbLines = min(m_view0->GetLineCount(), m_view1->GetLineCount());
+	const int nbLines = min(m_view[MERGE_VIEW_LEFT]->GetLineCount(),
+			m_view[MERGE_VIEW_RIGHT]->GetLineCount());
 	int line = (int) (m_pixInLines * (nYCoord - Y_OFFSET));
 	int nRealLine = -1;
 
@@ -591,14 +629,7 @@ int CLocationView::GetLineFromYPos(int nYCoord, CRect rc, int bar,
 		return line;
 
 	// Get real line (exclude ghost lines)
-	if (bar == BAR_LEFT)
-	{
-		nRealLine = pDoc->m_ltBuf.ComputeRealLine(line);
-	}
-	else if (bar == BAR_RIGHT)
-	{
-		nRealLine = pDoc->m_rtBuf.ComputeRealLine(line);
-	}
+	nRealLine = pDoc->m_ptBuf[bar]->ComputeRealLine(line);
 	return nRealLine;
 }
 
@@ -616,7 +647,8 @@ int CLocationView::IsInsideBar(CRect rc, POINT pt)
 	BOOL bYarea = FALSE;
 	const int w = rc.Width() / 4;
 	const int x = (rc.Width() - 2 * w) / 3;
-	const int nbLines = min(m_view0->GetLineCount(), m_view1->GetLineCount());
+	const int nbLines = min(m_view[MERGE_VIEW_LEFT]->GetLineCount(),
+			m_view[MERGE_VIEW_RIGHT]->GetLineCount());
 	// We need '1 / m_pixInLines' to get line in pixels and
 	// that multiplied by linecount gives us bottom coord for bars.
 	double xbarBottom = min(nbLines / m_pixInLines + Y_OFFSET, rc.Height() - Y_OFFSET);
@@ -640,6 +672,89 @@ int CLocationView::IsInsideBar(CRect rc, POINT pt)
 	return retVal;
 }
 
+
+
+/** 
+ * @brief Adds color components (rgb) for calculating brightness.
+ * @note used in getContrastColor()
+ *
+ * @param [in] c1 color
+ * @return sum of color components
+ */
+static int getColorBrightness(DWORD c1)
+{
+	int c1_b=(c1&0xff0000)>>16;
+	int c1_g=(c1&0xff00)>>8;
+	int c1_r=(c1&0xff);
+	return c1_b + c1_g + c1_r;
+}
+
+/** 
+ * @brief Distance between 2 colors.
+ * @note used in getContrastColor()
+ *
+ * @param [in] c1 color 1
+ * @param [in] c2 color 2
+ * @return absolute sum of differences of color components
+ */
+static DWORD getColorDistance(DWORD c1, DWORD c2)
+{
+	int c1_b=(c1&0xff0000)>>16;
+	int c1_g=(c1&0xff00)>>8;
+	int c1_r=(c1&0xff);
+	int c2_b=(c2&0xff0000)>>16;
+	int c2_g=(c2&0xff00)>>8;
+	int c2_r=(c2&0xff);
+	return abs(c2_b-c1_b) + abs(c2_g-c1_g) + abs(c2_r-c1_r);
+}
+
+/** 
+ * @brief Correct Color to be different than background.
+ *
+ * Correct areaColor if it is too similar to bkColor 
+ * (e.g. both are WHITE).
+ * For example:
+ *  amount=30 corrects to 255-30=225 (if bkColor==WHITE), 
+ *  for rgb each
+ *
+ * @note (DWORD=)COLORREF=0x00bbggrr used for parameters.
+ *
+ * @param [in] areaColor drawing (foreground) color
+ * @param [in] bkColor background color
+ * @param [in] amount amount to correct (for one component)
+ *
+ * @return corrected (or uncorrected) areaColor
+ */
+static DWORD getContrastColor(DWORD areaColor, DWORD bkColor, int amount)
+{
+	amount=abs(amount);
+	int add=1;
+	if (getColorBrightness(bkColor) > 127*3) add=-1; // make darker
+	
+	// decode
+	int bk_b=(bkColor&0xff0000)>>16;
+	int bk_g=(bkColor&0xff00)>>8;
+	int bk_r=(bkColor&0xff);
+	int ar_b=(areaColor&0xff0000)>>16;
+	int ar_g=(areaColor&0xff00)>>8;
+	int ar_r=(areaColor&0xff);
+	
+	// correct color
+	int dist_pre=getColorDistance(areaColor, bkColor);
+	if (dist_pre>=amount*3) return areaColor; // color ok
+	int corr_add=add*(amount*3-dist_pre)/3;
+	ar_b+=corr_add;
+	ar_g+=corr_add;
+	ar_r+=corr_add;
+	if (ar_b<0) ar_b=0;
+	if (ar_b>255) ar_b=255;
+	if (ar_g<0) ar_g=0;
+	if (ar_g>255) ar_g=255;
+	if (ar_r<0) ar_r=0;
+	if (ar_r>255) ar_r=255;
+	return (ar_b<<16)|(ar_g<<8)|ar_r;
+}
+
 /** 
  * @brief Draws rect indicating visible area in file views.
  *
@@ -650,6 +765,10 @@ int CLocationView::IsInsideBar(CRect rc, POINT pt)
 void CLocationView::DrawVisibleAreaRect(int nTopLine, int nBottomLine)
 {
 	CMergeDoc* pDoc = GetDocument();
+	DWORD areaColor = GetSysColor(COLOR_3DFACE);
+	DWORD bkColor   = GetSysColor(COLOR_WINDOW);
+	//Bugfix: make areaColor darker if both colors are WHITE
+	areaColor=getContrastColor(areaColor, bkColor, 50); 
 	const int nScreenLines = pDoc->GetRightView()->GetScreenLines();
 	if (nTopLine == -1)
 		nTopLine = pDoc->GetRightView()->GetTopLine();
@@ -660,14 +779,15 @@ void CLocationView::DrawVisibleAreaRect(int nTopLine, int nBottomLine)
 	CRect rc;
 	GetClientRect(rc);
 	const double hTotal = rc.Height() - (2 * Y_OFFSET); // Height of draw area
-	const int nbLines = min(m_view0->GetLineCount(), m_view1->GetLineCount());
+	const int nbLines = min(m_view[MERGE_VIEW_LEFT]->GetLineCount(),
+			m_view[MERGE_VIEW_RIGHT]->GetLineCount());
 	double LineInPix = hTotal / nbLines;
 	if (LineInPix > MAX_LINEPIX)
 		LineInPix = MAX_LINEPIX;
 
 	int nTopCoord = (int) (Y_OFFSET + ((double)nTopLine * LineInPix));
 	int nLeftCoord = INDICATOR_MARGIN;
-	int nBottomCoord = (int) (Y_OFFSET + ((double)(nTopLine + nScreenLines) * LineInPix));
+	int nBottomCoord = (int) (Y_OFFSET + ((double)nBottomLine * LineInPix));
 	int nRightCoord = rc.Width() - INDICATOR_MARGIN;
 	
 	// Visible area was not changed
@@ -679,13 +799,20 @@ void CLocationView::DrawVisibleAreaRect(int nTopLine, int nBottomLine)
 	{
 		CDC *pClientDC = GetDC();
 		CRect rcVisibleArea(2, m_visibleTop, m_nLeftBarLeft - 2, m_visibleBottom);
-		pClientDC->FillSolidRect(rcVisibleArea, GetSysColor(COLOR_WINDOW));
+		pClientDC->FillSolidRect(rcVisibleArea, bkColor);
 		rcVisibleArea.left = m_nLeftBarRight + 2;
 		rcVisibleArea.right = m_nRightBarLeft - 2;
-		pClientDC->FillSolidRect(rcVisibleArea, GetSysColor(COLOR_WINDOW));
+		pClientDC->FillSolidRect(rcVisibleArea, bkColor);
 		rcVisibleArea.left = m_nRightBarRight + 2;
 		rcVisibleArea.right = rc.Width() - 2;
-		pClientDC->FillSolidRect(rcVisibleArea, GetSysColor(COLOR_WINDOW));
+		pClientDC->FillSolidRect(rcVisibleArea, bkColor);
+		if (((m_DiffMarkerCoord - DIFFMARKER_TOP >= m_visibleTop) &&
+			(m_DiffMarkerCoord - DIFFMARKER_TOP <= m_visibleBottom)) ||
+			((m_DiffMarkerCoord + DIFFMARKER_BOTTOM >= m_visibleTop) &&
+			(m_DiffMarkerCoord + DIFFMARKER_BOTTOM <= m_visibleBottom)))
+		{
+			DrawDiffMarker(pClientDC, m_DiffMarkerCoord);
+		}
 		ReleaseDC(pClientDC);
 	}
 
@@ -700,13 +827,21 @@ void CLocationView::DrawVisibleAreaRect(int nTopLine, int nBottomLine)
 
 	CDC *pClientDC = GetDC();
 	CRect rcVisibleArea(2, m_visibleTop, m_nLeftBarLeft - 2, m_visibleBottom);
-	pClientDC->FillSolidRect(rcVisibleArea, GetSysColor(COLOR_SCROLLBAR));
+	pClientDC->FillSolidRect(rcVisibleArea, areaColor);
 	rcVisibleArea.left = m_nLeftBarRight + 2;
 	rcVisibleArea.right = m_nRightBarLeft - 2;
-	pClientDC->FillSolidRect(rcVisibleArea, GetSysColor(COLOR_SCROLLBAR));
+	pClientDC->FillSolidRect(rcVisibleArea, areaColor);
 	rcVisibleArea.left = m_nRightBarRight + 2;
 	rcVisibleArea.right = rc.Width() - 2;
-	pClientDC->FillSolidRect(rcVisibleArea, GetSysColor(COLOR_SCROLLBAR));
+	pClientDC->FillSolidRect(rcVisibleArea, areaColor);
+
+	if (((m_DiffMarkerCoord - DIFFMARKER_TOP >= m_visibleTop) &&
+		(m_DiffMarkerCoord - DIFFMARKER_TOP <= m_visibleBottom)) ||
+		((m_DiffMarkerCoord + DIFFMARKER_BOTTOM >= m_visibleTop) &&
+		(m_DiffMarkerCoord + DIFFMARKER_BOTTOM <= m_visibleBottom)))
+	{
+		DrawDiffMarker(pClientDC, m_DiffMarkerCoord);
+	}
 	ReleaseDC(pClientDC);
 }
 
@@ -728,8 +863,9 @@ void CLocationView::UpdateVisiblePos(int nTopLine, int nBottomLine)
  */
 void CLocationView::OnClose()
 {
-	m_view0->SetLocationView(NULL, NULL);
-	m_view1->SetLocationView(NULL, NULL);
+	m_view[MERGE_VIEW_LEFT]->SetLocationView(NULL, NULL);
+	m_view[MERGE_VIEW_RIGHT]->SetLocationView(NULL, NULL);
+
 	CView::OnClose();
 }
 
@@ -751,4 +887,92 @@ void CLocationView::DrawConnectLines()
 
 	pClientDC->SelectObject(oldObj);
 	ReleaseDC(pClientDC);
+}
+
+/** 
+ * @brief Stores HWND of frame window (CChildFrame).
+ */
+void CLocationView::SetFrameHwnd(HWND hwndFrame)
+{
+	m_hwndFrame = hwndFrame;
+}
+
+/** 
+ * @brief Request frame window to store sizes.
+ *
+ * When locationview size changes we want to save new size
+ * for new windows. But we must do it through frame window.
+ */
+void CLocationView::OnSize(UINT nType, int cx, int cy) 
+{
+	CView::OnSize(nType, cx, cy);
+	if (cx != m_nPrevPaneWidth)
+	{
+		m_nPrevPaneWidth = cx;
+		if (m_hwndFrame != NULL)
+			::PostMessage(m_hwndFrame, MSG_STORE_PANESIZES, 0, 0);
+	}
+}
+
+/** 
+ * @brief Draw marker for top of currently selected difference.
+ * This function draws marker for top of currently selected difference.
+ * This marker makes it a lot easier to see where currently selected
+ * difference is in location bar. Especially when selected diffence is
+ * small and it is not easy to find it otherwise.
+ * @param [in] pDC Pointer to draw context.
+ * @param [in] yCoord Y-coord of top of difference, -1 if no difference.
+ */
+void CLocationView::DrawDiffMarker(CDC* pDC, int yCoord)
+{
+	// First erase marker from current position
+	if (m_DiffMarkerCoord != -1)
+	{
+		// If in visible area, use its background color
+		COLORREF cr;
+		if (m_DiffMarkerCoord > m_visibleTop && m_DiffMarkerCoord < m_visibleBottom)
+			cr = GetSysColor(COLOR_3DFACE);
+		else
+			cr = GetSysColor(COLOR_WINDOW);
+
+		CRect rect;
+		rect.left = m_nLeftBarLeft - DIFFMARKER_WIDTH - 1;
+		rect.top = m_DiffMarkerCoord - DIFFMARKER_TOP;
+		rect.right = m_nLeftBarLeft;
+		rect.bottom = m_DiffMarkerCoord + DIFFMARKER_BOTTOM + 1;
+		pDC->FillSolidRect(rect, cr);
+
+		rect.left = m_nRightBarRight;
+		rect.right = m_nRightBarRight + 2 + DIFFMARKER_WIDTH;
+		pDC->FillSolidRect(rect, cr);
+	}
+
+	m_DiffMarkerCoord = yCoord;
+
+	// Then draw marker to new position
+	if (yCoord != -1)
+	{
+		CPoint points[3];
+		points[0].x = m_nLeftBarLeft - DIFFMARKER_WIDTH - 1;
+		points[0].y = yCoord - DIFFMARKER_TOP;
+		points[1].x = m_nLeftBarLeft - 1;
+		points[1].y = yCoord;
+		points[2].x = m_nLeftBarLeft - DIFFMARKER_WIDTH - 1;
+		points[2].y = yCoord + DIFFMARKER_BOTTOM;
+
+		CPen* oldObj = (CPen*)pDC->SelectStockObject(BLACK_PEN);
+		CBrush brushBlack(RGB(0, 0, 0));
+		CBrush* pOldBrush = pDC->SelectObject(&brushBlack);
+
+		pDC->SetPolyFillMode(WINDING);
+		pDC->Polygon(points, 3);
+
+		points[0].x = m_nRightBarRight + 1 + DIFFMARKER_WIDTH;
+		points[1].x = m_nRightBarRight + 1;
+		points[2].x = m_nRightBarRight + 1 + DIFFMARKER_WIDTH;
+		pDC->Polygon(points, 3);
+
+		pDC->SelectObject(pOldBrush);
+		pDC->SelectObject(oldObj);
+	}
 }

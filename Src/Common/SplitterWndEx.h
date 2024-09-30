@@ -5,7 +5,7 @@
  * @brief Declaration of CSplitterWndEx class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: SplitterWndEx.h,v 1.4 2004/01/23 02:16:42 puddle Exp $
+// $Id: SplitterWndEx.h 2694 2005-10-12 20:17:43Z kimmov $
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -27,6 +27,8 @@ public:
 
 	void EqualizeRows(); 
 	void EqualizeCols(); 
+
+	void MasterPrint(CDC* pDC, CPrintInfo* pInfo);
 
 private:
 	BOOL m_bBarLocked;

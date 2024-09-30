@@ -1,3 +1,12 @@
+/** 
+ * @file  RegKey.cpp
+ *
+ * @brief Declaration of CRegKeyEx C++ wrapper class for reading Windows registry
+ */
+// RCS ID line follows -- this is updated by CVS
+// $Id: RegKey.h 3131 2006-03-04 17:54:58Z elsapo $
+
+
 #include <winreg.h>
 
 class CRegKeyEx

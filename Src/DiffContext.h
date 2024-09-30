@@ -4,7 +4,7 @@
  *  @brief Declarations of CDiffContext and diff structures
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffContext.h,v 1.51.2.1 2005/10/23 18:59:13 kimmov Exp $
+// $Id: DiffContext.h 3230 2006-04-26 17:40:19Z kimmov $
 
 #if !defined(AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_)
 #define AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_
@@ -59,7 +59,7 @@ public:
 
 	// add & remove differences
 	virtual void AddDiff(const DIFFITEM & di);
-	void UpdateVersion(DIFFITEM & di, DiffFileInfo & dfi) const;
+	void UpdateVersion(DIFFITEM & di, BOOL bLeft) const;
 
 	//@{
 	/**
@@ -77,7 +77,7 @@ public:
 	//@}
 
 	// change an existing difference
-	void UpdateInfoFromDiskHalf(DIFFITEM & di, DiffFileInfo & dfi);
+	BOOL UpdateInfoFromDiskHalf(DIFFITEM & di, BOOL bLeft);
 	void UpdateStatusFromDisk(POSITION diffpos, BOOL bLeft, BOOL bRight);
 
 	// retrieve or manufacture plugin info for specified file comparison
@@ -87,15 +87,13 @@ public:
 	void SetAbortable(IAbortable * piAbortable) { m_piAbortable = piAbortable; }
 	const IAbortable * GetAbortable() const { return m_piAbortable; }
 
-	BOOL m_bRecurse;
 	IDiffFilter * m_piFilterGlobal;
 	IPluginInfos * m_piPluginInfos;
-	UINT m_msgUpdateStatus;
-	HWND m_hDirFrame;
+	HWND m_hDirFrame; /**< Handle to a folder compare frame */
 	BOOL m_bGuessEncoding;
 	int m_nCompMethod; /**< Compare method */
 	BOOL m_bIgnoreSmallTimeDiff; /**< Ignore small timedifferences when comparing by date */
-	CompareStats *m_pCompareStats;
+	CompareStats *m_pCompareStats; /**< Pointer to compare statistics */
 	BOOL m_bStopAfterFirstDiff; /**< Optimize compare by stopping after first difference? */
 	int m_nQuickCompareLimit; /**< Bigger files are always compared with quick compare */
 

@@ -6,20 +6,20 @@
  * @date  Created: 2003-08-19
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirViewColHandler.cpp,v 1.27 2005/08/31 18:02:17 jtuc Exp $
+// $Id: DirViewColHandler.cpp 3825 2006-11-21 20:09:16Z kimmov $
 
 
 #include "stdafx.h"
 #include "Merge.h"
 #include "DirView.h"
 #include "DirDoc.h"
-#include "MainFrm.h"
 #include "resource.h"
 #include "coretools.h"
 #include "dllver.h"
 #include "DirViewColItems.h"
 #include "DirColsDlg.h"
 #include "OptionsDef.h"
+#include "OptionsMgr.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -29,64 +29,43 @@ static char THIS_FILE[] = __FILE__;
 
 /////////////////////////////////////////////////////////////////////////////
 
-/**
- * @brief Column indexes to dir column table
- */
-enum
-{
-	DirCol_Name = 0,
-	DirCol_Path,
-	DirCol_Status,
-	DirCol_LmTime,
-	DirCol_RmTime,
-	DirCol_LcTime,
-	DirCol_RcTime,
-	DirCol_Ext,
-	DirCol_Lsize,
-	DirCol_Rsize,
-	DirCol_Newer,
-	DirCol_Lversion,
-	DirCol_Rversion,
-	DirCol_StatusAbbr,
-	DirCol_Binary,
-	DirCol_Lattr,
-	DirCol_Rattr,
-	DirCol_NDiffs,
-	DirCol_NSDiffs,
-};
 
 /**
  * @brief Get text for specified column (forwards to specific column handler)
  */
-static CString ColGet(const CDiffContext *pCtxt, int col, const DIFFITEM & di)
+CString
+CDirView::ColGetTextToDisplay(const CDiffContext *pCtxt, int col, const DIFFITEM & di)
 {
 	// Custom properties have custom get functions
-	if (ColGetFnc fnc = g_cols[col].getfnc)
+	const DirColInfo * pColInfo = DirViewColItems_GetDirColInfo(col);
+	if (!pColInfo)
 	{
-		return (*fnc)(pCtxt, reinterpret_cast<const char *>(&di) + g_cols[col].offset);
+		ASSERT(0); // fix caller, should not ask for nonexistent columns
+		return "???";
 	}
-	ASSERT(FALSE);
-	return "???";
+	ColGetFncPtrType fnc = pColInfo->getfnc;
+	SIZE_T offset = pColInfo->offset;
+	return (*fnc)(pCtxt, reinterpret_cast<const char *>(&di) + offset);
 }
 
 /**
  * @brief Sort two items on specified column (forwards to specific column handler)
  */
-static int ColSort(const CDiffContext *pCtxt, int col, const DIFFITEM & ldi, const DIFFITEM &rdi)
+int
+CDirView::ColSort(const CDiffContext *pCtxt, int col, const DIFFITEM & ldi, const DIFFITEM &rdi) const
 {
 	// Custom properties have custom sort functions
-	if (ColSortFnc fnc = g_cols[col].sortfnc)
+	const DirColInfo * pColInfo = DirViewColItems_GetDirColInfo(col);
+	if (!pColInfo)
 	{
-		SIZE_T offset = g_cols[col].offset;
-		return (*fnc)
-		(
-			pCtxt,
-			reinterpret_cast<const char *>(&ldi) + offset,
-			reinterpret_cast<const char *>(&rdi) + offset
-		);
+		ASSERT(0); // fix caller, should not ask for nonexistent columns
+		return 0;
 	}
-	ASSERT(FALSE);
-	return 0;
+	ColSortFncPtrType fnc = pColInfo->sortfnc;
+	SIZE_T offset = pColInfo->offset;
+	const void * arg1 = reinterpret_cast<const char *>(&ldi) + offset;
+	const void * arg2 = reinterpret_cast<const char *>(&rdi) + offset;
+	return (*fnc)(pCtxt, arg1, arg2);
 }
 
 /**
@@ -94,7 +73,13 @@ static int ColSort(const CDiffContext *pCtxt, int col, const DIFFITEM & ldi, con
  */
 bool CDirView::IsDefaultSortAscending(int col) const
 {
-	return g_cols[col].defSortUp;
+	const DirColInfo * pColInfo = DirViewColItems_GetDirColInfo(col);
+	if (!pColInfo)
+	{
+		ASSERT(0); // fix caller, should not ask for nonexistent columns
+		return 0;
+	}
+	return pColInfo->defSortUp;
 }
 
 /// Assign column name, using string resource & current column ordering
@@ -117,8 +102,8 @@ void CDirView::UpdateColumnNames()
 {
 	for (int i=0; i<g_ncols; ++i)
 	{
-		const DirColInfo & col = g_cols[i];
-		NameColumn(col.idName, i);
+		const DirColInfo * col = DirViewColItems_GetDirColInfo(i);
+		NameColumn(col->idName, i);
 	}
 }
 
@@ -129,10 +114,10 @@ void CDirView::SetColAlignments()
 {
 	for (int i=0; i<g_ncols; ++i)
 	{
-		const DirColInfo & col = g_cols[i];
+		const DirColInfo * col = DirViewColItems_GetDirColInfo(i);
 		LVCOLUMN lvc;
 		lvc.mask = LVCF_FMT;
-		lvc.fmt = col.alignment;
+		lvc.fmt = col->alignment;
 		m_pList->SetColumn(m_colorder[i], &lvc);
 	}
 }
@@ -160,7 +145,7 @@ int CALLBACK CDirView::CompareState::CompareFunc(LPARAM lParam1, LPARAM lParam2,
 	const DIFFITEM &ldi = pThis->pCtxt->GetDiffAt(diffposl);
 	const DIFFITEM &rdi = pThis->pCtxt->GetDiffAt(diffposr);
 	// compare 'left' and 'right' parameters as appropriate
-	int retVal = ColSort(pThis->pCtxt, pThis->sortCol, ldi, rdi);
+	int retVal = pThis->pView->ColSort(pThis->pCtxt, pThis->sortCol, ldi, rdi);
 	// return compare result, considering sort direction
 	return pThis->bSortAscending ? retVal : -retVal;
 }
@@ -216,7 +201,7 @@ void CDirView::ReflectGetdispinfo(NMLVDISPINFO *pParam)
 	POSITION key = GetItemKey(nIdx);
 	if (key == (POSITION) SPECIAL_ITEM_POS)
 	{
-		if (i == DirCol_Name)
+		if (IsColName(i))
 		{
 			pParam->item.pszText = _T("..");
 		}
@@ -228,18 +213,18 @@ void CDirView::ReflectGetdispinfo(NMLVDISPINFO *pParam)
 	const DIFFITEM &di = GetDocument()->GetDiffRefByKey(key);
 	if (pParam->item.mask & LVIF_TEXT)
 	{
-		CString s = ColGet(&ctxt, i, di);
+		CString s = ColGetTextToDisplay(&ctxt, i, di);
 		// Add '*' to newer time field
-		if
-		(
-			i == DirCol_LmTime && di.left.mtime > di.right.mtime // Left modification time
-		||	i == DirCol_RmTime && di.left.mtime < di.right.mtime // Right modification time
-		)
+		if (di.left.mtime != 0 || di.right.mtime != 0)
 		{
-			s.Insert(0, _T("* "));
+			if ((IsColLmTime(i) && di.left.mtime > di.right.mtime) ||
+				(IsColRmTime(i) && di.left.mtime < di.right.mtime))
+			{
+				s.Insert(0, _T("* "));
+			}
 		}
 		// Don't show result for folderitems appearing both sides
-		if ((i == DirCol_Status || i == DirCol_StatusAbbr) &&
+		if ((IsColStatus(i) || IsColStatusAbbr(i)) &&
 			di.isDirectory() && !di.isSideLeft() && !di.isSideRight())
 		{
 			s.Empty();
@@ -278,7 +263,8 @@ void CDirView::LoadColumnOrders()
 	// Load column orders
 	// Break out if one is missing
 	// Break out & mark failure (m_dispcols == -1) if one is invalid
-	for (int i=0; i<m_numcols; ++i)
+	int i=0;
+	for (i=0; i<m_numcols; ++i)
 	{
 		CString RegName = GetColRegValueNameBase(i) + _T("_Order");
 		int ord = theApp.GetProfileInt(_T("DirView"), RegName, -2);
@@ -382,9 +368,9 @@ void CDirView::ClearColumnOrders()
  */
 CString CDirView::GetColDisplayName(int col) const
 {
-	const DirColInfo & colinfo = g_cols[col];
+	const DirColInfo * colinfo = DirViewColItems_GetDirColInfo(col);
 	CString s;
-	s.LoadString(colinfo.idName);
+	s.LoadString(colinfo->idName);
 	return s;
 }
 
@@ -393,9 +379,9 @@ CString CDirView::GetColDisplayName(int col) const
  */
 CString CDirView::GetColDescription(int col) const
 {
-	const DirColInfo & colinfo = g_cols[col];
+	const DirColInfo * colinfo = DirViewColItems_GetDirColInfo(col);
 	CString s;
-	s.LoadString(colinfo.idDesc);
+	s.LoadString(colinfo->idDesc);
 	return s;
 }
 
@@ -416,7 +402,8 @@ void CDirView::MoveColumn(int psrc, int pdest)
 	m_colorder[m_invcolorder[psrc]] = pdest;
 	// shift all other affected columns
 	int dir = psrc > pdest ? +1 : -1;
-	for (int i=pdest; i!=psrc; i += dir)
+	int i=0;
+	for (i=pdest; i!=psrc; i += dir)
 	{
 		m_colorder[m_invcolorder[i]] = i+dir;
 	}
@@ -436,7 +423,6 @@ void CDirView::MoveColumn(int psrc, int pdest)
  */
 void CDirView::OnEditColumns()
 {
-ToDoDeleteThisValidateColumnOrdering();
 	CDirColsDlg dlg;
 	// List all the currently displayed columns
 	for (int col=0; col<GetListCtrl().GetHeaderCtrl()->GetItemCount(); ++col)
@@ -445,7 +431,8 @@ ToDoDeleteThisValidateColumnOrdering();
 		dlg.AddColumn(GetColDisplayName(l), GetColDescription(l), l, col);
 	}
 	// Now add all the columns not currently displayed
-	for (int l=0; l<GetColLogCount(); ++l)
+	int l=0;
+	for (l=0; l<GetColLogCount(); ++l)
 	{
 		if (ColLogToPhys(l)==-1)
 		{
@@ -472,7 +459,7 @@ ToDoDeleteThisValidateColumnOrdering();
 	const CDirColsDlg::ColumnArray & cols = dlg.GetColumns();
 	ClearColumnOrders();
 	m_dispcols = 0;
-	const int sortColumn = mf->m_options.GetInt(OPT_DIRVIEW_SORT_COLUMN);
+	const int sortColumn = GetOptionsMgr()->GetInt(OPT_DIRVIEW_SORT_COLUMN);
 	for (int i=0; i<cols.GetSize(); ++i)
 	{
 		int log = cols[i].log_col;
@@ -487,8 +474,8 @@ ToDoDeleteThisValidateColumnOrdering();
 		// If sorted column was hidden, reset sorting
 		if (log == sortColumn && phy < 0)
 		{
-			mf->m_options.Reset(OPT_DIRVIEW_SORT_COLUMN);
-			mf->m_options.Reset(OPT_DIRVIEW_SORT_ASCENDING);
+			GetOptionsMgr()->Reset(OPT_DIRVIEW_SORT_COLUMN);
+			GetOptionsMgr()->Reset(OPT_DIRVIEW_SORT_ASCENDING);
 		}
 	}
 	if (m_dispcols < 1)

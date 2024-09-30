@@ -48,11 +48,14 @@ private:
 	 */
 	struct SCursorPushed
 	{
+		/// char pos
 		int x;
-		// real line number of itself (is the line is real)/the first real line after this line (else)
+		/// real line number of itself (is the line is real)/the first real line after this line (else)
 		int y;
-		// 0 (is the line is real)/ distance to the first real line after this one 
+		/// 0 (is the line is real)/ distance to the first real line after this one 
 		int nToFirstReal;
+
+		SCursorPushed() : x(0), y(0), nToFirstReal(0) { }
 	};
 	
 	/** 
@@ -83,7 +86,7 @@ private:
 	/// memorize selected text during OnEditReplace : if (m_bSelectionPushed == TRUE)
 	SCursorPushed m_ptSavedSelStartPushed, m_ptSavedSelEndPushed;
 	/// memorize top line positions
-	SCursorPushed m_nTopLinePushed;
+	int m_nTopSubLinePushed;
 	/** last change position, in the buffer ; used in insertText
 	 * initialized with (-1,-1), so don't assert for this invalid value
 	 */
@@ -110,6 +113,7 @@ public:
 
 	int ComputeApparentLine (int nRealLine) const;
 	int ComputeRealLine (int nApparentLine) const;
+	virtual void DrawMargin (CDC * pdc, const CRect & rect, int nLineIndex, int nLineNumber);
 
 };
 

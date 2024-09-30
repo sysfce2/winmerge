@@ -1,11 +1,13 @@
 /** 
  *  @file   UniFile.h
- *  @author Perry Rapp, Creator, 2003
+ *  @author Perry Rapp, Creator, 2003-2006
  *  @date   Created: 2003-10
- *  @date   Edited:  2005-07-25 (Perry Rapp)
+ *  @date   Edited:  2006-02-20 (Perry Rapp)
  *
  *  @brief  Declaration of Memory-Mapped Unicode enabled file class
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: UniFile.h 3945 2006-12-11 22:12:20Z kimmov $
 
 #ifndef UniFile_h_included
 #define UniFile_h_included
@@ -49,8 +51,8 @@ public:
 	virtual void SetCodepage(int codepage) = 0;
 
 public:
-	virtual BOOL ReadString(CString & line) = 0;
-	virtual BOOL ReadString(CString & line, CString & eol) = 0;
+	virtual BOOL ReadString(CString & line, bool * lossy) = 0;
+	virtual BOOL ReadString(CString & line, CString & eol, bool * lossy) = 0;
 
 	virtual int GetLineNumber() const = 0;
 	virtual __int64 GetPosition() const = 0;
@@ -99,7 +101,6 @@ public:
 
 protected:
 	virtual bool DoGetFileStatus();
-	virtual bool DoGetFileStatus(HANDLE handle);
 	virtual void LastError(LPCTSTR apiname, int syserrnum);
 	virtual void LastErrorCustom(LPCTSTR desc);
 
@@ -139,8 +140,8 @@ public:
 	virtual bool ReadBom();
 
 public:
-	virtual BOOL ReadString(CString & line);
-	virtual BOOL ReadString(CString & line, CString & eol);
+	virtual BOOL ReadString(CString & line, bool * lossy);
+	virtual BOOL ReadString(CString & line, CString & eol, bool * lossy);
 
 	virtual __int64 GetPosition() const { return m_current - m_base; }
 
@@ -160,7 +161,9 @@ private:
 };
 
 /**
- * @brief Regular buffered file
+ * @brief Regular buffered file (write-only access)
+ * (ReadString methods have never been implemented,
+ *  because UniMemFile above is good for reading)
  */
 class UniStdioFile : public UniLocalFile
 {
@@ -182,11 +185,11 @@ public:
 	virtual bool ReadBom();
 
 protected:
-	virtual BOOL ReadString(CString & line);
-	virtual BOOL ReadString(CString & line, CString & eol);
+	virtual BOOL ReadString(CString & line, bool * lossy);
+	virtual BOOL ReadString(CString & line, CString & eol, bool * lossy);
 public:
-	virtual BOOL ReadString(sbuffer & line);
-	virtual BOOL ReadString(sbuffer & line, CString & eol);
+	virtual BOOL ReadString(sbuffer & line, bool * lossy);
+	virtual BOOL ReadString(sbuffer & line, CString & eol, bool * lossy);
 
 	virtual __int64 GetPosition() const;
 

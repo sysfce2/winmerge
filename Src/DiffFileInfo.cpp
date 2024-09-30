@@ -20,47 +20,12 @@
  * @brief Implementation for DiffFileInfo routines
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffFileInfo.cpp,v 1.8 2005/06/17 19:21:17 kimmov Exp $
+// $Id: DiffFileInfo.cpp 3825 2006-11-21 20:09:16Z kimmov $
 
 #include "stdafx.h"
 #include "FileInfo.h"
 #include "DiffFileInfo.h"
-
-/**
- * @brief Convert a FILETIME to a long (standard time)
- */
-static __int64 FileTimeToInt64(FILETIME & ft)
-{
-	return CTime(ft).GetTime();
-}
-
-/**
- * @brief Update fileinfo from given file
- * @param [in] sFilePath Full path to file/directory to update
- */
-void DiffFileInfo::Update(CString sFilePath)
-{
-	// CFileFind doesn't expose the attributes
-	// CFileStatus doesn't expose 64 bit size
-
-	WIN32_FIND_DATA wfd;
-	HANDLE h = FindFirstFile(sFilePath, &wfd);
-	__int64 mtime64 = 0;
-	size = -1;
-	flags.reset();
-	mtime = 0;
-	if (h != INVALID_HANDLE_VALUE)
-	{
-		mtime64 = FileTimeToInt64(wfd.ftLastWriteTime);
-		flags.attributes = wfd.dwFileAttributes;
-
-		// No size for directory (remains as -1)
-		if ((flags.attributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
-			size = (wfd.nFileSizeHigh << 32) + wfd.nFileSizeLow;
-		FindClose(h);
-	}
-	mtime = mtime64;
-}
+#include "unicoder.h"
 
 /**
  * @brief Clears FileInfo data.
@@ -69,6 +34,14 @@ void DiffFileInfo::Clear()
 {
 	FileInfo::Clear();
 	bVersionChecked = false;
-	codepage = 0;
-	unicoding = 0;
+	encoding.Clear();
+	m_textStats.clear();
+}
+
+/**
+ * @brief Return true if file is in any Unicode encoding
+ */
+bool DiffFileInfo::IsEditableEncoding() const
+{
+	return encoding.m_bom == false;
 }

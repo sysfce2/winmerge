@@ -20,7 +20,7 @@
  * @brief Implementation file for VSSHelper class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: VSSHelper.cpp,v 1.4.2.1 2005/10/30 09:36:32 kimmov Exp $
+// $Id: VSSHelper.cpp 2895 2006-01-02 19:01:21Z kimmov $
 
 
 #include "stdafx.h"
@@ -54,7 +54,6 @@ BOOL VSSHelper::ReLinkVCProj(CString strSavePath, CString * psError)
 {
 	const UINT nBufferSize = 1024;
 	TCHAR buffer[nBufferSize] = {0};
-	TCHAR buffer1[nBufferSize] = {0};
 	CString spath;
 	BOOL bVCPROJ = FALSE;
 

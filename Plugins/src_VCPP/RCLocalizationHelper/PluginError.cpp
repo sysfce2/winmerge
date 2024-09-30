@@ -10,7 +10,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PluginError.cpp,v 1.2.2.2 2006/08/08 14:01:20 galh Exp $
+// $Id: PluginError.cpp 3135 2006-03-06 03:01:38Z elsapo $
 
 #include "StdAfx.h"
 #include <stdio.h>

@@ -13,7 +13,7 @@
   the PrivateBuild flag (if it is the only one set), in the main rc file.
 
  RCS ID line follows -- this is updated by CVS
- $Id: SetResourceVersions.wsf,v 1.2.2.1 2006/05/06 14:06:42 kimmov Exp $
+ $Id: SetResourceVersions.wsf 3200 2006-04-05 15:55:08Z kimmov $
 
 */
 

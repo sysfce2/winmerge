@@ -1,3 +1,12 @@
+/**
+ *  @file varprop.cpp
+ *
+ *  @brief Declaration of generic named property classes
+ */ 
+// RCS ID line follows -- this is updated by CVS
+// $Id: varprop.h 3087 2006-02-20 21:43:58Z elsapo $
+//////////////////////////////////////////////////////////////////////
+
 #ifndef varprop_h_included
 #define varprop_h_included
 

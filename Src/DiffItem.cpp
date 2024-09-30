@@ -4,7 +4,7 @@
  *  @brief Implementation of DIFFITEM
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffItem.cpp,v 1.4 2005/07/15 08:13:25 jtuc Exp $
+// $Id: DiffItem.cpp 3059 2006-02-13 03:10:29Z elsapo $
 
 #include "stdafx.h"
 #include "DiffItem.h"
@@ -15,6 +15,14 @@
 static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
+
+/** @brief Make and return a diffitem with no data */
+DIFFITEM DIFFITEM::MakeEmptyDiffItem() // static
+{
+	DIFFITEM di;
+	di.empty = true;
+	return di;
+}
 
 /** @brief Return path to left file, including all but file name */
 CString DIFFITEM::getLeftFilepath(const CString &sLeftRoot) const

@@ -44,8 +44,8 @@ RSC=rc.exe
 # PROP Intermediate_Dir "..\BuildTmp\MergeDebug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /MDd /W3 /Gm /GX /EHa /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /EHa /ZI /Od /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /FR /Yu"stdafx.h" /FD /c
+# ADD BASE CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_AFXDLL" /Yu"stdafx.h" /FD /EHa /c
+# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /ZI /Od /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /FR /Yu"stdafx.h" /FD /EHa /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
@@ -55,7 +55,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 version.lib shlwapi.lib imm32.lib /nologo /subsystem:windows /debug /machine:I386 /out:"..\Build\MergeDebug/WinMerge.exe" /pdbtype:sept
+# ADD LINK32 version.lib shlwapi.lib imm32.lib HtmlHelp.lib /nologo /subsystem:windows /debug /machine:I386 /out:"..\Build\MergeDebug/WinMerge.exe" /pdbtype:sept
 
 !ELSEIF  "$(CFG)" == "Merge - Win32 UnicodeDebug"
 
@@ -71,8 +71,8 @@ LINK32=link.exe
 # PROP Intermediate_Dir "..\BuildTmp\MergeUnicodeDebug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /MDd /W3 /Gm /GR /GX /EHa /ZI /Od /I "." /I "..\common" /I ".\editlib" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /FR /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /EHa /ZI /Od /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /D "UNICODE" /D "_UNICODE" /FR /Yu"stdafx.h" /FD /c
+# ADD BASE CPP /nologo /MDd /W3 /Gm /GR /GX /ZI /Od /I "." /I "..\common" /I ".\editlib" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /FR /Yu"stdafx.h" /FD /EHa /c
+# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /ZI /Od /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /D "UNICODE" /D "_UNICODE" /FR /Yu"stdafx.h" /FD /EHa /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD BASE RSC /l 0x409 /d "_DEBUG" /d "_AFXDLL"
@@ -82,7 +82,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 version.lib shlwapi.lib /nologo /subsystem:windows /debug /machine:I386 /out:"..\Build\MergeUnicodeDebug/WinMerge.exe" /pdbtype:sept
-# ADD LINK32 version.lib shlwapi.lib imm32.lib /nologo /entry:"wWinMainCRTStartup" /subsystem:windows /debug /machine:I386 /out:"..\Build\MergeUnicodeDebug/WinMergeU.exe" /pdbtype:sept
+# ADD LINK32 version.lib shlwapi.lib imm32.lib HtmlHelp.lib /nologo /entry:"wWinMainCRTStartup" /subsystem:windows /debug /machine:I386 /out:"..\Build\MergeUnicodeDebug/WinMergeU.exe" /pdbtype:sept
 
 !ELSEIF  "$(CFG)" == "Merge - Win32 Release"
 
@@ -98,8 +98,8 @@ LINK32=link.exe
 # PROP Intermediate_Dir "..\BuildTmp\MergeRelease"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /MD /W4 /GR /GX /EHa /Zi /O1 /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MD /W3 /GR /GX /EHa /Zi /O1 /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /Yu"stdafx.h" /FD /c
+# ADD BASE CPP /nologo /MD /W4 /GR /GX /Zi /O1 /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /Yu"stdafx.h" /FD /EHa /c
+# ADD CPP /nologo /MD /W3 /GR /GX /Zi /O1 /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /Yu"stdafx.h" /FD /EHa /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD BASE RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
@@ -110,7 +110,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 version.lib shlwapi.lib /nologo /subsystem:windows /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /out:"..\Build\MergeRelease/WinMerge.exe" /verbose:lib
 # SUBTRACT BASE LINK32 /pdb:none
-# ADD LINK32 version.lib shlwapi.lib imm32.lib /nologo /subsystem:windows /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /out:"..\Build\MergeRelease/WinMerge.exe" /verbose:lib
+# ADD LINK32 version.lib shlwapi.lib imm32.lib HtmlHelp.lib /nologo /subsystem:windows /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /out:"..\Build\MergeRelease/WinMerge.exe" /verbose:lib
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "Merge - Win32 UnicodeRelease"
@@ -127,8 +127,8 @@ LINK32=link.exe
 # PROP Intermediate_Dir "..\BuildTmp\MergeUnicodeRelease"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /MD /W4 /GR /GX /EHa /Zi /O1 /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /D "UNICODE" /D "_UNICODE" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MD /W3 /GR /GX /EHa /Zi /O1 /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /D "UNICODE" /D "_UNICODE" /Yu"stdafx.h" /FD /c
+# ADD BASE CPP /nologo /MD /W4 /GR /GX /Zi /O1 /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /D "UNICODE" /D "_UNICODE" /Yu"stdafx.h" /FD /EHa /c
+# ADD CPP /nologo /MD /W3 /GR /GX /Zi /O1 /I "." /I ".\Common" /I ".\editlib" /I ".\diffutils" /I ".\diffutils\lib" /I ".\diffutils\src" /D "WIN32" /D "_WINDOWS" /D "_AFXDLL" /D "HAVE_STDLIB_H" /D "STDC_HEADERS" /D HAVE_STRING_H=1 /D PR_FILE_NAME=\"pr\" /D DIFF_PROGRAM=\"diff\" /D "REGEX_MALLOC" /D "__MSC__" /D "__NT__" /D USG=1 /D EDITPADC_CLASS= /D "COMPILE_MULTIMON_STUBS" /D "UNICODE" /D "_UNICODE" /Yu"stdafx.h" /FD /EHa /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o /win32 "NUL"
 # ADD BASE RSC /l 0x409 /d "NDEBUG" /d "_AFXDLL"
@@ -139,7 +139,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 version.lib shlwapi.lib /nologo /entry:"wWinMainCRTStartup" /subsystem:windows /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /out:"..\Build\MergeUnicodeRelease\WinMergeU.exe" /verbose:lib
 # SUBTRACT BASE LINK32 /pdb:none
-# ADD LINK32 version.lib shlwapi.lib imm32.lib /nologo /entry:"wWinMainCRTStartup" /subsystem:windows /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /out:"..\Build\MergeUnicodeRelease\WinMergeU.exe" /verbose:lib
+# ADD LINK32 version.lib shlwapi.lib imm32.lib HtmlHelp.lib /nologo /entry:"wWinMainCRTStartup" /subsystem:windows /debug /machine:I386 /nodefaultlib:"msvcrtd.lib" /out:"..\Build\MergeUnicodeRelease\WinMergeU.exe" /verbose:lib
 # SUBTRACT LINK32 /pdb:none
 
 !ENDIF 
@@ -156,6 +156,10 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=.\7zCommon.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\AboutDlg.cpp
 # End Source File
 # Begin Source File
 
@@ -221,6 +225,10 @@ SOURCE=.\ColorButton.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\CompareStatisticsDlg.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\CompareStats.cpp
 # End Source File
 # Begin Source File
@@ -242,6 +250,10 @@ SOURCE=.\Common\CSubclass.cpp
 # Begin Source File
 
 SOURCE=.\DiffContext.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\DiffFileData.cpp
 # End Source File
 # Begin Source File
 
@@ -289,7 +301,7 @@ SOURCE=.\DirColsDlg.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\DirCompStateBar.cpp
+SOURCE=.\DirCompProgressDlg.cpp
 # End Source File
 # Begin Source File
 
@@ -368,6 +380,10 @@ SOURCE=.\DirViewColItems.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\dlgutil.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\Common\dllproxy.c
 # SUBTRACT CPP /YX /Yc /Yu
 # End Source File
@@ -382,6 +398,10 @@ SOURCE=.\dllver.cpp
 # Begin Source File
 
 SOURCE=.\EditorFilepathBar.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\FileActionScript.cpp
 # End Source File
 # Begin Source File
 
@@ -401,6 +421,10 @@ SOURCE=.\FileInfo.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\FileOrFolderSelect.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\FilepathEdit.cpp
 # End Source File
 # Begin Source File
@@ -409,7 +433,15 @@ SOURCE=.\files.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\FileTextEncoding.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\FileTransform.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\FilterCommentsManager.cpp
 # End Source File
 # Begin Source File
 
@@ -429,7 +461,7 @@ SOURCE=.\Common\LanguageSelect.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\Common\listvwex.cpp
+SOURCE=.\LoadSaveCodepageDlg.cpp
 # End Source File
 # Begin Source File
 
@@ -505,6 +537,10 @@ SOURCE=.\Merge.rc
 # End Source File
 # Begin Source File
 
+SOURCE=.\MergeArgs.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\MergeDiffDetailView.cpp
 # End Source File
 # Begin Source File
@@ -530,6 +566,10 @@ SOURCE=.\MergeDoc.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\MergeDocEncoding.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\MergeDocLineDiffs.cpp
 # End Source File
 # Begin Source File
@@ -539,6 +579,10 @@ SOURCE=.\MergeEditView.cpp
 # Begin Source File
 
 SOURCE=.\Common\MessageBoxDialog.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\MovedBlocks.cpp
 # End Source File
 # Begin Source File
 
@@ -595,6 +639,10 @@ SOURCE=.\paths.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Common\Picture.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\PluginManager.cpp
 # End Source File
 # Begin Source File
@@ -608,6 +656,10 @@ SOURCE=.\Common\PreferencesDlg.cpp
 # Begin Source File
 
 SOURCE=.\ProjectFile.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\ProjectFilePathsDlg.cpp
 # End Source File
 # Begin Source File
 
@@ -668,6 +720,10 @@ SOURCE=.\PropSyntaxColors.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\PropTextColors.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\PropVss.cpp
 
 !IF  "$(CFG)" == "Merge - Win32 Debug"
@@ -701,6 +757,10 @@ SOURCE=.\SaveClosingDlg.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Common\scbarcf.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\Common\scbarg.cpp
 # End Source File
 # Begin Source File
@@ -722,6 +782,10 @@ SOURCE=.\Common\sizecbar.cpp
 # Begin Source File
 
 SOURCE=.\Common\SortHeaderCtrl.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\SourceControl.cpp
 # End Source File
 # Begin Source File
 
@@ -800,7 +864,7 @@ SOURCE=.\SyntaxColors.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\Common\textfile.cpp
+SOURCE=.\TestFilterDlg.cpp
 # End Source File
 # Begin Source File
 
@@ -867,6 +931,10 @@ SOURCE=.\Common\WindowStyle.cpp
 
 SOURCE=.\WMGotoDlg.cpp
 # End Source File
+# Begin Source File
+
+SOURCE=.\XmlDoc.cpp
+# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -874,6 +942,10 @@ SOURCE=.\WMGotoDlg.cpp
 # Begin Source File
 
 SOURCE=.\7zCommon.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\AboutDlg.h
 # End Source File
 # Begin Source File
 
@@ -925,6 +997,10 @@ SOURCE=.\CompareOptions.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\CompareStatisticsDlg.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\CompareStats.h
 # End Source File
 # Begin Source File
@@ -946,6 +1022,10 @@ SOURCE=.\Common\CSubclass.h
 # Begin Source File
 
 SOURCE=.\DiffContext.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\DiffFileData.h
 # End Source File
 # Begin Source File
 
@@ -989,7 +1069,7 @@ SOURCE=.\DirColsDlg.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\DirCompStateBar.h
+SOURCE=.\DirCompProgressDlg.h
 # End Source File
 # Begin Source File
 
@@ -998,6 +1078,10 @@ SOURCE=.\DirDoc.h
 # Begin Source File
 
 SOURCE=.\DirFrame.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\DirReportTypes.h
 # End Source File
 # Begin Source File
 
@@ -1010,6 +1094,10 @@ SOURCE=.\DirView.h
 # Begin Source File
 
 SOURCE=.\DirViewColItems.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\dlgutil.h
 # End Source File
 # Begin Source File
 
@@ -1033,6 +1121,10 @@ SOURCE=.\Exceptions.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\FileActionScript.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\FileFilterHelper.h
 # End Source File
 # Begin Source File
@@ -1049,6 +1141,14 @@ SOURCE=.\FileInfo.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\FileLocation.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\FileOrFolderSelect.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\FilepathEdit.h
 # End Source File
 # Begin Source File
@@ -1057,7 +1157,19 @@ SOURCE=.\files.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\FileTextEncoding.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\FileTextStats.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\FileTransform.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\FilterCommentsManager.h
 # End Source File
 # Begin Source File
 
@@ -1077,11 +1189,19 @@ SOURCE=.\IAbortable.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\IntToIntMap.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\IOptionsPanel.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\Common\LanguageSelect.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\Common\listvwex.h
+SOURCE=.\LoadSaveCodepageDlg.h
 # End Source File
 # Begin Source File
 
@@ -1133,6 +1253,10 @@ SOURCE=.\MergeEditView.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\MergeLineFlags.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\Common\MessageBoxDialog.h
 # End Source File
 # Begin Source File
@@ -1177,6 +1301,10 @@ SOURCE=.\paths.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\Common\Picture.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\PluginManager.h
 # End Source File
 # Begin Source File
@@ -1190,6 +1318,10 @@ SOURCE=.\Common\PreferencesDlg.h
 # Begin Source File
 
 SOURCE=.\ProjectFile.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ProjectFilePathsDlg.h
 # End Source File
 # Begin Source File
 
@@ -1233,6 +1365,10 @@ SOURCE=.\PropSyntaxColors.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\PropTextColors.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\PropVss.h
 # End Source File
 # Begin Source File
@@ -1254,6 +1390,10 @@ SOURCE=.\SaveClosingDlg.h
 # Begin Source File
 
 SOURCE=.\Common\sbuffer.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Common\scbarcf.h
 # End Source File
 # Begin Source File
 
@@ -1317,7 +1457,7 @@ SOURCE=.\SyntaxColors.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\Common\textfile.h
+SOURCE=.\TestFilterDlg.h
 # End Source File
 # Begin Source File
 
@@ -1371,6 +1511,10 @@ SOURCE=.\Common\WindowStyle.h
 
 SOURCE=.\WMGotoDlg.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\XmlDoc.h
+# End Source File
 # End Group
 # Begin Group "Resource Files"
 
@@ -1385,7 +1529,19 @@ SOURCE=.\res\binarydiff.bmp
 # End Source File
 # Begin Source File
 
+SOURCE=.\res\binarydiff.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\res\equal.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\equalbinary.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\equalfile.ico
 # End Source File
 # Begin Source File
 
@@ -1393,7 +1549,15 @@ SOURCE=.\res\error.bmp
 # End Source File
 # Begin Source File
 
+SOURCE=.\res\error.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\res\fileskip.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\fileskip.ico
 # End Source File
 # Begin Source File
 
@@ -1401,7 +1565,23 @@ SOURCE=.\res\folder.bmp
 # End Source File
 # Begin Source File
 
+SOURCE=.\res\folder.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\res\folderskip.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\folderskip.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\folderup.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\folderup_disable.ico
 # End Source File
 # Begin Source File
 
@@ -1413,7 +1593,15 @@ SOURCE=.\res\lfile.bmp
 # End Source File
 # Begin Source File
 
+SOURCE=.\res\lfile.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\res\lfolder.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\lfolder.ico
 # End Source File
 # Begin Source File
 
@@ -1441,11 +1629,31 @@ SOURCE=.\res\notequal.bmp
 # End Source File
 # Begin Source File
 
+SOURCE=.\res\notequalfile.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\res\rfile.bmp
 # End Source File
 # Begin Source File
 
+SOURCE=.\res\rfile.ico
+# End Source File
+# Begin Source File
+
 SOURCE=.\res\rfolder.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\rfolder.ico
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\sigma.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\res\sigma.ico
 # End Source File
 # Begin Source File
 
@@ -1457,11 +1665,11 @@ SOURCE=.\Splsh16.bmp
 # End Source File
 # Begin Source File
 
-SOURCE=.\res\Toolbar.bmp
+SOURCE=.\res\unknown.bmp
 # End Source File
 # Begin Source File
 
-SOURCE=.\res\unknown.bmp
+SOURCE=.\res\unknown.ico
 # End Source File
 # Begin Source File
 
@@ -1597,6 +1805,10 @@ SOURCE=.\editlib\csharp.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\editlib\css.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\editlib\dcl.cpp
 # End Source File
 # Begin Source File
@@ -1697,6 +1909,14 @@ SOURCE=.\editlib\php.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\editlib\po.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\editlib\powershell.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\editlib\python.cpp
 # End Source File
 # Begin Source File
@@ -1718,6 +1938,10 @@ SOURCE=.\editlib\rexx.cpp
 # Begin Source File
 
 SOURCE=.\editlib\rsrc.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\editlib\ruby.cpp
 # End Source File
 # Begin Source File
 
@@ -2186,10 +2410,22 @@ SOURCE=.\diffutils\src\UTIL.C
 
 # End Source File
 # End Group
+# Begin Group "ChangeLogs"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\CHANGELO
+# End Source File
+# Begin Source File
+
+SOURCE=.\Changes.txt
+# End Source File
 # Begin Source File
 
 SOURCE=.\ReadMe.txt
 # End Source File
+# End Group
 # End Target
 # End Project
 # Section Merge : {6F747475-446E-6C62-436C-6B0000003100}

@@ -24,7 +24,7 @@
  */ 
 //
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirView.h,v 1.88.2.3 2006/08/06 09:22:51 kimmov Exp $
+// $Id: DirView.h 3566 2006-09-15 21:14:54Z kimmov $
 
 #if !defined(AFX_DirView_H__16E7C721_351C_11D1_95CD_444553540000__INCLUDED_)
 #define AFX_DirView_H__16E7C721_351C_11D1_95CD_444553540000__INCLUDED_
@@ -34,6 +34,7 @@
 #include <afxcview.h>
 #include "SortHeaderCtrl.h"
 
+class FileActionScript;
 
 struct DIFFITEM;
 
@@ -44,7 +45,10 @@ class CDirFrame;
 
 class PackingInfo;
 class PathContext;
-class CShellFileOp;
+class DirCompProgressDlg;
+class CompareStats;
+struct DirColInfo;
+class CLoadSaveCodepageDlg;
 
 struct ViewCustomFlags
 {
@@ -100,6 +104,7 @@ public:
 public:
 	CDirFrame * GetParentFrame();
 
+	void StartCompare(CompareStats *pCompareStats);
 	void Redisplay();
 	void UpdateResources();
 	void LoadColumnHeaderItems();
@@ -113,35 +118,13 @@ public:
 
 	UINT GetSelectedCount() const;
 	int GetFirstSelectedInd();
-	//DIFFITEM GetNextSelectedInd(int &ind);
+	DIFFITEM GetNextSelectedInd(int &ind);
 	DIFFITEM GetItemAt(int ind);
-	int AddSpecialItems();
 	void AddParentFolderItem(BOOL bEnable);
 	void RefreshOptions();
 
 // Implementation types
 private:
-	/** 
-	 * @brief An ActionList is a multifile copy or delete operation
-	 * When the user selects one or many files in the dirview, and then
-	 * invokes, eg, right-click Copy Left, an ActionList is built
-	 **/
-	struct ActionList
-	{
-		// types used in the ActionList
-		typedef enum { ACT_COPY = 1, ACT_DEL_LEFT, ACT_DEL_RIGHT, ACT_DEL_BOTH,
-			ACT_MOVE_LEFT, ACT_MOVE_RIGHT } ACT_TYPE;
-		struct action { CString src; CString dest; BOOL dirflag; int idx; int code;}; /**< One file action */
-		typedef CList<int, int> DeletedItemList; // indices into display list control
-		// Data members of the ActionList
-		int selcount; // #items in full selection (not all may be affected)
-		ACT_TYPE atype;
-		CList<action, action&> actions;
-		CStringList errors;
-		DeletedItemList deletedItems;
-		ActionList(ACT_TYPE at) : selcount(0), atype(at) { }
-		int GetCount() const { return actions.GetCount(); }
-	};
 	typedef enum { SIDE_LEFT=1, SIDE_RIGHT } SIDE_TYPE;
 
 // Implementation in DirActions.cpp
@@ -151,21 +134,22 @@ private:
 	CString GetSelectedFileName(SIDE_TYPE stype) const;
 	void GetItemFileNames(int sel, CString& strLeft, CString& strRight) const;
 	void GetItemFileNames(int sel, PathContext * paths) const;
+	void FormatEncodingDialogDisplays(CLoadSaveCodepageDlg * dlg);
 	BOOL IsItemLeftOnly(int code);
 	BOOL IsItemRightOnly(int code);
-	BOOL IsItemCopyableToLeft(const DIFFITEM & di);
-	BOOL IsItemCopyableToRight(const DIFFITEM & di);
-	BOOL IsItemDeletableOnLeft(const DIFFITEM & di);
-	BOOL IsItemDeletableOnRight(const DIFFITEM & di);
-	BOOL IsItemDeletableOnBoth(const DIFFITEM & di);
+	BOOL IsItemCopyableToLeft(const DIFFITEM & di) const;
+	BOOL IsItemCopyableToRight(const DIFFITEM & di) const;
+	BOOL IsItemDeletableOnLeft(const DIFFITEM & di) const;
+	BOOL IsItemDeletableOnRight(const DIFFITEM & di) const;
+	BOOL IsItemDeletableOnBoth(const DIFFITEM & di) const;
 	BOOL IsItemOpenable(const DIFFITEM & di) const;
 	BOOL AreItemsOpenable(const DIFFITEM & di1, const DIFFITEM & di2) const;
-	BOOL IsItemOpenableOnLeft(const DIFFITEM & di);
-	BOOL IsItemOpenableOnRight(const DIFFITEM & di);
-	BOOL IsItemOpenableOnLeftWith(const DIFFITEM & di);
-	BOOL IsItemOpenableOnRightWith(const DIFFITEM & di);
-	BOOL IsItemCopyableToOnLeft(const DIFFITEM & di);
-	BOOL IsItemCopyableToOnRight(const DIFFITEM & di);
+	BOOL IsItemOpenableOnLeft(const DIFFITEM & di) const;
+	BOOL IsItemOpenableOnRight(const DIFFITEM & di) const;
+	BOOL IsItemOpenableOnLeftWith(const DIFFITEM & di) const;
+	BOOL IsItemOpenableOnRightWith(const DIFFITEM & di) const;
+	BOOL IsItemCopyableToOnLeft(const DIFFITEM & di) const;
+	BOOL IsItemCopyableToOnRight(const DIFFITEM & di) const;
 	void DoCopyLeftToRight();
 	void DoCopyRightToLeft();
 	void DoDelLeft();
@@ -180,18 +164,19 @@ private:
 	void DoOpenWith(SIDE_TYPE stype);
 	void DoOpenWithEditor(SIDE_TYPE stype);
 	void ApplyPluginPrediffSetting(int newsetting);
-	void ConfirmAndPerformActions(ActionList & actions);
-	BOOL ConfirmActionList(const ActionList & actions);
-	void PerformActionList(ActionList & actions);
-	BOOL RunFileOp(CShellFileOp & fileOp, BOOL & bOpStarted,
-		int & apiRetVal, BOOL & bUserCancelled, BOOL & bFatalError);
-	void UpdateCopiedItems(ActionList & actions);
-	void UpdateDeletedItems(ActionList & actions);
+	void ConfirmAndPerformActions(FileActionScript & actions, int selCount);
+	BOOL ConfirmActionList(const FileActionScript & actions, int selCount);
+	void PerformActionList(FileActionScript & actions);
+	void UpdateAfterFileScript(FileActionScript & actionList);
 	UINT MarkSelectedForRescan();
+	void DoFileEncodingDialog();
+	void DoUpdateFileEncodingDialog(CCmdUI* pCmdUI);
+	BOOL DoItemRename(LPCTSTR szNewItemName);
+	BOOL RenameOnSameDir(LPCTSTR szOldFileName, LPCTSTR szNewFileName);
 // End DirActions.cpp
 	void ReflectGetdispinfo(NMLVDISPINFO *);
 
-// Implementation in DirViewCols.cpp
+// Implementation in DirViewColHandler.cpp
 public:
 	void UpdateColumnNames();
 	void SetColAlignments();
@@ -208,7 +193,6 @@ public:
 		static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 	} friend;
 	void UpdateDiffItemStatus(UINT nIdx);
-	void ToDoDeleteThisValidateColumnOrdering() { ValidateColumnOrdering(); }
 private:
 	void InitiateSort();
 	void NameColumn(int id, int subitem);
@@ -225,9 +209,21 @@ private:
 	void ResetColumnOrdering();
 	void MoveColumn(int psrc, int pdest);
 	CString GetColRegValueNameBase(int col) const;
-	int GetColDefaultOrder(int col) const;
-private:
+	CString ColGetTextToDisplay(const CDiffContext *pCtxt, int col, const DIFFITEM & di);
+	int ColSort(const CDiffContext *pCtxt, int col, const DIFFITEM & ldi, const DIFFITEM &rdi) const;
 // End DirViewCols.cpp
+
+// Implementation in DirViewColItems.cpp
+	int GetColDefaultOrder(int col) const;
+	const DirColInfo * DirViewColItems_GetDirColInfo(int col) const;
+	bool IsColName(int col) const;
+	bool IsColLmTime(int col) const;
+	bool IsColRmTime(int col) const;
+	bool IsColStatus(int col) const;
+	bool IsColStatusAbbr(int col) const;
+// End DirViewColItems.cpp
+
+private:
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -248,6 +244,8 @@ protected:
 	int GetLastDifferentItem();
 	int GetColImage(const DIFFITEM & di) const;
 	int GetDefaultColImage() const;
+	int AddSpecialItems();
+	void GetCurrentColRegKeys(CStringArray & colKeys);
 
 // Implementation data
 protected:
@@ -262,6 +260,9 @@ protected:
 	BOOL m_bEscCloses; /**< Cached value for option for ESC closing window */
 	CFont m_font; /**< User-selected font */
 	UINT m_nHiddenItems; /**< Count of items we have hidden */
+	DirCompProgressDlg * m_pCmpProgressDlg;
+	clock_t m_compareStart; /**< Starting process time of the compare */
+	BOOL m_bUserCancelEdit; /**< TRUE if the user cancels rename */
 
 	// Generated message map functions
 	afx_msg void OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult);
@@ -314,7 +315,7 @@ protected:
 	afx_msg LRESULT OnUpdateUIMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnRefresh();
 	afx_msg void OnUpdateRefresh(CCmdUI* pCmdUI);
-	afx_msg void OnTimer(UINT nIDEvent);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnEditColumns();
 	afx_msg void OnLeftReadOnly();
 	afx_msg void OnUpdateLeftReadOnly(CCmdUI* pCmdUI);
@@ -331,8 +332,6 @@ protected:
 	afx_msg void OnCtxtDirZipBoth();
 	afx_msg void OnCtxtDirZipBothDiffsOnly();
 	afx_msg void OnUpdateCtxtDir(CCmdUI* pCmdUI);
-	afx_msg void OnDirStatePane();
-	afx_msg void OnUpdateDirStatePane(CCmdUI* pCmdUI);
 	afx_msg void OnSelectAll();
 	afx_msg void OnUpdateSelectAll(CCmdUI* pCmdUI);
 	afx_msg void OnPluginPredifferMode(UINT nID);
@@ -342,6 +341,8 @@ protected:
 	afx_msg void OnCopyBothPathnames();
 	afx_msg void OnCopyFilenames();
 	afx_msg void OnUpdateCopyFilenames(CCmdUI* pCmdUI);
+	afx_msg void OnItemRename();
+	afx_msg void OnUpdateItemRename(CCmdUI* pCmdUI);
 	afx_msg void OnHideFilenames();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnCtxtDirMoveLeftTo();
@@ -357,11 +358,22 @@ protected:
 	afx_msg void OnUpdateViewShowHiddenItems(CCmdUI* pCmdUI);
 	afx_msg void OnMergeCompare();
 	afx_msg void OnUpdateMergeCompare(CCmdUI *pCmdUI);
+	afx_msg void OnViewCompareStatistics();
+	afx_msg void OnFileEncoding();
+	afx_msg void OnUpdateFileEncoding(CCmdUI* pCmdUI);
+	afx_msg void OnHelp();
+	afx_msg void OnEditCopy();
+	afx_msg void OnEditCut();
+	afx_msg void OnEditPaste();
+	afx_msg void OnEditUndo();
+	afx_msg void OnUpdateEditUndo(CCmdUI* pCmdUI);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 	BOOL OnHeaderBeginDrag(LPNMHEADER hdr, LRESULT* pResult);
 	BOOL OnHeaderEndDrag(LPNMHEADER hdr, LRESULT* pResult);
 	afx_msg void OnItemChanged(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnBeginLabelEdit(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnEndLabelEdit(NMHDR* pNMHDR, LRESULT* pResult);
 
 private:
 	void OpenSelection(PackingInfo * infoUnpacker = NULL);
@@ -385,10 +397,12 @@ private:
 	void DoUpdateCtxtDirMoveLeftTo(CCmdUI* pCmdUI);
 	void DoUpdateCtxtDirMoveRightTo(CCmdUI* pCmdUI);
 	POSITION GetItemKeyFromData(DWORD dw) const;
-	DIFFITEM GetDiffItem(int sel);
+	DIFFITEM GetDiffItem(int sel) const;
+	DIFFITEM & GetDiffItemRef(int sel);
+	const DIFFITEM & GetDiffItemConstRef(int sel) const;
 	int GetSingleSelectedItem() const;
 	bool IsItemNavigableDiff(const DIFFITEM & di) const;
-	void MoveSelection(int currentInd, int i, int selCount);
+	void MoveFocus(int currentInd, int i, int selCount);
 	void SaveColumnWidths();
 	void SaveColumnOrders();
 	void FixReordering();
@@ -396,6 +410,8 @@ private:
 	void ListContextMenu(CPoint point, int i);
 	void ReloadColumns();
 	void ResetColumnWidths();
+	BOOL IsLabelEdit();
+	BOOL IsItemSelectedSpecial();
 };
 
 

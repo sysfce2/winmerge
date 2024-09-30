@@ -5,24 +5,33 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropEditor.h,v 1.3 2005/05/03 15:12:45 elsapo Exp $
+// $Id: PropEditor.h 3394 2006-07-25 13:14:34Z kimmov $
 
 #if !defined(AFX_PROPEDITOR_H__1F2D57BB_6C09_488B_834D_575A94B2BDB8__INCLUDED_)
 #define AFX_PROPEDITOR_H__1F2D57BB_6C09_488B_834D_575A94B2BDB8__INCLUDED_
+
+#include "IOptionsPanel.h"
+
+class COptionsMgr;
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropEditor dialog
 
 /**
  * @brief Property page for editor options.
+ *
+ * Editor options affect to editor behavior. For example syntax highlighting
+ * and tabs.
  */
-class CPropEditor : public CPropertyPage
+class CPropEditor : public CPropertyPage, public IOptionsPanel
 {
-	DECLARE_DYNCREATE(CPropEditor)
-
 // Construction
 public:
-	CPropEditor();
+	CPropEditor(COptionsMgr *optionsMgr);
+
+// Implement IOptionsPanel
+	virtual void ReadOptions();
+	virtual void WriteOptions();
 
 // Dialog Data
 	//{{AFX_DATA(CPropEditor)
@@ -32,7 +41,6 @@ public:
 	UINT    m_nTabSize;
 	BOOL    m_bAutomaticRescan;
 	BOOL    m_bAllowMixedEol;
-	BOOL    m_bApplySyntax;
 	BOOL    m_bViewLineDifferences;
 	BOOL    m_bBreakOnWords;
 	int     m_nBreakType;
@@ -42,6 +50,9 @@ private:
 // Implementation methods
 	void LoadBreakTypeStrings();
 	void UpdateDataToWindow() { UpdateData(FALSE); }
+	void UpdateDataFromWindow() { UpdateData(TRUE); }
+	void UpdateLineDiffControls();
+	void EnableDlgItem(int item, bool enable);
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -56,9 +67,13 @@ protected:
 	// Generated message map functions
 	//{{AFX_MSG(CPropEditor)
 	afx_msg BOOL OnInitDialog();
-	afx_msg void OnSyntaxHighlight();
+	afx_msg void OnLineDiffControlClicked();
+	afx_msg void OnEnKillfocusTabEdit();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+
+private:
+	COptionsMgr * m_pOptionsMgr; /**< Options manager used for loading/saving values. */
 };
 
 //{{AFX_INSERT_LOCATION}}

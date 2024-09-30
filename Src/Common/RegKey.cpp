@@ -1,7 +1,14 @@
+/** 
+ * @file  RegKey.cpp
+ *
+ * @brief Implementation of CRegKeyEx C++ wrapper class for reading Windows registry
+ */
+// RCS ID line follows -- this is updated by CVS
+// $Id: RegKey.cpp 3131 2006-03-04 17:54:58Z elsapo $
 
 #include "stdafx.h"	
-#include "regkey.h"
-#include "assert.h"
+#include <assert.h>
+#include "RegKey.h"
 
 CRegKeyEx::CRegKeyEx()
 {
@@ -193,9 +200,9 @@ CString CRegKeyEx::ReadString (LPCTSTR pszKey, LPCTSTR defval)
 		&dwType, (LPBYTE) string, &dwSize);
 
 	if (lReturn == ERROR_SUCCESS)
-		return CString(string);
+		return string;
 	else
-		return CString(defval);
+		return defval;
 }
 
 void CRegKeyEx::ReadChars (LPCTSTR pszKey, LPTSTR pData, DWORD dwLen, LPCTSTR defval)

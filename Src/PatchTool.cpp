@@ -20,7 +20,7 @@
  * @brief Code file routines
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PatchTool.cpp,v 1.10 2005/07/30 12:29:55 kimmov Exp $
+// $Id: PatchTool.cpp 3401 2006-07-28 07:48:37Z kimmov $
 
 #include "stdafx.h"
 #include "DiffWrapper.h"
@@ -32,11 +32,24 @@
 /** 
  * @brief Adds files to list for patching
  */
-void CPatchTool::AddFiles(CString file1, CString file2)
+void CPatchTool::AddFiles(const CString &file1, const CString &file2)
 {
 	PATCHFILES files;
 	files.lfile = file1;
 	files.rfile = file2;
+
+	// TODO: Read and add file's timestamps
+	m_fileList.AddTail(files);
+}
+
+void CPatchTool::AddFiles(const CString &file1, const CString &altPath1,
+		const CString &file2, const CString &altPath2)
+{
+	PATCHFILES files;
+	files.lfile = file1;
+	files.rfile = file2;
+	files.pathLeft = altPath1;
+	files.pathRight = altPath2;
 
 	// TODO: Read and add file's timestamps
 	m_fileList.AddTail(files);
@@ -75,9 +88,9 @@ int CPatchTool::CreatePatch()
 		}
 
 		// Select patch create -mode
-		m_diffWrapper.SetUseDiffList(FALSE);
-		m_diffWrapper.SetCreatePatchFile(TRUE);
+		m_diffWrapper.SetCreatePatchFile(m_dlgPatch.m_fileResult);
 		m_diffWrapper.SetAppendFiles(m_dlgPatch.m_appendFile);
+		m_diffWrapper.SetPrediffer(NULL);
 
 		int fileCount = m_dlgPatch.GetItemCount();
 		POSITION pos = m_dlgPatch.GetFirstItem();
@@ -85,12 +98,11 @@ int CPatchTool::CreatePatch()
 		for (int i = 0; i < fileCount; i++)
 		{
 			PATCHFILES files = m_dlgPatch.GetNextItem(pos);
-			CString filename1 = files.lfile;
-			CString filename2 = files.rfile;
 			
 			// Set up DiffWrapper
-			m_diffWrapper.SetCompareFiles(filename1, filename2, NOTEMPFILES);
-			m_diffWrapper.SetPrediffer(NULL);
+			m_diffWrapper.SetPaths(files.lfile, files.rfile, FALSE);
+			m_diffWrapper.SetAlternativePaths(files.pathLeft, files.pathRight);
+			m_diffWrapper.SetCompareFiles(files.lfile, files.rfile);
 			bDiffSuccess = m_diffWrapper.RunFileDiff();
 			m_diffWrapper.GetDiffStatus(&status);
 
@@ -149,8 +161,6 @@ BOOL CPatchTool::ShowDialog()
 		if (m_dlgPatch.GetItemCount() < 1)
 			bRetVal = FALSE;
 
-		m_diffWrapper.SetPatchFile(m_dlgPatch.m_fileResult);
-
 		// These two are from dropdown list - can't be wrong
 		patchOptions.outputStyle = m_dlgPatch.m_outputStyle;
 		patchOptions.nContext = m_dlgPatch.m_contextLines;
@@ -166,7 +176,7 @@ BOOL CPatchTool::ShowDialog()
 
 		// Use this because non-sensitive setting can't write
 		// patch file EOLs correctly
-		diffOptions.bEolSensitive = TRUE;
+		diffOptions.bIgnoreEol = FALSE;
 		
 		diffOptions.bIgnoreCase = !m_dlgPatch.m_caseSensitive;
 		m_diffWrapper.SetOptions(&diffOptions);

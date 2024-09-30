@@ -20,9 +20,10 @@
  * @brief Code file routines
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: files.cpp,v 1.21 2004/02/18 22:13:35 jtuc Exp $
+// $Id: files.cpp 3492 2006-08-23 15:30:54Z kimmov $
 
 #include "stdafx.h"
+#include <sys/stat.h>
 #include "files.h"
 #include "unicoder.h"
 
@@ -154,18 +155,21 @@ BOOL files_closeFileMapped(MAPPEDFILEDATA *fileData, DWORD newSize, BOOL flush)
 /**
  * @brief Checks if file is read-only on disk.
  * Optionally returns also if file exists.
+ * @param [in] Full path to file to check.
+ * @param [in, out] If non-NULL, returns if file exists.
+ * @return TRUE if file is read-only, FALSE otherwise.
  */
-BOOL files_isFileReadOnly(CString file, BOOL *fileExists /*=NULL*/)
+BOOL files_isFileReadOnly(const CString &file, BOOL *fileExists /*=NULL*/)
 {
-	CFileStatus status;
+	struct _stati64 fstats = {0};
 	BOOL bReadOnly = FALSE;
 	BOOL bExists = FALSE;
 
-	if (CFile::GetStatus(file, status))
+	if (_tstati64(file, &fstats) == 0)
 	{
 		bExists = TRUE;
 
-		if (status.m_attribute & CFile::Attribute::readOnly)
+		if ((fstats.st_mode & _S_IWRITE) == 0)
 			bReadOnly = TRUE;
 	}
 	else

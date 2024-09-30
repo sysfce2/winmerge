@@ -4,7 +4,7 @@
  *  @brief Declaration of DIFFITEM
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffItem.h,v 1.11 2005/09/06 23:28:06 elsapo Exp $
+// $Id: DiffItem.h 3748 2006-10-31 17:33:53Z kimmov $
 
 #ifndef _DIFF_ITEM_H_
 #define _DIFF_ITEM_H_
@@ -14,17 +14,47 @@
 #endif
 
 /**
- * @brief values for DIFFITEM.code
+ * @brief Bitfield values for binary file sides.
+ * These values are used as bitfield values when determining which file(s)
+ * are binary files. There is no "both" -value since in bitfield "both" is
+ * when side1- and side2- bits are set (BINFILE_SIDE1 | BINFILE_SIDE2).
+ */
+enum BINFILE_SIDE
+{
+	BINFILE_NONE = 0, /**< No binary files detected. */
+	BINFILE_SIDE1, /**< First file was detected as binary file. */
+	BINFILE_SIDE2, /**< Second file was detected as binart file. */
+};
+
+/**
+ * @brief Status of one item comparison, stored as bitfields
+ *
+ * Bitmask can be seen as a 4 dimensional space; that is, there are four
+ * different attributes, and each entry picks one of each attribute
+ * independently.
+ *
+ * One dimension is how the compare went: same or different or
+ * skipped or error.
+ *
+ * One dimension is file mode: text or binary (text is only if
+ * both sides were text)
+ *
+ * One dimension is existence: both sides, left only, or right only
+ *
+ * One dimension is type: directory, or file
  */
 struct DIFFCODE
 {
+	/**
+	 * @brief values for DIFFITEM.diffcode
+	 */
 	enum
 	{
 		// We use extra bits so that no valid values are 0
 		// and each set of flags is in a different hex digit
 		// to make debugging easier
 		// These can always be packed down in the future
-		TEXTFLAGS=0x3, TEXT=0x1, BIN=0x2,
+		TEXTFLAGS=0x7, TEXT=0x1, BIN=0x2,
 		DIRFLAGS=0x30, FILE=0x10, DIR=0x20,
 		SIDEFLAGS=0x300, LEFT=0x100, RIGHT=0x200, BOTH=0x300,
 		COMPAREFLAGS=0x7000, NOCMP=0x0000, SAME=0x1000, DIFF=0x2000, CMPERR=0x3000, CMPABORT=0x4000,
@@ -36,7 +66,7 @@ struct DIFFCODE
 
 	DIFFCODE(int diffcode = 0) : diffcode(diffcode) { }
 
-private:
+protected:
 	static bool Check(int code, int mask, int result) { return ((code & mask) == result); }
 	static bool CheckCompare(int code, int result) { return Check(code, DIFFCODE::COMPAREFLAGS, result); }
 	static bool CheckFilter(int code, int result) { return Check(code, DIFFCODE::FILTERFLAGS, result); }
@@ -50,8 +80,10 @@ public:
 	bool isDirectory() const { return Check(diffcode, DIFFCODE::DIRFLAGS, DIFFCODE::DIR); }
 	// left/right
 	bool isSideLeft() const { return CheckSide(diffcode, DIFFCODE::LEFT); }
+	bool isSideLeftOrBoth() const { return isSideLeft() || isSideBoth(); }
 	void setSideLeft() { SetSide(DIFFCODE::LEFT); }
 	bool isSideRight() const { return CheckSide(diffcode, DIFFCODE::RIGHT); }
+	bool isSideRightOrBoth() const { return isSideRight() || isSideBoth(); }
 	void setSideRight() { SetSide(DIFFCODE::RIGHT); }
 	bool isSideBoth() const { return CheckSide(diffcode, DIFFCODE::BOTH); }
 	void setSideBoth() { SetSide(DIFFCODE::BOTH); }
@@ -77,22 +109,12 @@ public:
 /**
  * @brief information about one diff (including files on both sides)
  *
- * Bitmask can be seen as a 4 dimensional space; that is, there are four
- * different attributes, and each entry picks one of each attribute
- * independently.
- *
- * One dimension is how the compare went: same or different or
- * skipped or error.
- *
- * One dimension is file mode: text or binary (text is only if
- * both sides were text)
- *
- * One dimension is existence: both sides, left only, or right only
- *
- * One dimension is type: directory, or file
- *
  * @note times in fileinfo's are seconds since January 1, 1970.
  * See Dirscan.cpp/fentry and Dirscan.cpp/LoadFiles()
+ *
+ * Note: A DIFFITEM has a DIFFCODE, but unfortunately for historical reasons
+ *   it still has an inheritance relationship
+ *  (That is to say, fixing this would affect a lot of code.)
  */
 struct DIFFITEM : DIFFCODE
 {
@@ -103,11 +125,14 @@ struct DIFFITEM : DIFFCODE
 	CString sLeftSubdir; /**< Left subdirectory from root of comparison */
 	CString sRightSubdir; /**< Right subdirectory from root of comparison */
 	int	nsdiffs; /**< Amount of non-ignored differences */
-	int ndiffs; /**< Total amount of differences */
+	int nidiffs; /**< Amount of ignored differences */
 	CString errorDesc; /**< technical note about error */
 	UINT customFlags1; /**< Custom flags set 1 */
+	bool empty; /**< flag to mark diffitem that doesn't have any data */
 
-	DIFFITEM() : ndiffs(-1), nsdiffs(-1), customFlags1(0) { }
+	static DIFFITEM MakeEmptyDiffItem();
+
+	DIFFITEM() : nidiffs(-1), nsdiffs(-1), customFlags1(0), empty(false) { }
 
 	CString getLeftFilepath(const CString &sLeftRoot) const;
 	CString getRightFilepath(const CString &sRightRoot) const;

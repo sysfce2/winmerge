@@ -20,7 +20,7 @@
  * @brief Declaration file for DiffList class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffList.h,v 1.5.2.1 2005/09/16 17:41:44 kimmov Exp $
+// $Id: DiffList.h 3292 2006-05-24 20:14:04Z kimmov $
 
 #ifndef _DIFFLIST_H_
 #define _DIFFLIST_H_
@@ -96,18 +96,17 @@ class DiffList
 public:
 	DiffList();
 	void Clear();
-	int GetSize();
+	int GetSize() const;
 	int GetSignificantDiffs() const;
-	void SetSize(UINT nSize);
-	void AddDiff(DIFFRANGE di);
+	void AddDiff(const DIFFRANGE & di);
 	BOOL IsDiffSignificant(int nDiff) const;
-	BOOL GetDiff(int nDiff, DIFFRANGE &di) const;
-	BOOL SetDiff(int nDiff, DIFFRANGE di);
+	BOOL GetDiff(int nDiff, DIFFRANGE & di) const;
+	BOOL SetDiff(int nDiff, const DIFFRANGE & di);
 	int LineRelDiff(UINT nLine, UINT nDiff) const;
 	BOOL LineInDiff(UINT nLine, UINT nDiff) const;
 	int LineToDiff(UINT nLine) const;
-	BOOL GetPrevDiff(int nLine, int &nDiff) const;
-	BOOL GetNextDiff(int nLine, int &nDiff) const;
+	BOOL GetPrevDiff(int nLine, int & nDiff) const;
+	BOOL GetNextDiff(int nLine, int & nDiff) const;
 	BOOL HasSignificantDiffs() const;
 	int PrevSignificantDiffFromLine(UINT nLine) const;
 	int NextSignificantDiffFromLine(UINT nLine) const;
@@ -121,6 +120,8 @@ public:
 	const DIFFRANGE * DiffRangeAt(int nDiff) const;
 
 	void ConstructSignificantChain(); // must be called after diff list is entirely populated
+	void Swap();
+	void GetExtraLinesCounts(int &nLeftLines, int &nRightLines);
 
 private:
 	CArray<DiffRangeInfo,DiffRangeInfo> m_diffs; /**< Difference list */

@@ -24,7 +24,7 @@
  *  @brief Declaration file for the dialog SelectUnpacker
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: SelectUnpackerDlg.h,v 1.4 2004/01/23 02:16:38 puddle Exp $
+// $Id: SelectUnpackerDlg.h 977 2004-01-23 02:16:42Z puddle $
 
 #if !defined(AFX_SELECTUNPACKERDLG_H__C8FD4C3A_5ED5_43D3_ADAE_A2378369705C__INCLUDED_)
 #define AFX_SELECTUNPACKERDLG_H__C8FD4C3A_5ED5_43D3_ADAE_A2378369705C__INCLUDED_

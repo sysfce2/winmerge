@@ -1,27 +1,112 @@
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 40em;
+}
+
+body,th,td {
+  font-family: Verdana,Helvetica,Arial,sans-serif;
+  font-size: 80%;
+}
+
+pre,code,tt {
+  font-family: "Courier New",Courier,monospace;
+  font-size: 100%;
+}
+
+div.navheader,
+div.navfooter {
+  background: #FFCC00;
+  border-top: 1px solid black;
+  border-bottom: 1px solid black;
+}
+
+div.article,
+div.sect1,
+div.appendix,
+div.index {
+  padding: 5px;
+}
+
+#ads {
+  padding-top: 10px;
+  text-align: center;
+}
+
 .mediaobject {
   margin-top: 10px;
 }
 
 .screen {
-  margin-left: 25px;
-  margin-right: 25px;
   padding: 5px;
   background-color: #EEEEEE;
-  border: 1px solid black;
+  border-left: 10px solid #CCCCCC;
 }
 
 .caution {
+  background-color: #FFDDAA;
   border: 1px solid olive;
 }
 .important {
+  background-color: #FFFFDD;
   border: 1px solid olive;
 }
 .note {
-  border: 1px solid black;
+  background-color: #DDDDFF;
+  border: 1px solid blue;
 }
 .tip {
-  border: 1px solid black;
+  background-color: #DDFFDD;
+  border: 1px solid green;
 }
 .warning {
+  background-color: #FFDDDD;
   border: 1px solid red;
+}
+
+/* Examples */
+.example,.informalexample {
+  padding-left: 7px;
+  border-left: 3px solid black;
+}
+
+/* Command synopsis */
+.cmdsynopsis p {
+  padding: 5px;
+  color: gray;
+  background-color: #EEEEEE;
+  border-left: 10px solid #CCCCCC;
+}
+
+.command,.option,.replaceable {
+  color: black;
+}
+
+/* GUI elements */
+.guimenu,.guisubmenu,.guimenuitem,.guilabel {
+  font-style: italic;
+}
+
+/* FAQ */
+.question {
+  font-weight: bold;
+}
+
+/* tables */
+.table table {
+  border-collapse: collapse;
+  border: 1px solid black;
+}
+
+.table th {
+  padding: 2px;
+  text-align: left;
+  color: white;
+  background: black;
+  border: 1px solid black;
+}
+
+.table td {
+  padding: 2px;
+  border: 1px solid black;
 }

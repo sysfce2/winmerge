@@ -1,4 +1,3 @@
-
 /** 
  * @file  PropArchive.h
  *
@@ -6,24 +5,31 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropArchive.h,v 1.1 2005/08/29 16:28:29 kimmov Exp $
+// $Id: PropArchive.h 3126 2006-03-04 02:36:46Z elsapo $
 
 #ifndef _PROP_ARCHIVE_H_
 #define _PROP_ARCHIVE_H_
 
 #include "StatLink.h"
 
+#ifndef _IOPTIONSPANEL_H_
+#include "IOptionsPanel.h"
+#endif
+
+class COptionsMgr;
 
 /** 
  * @brief Class for Archive Support options page.
  */
 class CPropArchive : public CPropertyPage
 {
-	DECLARE_DYNAMIC(CPropArchive)
-
 public:
-	CPropArchive();
+	CPropArchive(COptionsMgr *optionsMgr);
 	virtual ~CPropArchive();
+
+// Implement IOptionsPanel
+	virtual void ReadOptions();
+	virtual void WriteOptions();
 
 // Dialog Data
 	enum { IDD = IDD_PROP_ARCHIVE };
@@ -41,5 +47,8 @@ public:
 	BOOL m_bEnableSupport;
 	int m_nInstallType;
 	BOOL m_bProbeType;
+
+private:
+	COptionsMgr * m_pOptionsMgr; /**< Options-manager for storage */
 };
 #endif // _PROP_ARCHIVE_H_

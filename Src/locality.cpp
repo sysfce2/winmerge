@@ -4,7 +4,7 @@
  * @brief Implementation of helper functions involving locale
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: locality.cpp,v 1.1 2003/08/30 01:33:36 puddle Exp $
+// $Id: locality.cpp 4815 2007-12-07 22:52:32Z gerundt $
 
 #include "StdAfx.h"
 #include "locality.h"
@@ -63,11 +63,30 @@ static UINT GetLocaleGrouping(int defval)
  *
  * NB: We are not converting digits from ASCII via LOCALE_SNATIVEDIGITS
  *   So we always use ASCII digits, instead of, eg, the Chinese digits
+ *
+ * @param [in] n Number to convert.
+ * @return Converted string.
  */
-CString NumToLocaleStr(UINT n)
+CString NumToLocaleStr(int n)
 {
 	TCHAR numbuff[34];
 	_ltot(n, numbuff, 10);
+	return GetLocaleStr(numbuff);
+}
+
+/**
+ * @brief Print an integer into a CString, in appropriate fashion for locale & user preferences
+ *
+ * NB: We are not converting digits from ASCII via LOCALE_SNATIVEDIGITS
+ *   So we always use ASCII digits, instead of, eg, the Chinese digits
+ *
+ * @param [in] n Number to convert.
+ * @return Converted string.
+ */
+CString NumToLocaleStr(__int64 n)
+{
+	TCHAR numbuff[34];
+	_i64tot(n, numbuff, 10);
 	return GetLocaleStr(numbuff);
 }
 
@@ -77,18 +96,21 @@ CString NumToLocaleStr(UINT n)
  * NB: We are not converting digits from ASCII via LOCALE_SNATIVEDIGITS
  *   So we always use ASCII digits, instead of, eg, the Chinese digits
  */
-CString GetLocaleStr(const CString & str)
+CString GetLocaleStr(const CString & str, int decimalDigits)
 {
 	// Fill in currency format with locale info
 	// except we hardcode for no decimal
 	NUMBERFMT NumFormat;
 	memset(&NumFormat, 0, sizeof(NumFormat));
-	NumFormat.NumDigits = 0; // LOCALE_IDIGITS
+	NumFormat.NumDigits = decimalDigits; // LOCALE_IDIGITS
 	NumFormat.LeadingZero = getLocaleUint(LOCALE_ILZERO, 0);
 	NumFormat.Grouping = GetLocaleGrouping(3);
-	NumFormat.lpDecimalSep = _T("."); // should not be used
-	CString sep = getLocaleStr(LOCALE_STHOUSAND, _T(","));
-	NumFormat.lpThousandSep = (LPTSTR)(LPCTSTR)sep;
+	TCHAR DecimalSep[8];
+	TCHAR ThousandSep[8];
+	NumFormat.lpDecimalSep = GetLocaleInfo(LOCALE_USER_DEFAULT,
+	LOCALE_SDECIMAL, DecimalSep, 8) ? DecimalSep : _T(".");
+	NumFormat.lpThousandSep = GetLocaleInfo(LOCALE_USER_DEFAULT,
+	LOCALE_STHOUSAND, ThousandSep, 8) ? ThousandSep : _T(",");
 	NumFormat.NegativeOrder = getLocaleUint(LOCALE_INEGNUMBER , 0);
 
 	CString out;

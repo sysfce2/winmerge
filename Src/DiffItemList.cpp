@@ -4,7 +4,7 @@
  *  @brief Implementation of DiffItemList
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffItemList.cpp,v 1.3 2005/08/11 20:13:17 kimmov Exp $
+// $Id: DiffItemList.cpp 3421 2006-08-02 16:21:33Z kimmov $
 
 #include "stdafx.h"
 #include "DiffItemList.h"
@@ -115,7 +115,7 @@ void DiffItemList::SetDiffCounts(POSITION diffpos, UINT diffs, UINT ignored)
 {
 	ASSERT(diffpos);
 	DIFFITEM & di = m_dirlist.GetAt(diffpos);
-	di.ndiffs = diffs + ignored; // see StoreDiffResult() in DirScan.cpp
+	di.nidiffs = ignored; // see StoreDiffResult() in DirScan.cpp
 	di.nsdiffs = diffs;
 }
 

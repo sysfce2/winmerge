@@ -16,7 +16,7 @@
  *  @brief Declaration file for FileFilterMgr
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: FileFilterMgr.h,v 1.8 2005/02/13 00:17:42 kimmov Exp $
+// $Id: FileFilterMgr.h 3313 2006-06-20 14:10:42Z kimmov $
 
 #ifndef FileFilter_h_included
 #define FileFilter_h_included
@@ -34,6 +34,16 @@ struct FileFilterElement;
  * @sa FileFilter
  */
 typedef CList<FileFilterElement, FileFilterElement&> FileFilterList;
+
+/**
+ * @brief Return values for many filter functions.
+ */
+enum FILTER_RETVALUE
+{
+	FILTER_OK = 0,  /**< Success */
+	FILTER_ERROR_FILEACCESS,  /**< File could not be opened etc. */
+	FILTER_NOTFOUND, /**< Filter not found */
+};
 
 /**
  * @brief FileFilter rule.
@@ -68,18 +78,20 @@ public:
 	// Reload filter array from specified directory (passed to CFileFind)
 	void LoadFromDirectory(LPCTSTR szPattern, LPCTSTR szExt);
 	// Reload an edited filter
-	void ReloadFilterFromDisk(FileFilter * pfilter);
-	void ReloadFilterFromDisk(LPCTSTR szFullPath);
+	int ReloadFilterFromDisk(FileFilter * pfilter);
+	int ReloadFilterFromDisk(LPCTSTR szFullPath);
 	// Load a filter from a string
 	void LoadFilterString(LPCTSTR szFilterString);
-	void AddFilter(LPCTSTR szFilterFile);
+	int AddFilter(LPCTSTR szFilterFile);
 	void RemoveFilter(LPCTSTR szFilterFile);
 
 	// access to array of filters
 	int GetFilterCount() const { return m_filters.GetSize(); }
 	CString GetFilterName(int i) const;
+	CString GetFilterName(const FileFilter *pFilter) const;
 	CString GetFilterPath(int i) const;
 	CString GetFilterDesc(int i) const;
+	CString GetFilterDesc(const FileFilter *pFilter) const;
 	FileFilter * GetFilterByPath(LPCTSTR szFilterName);
 	CString GetFullpath(FileFilter * pfilter) const;
 
@@ -93,7 +105,7 @@ public:
 protected:
 	// Clear the list of known filters
 	// Load a filter from a file (if syntax is valid)
-	FileFilter * LoadFilterFile(LPCTSTR szFilepath, LPCTSTR szFilename);
+	FileFilter * LoadFilterFile(LPCTSTR szFilepath, int & errorcode);
 
 // Implementation data
 private:

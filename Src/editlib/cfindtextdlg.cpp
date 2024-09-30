@@ -38,16 +38,17 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CFindTextDlg dialog
 
-CFindTextDlg::CFindTextDlg (CCrystalTextView * pBuddy):CDialog (CFindTextDlg::IDD, NULL)
+CFindTextDlg::CFindTextDlg (CCrystalTextView * pBuddy)
+: CDialog (CFindTextDlg::IDD, NULL)
+, m_pBuddy(pBuddy)
+, m_nDirection(1)
+, m_bMatchCase(FALSE)
+, m_bWholeWord(FALSE)
+, m_bRegExp(FALSE)
+, m_bNoWrap(FALSE)
+, m_ptCurrentPos(CPoint (0, 0))
 {
-  m_pBuddy = pBuddy;
-  //{{AFX_DATA_INIT(CFindTextDlg)
-  m_nDirection = 1;
-  m_bMatchCase = FALSE;
-  m_bWholeWord = FALSE;
-  m_bRegExp = FALSE;
-  //}}AFX_DATA_INIT
-  m_ptCurrentPos = CPoint (0, 0);
+  ASSERT (pBuddy != NULL);
 }
 
 void CFindTextDlg::
@@ -62,6 +63,7 @@ DoDataExchange (CDataExchange * pDX)
   DDX_CBString (pDX, IDC_EDIT_FINDTEXT, m_sText);
   DDX_Check (pDX, IDC_EDIT_WHOLE_WORD, m_bWholeWord);
   DDX_Check (pDX, IDC_EDIT_REGEXP, m_bRegExp);
+  DDX_Check (pDX, IDC_FINDDLG_DONTWRAP, m_bNoWrap);
   //}}AFX_DATA_MAP
 }
 
@@ -115,7 +117,8 @@ void CFindTextDlg::OnOK ()
       m_ctlFindText.SaveState(_T("Files\\FindInFile"));
 
       CPoint ptTextPos;
-      if (!m_pBuddy->FindText (m_sText, m_ptCurrentPos, dwSearchFlags, TRUE, &ptTextPos))
+      if (!m_pBuddy->FindText (m_sText, m_ptCurrentPos, dwSearchFlags, !m_bNoWrap,
+          &ptTextPos))
         {
           CString prompt;
           prompt.Format (IDS_EDIT_TEXT_NOT_FOUND, m_sText);
@@ -209,6 +212,7 @@ SetLastSearch (LPCTSTR sText, BOOL bMatchCase, BOOL bWholeWord, BOOL bRegExp, in
   lastSearch.m_bRegExp = bRegExp;
   lastSearch.m_nDirection = nDirection;
   lastSearch.m_sText = sText;
+  lastSearch.m_bNoWrap = m_bNoWrap;
 }
 
 
@@ -226,5 +230,5 @@ UseLastSearch ()
   m_bRegExp = lastSearch.m_bRegExp;
   m_nDirection = lastSearch.m_nDirection;
   m_sText = lastSearch.m_sText;
+  m_bNoWrap = lastSearch.m_bNoWrap;
 }
-

@@ -85,10 +85,11 @@ DATE:		BY:					DESCRIPTION:
 2005/08/20	Jochen Tucht		Option to guess archive format by signature
 								Map extensions through ExternalArchiveFormat.ini
 2005/08/23	Jochen Tucht		Option to entirely disable 7-Zip integration
+2007/06/16	Jochen Neubeck		FIX [1723263] "Zip --> Both" operation...
 */
 
 // RCS ID line follows -- this is updated by CVS
-// $Id: 7zCommon.cpp,v 1.21 2005/08/24 05:10:44 jtuc Exp $
+// $Id: 7zCommon.cpp 4339 2007-06-16 05:43:41Z jtuc $
 
 #include "stdafx.h"
 #include "Merge.h"		// DirDocFilter theApp
@@ -136,6 +137,8 @@ Merge7z::Format *ArchiveGuessFormat(LPCTSTR path)
 		GetPrivateProfileString(section, entry, null, value, 20, filename) &&
 		*value == '.')
 	{
+		// Remove end-of-line comments (in string returned from GetPrivateProfileString)
+		// that is, remove semicolon & whatever follows it
 		if (LPTSTR p = StrChr(value, ';'))
 		{
 			*p = '\0';
@@ -143,6 +146,10 @@ Merge7z::Format *ArchiveGuessFormat(LPCTSTR path)
 		}
 		path = value;
 	}
+
+	// PATCH [ 1229867 ] RFE [ 1205516 ], RFE [ 887948 ], and other issues
+	// command line integration portion is not yet applied
+	// so following code not yet valid, so temporarily commented out
 	// Look for command line tool first
 	/*Merge7z::Format *pFormat;
 	if (CExternalArchiveFormat::GuessFormat(path, pFormat))
@@ -150,6 +157,7 @@ Merge7z::Format *ArchiveGuessFormat(LPCTSTR path)
 		return pFormat;
 	}*/
 	// Default to Merge7z*.dll
+
 	return Merge7z->GuessFormat(path);
 }
 
@@ -199,7 +207,7 @@ protected:
 /**
  * @brief Recommended version of 7-Zip.
  */
-const DWORD C7ZipMismatchException::m_dwVer7zRecommended = DWORD MAKELONG(23,4);
+const DWORD C7ZipMismatchException::m_dwVer7zRecommended = DWORD MAKELONG(42,4);
 
 /**
  * @brief Registry key for C7ZipMismatchException's ReportError() popup.
@@ -668,8 +676,16 @@ BOOL CALLBACK FindNextResLang(HMODULE hModule, LPCTSTR lpType, LPCTSTR lpName, W
  */
 interface Merge7z *Merge7z::Proxy::operator->()
 {
+	// As long as the Merge7z*.DLL has not yet been loaded, Merge7z
+	// [0] points to the name of the DLL (with placeholders for 7-
+	// Zip major and minor version numbers). Once the DLL has been
+	// loaded successfully, Merge7z[0] is set to NULL, causing the
+	// if to fail on subsequent calls.
+
 	if (const char *format = Merge7z[0])
 	{
+		// Merge7z has not yet been loaded
+
 		char name[MAX_PATH];
 		DWORD flags = ~0;
 		CException *pCause = NULL;
@@ -913,6 +929,8 @@ Merge7z::Envelope *CDirView::DirItemEnumerator::Enum(Item &item)
 		di.getRightFilepath(pDoc->GetRightBasePath()) :
 		di.getLeftFilepath(pDoc->GetLeftBasePath()));
 
+	UINT32 Recurse = item.Mask.Recurse;
+
 	if (m_nFlags & BalanceFolders)
 	{
 		if (m_bRight)
@@ -930,6 +948,7 @@ Merge7z::Envelope *CDirView::DirItemEnumerator::Enum(Item &item)
 					envelope->FullPath = di.getLeftFilepath(pDoc->GetLeftBasePath());
 					implied = PVOID(2); // Don't enumerate same folder twice!
 					isSideLeft = false;
+					Recurse = 0;
 				}
 			}
 		}
@@ -948,6 +967,7 @@ Merge7z::Envelope *CDirView::DirItemEnumerator::Enum(Item &item)
 					envelope->FullPath = di.getRightFilepath(pDoc->GetRightBasePath());
 					implied = PVOID(2); // Don't enumerate same folder twice!
 					isSideRight = false;
+					Recurse = 0;
 				}
 			}
 		}
@@ -960,11 +980,12 @@ Merge7z::Envelope *CDirView::DirItemEnumerator::Enum(Item &item)
 
 	if (m_strFolderPrefix.GetLength())
 	{
-		envelope->Name.Insert(0, '\\');
+		if (envelope->Name.GetLength())
+			envelope->Name.Insert(0, '\\');
 		envelope->Name.Insert(0, m_strFolderPrefix);
 	}
 
-	item.Mask.Item = item.Mask.Name|item.Mask.FullPath|item.Mask.CheckIfPresent|item.Mask.Recurse;
+	item.Mask.Item = item.Mask.Name|item.Mask.FullPath|item.Mask.CheckIfPresent|Recurse;
 	item.Name = envelope->Name;
 	item.FullPath = envelope->FullPath;
 	return envelope;

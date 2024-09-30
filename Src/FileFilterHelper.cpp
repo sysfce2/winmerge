@@ -20,7 +20,7 @@
  * @brief Implementation file for FileFilterHelper class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: FileFilterHelper.cpp,v 1.22 2005/07/26 06:11:22 elsapo Exp $
+// $Id: FileFilterHelper.cpp 3423 2006-08-02 19:36:12Z kimmov $
 
 #include "stdafx.h"
 #include "FileInfo.h"
@@ -157,6 +157,19 @@ CString FileFilterHelper::GetFileFilterPath(CString filterName) const
 }
 
 /** 
+ * @brief Set User's filter folder.
+ * @param [in] filterPath Location of User's filters.
+ */
+void FileFilterHelper::SetUserFilterPath(const CString & filterPath)
+{
+	CString path(filterPath);
+
+	if (path[path.GetLength() - 1] != '\\')
+		path += _T("\\");
+	m_sUserSelFilterPath = path;
+}
+
+/** 
  * @brief Select between mask and filterfile.
  */
 void FileFilterHelper::UseMask(BOOL bUseMask)
@@ -252,8 +265,7 @@ void FileFilterHelper::EditFileFilter(LPCTSTR szFileFilterPath)
  * It is directoryname + filemask, for example, for a filter for all users:
  * "C:\Program Files\WinMerge\Filters\*.flt"
  * Examples of user-specific filters:
- * "C:\\Documents And Settings\\username\\Local Settings\\Application Data\\WinMerge\\Filters\\*.flt"
- * "C:\\Documents And Settings\\username\\Application Data\\WinMerge\\Filters\\*.flt"
+ * "C:\Documents and Settings\User\My Documents\WinMergeFilters\*.flt"
  */
 void FileFilterHelper::LoadFileFilterDirPattern(FILEFILTER_FILEMAP & patternsLoaded,
 		const CString & sPattern)
@@ -388,6 +400,7 @@ BOOL FileFilterHelper::SetFilter(CString filter)
  *
  * Checks if filter file has been modified since it was last time
  * loaded/reloaded. If file has been modified we reload it.
+ * @todo How to handle an error in reloading filter?
  */
 void FileFilterHelper::ReloadUpdatedFilters()
 {
@@ -409,11 +422,14 @@ void FileFilterHelper::ReloadUpdatedFilters()
 			fileInfo.size != fileInfoStored->size)
 		{
 			// Reload filter after changing it
-			m_fileFilterMgr->ReloadFilterFromDisk(path);
-
-			// If it was active filter we have to re-set it
-			if (path == selected)
-				SetFileFilterPath(path);
+			int retval = m_fileFilterMgr->ReloadFilterFromDisk(path);
+			
+			if (retval == FILTER_OK)
+			{
+				// If it was active filter we have to re-set it
+				if (path == selected)
+					SetFileFilterPath(path);
+			}
 		}
 	}
 }
@@ -448,26 +464,7 @@ void FileFilterHelper::LoadAllFileFilters()
 	// Program application directory
 	m_sGlobalFilterPath = GetModulePath() + _T("\\Filters");
 	LoadFileFilterDirPattern(patternsLoaded, m_sGlobalFilterPath + _T("\\*") + FileFilterExt);
-
-
-	// User application data path
-	m_sUserFilterPath = _T("");
-	CString sAppPath;
-	if (GetAppDataPath(sAppPath))
-	{
-		m_sUserFilterPath = sAppPath + _T("\\WinMerge\\Filters");
-		LoadFileFilterDirPattern(patternsLoaded, m_sUserFilterPath + _T("\\*") + FileFilterExt);
-	}
-	else
-	{
-		// User profile local & roaming settings
-		CString sProfile;
-		if (GetUserProfilePath(sProfile))
-		{
-			m_sUserFilterPath = sProfile + _T("\\Application Data\\WinMerge\\Filters");
-			LoadFileFilterDirPattern(patternsLoaded, m_sUserFilterPath + _T("\\*") + FileFilterExt);
-		}
-	}
+	LoadFileFilterDirPattern(patternsLoaded, m_sUserSelFilterPath + _T("\\*") + FileFilterExt);
 }
 
 /**
@@ -483,6 +480,6 @@ CString FileFilterHelper::GetGlobalFilterPathWithCreate() const
  */
 CString FileFilterHelper::GetUserFilterPathWithCreate() const
 {
-	return paths_EnsurePathExist(m_sUserFilterPath);
+	return paths_EnsurePathExist(m_sUserSelFilterPath);
 }
 

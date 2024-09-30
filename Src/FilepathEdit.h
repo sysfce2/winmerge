@@ -24,7 +24,7 @@
  * @brief Declaration file for CFilepathEdit class.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: FilepathEdit.h,v 1.5 2005/08/07 11:40:54 kimmov Exp $
+// $Id: FilepathEdit.h 2939 2006-01-12 21:14:08Z kimmov $
 
 #ifndef __FILEPATHEDIT_H__
 #define __FILEPATHEDIT_H__
@@ -40,16 +40,20 @@ int FormatFilePathForDisplayWidth(CDC * pDC, int maxWidth, CString & sFilepath);
 class CFilepathEdit : public CEdit
 {
 public : 
+	CFilepathEdit();
+
 	BOOL SubClassEdit(UINT nID, CWnd* pParent);
 	void RefreshDisplayText();
 	LPCTSTR GetUpdatedTipText(CDC * pDC, int maxWidth);
 
 	void SetActive(BOOL bActive);
 	void SetWholeText(LPCTSTR lpszString );
+	void SetBackColor(COLORREF rgb);
+	void SetTextColor(COLORREF rgb);
 
 protected:
 	afx_msg void OnContextMenu(CWnd*, CPoint point);
-	afx_msg void OnNcPaint( );
+	HBRUSH CtlColor(CDC* pDC, UINT nCtlColor);
 	DECLARE_MESSAGE_MAP();
 
 	void GetWholeText( CString& rString ) const;
@@ -60,6 +64,9 @@ private:
 	CString m_sToolTipString; /**< buffer for return data from GetUpdatedTipText */
 	CString m_sWholeText; /**< Full path that was given to control */
 	BOOL m_bActive;
+	COLORREF m_crText;
+	COLORREF m_crBackGnd;
+	CBrush m_brBackGnd;
 };
 
 

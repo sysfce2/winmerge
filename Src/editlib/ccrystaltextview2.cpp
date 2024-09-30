@@ -36,6 +36,13 @@
 //  ... it's being edited very rapidly so sorry for non-commented
 //        and maybe "ugly" code ...
 ////////////////////////////////////////////////////////////////////////////
+/** 
+ * @file  ccrystaltextview2.cpp
+ *
+ * @brief More functions for CCrystalTextView class.
+ */
+// RCS ID line follows -- this is updated by CVS
+// $Id: ccrystaltextview2.cpp 3566 2006-09-15 21:14:54Z kimmov $
 
 #include "stdafx.h"
 #include "editcmd.h"
@@ -252,7 +259,10 @@ MoveUp (BOOL bSelect)
       if (m_nIdealCharPos == -1)
         m_nIdealCharPos = CalculateActualOffset (m_ptCursorPos.y, m_ptCursorPos.x);
 		//BEGIN SW
-		SubLineCursorPosToTextPos( CPoint( m_nIdealCharPos, nSubLine - 1 ), m_ptCursorPos );
+		do {
+			nSubLine--;
+		} while (IsEmptySubLineIndex(nSubLine));
+		SubLineCursorPosToTextPos( CPoint( m_nIdealCharPos, nSubLine ), m_ptCursorPos );
 		/*ORIGINAL
 		m_ptCursorPos.y --;
 		m_ptCursorPos.x = ApproxActualOffset(m_ptCursorPos.y, m_nIdealCharPos);
@@ -288,7 +298,10 @@ MoveDown (BOOL bSelect)
       if (m_nIdealCharPos == -1)
         m_nIdealCharPos = CalculateActualOffset (m_ptCursorPos.y, m_ptCursorPos.x);
 		//BEGIN SW
-		SubLineCursorPosToTextPos( CPoint( m_nIdealCharPos, nSubLine + 1 ), m_ptCursorPos );
+		do {
+			nSubLine++;
+		} while (IsEmptySubLineIndex(nSubLine));
+		SubLineCursorPosToTextPos( CPoint( m_nIdealCharPos, nSubLine ), m_ptCursorPos );
 		/*ORIGINAL
 		m_ptCursorPos.y ++;
 		m_ptCursorPos.x = ApproxActualOffset(m_ptCursorPos.y, m_nIdealCharPos);
@@ -355,49 +368,32 @@ MoveEnd (BOOL bSelect)
 void CCrystalTextView::
 MovePgUp (BOOL bSelect)
 {
-	//BEGIN SW
-	// scrolling windows
-	int nNewTopSubLine = m_nTopSubLine - GetScreenLines() + 1;
-	if (nNewTopSubLine < 0)
-		nNewTopSubLine = 0;
-	if (m_nTopSubLine != nNewTopSubLine)
-	{
-		int nDummy;
-		int nNewTopLine;
-		GetLineBySubLine(nNewTopSubLine, nNewTopLine, nDummy);
-		m_ptCursorPos.y = nNewTopLine;
-		ScrollToSubLine(nNewTopSubLine);
-		UpdateSiblingScrollPos(FALSE);
-	}
+  // scrolling windows
+  int nNewTopSubLine = m_nTopSubLine - GetScreenLines() + 1;
+  if (nNewTopSubLine < 0)
+    nNewTopSubLine = 0;
+  if (m_nTopSubLine != nNewTopSubLine)
+    {
+      int nDummy;
+      int nNewTopLine;
+      GetLineBySubLine(nNewTopSubLine, nNewTopLine, nDummy);
+      m_ptCursorPos.y = nNewTopLine;
+      ScrollToSubLine(nNewTopSubLine);
+      UpdateSiblingScrollPos(FALSE);
+    }
 
-	// setting cursor
-	CPoint	subLinePos;
-	CharPosToPoint( m_ptCursorPos.y, m_ptCursorPos.x, subLinePos );
+  // setting cursor
+  CPoint subLinePos;
+  CharPosToPoint( m_ptCursorPos.y, m_ptCursorPos.x, subLinePos );
 
-	int nSubLine = GetSubLineIndex( m_ptCursorPos.y ) + subLinePos.y;
+  int nSubLine = GetSubLineIndex( m_ptCursorPos.y ) + subLinePos.y;
 
-	if( nSubLine < 0 )
-		nSubLine = 0;
+  if ( nSubLine < 0 )
+    nSubLine = 0;
 
-	SubLineCursorPosToTextPos( 
-		CPoint( m_nIdealCharPos, nSubLine ), m_ptCursorPos );
+  SubLineCursorPosToTextPos( CPoint( m_nIdealCharPos, nSubLine ),
+    m_ptCursorPos );
 
-	/*ORIGINAL
-	int nNewTopLine = m_nTopLine - GetScreenLines() + 1;
-	if (nNewTopLine < 0)
-		nNewTopLine = 0;
-	if (m_nTopLine != nNewTopLine)
-	{
-		ScrollToLine(nNewTopLine);
-		UpdateSiblingScrollPos(TRUE);
-	}
-
-	m_ptCursorPos.y -= GetScreenLines() - 1;
-	if (m_ptCursorPos.y < 0)
-		m_ptCursorPos.y = 0;
-	if (m_ptCursorPos.x > GetLineLength(m_ptCursorPos.y))
-		m_ptCursorPos.x = GetLineLength(m_ptCursorPos.y);
-	*///END SW
   m_nIdealCharPos = CalculateActualOffset (m_ptCursorPos.y, m_ptCursorPos.x);
   EnsureVisible (m_ptCursorPos);    //todo: no vertical scroll
 
@@ -424,14 +420,14 @@ MovePgDn (BOOL bSelect)
 		GetLineBySubLine(nNewTopSubLine, nNewTopLine, nDummy);
 		m_ptCursorPos.y = nNewTopLine;
 		ScrollToSubLine(nNewTopSubLine);
-		UpdateSiblingScrollPos(FALSE);
+        UpdateSiblingScrollPos(FALSE);
 	}
 
 	// setting cursor
-	CPoint	subLinePos;
+	CPoint subLinePos;
 	CharPosToPoint( m_ptCursorPos.y, m_ptCursorPos.x, subLinePos );
 
-	int			nSubLine = GetSubLineIndex( m_ptCursorPos.y ) + subLinePos.y + GetScreenLines() - 1;
+	int nSubLine = GetSubLineIndex( m_ptCursorPos.y ) + subLinePos.y + GetScreenLines() - 1;
 
 	if( nSubLine > nSubLineCount - 1 )
 		nSubLine = nSubLineCount - 1;
@@ -575,6 +571,12 @@ SelectAll ()
   UpdateCaret ();
 }
 
+/** 
+ * @brief Called when left mousebutton pressed down in editor.
+ * This function handles left mousebutton down in editor.
+ * @param [in] nFlags Flags indicating if virtual keys are pressed.
+ * @param [in] point Point where mousebutton is pressed.
+ */
 void CCrystalTextView::
 OnLButtonDown (UINT nFlags, CPoint point)
 {
@@ -593,51 +595,34 @@ OnLButtonDown (UINT nFlags, CPoint point)
       else
         {
           m_ptCursorPos = ClientToText (point);
-			//BEGIN SW
-			// Find char pos that is the beginning of the subline clicked on
-			CPoint	pos;
-			CharPosToPoint( m_ptCursorPos.y, m_ptCursorPos.x, pos );
-			m_ptCursorPos.x = SubLineHomeToCharPos( m_ptCursorPos.y, pos.y );
-			/*ORIGINAL
-			m_ptCursorPos.x = 0;				//	Force beginning of the line
-			*///END SW
+          const int nSubLines = GetSubLineCount();
+
+          // Find char pos that is the beginning of the subline clicked on
+          CPoint pos;
+          CharPosToPoint (m_ptCursorPos.y, m_ptCursorPos.x, pos);
+          m_ptCursorPos.x = SubLineHomeToCharPos (m_ptCursorPos.y, pos.y);
 
           if (!bShift)
             m_ptAnchor = m_ptCursorPos;
 
           CPoint ptStart, ptEnd;
-			//BEGIN SW
-			CharPosToPoint( m_ptAnchor.y, m_ptAnchor.x, pos );
-			ptStart.y = m_ptAnchor.y;
-			if( GetSubLineIndex( ptStart.y ) + pos.y == GetSubLineCount() - 1 )
-			{
-				// select to end of subline
-				ptStart = SubLineEndToCharPos( ptStart.y, pos.y );
-			}
-			else
-			{
-				int	nLine, nSubLine;
-				GetLineBySubLine( GetSubLineIndex( ptStart.y ) + pos.y + 1, nLine, nSubLine );
-				ptStart.y = nLine;
-				ptStart.x = SubLineHomeToCharPos( nLine, nSubLine );
-			}
-			/*ORIGINAL
-			ptStart = m_ptAnchor;
-			if (ptStart.y == GetLineCount() - 1)
-				ptStart.x = GetLineLength(ptStart.y);
-			else
-			{
-				ptStart.y ++;
-				ptStart.x = 0;
-			}
-			*///END SW
-
-			//BEGIN SW
-			ptEnd = m_ptCursorPos;
-			/*ORIGINAL
-			ptEnd = m_ptCursorPos;
-			ptEnd.x = 0;
-			*///END SW
+          CharPosToPoint (m_ptAnchor.y, m_ptAnchor.x, pos);
+          ptStart.x = 0;
+          ptStart.y = m_ptAnchor.y;
+          const int nSublineIndex = GetSubLineIndex (ptStart.y);
+          if (nSublineIndex + pos.y >= nSubLines - 1)
+            {
+              // Select last line to end of subline
+              ptEnd.y = GetLineCount() - 1;
+              ptEnd.x = SubLineEndToCharPos (ptStart.y, pos.y);
+            }
+          else
+            {
+              int nLine, nSubLine;
+              GetLineBySubLine (nSublineIndex + pos.y + 1, nLine, nSubLine);
+              ptEnd.y = nLine;
+              ptEnd.x = SubLineHomeToCharPos (nLine, nSubLine);
+            }
 
           m_ptCursorPos = ptEnd;
           UpdateCaret ();
@@ -659,7 +644,6 @@ OnLButtonDown (UINT nFlags, CPoint point)
       //  [JRT]:  Support For Disabling Drag and Drop...
       if ((IsInsideSelBlock (ptText)) &&    // If Inside Selection Area
             (!m_bDisableDragAndDrop))    // And D&D Not Disabled
-
         {
           m_bPreparingToDrag = TRUE;
         }
@@ -706,10 +690,8 @@ OnLButtonDown (UINT nFlags, CPoint point)
     }
 
   ASSERT_VALIDTEXTPOS (m_ptCursorPos);
-	//BEGIN SW
-	// we must set the ideal character position here!
-	m_nIdealCharPos = CalculateActualOffset( m_ptCursorPos.y, m_ptCursorPos.x );
-	//END SW
+  // we must set the ideal character position here!
+  m_nIdealCharPos = CalculateActualOffset( m_ptCursorPos.y, m_ptCursorPos.x );
 }
 
 void CCrystalTextView::
@@ -998,7 +980,7 @@ OnLButtonUp (UINT nFlags, CPoint point)
 }
 
 void CCrystalTextView::
-OnTimer (UINT nIDEvent)
+OnTimer (UINT_PTR nIDEvent)
 {
   CView::OnTimer (nIDEvent);
 
@@ -1077,10 +1059,27 @@ OnTimer (UINT nIDEvent)
     }
 }
 
+/** 
+ * @brief Called when mouse is double-clicked in editor.
+ * This function handles mouse double-click in editor. There are many things
+ * we can do, depending on where mouse is double-clicked etc:
+ * - in selection area toggles bookmark
+ * - in editor selects word below cursor
+ * @param [in] nFlags Flags indicating if virtual keys are pressed.
+ * @param [in] point Point where mouse is double-clicked.
+ */
 void CCrystalTextView::
 OnLButtonDblClk (UINT nFlags, CPoint point)
 {
   CView::OnLButtonDblClk (nFlags, point);
+
+  if (point.x < GetMarginWidth ())
+    {
+      AdjustTextPoint (point);
+      CPoint ptCursorPos = ClientToText (point);
+      ToggleBookmark(ptCursorPos.y);
+      return;
+    }
 
   if (!m_bDragSelection)
     {

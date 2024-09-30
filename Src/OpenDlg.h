@@ -24,7 +24,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: OpenDlg.h,v 1.18.2.1 2006/01/13 19:06:22 kimmov Exp $
+// $Id: OpenDlg.h 3865 2006-11-28 15:57:04Z kimmov $
 #if !defined(AFX_OPENDLG_H__69FB0D77_2A05_11D1_BA92_00A024706EDC__INCLUDED_)
 #define AFX_OPENDLG_H__69FB0D77_2A05_11D1_BA92_00A024706EDC__INCLUDED_
 #pragma once
@@ -38,15 +38,17 @@
 #endif
 #include "FileTransform.h"
 
+class ProjectFile;
+
 /** @brief File open dialog displayed for user to choose directories or files */
 class COpenDlg : public CDialog
 {
 // Construction
 public:
 
-	void UpdateButtonStates();
 	COpenDlg(CWnd* pParent = NULL);   // standard constructor
-	BOOL SelectFile(CString& path, LPCTSTR pszFolder);
+	~COpenDlg();
+	void UpdateButtonStates();
 
 // Dialog Data
 	//{{AFX_DATA(COpenDlg)
@@ -70,11 +72,11 @@ public:
 	/// unpacker info
 	PackingInfo m_infoHandler;
 	BOOL m_bOverwriteRecursive;  /**< If TRUE overwrite last used value of recursive */
+	ProjectFile * m_pProjectFile; /**< Project file (if loaded) */
 
 // Implementation data
 private:
-	prdlg::CMoveConstraint m_constraint; 
-
+	prdlg::CMoveConstraint m_constraint;
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -87,7 +89,6 @@ private:
 protected:
 	void SetStatus(UINT msgID);
 	void SetUnpackerStatus(UINT msgID);
-	void CenterToMainFrame();
 	BOOL LoadProjectFile(CString path);
 	void TrimPaths();
 
@@ -95,7 +96,6 @@ protected:
 	//{{AFX_MSG(COpenDlg)
 	afx_msg void OnLeftButton();
 	afx_msg void OnRightButton();
-	afx_msg void OnSaveProjectButton();
 	virtual void OnOK();
 	virtual void OnCancel();
 	afx_msg void SaveComboboxStates();
@@ -103,10 +103,11 @@ protected:
 	afx_msg void OnSelchangeLeftCombo();
 	afx_msg void OnSelchangeRightCombo();
 	afx_msg void OnEditEvent();
-	afx_msg void OnTimer(UINT nIDEvent);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnSelectUnpacker();
 	afx_msg void OnSelectFilter();
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
+	afx_msg void OnHelp();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

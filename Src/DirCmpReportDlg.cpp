@@ -5,15 +5,15 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirCmpReportDlg.cpp,v 1.2.2.1 2006/05/02 16:57:05 kimmov Exp $
+// $Id: DirCmpReportDlg.cpp 3850 2006-11-26 11:29:07Z kimmov $
 //
 
 #include "stdafx.h"
-#include "Merge.h"
 #include "Coretools.h"
 #include "DirCmpReportDlg.h"
-#include "DirCmpReport.h"
+#include "DirReportTypes.h"
 #include "paths.h"
+#include "FileOrFolderSelect.h"
 
 IMPLEMENT_DYNAMIC(DirCmpReportDlg, CDialog)
 
@@ -22,27 +22,64 @@ IMPLEMENT_DYNAMIC(DirCmpReportDlg, CDialog)
  */
 DirCmpReportDlg::DirCmpReportDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(DirCmpReportDlg::IDD, pParent)
+	, m_bCopyToClipboard(FALSE)
 {
 }
 
-DirCmpReportDlg::~DirCmpReportDlg()
-{
-}
-
+/**
+ * @brief Map dialog controls to member variables.
+ * This function maps dialog controls with member variables so
+ * when UpdateData() is called controls and member variables
+ * get updated.
+ */
 void DirCmpReportDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_REPORT_FILE, m_ctlReportFile);
 	DDX_Control(pDX, IDC_REPORT_STYLECOMBO, m_ctlStyle);
 	DDX_Text(pDX, IDC_REPORT_FILE, m_sReportFile);
-
+	DDX_Check(pDX, IDC_REPORT_COPYCLIPBOARD, m_bCopyToClipboard);
 }
-
 
 BEGIN_MESSAGE_MAP(DirCmpReportDlg, CDialog)
 	ON_BN_CLICKED(IDC_REPORT_BROWSEFILE, OnBtnClickReportBrowse)
+	ON_BN_DOUBLECLICKED(IDC_REPORT_COPYCLIPBOARD, OnBtnDblclickCopyClipboard)
 END_MESSAGE_MAP()
 
+/**
+ * @brief Definition for structure containing report types.
+ * This struct is used to form a report types list. This list
+ * can be then used to initialize the GUI for reports.
+ */
+struct ReportTypeInfo
+{
+	REPORT_TYPE reportType; /**< Report-type ID */
+	int idDisplay; /**< Resource-string ID (shown in file-selection dialog) */
+	int browseFilter; /**< File-extension filter (resource-string ID) */
+};
+
+/**
+ * @brief List of report types.
+ * This list is used to initialize the GUI.
+ */
+static ReportTypeInfo f_types[] = {
+	{ REPORT_TYPE_COMMALIST,
+		IDS_REPORT_COMMALIST,
+		IDS_TEXT_REPORT_FILES
+	},
+	{ REPORT_TYPE_TABLIST,
+		IDS_REPORT_TABLIST,
+		IDS_TEXT_REPORT_FILES
+	},
+	{ REPORT_TYPE_SIMPLEHTML,
+		IDS_REPORT_SIMPLEHTML,
+		IDS_HTML_REPORT_FILES
+	},
+	{ REPORT_TYPE_SIMPLEXML,
+		IDS_REPORT_SIMPLEXML,
+		IDS_XML_REPORT_FILES
+	},
+};
 
 /**
  * @brief Dialog initializer function.
@@ -53,18 +90,14 @@ BOOL DirCmpReportDlg::OnInitDialog()
 
 	m_ctlReportFile.LoadState(_T("ReportFiles"));
 
-	CString str;
-	VERIFY(str.LoadString(IDS_REPORT_COMMALIST));
-	int ind = m_ctlStyle.InsertString(0, str);
-	m_ctlStyle.SetItemData(ind, DirCmpReport::REPORT_COMMALIST);
-	m_ctlStyle.SelectString(0, str);
-	VERIFY(str.LoadString(IDS_REPORT_TABLIST));
-	ind = m_ctlStyle.InsertString(1, str);
-	m_ctlStyle.SetItemData(ind, DirCmpReport::REPORT_TABLIST);
-	VERIFY(str.LoadString(IDS_REPORT_SIMPLEHTML));
-	ind = m_ctlStyle.InsertString(2, str);
-	m_ctlStyle.SetItemData(ind, DirCmpReport::REPORT_SIMPLEHTML);
+	for (int i = 0; i < sizeof(f_types) / sizeof(f_types[0]); ++i)
+	{
+		const ReportTypeInfo & info = f_types[i];
+		int ind = m_ctlStyle.InsertString(i, LoadResString(info.idDisplay));
+		m_ctlStyle.SetItemData(ind, info.reportType);
 
+	}
+	m_ctlStyle.SetCurSel(0);
 	// Set selected path to variable so file selection dialog shows
 	// correct filename and path.
 	m_ctlReportFile.GetWindowText(m_sReportFile);
@@ -78,46 +111,58 @@ BOOL DirCmpReportDlg::OnInitDialog()
  */
 void DirCmpReportDlg::OnBtnClickReportBrowse()
 {
-	CString s;
-	CString folder;
-	CString name;
-	CString title;
-
 	UpdateData(TRUE);
-	VERIFY(title.LoadString(IDS_SAVE_AS_TITLE));
-	folder = m_sReportFile;
-	if (SelectFile(s, folder, title, NULL, FALSE))
+
+	CString title = LoadResString(IDS_SAVE_AS_TITLE);
+	CString folder = m_sReportFile;
+	int filterid = f_types[m_ctlStyle.GetCurSel()].browseFilter;
+
+	CString chosenFilepath;
+	if (SelectFile(GetSafeHwnd(), chosenFilepath, folder, title,
+			filterid, FALSE))
 	{
-		SplitFilename(s, &folder, &name, NULL);
-		m_sReportFile = s;
-		m_ctlReportFile.SetWindowText(s);
+		CString name;
+		SplitFilename(chosenFilepath, &folder, &name, NULL);
+		m_sReportFile = chosenFilepath;
+		m_ctlReportFile.SetWindowText(chosenFilepath);
 	}
 }
 
 /**
- * @brief Close dialog and create a report.
+ * @brief Erase report file name.
+ */
+void DirCmpReportDlg::OnBtnDblclickCopyClipboard()
+{
+	m_ctlReportFile.SetWindowText(_T(""));
+}
+
+/**
+ * @brief Close dialog.
  */
 void DirCmpReportDlg::OnOK()
 {
 	UpdateData(TRUE);
 
 	int sel = m_ctlStyle.GetCurSel();
-	m_nReportType = m_ctlStyle.GetItemData(sel);
+	m_nReportType = (REPORT_TYPE)m_ctlStyle.GetItemData(sel);
 
-	if (m_sReportFile.IsEmpty())
+	if (m_sReportFile.IsEmpty() && !m_bCopyToClipboard)
 	{
 		AfxMessageBox(IDS_MUST_SPECIFY_OUTPUT, MB_ICONSTOP);
 		m_ctlReportFile.SetFocus();
 		return;
 	}
 
-	if (paths_DoesPathExist(m_sReportFile) == IS_EXISTING_FILE)
+	if (!m_sReportFile.IsEmpty())
 	{
-		int overWrite = AfxMessageBox(IDS_REPORT_FILEOVERWRITE,
-				MB_YESNO | MB_ICONWARNING | MB_DONT_ASK_AGAIN,
-				IDS_DIFF_FILEOVERWRITE);
-		if (overWrite == IDNO)
-			return;
+		if (paths_DoesPathExist(m_sReportFile) == IS_EXISTING_FILE)
+		{
+			int overWrite = AfxMessageBox(IDS_REPORT_FILEOVERWRITE,
+					MB_YESNO | MB_ICONWARNING | MB_DONT_ASK_AGAIN,
+					IDS_DIFF_FILEOVERWRITE);
+			if (overWrite == IDNO)
+				return;
+		}
 	}
 
 	m_ctlReportFile.SaveState(_T("ReportFiles"));

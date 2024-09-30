@@ -1,35 +1,41 @@
 /** 
  * @file  PropColors.h
  *
- * @brief Declaration file for CPropColors propertyheet
+ * @brief Declaration file for CPropMergeColors propertyheet
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropColors.h,v 1.12 2005/03/04 13:38:28 kimmov Exp $
+// $Id: PropColors.h 3126 2006-03-04 02:36:46Z elsapo $
 
 #if !defined(AFX_PROPCOLORS_H__9C0A0F92_CDD6_40FE_BEFC_101B1E22FFDD__INCLUDED_)
 #define AFX_PROPCOLORS_H__9C0A0F92_CDD6_40FE_BEFC_101B1E22FFDD__INCLUDED_
 
 
 #include "ColorButton.h"
+#include "IOptionsPanel.h"
 
 class COptionsMgr;
 
 const int CustomColorsAmount = 16;
 
 /////////////////////////////////////////////////////////////////////////////
-// CPropColors dialog
+// CPropMergeColors dialog
 
 /** @brief Property page for colors options; used in options property sheet */
-class CPropColors : public CPropertyPage
+class CPropMergeColors : public CPropertyPage, public IOptionsPanel
 {
 // Construction
 public:
+	CPropMergeColors(COptionsMgr *optionsMgr);
 
-	CPropColors(COptionsMgr *optionsMgr);
+// Implement IOptionsPanel
+	virtual void ReadOptions();
+	virtual void WriteOptions();
+	
 // Dialog Data
-	//{{AFX_DATA(CPropColors)
-	enum { IDD = IDD_PROPPAGE_COLORS };
+private:
+	//{{AFX_DATA(CPropMergeColors)
+	enum { IDD = IDD_PROPPAGE_COLORS_WINMERGE };
 	CColorButton	m_cTrivialDeleted;
 	CColorButton	m_cTrivial;
 	CColorButton	m_cSelDiffText;
@@ -74,7 +80,7 @@ public:
 
 	// Overrides
 	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(CPropColors)
+	//{{AFX_VIRTUAL(CPropMergeColors)
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
@@ -82,13 +88,18 @@ public:
 // Implementation
 protected:
 
+	typedef enum { SET_DEFAULTS, WRITE_OPTIONS, READ_OPTIONS } OPERATION;
+
 	void LoadCustomColors();
 	void SaveCustomColors();
+	void BrowseColor(CColorButton & colorButton, COLORREF & currentColor);
+	void SerializeColors(OPERATION op);
+	void SerializeColor(OPERATION op, CColorButton & btn, LPCTSTR optionName, COLORREF & color);
 
 	COLORREF m_cCustColors[CustomColorsAmount];
 
 	// Generated message map functions
-	//{{AFX_MSG(CPropColors)
+	//{{AFX_MSG(CPropMergeColors)
 	afx_msg void OnDifferenceColor();
 	afx_msg void OnDifferenceDeletedColor();
 	afx_msg void OnSelDifferenceDeletedColor();

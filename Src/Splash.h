@@ -18,20 +18,24 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 /**
- * @file  Splash.h
+ * @file  Src/Splash.h
  *
  * @brief Declaration file for CSplashWnd
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: Splash.h,v 1.2 2004/03/21 17:31:46 kimmov Exp $
+// $Id: Splash.h 3566 2006-09-15 21:14:54Z kimmov $
 
 #ifndef _SPLASH_SCRN_
 #define _SPLASH_SCRN_
 
-/////////////////////////////////////////////////////////////////////////////
-//   Splash Screen class
+class CPicture;
 
+/**
+ * @brief Splash screen class.
+ * Loads image from resource and shows it as a splash screen
+ * at program startup.
+ */
 class CSplashWnd : public CWnd
 {
 // Construction
@@ -39,8 +43,8 @@ protected:
 	CSplashWnd();
 
 // Attributes:
-public:
-	CBitmap m_bitmap;
+private:
+	CPicture * m_pPicture; /**< Image loader/viewer for splash image */
 
 // Operations
 public:
@@ -69,7 +73,7 @@ protected:
 	//{{AFX_MSG(CSplashWnd)
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnPaint();
-	afx_msg void OnTimer(UINT nIDEvent);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

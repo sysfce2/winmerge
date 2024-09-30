@@ -5,7 +5,7 @@
  */ 
 //
 // RCS ID line follows -- this is updated by CVS
-// $Id: CompareStats.h,v 1.3 2005/07/23 20:07:27 kimmov Exp $
+// $Id: CompareStats.h 2505 2005-07-23 20:07:28Z kimmov $
 
 #ifndef _COMPARESTATS_H_
 #define _COMPARESTATS_H_

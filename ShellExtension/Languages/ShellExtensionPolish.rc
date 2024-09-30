@@ -1,8 +1,8 @@
 //Microsoft Developer Studio generated resource script.
 //
-// $Id: ShellExtensionPolish.rc,v 1.2.2.1 2006/06/20 21:04:26 kimmov Exp $
+// $Id: ShellExtensionPolish.rc 3317 2006-06-20 21:07:35Z kimmov $
 
-#include "resource.h"
+#include "../resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////

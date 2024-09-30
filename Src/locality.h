@@ -4,15 +4,16 @@
  * @brief Declaration of helper functions involving locale
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: locality.h,v 1.1 2003/08/30 01:33:36 puddle Exp $
+// $Id: locality.h 3571 2006-09-16 07:38:48Z kimmov $
 
 #ifndef locality_h_included
 #define locality_h_included
 
 namespace locality {
 
-CString NumToLocaleStr(UINT n);
-CString GetLocaleStr(const CString & str);
+CString NumToLocaleStr(int n);
+CString NumToLocaleStr(__int64 n);
+CString GetLocaleStr(const CString & str, int decimalDigits = 0);
 
 };
 

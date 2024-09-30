@@ -20,12 +20,21 @@
  * @brief Declaration file ConfigLog class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ConfigLog.h,v 1.12 2005/05/20 22:29:35 elsapo Exp $
+// $Id: ConfigLog.h 4036 2007-01-12 09:11:08Z galh $
 
 #ifndef _CONFIGLOG_H_
 #define _CONFIGLOG_H_
 
 class CfgSettings;
+
+/** 
+ * @brief Compare-related settings.
+ */
+struct COMPARESETTINGS
+{
+	int nCompareMethod;
+	BOOL bStopAfterFirst;
+};
 
 /** 
  * @brief View settings for directory compare
@@ -52,6 +61,12 @@ struct MISCSETTINGS
 	BOOL bViewWhitespace;
 	BOOL bMovedBlocks;
 	BOOL bDetectCodepage;
+	BOOL bShowLinenumbers;
+	BOOL bWrapLines;
+	BOOL bMergeMode;
+	BOOL bSyntaxHighlight;
+	BOOL bInsertTabs;
+	INT  nTabSize;
 };
 
 /** 
@@ -83,6 +98,7 @@ public:
 	~CConfigLog();
 
 	DIFFOPTIONS m_diffOptions;
+	COMPARESETTINGS m_compareSettings;
 	VIEWSETTINGS m_viewSettings;
 	MISCSETTINGS m_miscSettings;
 	CPSETTINGS m_cpSettings;

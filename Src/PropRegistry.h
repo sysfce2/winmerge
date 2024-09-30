@@ -20,27 +20,34 @@
  * @brief Declaration file CPropRegistry
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropRegistry.h,v 1.13 2005/04/24 19:02:23 kimmov Exp $
+// $Id: PropRegistry.h 3475 2006-08-15 18:42:31Z kimmov $
 
 #ifndef PropRegistry_h_included
 #define PropRegistry_h_included
 
+#include "IOptionsPanel.h"
+
+class COptionsMgr;
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropRegistry dialog
 
 /**
- * @brief Property page for registry options; used in options property sheet
+ * @brief Property page for system options; used in options property sheet.
+ *
+ * This class implements property sheet for what we consider System-options.
+ * It allows user to select options like whether to use Recycle Bin for
+ * deleted files and External text editor.
  */
-class CPropRegistry : public CPropertyPage
+class CPropRegistry : public CPropertyPage, public IOptionsPanel
 {
 // Construction
 public:
+	CPropRegistry(COptionsMgr *optionsMgr);
 
-	CPropRegistry();   // standard constructor
-	void GetContextRegValues();
-	void SaveMergePath();
-	void AdvancedContextMenuCheck();
+// Implement IOptionsPanel
+	virtual void ReadOptions();
+	virtual void WriteOptions();
 
 // Dialog Data
 	//{{AFX_DATA(CPropRegistry)
@@ -50,6 +57,8 @@ public:
 	BOOL	m_bUseRecycleBin;
 	BOOL	m_bContextAdvanced;
 	BOOL	m_bIgnoreSmallTimeDiff;
+	BOOL	m_bContextSubfolders;
+	CString m_strUserFilterPath;
 	//}}AFX_DATA
 
 	// Overrides
@@ -66,11 +75,18 @@ protected:
 	virtual BOOL OnInitDialog();
 	afx_msg void OnAddToExplorer();
 	afx_msg void OnBrowseEditor();
+	afx_msg void OnBrowseFilterPath();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
+	void GetContextRegValues();
+	void SaveMergePath();
+	void AdvancedContextMenuCheck();
+	void SubfolderOptionCheck();
+
 // Implementation data
-protected:
+private:
+	COptionsMgr * m_pOptionsMgr; /**< Pointer to options manager */
 };
 
 //{{AFX_INSERT_LOCATION}}

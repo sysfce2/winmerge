@@ -6,7 +6,7 @@
  * @date  Created: 2003-10-09 (Perry Rapp)
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: sbuffer.h,v 1.1 2004/11/06 19:59:49 puddle Exp $
+// $Id: sbuffer.h 1949 2004-11-06 19:59:50Z puddle $
 
 #ifndef sbuffer_h_included
 #define sbuffer_h_included

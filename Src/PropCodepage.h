@@ -4,23 +4,28 @@
  * @brief Declaration of CPropCodepage class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropCodepage.h,v 1.1 2004/08/18 15:12:05 kimmov Exp $
+// $Id: PropCodepage.h 3126 2006-03-04 02:36:46Z elsapo $
 
 #if !defined(AFX_PROPCODEPAGE_H__0DF931F8_E845_48B7_A658_3BEE6D3EAF85__INCLUDED_)
 #define AFX_PROPCODEPAGE_H__0DF931F8_E845_48B7_A658_3BEE6D3EAF85__INCLUDED_
 
+#include "IOptionsPanel.h"
+
+class COptionsMgr;
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropCodepage dialog
 
-class CPropCodepage : public CPropertyPage
+class CPropCodepage : public CPropertyPage, public IOptionsPanel
 {
-	DECLARE_DYNCREATE(CPropCodepage)
-
 // Construction
 public:
-	CPropCodepage();
+	CPropCodepage(COptionsMgr *optionsMgr);
 	~CPropCodepage();
+
+// Implement IOptionsPanel
+	virtual void ReadOptions();
+	virtual void WriteOptions();
 
 // Dialog Data
 	//{{AFX_DATA(CPropCodepage)
@@ -49,6 +54,8 @@ protected:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
+private:
+	COptionsMgr * m_pOptionsMgr;
 };
 
 //{{AFX_INSERT_LOCATION}}

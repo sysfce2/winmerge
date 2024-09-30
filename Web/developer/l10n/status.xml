@@ -9,7 +9,7 @@
 <l10n>
   <language>
     <name>Portugese (Brazilian)</name>
-    <status>4</status>
+    <status>3</status>
     <authors>
       <author>
         <name>Wender Firmino</name>
@@ -22,15 +22,22 @@
   </language>
   <language>
     <name>Bulgarian</name>
-    <status>2</status>
+    <status>4</status>
     <authors>
       <author>
         <name>sld</name>
         <email>sld at mail dot bg</email>
+        <comment>2.1</comment>
+      </author>
+      <author>
+        <name>tigertron</name>
+        <email>tigertron@dir.bg</email>
+        <comment>2.5</comment>
       </author>
     </authors>
     <versions>
       <version>2.1</version>
+      <version>2.5</version>
     </versions>
   </language>
   <language>
@@ -43,6 +50,8 @@
       </author>
     </authors>
     <versions>
+      <version>2.5</version>
+      <version>2.4</version>
       <version>2.3</version>
       <version>2.2</version>
       <version>2.1</version>
@@ -56,9 +65,16 @@
       <author>
         <name>Liaobin</name>
         <email>liaobin at jite dot net</email>
+        <comment>2.0</comment>
+      </author>
+      <author>
+        <name>xmpdhml</name>
+        <email>xmpdhml at users dot sourceforge dot net</email>
+        <comment>2.4</comment>
       </author>
     </authors>
     <versions>
+      <version>2.4</version>
       <version>2.0</version>
     </versions>
   </language>
@@ -79,14 +95,22 @@
   </language>
   <language>
     <name>Czech</name>
-    <status>3</status>
+    <status>1</status>
     <authors>
       <author>
         <name>Jiri Tax</name>
         <email>jt at taxoft dot cz</email>
+        <comment>1.7</comment>
+      </author>
+      <author>
+        <name>Jan Hryz</name>
+        <email>janhryz at sourceforge dot net</email>
+        <comment>2.5 &amp; 2.4</comment>
       </author>
     </authors>
     <versions>
+      <version>2.5</version>
+      <version>2.4</version>
       <version>1.7</version>
     </versions>
   </language>
@@ -141,10 +165,12 @@
       <author>
         <name>Jean FJ</name>
         <email>jean-f-j at users.sourceforge dot net</email>
-        <comment>2.2</comment>
+        <comment>2.4, 2.3 &amp; 2.2</comment>
       </author>
     </authors>
     <versions>
+      <version>2.4</version>
+      <version>2.3</version>
       <version>2.2</version>
       <version>2.1</version>
       <version>2.0</version>
@@ -168,10 +194,12 @@
       <author>
         <name>Tim Gerundt</name>
         <email>tim at gerundt dot de</email>
-        <comment>2.3, 2.2 &amp; 2.1</comment>
+        <comment>2.5 - 2.1</comment>
       </author>
     </authors>
     <versions>
+      <version>2.5</version>
+      <version>2.4</version>
       <version>2.3</version>
       <version>2.2</version>
       <version>2.1</version>
@@ -189,6 +217,7 @@
       </author>
     </authors>
     <versions>
+      <version>2.4</version>
       <version>2.3</version>
       <version>2.2</version>
     </versions>
@@ -204,10 +233,12 @@
       <author>
         <name>Andrea Decorte (Klenje)</name>
         <email>klenje at users dot sourceforge dot net</email>
-        <comment>2.3, 2.2 &amp; 2.1</comment>
+        <comment>2.5 - 2.1</comment>
       </author>
     </authors>
     <versions>
+      <version>2.5</version>
+      <version>2.4</version>
       <version>2.3</version>
       <version>2.2</version>
       <version>2.1</version>
@@ -225,6 +256,8 @@
       </author>
     </authors>
     <versions>
+      <version>2.6</version>
+      <version>2.4</version>
       <version>2.3</version>
       <version>2.2</version>
       <version>2.1</version>
@@ -296,7 +329,7 @@
   </language>
   <language>
     <name>Slovak</name>
-    <status>4</status>
+    <status>3</status>
     <authors>
       <author>
         <name>majvan</name>
@@ -340,10 +373,13 @@
       <author>
         <name>Hans Eriksson</name>
         <email>hans dot ericson at bredband dot net</email>
-        <comment>2.3, 2.2 &amp; 2.1</comment>
+        <comment>2.6 - 2.1</comment>
       </author>
     </authors>
     <versions>
+      <version>2.6</version>
+      <version>2.5</version>
+      <version>2.4</version>
       <version>2.3</version>
       <version>2.2</version>
       <version>2.1</version>

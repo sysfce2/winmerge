@@ -20,13 +20,21 @@
  * @brief Declaration file for DiffFileInfo
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffFileInfo.h,v 1.10 2005/06/17 19:21:17 kimmov Exp $
+// $Id: DiffFileInfo.h 3825 2006-11-21 20:09:16Z kimmov $
 
 #ifndef _DIFF_FILE_INFO_H_INCLUDED
 #define _DIFF_FILE_INFO_H_INCLUDED
 
 #ifndef _FILE_INFO_H_INCLUDED
 #include "FileInfo.h"
+#endif
+
+#ifndef FileTextEncoding_h_included
+#include "FileTextEncoding.h"
+#endif
+
+#ifndef FileTextStats_h_included
+#include "FileTextStats.h"
 #endif
 
 /**
@@ -74,23 +82,28 @@ struct DiffFileFlags : public FileFlags
 	};
 };
 
+
 /**
- * @brief Information for file
+ * @brief Information for file.
+ * This class expands FileInfo class with encoding information and
+ * text stats information.
  */
 struct DiffFileInfo : public FileInfo
 {
+// data
 	bool bVersionChecked; /**< true if version string is up-to-date */
 	DiffFileFlags flags; /**< file attributes */
-	int codepage; /**< 8bit codepage, if applicable, 0 is unknown or N/A */
-	int unicoding; /**< Unicode encoding (ucr::CODESET) */
-	DiffFileInfo() { Clear(); }
+	FileTextEncoding encoding; /**< unicode or codepage info */
+	FileTextStats m_textStats; /**< EOL, zero-byte etc counts */
 
-	CString getEncodingString() const;
 	// We could stash a pointer here to the parent DIFFITEM
 	// but, I ran into trouble with, I think, the DIFFITEM copy constructor
-	
-	void Update(CString sFilePath);
+
+// methods
+
+	DiffFileInfo() { Clear(); }
 	void Clear();
+	bool IsEditableEncoding() const;
 };
 
 #endif // _DIFF_FILE_INFO_H_INCLUDED

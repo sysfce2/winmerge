@@ -3,6 +3,8 @@
  *
  *  @brief Implementation of generic named property classes
  */ 
+// RCS ID line follows -- this is updated by CVS
+// $Id: varprop.cpp 3087 2006-02-20 21:43:58Z elsapo $
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"

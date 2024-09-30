@@ -4,7 +4,7 @@
  * @brief stuff from PlatformSDK version of WinNT.h which MSVC6 version lacks
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: winnt_supp.h,v 1.1 2003/11/11 14:23:24 kimmov Exp $
+// $Id: winnt_supp.h 801 2003-11-11 14:23:24Z kimmov $
 
 
 #ifndef winnt_supp_h_included

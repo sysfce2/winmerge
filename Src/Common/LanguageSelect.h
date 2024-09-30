@@ -1,24 +1,40 @@
-// LanguageSelect.h : header file
-//
-// Dialog to choose language of user interface
+/** 
+ * @file  LanguageSelect.h
+ *
+ * @brief Declaration file for CLanguageSelect dialog.
+ */
+// RCS ID line follows -- this is updated by CVS
+// $Id: LanguageSelect.h 3268 2006-05-16 16:11:04Z kimmov $
 
 #if !defined(AFX_LANGUAGESELECT_H__4395A84F_E8DF_11D1_BBCB_00A024706EDC__INCLUDED_)
 #define AFX_LANGUAGESELECT_H__4395A84F_E8DF_11D1_BBCB_00A024706EDC__INCLUDED_
 
 #include "LogFile.h"
 
+#ifndef CMoveConstraint_h
+#include "CMoveConstraint.h"
+#endif
+
 /////////////////////////////////////////////////////////////////////////////
 // CLanguageSelect dialog
+
 #define LANGUAGE_SECTION  _T("Locale")
 #define COUNTRY_ENTRY     _T("LanguageId")
 
-
+/**
+ * @brief Dialog for selecting GUI language.
+ *
+ * Language select dialog shows list of installed GUI languages and
+ * allows user to select one for use.
+ */
 class CLanguageSelect : public CDialog
 {
 // Construction
 public:
 	void SetModuleHandle(HMODULE hModule) { m_hModule = hModule; }
 	CLanguageSelect(UINT idMainMenu, UINT idDocMenu, BOOL bReloadMenu =TRUE, BOOL bUpdateTitle =TRUE, CWnd* pParent = NULL);   // standard constructor
+	UINT GetAvailLangCount();
+	BOOL AreLangsInstalled() const;
 	void GetAvailLangs( CWordArray& uiLanguageAry, CStringArray& DllFileNameAry );	   
 	WORD GetLangId() { return m_wCurLanguage; };
 	void InitializeLanguage();
@@ -29,7 +45,10 @@ public:
 	void SetLogFile(CLogFile* pLog) { m_pLog = pLog; }
 	
 
+// Implementation data
 private:
+	prdlg::CMoveConstraint m_constraint; 
+	CWordArray   m_wLangIds;
 	BOOL m_bReloadMenu;
 	BOOL m_bUpdateTitle;
 	HMODULE m_hModule;
@@ -37,20 +56,22 @@ private:
 	UINT m_idDocMenu;
 	HINSTANCE  m_hCurrentDll;
 	WORD	   m_wCurLanguage;
-	int GetLanguageArrayIndex( WORD LangId );
 	CStringArray m_DllFileNameAry;
+
+// Implementation methods
+private:
+	int GetLanguageArrayIndex( WORD LangId );
 	BOOL    LoadResourceDLL(LPCTSTR lpDllFileName = NULL);
 	BOOL    SetLanguage(WORD LangId, bool override=false);
 	BOOL    SetLanguageOverride(WORD LangId) { return SetLanguage(LangId, true); }
 	void    GetDllsAt( LPCTSTR SearchPath, CStringArray& DllAry );
 	BOOL    GetLanguage( const CString& DllName, WORD& uiLanguage ) ;
-	
 	UINT    GetDocResId();
-	CString GetPath( LPCTSTR FileName);
-	CString GetLanguagePath(LPCTSTR FileName);
-	
+	CString GetPath( LPCTSTR FileName) const;
+	CString GetLanguagePath(LPCTSTR FileName) const;
 	CString GetLanguageString( WORD LangId );
 	CString GetNativeLanguageNameString( int idx );
+	void LoadAndDisplayLanguages();
 
 // Dialog Data
 	//{{AFX_DATA(CLanguageSelect)
@@ -67,9 +88,6 @@ private:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 	//}}AFX_VIRTUAL
 
-// Implementation
-protected:
-   CWordArray   m_wLangIds;
 
 	// Generated message map functions
 	//{{AFX_MSG(CLanguageSelect)

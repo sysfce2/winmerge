@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: MergeEditStatus.h,v 1.4 2004/06/20 16:31:36 kimmov Exp $
+// $Id: MergeEditStatus.h 1587 2004-06-20 16:33:26Z kimmov $
 
 /**
  * @brief Interface for merge edit view to display status bar info

@@ -25,11 +25,12 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: Merge.cpp,v 1.97.2.3 2006/02/15 20:20:48 kimmov Exp $
+// $Id: Merge.cpp 3958 2006-12-12 22:26:09Z kimmov $
 
 #include "stdafx.h"
 #include "Merge.h"
 
+#include "AboutDlg.h"
 #include "MainFrm.h"
 #include "ChildFrm.h"
 #include "DirFrame.h"
@@ -37,8 +38,6 @@
 #include "DirDoc.h"
 #include "DirView.h"
 #include "Splash.h"
-#include "version.h"
-#include "statlink.h"
 #include "logfile.h"
 #include "coretools.h"
 #include "paths.h"
@@ -47,31 +46,17 @@
 #include "Plugins.h"
 #include "DirScan.h" // for DirScan_InitializeDefaultCodepage
 #include "ProjectFile.h"
-#include "CmdArgs.h"
 #include "MergeEditView.h"
 #include "LanguageSelect.h"
+
+// For shutdown cleanup
+#include "charsets.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
-
-// VC 6 headers don't define these constants for folder browse dialog
-// so define them here. Copied from shlobj.h
-#ifndef BIF_EDITBOX
-#define BIF_EDITBOX            0x0010   // Add an editbox to the dialog
-#endif
-#ifndef BIF_NEWDIALOGSTYLE
-#define BIF_NEWDIALOGSTYLE     0x0040   // Use the new dialog layout with the ability to resize
-                                        // Caller needs to call OleInitialize() before using this API
-#endif
-#ifndef BIF_USENEWUI
-#define BIF_USENEWUI           (BIF_NEWDIALOGSTYLE | BIF_EDITBOX)
-#endif
-
-// URL for hyperlink in About-dialog
-static const TCHAR WinMergeURL[] = _T("http://winmerge.org");
 
 /////////////////////////////////////////////////////////////////////////////
 // CMergeApp
@@ -80,6 +65,7 @@ BEGIN_MESSAGE_MAP(CMergeApp, CWinApp)
 	//{{AFX_MSG_MAP(CMergeApp)
 	ON_COMMAND(ID_APP_ABOUT, OnAppAbout)
 	ON_COMMAND(ID_VIEW_LANGUAGE, OnViewLanguage)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_LANGUAGE, OnUpdateViewLanguage)
 	ON_COMMAND(ID_HELP, OnHelp)
 	//}}AFX_MSG_MAP
 	// Standard file based document commands
@@ -93,6 +79,48 @@ extern CLogFile gLog;
 
 static void AddEnglishResourceHook();
 
+class CMergeCmdLineInfo : public CCommandLineInfo
+{
+	public:
+
+		CMergeCmdLineInfo();
+
+		~CMergeCmdLineInfo() { }
+
+		virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
+
+	public:
+
+		BOOL m_bSingleInstance; /**< Allow only one instance of WinMerge executable. */
+		int m_nCmdShow /**< Initial state of the application's window. */;
+};
+
+CMergeCmdLineInfo::CMergeCmdLineInfo() : CCommandLineInfo(),
+	m_bSingleInstance(FALSE),
+	m_nCmdShow(SW_SHOWNORMAL)
+{
+
+}
+
+void CMergeCmdLineInfo::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast)
+{
+	// Give our base class a chance to figure out what is the parameter.
+	CCommandLineInfo::ParseParam(pszParam, bFlag, bLast);
+
+	if (TRUE == bFlag)
+	{
+		if (pszParam[0] == _T('s'))
+		{
+			m_bSingleInstance = TRUE;
+		}
+		else if (!lstrcmpi(pszParam, _T("minimize")))
+		{
+			// /minimize means minimize the main window.
+			m_nCmdShow = SW_MINIMIZE;
+		}
+	}
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CMergeApp construction
 
@@ -104,6 +132,7 @@ CMergeApp::CMergeApp() :
 , m_mainThreadScripts(NULL)
 , m_nLastCompareResult(0)
 , m_bNoninteractive(false)
+, m_bShowUsage(false)
 {
 	// add construction code here,
 	// Place all significant initialization in InitInstance
@@ -152,11 +181,18 @@ BOOL CMergeApp::InitInstance()
 	//  of your final executable, you should remove from the following
 	//  the specific initialization routines you do not need.
 
+	// Only needed by VC6
+#if _MSC_VER < 1300
 #ifdef _AFXDLL
 	Enable3dControls();			// Call this when using MFC in a shared DLL
 #else
 	Enable3dControlsStatic();	// Call this when linking to MFC statically
 #endif
+#endif
+
+	// Parse command-line arguments.
+	CMergeCmdLineInfo cmdInfo;
+	ParseCommandLine(cmdInfo);
 
 	// Set default codepage
 	DirScan_InitializeDefaultCodepage();
@@ -165,7 +201,8 @@ BOOL CMergeApp::InitInstance()
 	// This is the name of the company of the original author (Dean Grimm)
 	SetRegistryKey(_T("Thingamahoochie"));
 
-	BOOL bSingleInstance = GetProfileInt(_T("Settings"), _T("SingleInstance"), FALSE);
+	BOOL bSingleInstance = GetProfileInt(_T("Settings"), _T("SingleInstance"), FALSE) ||
+		(TRUE == cmdInfo.m_bSingleInstance);
 	
 	HANDLE hMutex = NULL;
 	if (bSingleInstance)
@@ -196,7 +233,7 @@ BOOL CMergeApp::InitInstance()
 			data.cbData = (DWORD)(p - pszArgs) * sizeof(WCHAR);
 			data.lpData = pszArgs;
 			data.dwData = __argc;
-			SendMessage(hWnd, WM_COPYDATA, NULL, (LONG)&data);
+			SendMessage(hWnd, WM_COPYDATA, NULL, (LPARAM)&data);
 			delete[] pszArgs;
 
 			ReleaseMutex(hMutex);
@@ -212,12 +249,7 @@ BOOL CMergeApp::InitInstance()
 	InitializeFileFilters();
 	m_globalFileFilter.SetFilter(_T("*.*"));
 
-	// CG: The following block was added by the Splash Screen component.
-	{
-		CCommandLineInfo cmdInfo;
-		ParseCommandLine(cmdInfo);
-		CSplashWnd::EnableSplashScreen(bDisableSplash==FALSE && cmdInfo.m_nShellCommand == CCommandLineInfo::FileNew);
-	}
+	CSplashWnd::EnableSplashScreen(bDisableSplash==FALSE && cmdInfo.m_nShellCommand == CCommandLineInfo::FileNew);
 
 	// Initialize i18n (multiple language) support
 
@@ -233,7 +265,7 @@ BOOL CMergeApp::InitInstance()
 
 	// Merge Edit view
 	m_pDiffTemplate = new CMultiDocTemplate(
-		IDR_MERGETYPE,
+		IDR_MERGEDOCTYPE,
 		RUNTIME_CLASS(CMergeDoc),
 		RUNTIME_CLASS(CChildFrame), // custom MDI child frame
 		RUNTIME_CLASS(CMergeEditView));
@@ -241,7 +273,7 @@ BOOL CMergeApp::InitInstance()
 
 	// Directory view
 	m_pDirTemplate = new CMultiDocTemplate(
-		IDR_DOC_FOLDERCMP,
+		IDR_DIRDOCTYPE,
 		RUNTIME_CLASS(CDirDoc),
 		RUNTIME_CLASS(CDirFrame), // custom MDI child frame
 		RUNTIME_CLASS(CDirView));
@@ -273,25 +305,26 @@ BOOL CMergeApp::InitInstance()
 	CMenu * pNewMenu = CMenu::FromHandle(pMainFrame->m_hMenuDefault);
 	pMainFrame->MDISetMenu(pNewMenu, NULL);
 
-	// Parse command line for standard shell commands, DDE, file open
-	//CCommandLineInfo cmdInfo;
-	//ParseCommandLine(cmdInfo);
-
-	/* Dispatch commands specified on the command line
-	if( cmdInfo.m_nShellCommand == CCommandLineInfo::FileNew )
-		cmdInfo.m_nShellCommand = CCommandLineInfo::FileNothing;
-	if (!ProcessShellCommand(cmdInfo))
-		return FALSE;*/
+	// Command line parsing is handled not by MFC wizard's CComandLineInfo
+	// but rather by ParseArgsAndDoOpen below
 
 	//Track it so any other instances can find it.
 	instanceChecker.TrackFirstInstanceRunning();
 
-	// The main window has been initialized, so show and update it.
-	//pMainFrame->ShowWindow(m_nCmdShow);
-	pMainFrame->ActivateFrame(m_nCmdShow);
+	// The main window has been initialized, so activate and update it.
+	pMainFrame->ActivateFrame(cmdInfo.m_nCmdShow);
 	pMainFrame->UpdateWindow();
 
+	// Since this function actually opens paths for compare it must be
+	// called after initializing CMainFrame!
 	ParseArgsAndDoOpen(__argc, __targv, pMainFrame);
+
+	if (m_bShowUsage)
+	{
+		CString s = GetUsageDescription();
+		AfxMessageBox(s, MB_ICONINFORMATION);
+		m_bNoninteractive = false;
+	}
 
 	if (hMutex)
 	{
@@ -307,311 +340,12 @@ BOOL CMergeApp::InitInstance()
 		{
 			CDirView * pDirView = DirViews.RemoveHead();
 			CDirFrame *pf = pDirView->GetParentFrame();
-			pf->ShowProcessingBar(FALSE);
 		}
 		pMainFrame->PostMessage(WM_CLOSE, 0, 0);
 	}
 
 	return TRUE;
 }
-
-void CMergeApp::ParseArgsAndDoOpen(int argc, TCHAR *argv[], CMainFrame* pMainFrame)
-{
-	CStringArray files;
-	UINT nFiles=0;
-	BOOL recurse=FALSE;
-	files.SetSize(2);
-	DWORD dwLeftFlags = FFILEOPEN_NONE;
-	DWORD dwRightFlags = FFILEOPEN_NONE;
-
-	// Split commandline arguments into files & flags & recursive flag
-
-	// Rational ClearCase has a weird way of executing external
-	// tools which replace the build-in ones. It also doesn’t allow
-	// you to define which parameters to send to the executable.
-	// So, in order to run as an external tool, WinMerge should do:
-	// if argv[0] is "xcompare" then it "knows" that it was
-	// executed from ClearCase. In this case, it should read and
-	// parse ClearCase's command line parameters and not the
-	// "regular" parameters. More information can be found in
-	// C:\Program Files\Rational\ClearCase\lib\mgrs\mgr_info.h file.
-
-	if (lstrcmpi(argv[0], _T("xcompare")))
-	{
-		ParseArgs(argc, argv, pMainFrame, files, nFiles, recurse, dwLeftFlags, dwRightFlags);
-	}
-	else
-	{
-		ParseCCaseArgs(argc, argv, pMainFrame, files, nFiles, dwLeftFlags, dwRightFlags);
-	}
-
-	if (LoadProjectFile(files, recurse))
-	{
-		if (!files[0].IsEmpty())
-			dwLeftFlags |= FFILEOPEN_PROJECT;
-		if (!files[1].IsEmpty())
-			dwRightFlags |= FFILEOPEN_PROJECT;
-		pMainFrame->m_strSaveAsPath = _T("");
-		pMainFrame->DoFileOpen(files[0], files[1],
-			dwLeftFlags, dwRightFlags, recurse);
-	}
-	else if (nFiles>2)
-	{
-		dwLeftFlags |= FFILEOPEN_CMDLINE;
-		dwRightFlags |= FFILEOPEN_CMDLINE;
-		pMainFrame->m_strSaveAsPath = files[2];
-		pMainFrame->DoFileOpen(files[0], files[1],
-			dwLeftFlags, dwRightFlags, recurse);
-	}
-	else if (nFiles>1)
-	{
-		dwLeftFlags |= FFILEOPEN_CMDLINE;
-		dwRightFlags |= FFILEOPEN_CMDLINE;
-		pMainFrame->m_strSaveAsPath = _T("");
-		pMainFrame->DoFileOpen(files[0], files[1],
-			dwLeftFlags, dwRightFlags, recurse);
-	}
-	else if (nFiles>0)
-	{
-		dwLeftFlags |= FFILEOPEN_CMDLINE;
-		pMainFrame->m_strSaveAsPath = _T("");
-		pMainFrame->DoFileOpen(files[0], _T(""),
-			dwLeftFlags, dwRightFlags, recurse);
-	}
-}
-
-/// Process commandline arguments
-void CMergeApp::ParseArgs(int argc, TCHAR *argv[], CMainFrame* pMainFrame, CStringArray & files, UINT & nFiles, BOOL & recurse,
-		DWORD & dwLeftFlags, DWORD & dwRightFlags)
-{
-	CmdArgs cmdArgs(argc, argv);
-
-	// -? for help
-	if (cmdArgs.HasEmptySwitch(_T("?")))
-	{
-		CString s;
-		VERIFY(s.LoadString(IDS_QUICKHELP));
-		AfxMessageBox(s, MB_ICONINFORMATION);
-	}
-
-	// -r to compare recursively
-	if (cmdArgs.HasEmptySwitchInsensitive(_T("r")))
-		recurse = TRUE;
-
-	// -e to allow closing with single esc press
-	if (cmdArgs.HasEmptySwitchInsensitive(_T("e")))
-		pMainFrame->m_bEscShutdown = TRUE;
-
-	// -wl to open left path as read-only
-	if (cmdArgs.HasEmptySwitchInsensitive(_T("wl")))
-		dwLeftFlags |= FFILEOPEN_READONLY;
-
-	// -wr to open right path as read-only
-	if (cmdArgs.HasEmptySwitchInsensitive(_T("wr")))
-		dwRightFlags |= FFILEOPEN_READONLY;
-
-	// -ul to not add left path to MRU
-	if (cmdArgs.HasEmptySwitchInsensitive(_T("ul")))
-		dwLeftFlags |= FFILEOPEN_NOMRU;
-
-	// -ur to not add right path to MRU
-	if (cmdArgs.HasEmptySwitchInsensitive(_T("ur")))
-		dwRightFlags |= FFILEOPEN_NOMRU;
-
-	// -ub to not add paths to MRU
-	if (cmdArgs.HasEmptySwitchInsensitive(_T("ub")))
-	{
-		dwLeftFlags |= FFILEOPEN_NOMRU;
-		dwRightFlags |= FFILEOPEN_NOMRU;
-	}
-
-	// -noninteractive to suppress message boxes & close with result code
-	if (cmdArgs.HasEmptySwitchInsensitive(_T("noninteractive")))
-	{
-		m_bNoninteractive = true;
-	}
-
-	// Can't get switches with arguments from cmdArgs
-	// because cmdArgs recognizes arguments using colons not spaces
-
-	for (int i = 1; i < argc; i++)
-	{
-		LPCTSTR pszParam = argv[i];
-		if (pszParam[0] == '-' || pszParam[0] == '/')
-		{
-			// remove flag specifier
-			++pszParam;
-
-
-			// -dl "desc" - description for left file
-			// Shown instead of filename
-			if (!_tcsicmp(pszParam, _T("dl")))
-			{
-				if (i < (argc - 1))
-				{
-					LPCTSTR pszDesc = argv[i+1];
-					pMainFrame->m_strLeftDesc = pszDesc;
-					i++;	// Just read next parameter
-				}
-			}
-
-			// -dr "desc" - description for left file
-			// Shown instead of filename
-			if (!_tcsicmp(pszParam, _T("dr")))
-			{
-				if (i < (argc - 1))
-				{
-					LPCTSTR pszDesc = argv[i+1];
-					pMainFrame->m_strRightDesc = pszDesc;
-					i++;	// Just read next parameter
-				}
-			}
-
-			// -f "mask" - file filter mask ("*.h *.cpp")
-			if (!_tcsicmp(pszParam, _T("f")))
-			{
-				if (i < (argc - 1))
-				{
-					CString sFilter = argv[i+1];
-					sFilter.TrimLeft();
-					sFilter.TrimRight();
-					m_globalFileFilter.SetFilter(sFilter);
-					i++;	// Just read next parameter
-				}
-			}
-		}
-		else
-		{
-			CString sParam = pszParam;
-			CString sFile = paths_GetLongPath(sParam);
-			files.SetAtGrow(nFiles, sFile);
-			nFiles++;
-		}
-	}
-
-	// if "compare file dir" make it "compare file dir\file"
-	if (nFiles >= 2)
-	{
-		PATH_EXISTENCE p1 = paths_DoesPathExist(files[0]);
-		PATH_EXISTENCE p2 = paths_DoesPathExist(files[1]);
-		if (p1 == IS_EXISTING_FILE && p2 == IS_EXISTING_DIR)
-		{
-			TCHAR fname[_MAX_PATH], fext[_MAX_PATH];
-			_tsplitpath(files[0], NULL, NULL, fname, fext);
-			if (files[1].Right(1) != _T('\\'))
-				files[1] += _T('\\');
-			files[1] = files[1] + fname + fext;
-		}
-	}
-
-
-	// Reload menus in case a satellite language dll was loaded above
-	m_pLangDlg->ReloadMenu();
-}
-
-/// Process Rational ClearCase command line arguments
-void CMergeApp::ParseCCaseArgs(int argc, TCHAR *argv[], CMainFrame* pMainFrame, CStringArray & files, UINT & nFiles,
-		DWORD & dwLeftFlags, DWORD & dwRightFlags)
-{
-	pMainFrame->m_bClearCaseTool = TRUE;
-	pMainFrame->m_bEscShutdown = TRUE;
-
-	dwLeftFlags |= FFILEOPEN_READONLY | FFILEOPEN_NOMRU;
-	dwRightFlags |= FFILEOPEN_READONLY | FFILEOPEN_NOMRU;
-
-	// First description belong to the left file.
-	CString *pDesc = &(pMainFrame->m_strLeftDesc);
-
-	for (int i = 1; i < argc; i++)
-	{
-		LPCTSTR pszParam = argv[i];
-		if (pszParam[0] == '-')
-		{
-			// remove flag specifier
-			++pszParam;
-
-			// -fname "desc" - description for a file
-			// Shown instead of filename
-			if (!_tcsicmp(pszParam, _T("fname")))
-			{
-				if (i < (argc - 1))
-				{
-					LPCTSTR pszDesc = argv[i+1];
-					*pDesc = pszDesc;
-					i++; // Just read next parameter
-
-					// Next description belong to the right file.
-					pDesc = &(pMainFrame->m_strRightDesc);
-				}
-			}
-		}
-		else
-		{
-			CString sFile = paths_GetLongPath(pszParam);
-			files.SetAtGrow(nFiles, sFile);
-			nFiles++;
-		}
-	}
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// CAboutDlg dialog used for App About
-
-/** 
- * @brief About-dialog class
- */
-class CAboutDlg : public CDialog
-{
-public:
-	CAboutDlg();
-
-// Dialog Data
-	//{{AFX_DATA(CAboutDlg)
-	enum { IDD = IDD_ABOUTBOX };
-	CStatic	m_ctlCompany;
-	CStaticLink	m_ctlWWW;
-	CString	m_strVersion;
-	CString m_strPrivateBuild;
-	//}}AFX_DATA
-
-	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(CAboutDlg)
-	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-	//}}AFX_VIRTUAL
-
-// Implementation
-protected:
-	//{{AFX_MSG(CAboutDlg)
-	virtual BOOL OnInitDialog();
-	//}}AFX_MSG
-	DECLARE_MESSAGE_MAP()
-public:
-	afx_msg void OnBnClickedOpenContributors();
-};
-
-CAboutDlg::CAboutDlg() : CDialog(CAboutDlg::IDD)
-{
-	//{{AFX_DATA_INIT(CAboutDlg)
-	//}}AFX_DATA_INIT
-}
-
-void CAboutDlg::DoDataExchange(CDataExchange* pDX)
-{
-	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CAboutDlg)
-	DDX_Control(pDX, IDC_COMPANY, m_ctlCompany);
-	DDX_Control(pDX, IDC_WWW, m_ctlWWW);
-	DDX_Text(pDX, IDC_VERSION, m_strVersion);
-	DDX_Text(pDX, IDC_PRIVATEBUILD, m_strPrivateBuild);
-	//}}AFX_DATA_MAP
-}
-
-BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
-	//{{AFX_MSG_MAP(CAboutDlg)
-	//}}AFX_MSG_MAP
-	ON_BN_CLICKED(IDC_OPEN_CONTRIBUTORS, OnBnClickedOpenContributors)
-END_MESSAGE_MAP()
 
 // App command to run the dialog
 void CMergeApp::OnAppAbout()
@@ -620,178 +354,9 @@ void CMergeApp::OnAppAbout()
 	aboutDlg.DoModal();
 }
 
-/** 
- * @brief Read version info from resource to dialog.
- */
-BOOL CAboutDlg::OnInitDialog() 
-{
-	CDialog::OnInitDialog();
-	
-	CVersionInfo version;
-	CString sVersion = version.GetFixedProductVersion();
-	AfxFormatString1(m_strVersion, IDS_VERSION_FMT, sVersion);
-
-#ifdef _UNICODE
-	CString strUnicode;
-	VERIFY(strUnicode.LoadString(IDS_UNICODE));
-	m_strVersion += _T(" ");
-	m_strVersion += strUnicode;
-#endif
-
-	CString sPrivateBuild = version.GetPrivateBuild();
-	if (!sPrivateBuild.IsEmpty())
-	{
-		AfxFormatString1(m_strPrivateBuild, IDS_PRIVATEBUILD_FMT, sPrivateBuild);
-	}
-
-	CString copyright = version.GetLegalCopyright();
-	m_ctlCompany.SetWindowText(copyright);
-	m_ctlWWW.m_link = WinMergeURL;
-
-	UpdateData(FALSE);
-	
-	return TRUE;  // return TRUE unless you set the focus to a control
-	              // EXCEPTION: OCX Property Pages should return FALSE
-}
-
 /////////////////////////////////////////////////////////////////////////////
 // CMergeApp commands
 
-/** 
- * @brief Helper function for selecting dir/file
- * @param [out] path Selected path is returned in this string
- * @param [in] root_path Initial path (and file) shown when dialog is opened
- * @param [in] title Title for path selection dialog
- * @param [in] filterid 0 or STRING ID for filter string - 0 means "All files (*.*)"
- * @param [in] is_open Selects Open/Save -dialog
- */
-BOOL SelectFile(CString& path, LPCTSTR root_path /*=NULL*/, 
-			 LPCTSTR title /*= _T("Open")*/, 
-			 UINT filterid /*=0*/,
-			 BOOL is_open /*=TRUE*/) 
-{
-	TCHAR filterStr[MAX_PATH] = {0};
-	CString sfile;
-	path.Empty();
-
-	// check if specified path is a file
-	if (root_path!=NULL)
-	{
-		CFileStatus status;
-		if (CFile::GetStatus(root_path,status)
-			&& (status.m_attribute!=CFile::Attribute::directory))
-		{
-			SplitFilename(root_path, 0, &sfile, 0);
-		}
-	}
-	
-	CString filters;
-	if (filterid != 0)
-		VERIFY(filters.LoadString(filterid));
-	else
-		VERIFY(filters.LoadString(IDS_ALLFILES));
-
-	// Convert extension mask
-	_tcsncpy(filterStr, filters, filters.GetLength());
-	ConvertFilter(filterStr);
-
-	OPENFILENAME ofn;
-	memset(&ofn, 0, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = AfxGetMainWnd()->GetSafeHwnd();
-	ofn.lpstrFilter = filterStr;
-	ofn.lpstrCustomFilter = NULL;
-	ofn.nFilterIndex = 1;
-	ofn.lpstrFile = sfile.GetBuffer(MAX_PATH);
-	ofn.nMaxFile = MAX_PATH;
-	ofn.lpstrInitialDir = (LPCTSTR)root_path;
-	ofn.lpstrTitle = (LPCTSTR)title;
-	ofn.lpstrFileTitle = NULL;
-	ofn.Flags = OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
-
-	BOOL bRetVal = FALSE;
-	if (is_open)
-		bRetVal = GetOpenFileName(&ofn);
-	else
-		bRetVal = GetSaveFileName(&ofn);
-
-	sfile.ReleaseBuffer();
-	if (bRetVal)
-		path = sfile;
-	
-	return bRetVal;
-}
-
-/** 
- * @brief Helper function for selecting directory
- * @param [out] path Selected path is returned in this string
- * @param [in] root_path Initial path shown when dialog is opened
- * @param [in] title Title for path selection dialog
- * @param [in] hwndOwner Handle to owner window or NULL
- * @return TRUE if valid folder selected (not cancelled)
- */
-BOOL SelectFolder(CString& path, LPCTSTR root_path /*=NULL*/, 
-			LPCTSTR title /*=NULL*/, 
-			HWND hwndOwner /*=NULL*/) 
-{
-	UNREFERENCED_PARAMETER(root_path);
-	BROWSEINFO bi;
-	LPMALLOC pMalloc;
-	LPITEMIDLIST pidl;
-	TCHAR szPath[MAX_PATH] = {0};
-	BOOL bRet = FALSE;
-	
-	bi.hwndOwner = hwndOwner;
-	bi.pidlRoot = NULL;  // Start from desktop folder
-	bi.pszDisplayName = szPath;
-	bi.lpszTitle = title;
-	bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_USENEWUI;
-	bi.lpfn = NULL;
-	bi.lParam = NULL;
-
-	pidl = SHBrowseForFolder(&bi);
-
-	if (pidl)
-	{
-		if (SHGetPathFromIDList(pidl, szPath))
-		{
-			path = szPath;
-			bRet = TRUE;
-		}
-
-		SHGetMalloc(&pMalloc);
-		pMalloc->Free(pidl);
-		pMalloc->Release();
-	}
-	return bRet;
-}
-
-/** 
- * @brief Helper function for converting filter format.
- *
- * MFC functions separate filter strings with | char which is also
- * good choice to safe into resource. But WinAPI32 functions we use
- * needs '\0' as separator. This function replaces '|'s with '\0's.
- *
- * @param [in,out] filterStr
- * - in Mask string to convert
- * - out Converted string
- */
-void ConvertFilter(LPTSTR filterStr)
-{
-	TCHAR *ch = 0;
-	TCHAR *strPtr = filterStr;
-	do
-	{
-		ch = _tcschr(strPtr, '|');
-		if (ch)
-		{
-			strPtr = ch + 1;
-			*ch = '\0';
-		}
-	}
-	while (ch != 0);
-}
 
 BOOL CMergeApp::PreTranslateMessage(MSG* pMsg)
 {
@@ -808,17 +373,34 @@ void CMergeApp::OnViewLanguage()
 	{
 		//m_lang.ReloadMenu();
 		//m_LangDlg.UpdateDocTitle();
-		mf->UpdateResources();
+		GetMainFrame()->UpdateResources();
 	}
 }
 
+/**
+ * @brief Updates Language select menu item.
+ * If there are no languages installed we disable menuitem to
+ * open language selection dialog.
+ */
+void CMergeApp::OnUpdateViewLanguage(CCmdUI* pCmdUI)
+{
+	BOOL bLangsInstalled = m_pLangDlg->AreLangsInstalled();
+	pCmdUI->Enable(bLangsInstalled);
+}
+
+/**
+ * @brief Called when application is about to exit.
+ * This functions is called when application is exiting, so this is
+ * good place to do cleanups.
+ * @return Application's exit value (returned from WinMain()).
+ */
 int CMergeApp::ExitInstance() 
 {
+	charsets_cleanup();
 	delete m_mainThreadScripts;
 	CWinApp::ExitInstance();
 	return m_nLastCompareResult;
 }
-
 
 static void AddEnglishResourceHook()
 {
@@ -860,7 +442,9 @@ int CMergeApp::DoMessageBox( LPCTSTR lpszPrompt, UINT nType, UINT nIDPrompt )
 	if ( pParentWnd == NULL )
 	{
 		// Try to retrieve a handle to the last active popup.
-		pParentWnd = GetMainWnd()->GetLastActivePopup();
+		CWnd * mainwnd = GetMainWnd();
+		if (mainwnd)
+			pParentWnd = mainwnd->GetLastActivePopup();
 	}
 
 	// Use our own message box implementation, which adds the
@@ -901,114 +485,115 @@ BOOL CMergeApp::OnIdle(LONG lCount)
 	return FALSE;
 }
 
-/** @brief Load any known file filters */
+/**
+ * @brief Load any known file filters.
+ *
+ * This function loads filter files from paths we know contain them.
+ * @note User's filter location may not be set yet.
+ */
 void CMergeApp::InitializeFileFilters()
 {
+	CString filterPath = GetProfileString(_T("Settings"), _T("UserFilterPath"), _T(""));
+
+	if (!filterPath.IsEmpty())
+	{
+		m_globalFileFilter.SetUserFilterPath(filterPath);
+	}
 	m_globalFileFilter.LoadAllFileFilters();
 }
 
 /** @brief Open help from mainframe when user presses F1*/
 void CMergeApp::OnHelp()
 {
-	if (mf)
-		mf->ShowHelp();
+	GetMainFrame()->ShowHelp();
 }
 
-/** @brief Open Contributors.rtf */
-void CAboutDlg::OnBnClickedOpenContributors()
-{
-	CString defPath = GetModulePath();
-	// Don't add quotation marks yet, CFile doesn't like them
-	CString docPath = defPath + _T("\\contributors.txt");
-	HINSTANCE ret = 0;
-	
-	CFileStatus status;
-	if (CFile::GetStatus(docPath, status))
-	{
-		// Now, add quotation marks so ShellExecute() doesn't fail if path
-		// includes spaces
-		docPath.Insert(0, _T("\""));
-		docPath.Insert(docPath.GetLength(), _T("\""));
-		ret = ShellExecute(m_hWnd, NULL, _T("notepad"), docPath, defPath, SW_SHOWNORMAL);
 
-		// values < 32 are errors (ref to MSDN)
-		if ((int)ret < 32)
-		{
-			// Try to open with associated application (.txt)
-			ret = ShellExecute(m_hWnd, _T("open"), docPath, NULL, NULL, SW_SHOWNORMAL);
-			if ((int)ret < 32)
-				ResMsgBox1(IDS_CANNOT_EXECUTE_FILE, _T("Notepad.exe"), MB_ICONSTOP);
-		}
-	}
+/**
+ * @brief Is specified file a project file?
+ * @param [in] filepath Full path to file to check.
+ * @return true if file is a projectfile.
+ */
+bool CMergeApp::IsProjectFile(const CString & filepath) const
+{
+	CString sExt;
+	SplitFilename(filepath, NULL, NULL, &sExt);
+	if (sExt.CompareNoCase(PROJECTFILE_EXT) == 0)
+		return true;
 	else
-		ResMsgBox1(IDS_ERROR_FILE_NOT_FOUND, docPath, MB_ICONSTOP);
+		return false;
 }
 
 /** 
- * @brief Read paths and filter from project file.
- *
- * Tries to find project file in files[0] and files[1] by extension
- * If cannot find one, returns FALSE
+ * @brief Read project and perform comparison specified
+ * @param [in] sProject Full path to project file.
+ * @return TRUE if loading project file and starting compare succeeded.
  */
-BOOL CMergeApp::LoadProjectFile(CStringArray & files, BOOL & recursive)
+bool CMergeApp::LoadAndOpenProjectFile(const CString & sProject)
 {
-	CString filterPrefix;
-	CString err;
-	ProjectFile pfile;
-	CString ProjectFileName;
-	CString ext;
+	if (sProject.IsEmpty())
+		return false;
 
-	// Look for project file in files[0] and files[1]
-
-	if (files.GetSize() < 2)
-		return FALSE; // code further down assumes files[0] and files[1] exist
-
-	SplitFilename(files[0], NULL, NULL, &ext);
-	if (ext.CompareNoCase(PROJECTFILE_EXT) == 0)
+	ProjectFile project;
+	CString sErr;
+	if (!project.Read(sProject, &sErr))
 	{
-		ProjectFileName = files[0];
+		if (sErr.IsEmpty())
+			sErr = LoadResString(IDS_UNK_ERROR_READING_PROJECT);
+		CString msg;
+		AfxFormatString2(msg, IDS_ERROR_FILEOPEN, sProject, sErr);
+		AfxMessageBox(msg, MB_ICONSTOP);
+		return false;
 	}
-	else
+	CString sLeft, sRight;
+	BOOL bLeftReadOnly = FALSE;
+	BOOL bRightReadOnly = FALSE;
+	BOOL bRecursive = FALSE;
+	sLeft = project.GetLeft(&bLeftReadOnly);
+	sRight = project.GetRight(&bRightReadOnly);
+	if (project.HasFilter())
 	{
-		SplitFilename(files[1], NULL, NULL, &ext);
-		if (ext.CompareNoCase(PROJECTFILE_EXT) == 0)
-			ProjectFileName = files[1];
-		else
-			return FALSE;
+		CString filter = project.GetFilter();
+		filter.TrimLeft();
+		filter.TrimRight();
+		m_globalFileFilter.SetFilter(filter);
+	}
+	if (project.HasSubfolders())
+		bRecursive = project.GetSubfolders() > 0;
+
+	DWORD dwLeftFlags = FFILEOPEN_NONE;
+	DWORD dwRightFlags = FFILEOPEN_NONE;
+	if (!sLeft.IsEmpty())
+	{	
+		dwLeftFlags = FFILEOPEN_PROJECT;
+		if (bLeftReadOnly)
+			dwLeftFlags |= FFILEOPEN_READONLY;
+	}
+	if (!sRight.IsEmpty())
+	{	
+		dwRightFlags = FFILEOPEN_PROJECT;
+		if (bRightReadOnly)
+			dwRightFlags |= FFILEOPEN_READONLY;
 	}
 
-	// We found project file, and stored it in ProjectFileName
+	WriteProfileInt(_T("Settings"), _T("Recurse"), bRecursive);
 
-	if (!ProjectFileName.IsEmpty())
-	{
-		if (!pfile.Read(ProjectFileName, &err))
-		{
-			if (!err.IsEmpty())
-			{
-				CString msg;
-				AfxFormatString2(msg, IDS_ERROR_FILEOPEN, ProjectFileName, err);
-				AfxMessageBox(msg, MB_ICONSTOP);
-			}
-			return FALSE;
-		}
-		else
-		{
-			pfile.GetPaths(files[0], files[1], recursive);
-			if (pfile.HasFilter())
-			{
-				CString filter = pfile.GetFilter();
-				filter.TrimLeft();
-				filter.TrimRight();
-				m_globalFileFilter.SetFilter(filter);
-			}
-		}
-		return TRUE;
-	}
-	return FALSE;
+	BOOL rtn = GetMainFrame()->DoFileOpen(sLeft, sRight, dwLeftFlags, dwRightFlags, bRecursive);
+	return !!rtn;
 }
 
+/**
+ * @brief Return windows language ID of current WinMerge GUI language
+ */
 WORD CMergeApp::GetLangId() const
 {
 	return m_pLangDlg->GetLangId();
 }
 
+/**
+ * @brief Reload main menu(s) (for language change)
+ */
+void CMergeApp::ReloadMenu()
+{
+	m_pLangDlg->ReloadMenu();
+}

@@ -20,14 +20,17 @@
  * @brief CPropRegistry implementation file
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropRegistry.cpp,v 1.13.2.1 2005/11/08 18:48:11 kimmov Exp $
+// $Id: PropRegistry.cpp 3850 2006-11-26 11:29:07Z kimmov $
 
 #include "stdafx.h"
 #include "resource.h"
 #include "PropRegistry.h"
 #include "RegKey.h"
 #include "coretools.h"
-#include "Merge.h"
+#include "FileOrFolderSelect.h"
+#include "MainFrm.h" // GetDefaultEditor()
+#include "OptionsDef.h"
+#include "OptionsMgr.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -38,6 +41,7 @@ static char THIS_FILE[] = __FILE__;
 /// Flags for enabling and mode of extension
 #define CONTEXT_F_ENABLED 0x01
 #define CONTEXT_F_ADVANCED 0x02
+#define CONTEXT_F_SUBFOLDERS 0x04
 
 // registry dir to WinMerge
 static LPCTSTR f_RegDir = _T("Software\\Thingamahoochie\\WinMerge");
@@ -50,15 +54,15 @@ static LPCTSTR f_RegValuePath = _T("Executable");
 // CPropRegistry dialog
 
 
-CPropRegistry::CPropRegistry()
+CPropRegistry::CPropRegistry(COptionsMgr *optionsMgr)
 	: CPropertyPage(CPropRegistry::IDD)
+, m_pOptionsMgr(optionsMgr)
+, m_bContextAdded(FALSE)
+, m_bUseRecycleBin(TRUE)
+, m_bContextAdvanced(FALSE)
+, m_bIgnoreSmallTimeDiff(FALSE)
+, m_bContextSubfolders(FALSE)
 {
-	//{{AFX_DATA_INIT(CPropRegistry)
-	m_bContextAdded = FALSE;
-	m_bUseRecycleBin = TRUE;
-	m_bContextAdvanced = FALSE;
-	m_bIgnoreSmallTimeDiff = FALSE;
-	//}}AFX_DATA_INIT
 }
 
 void CPropRegistry::DoDataExchange(CDataExchange* pDX)
@@ -70,6 +74,8 @@ void CPropRegistry::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_USE_RECYCLE_BIN, m_bUseRecycleBin);
 	DDX_Check(pDX, IDC_EXPLORER_ADVANCED, m_bContextAdvanced);
 	DDX_Check(pDX, IDC_IGNORE_SMALLTIMEDIFF, m_bIgnoreSmallTimeDiff);
+	DDX_Text(pDX, IDC_FILTER_USER_PATH, m_strUserFilterPath);
+	DDX_Check(pDX, IDC_EXPLORER_SUBFOLDERS, m_bContextSubfolders);
 	//}}AFX_DATA_MAP
 }
 
@@ -77,8 +83,46 @@ BEGIN_MESSAGE_MAP(CPropRegistry, CDialog)
 	//{{AFX_MSG_MAP(CPropRegistry)
 	ON_BN_CLICKED(IDC_EXPLORER_CONTEXT, OnAddToExplorer)
 	ON_BN_CLICKED(IDC_EXT_EDITOR_BROWSE, OnBrowseEditor)
+	ON_BN_CLICKED(IDC_FILTER_USER_BROWSE, OnBrowseFilterPath)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
+
+/** 
+ * @brief Reads options values from storage to UI.
+ */
+void CPropRegistry::ReadOptions()
+{
+	m_strEditorPath = m_pOptionsMgr->GetString(OPT_EXT_EDITOR_CMD);
+	GetContextRegValues();
+	m_bUseRecycleBin = m_pOptionsMgr->GetBool(OPT_USE_RECYCLE_BIN);
+	m_bIgnoreSmallTimeDiff = m_pOptionsMgr->GetBool(OPT_IGNORE_SMALL_FILETIME);
+	m_strUserFilterPath = m_pOptionsMgr->GetString(OPT_FILTER_USERPATH);
+}
+
+/** 
+ * @brief Writes options values from UI to storage.
+ */
+void CPropRegistry::WriteOptions()
+{
+	CString sDefaultEditor = GetMainFrame()->GetDefaultEditor();
+
+	m_pOptionsMgr->SaveOption(OPT_USE_RECYCLE_BIN, m_bUseRecycleBin == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_IGNORE_SMALL_FILETIME, m_bIgnoreSmallTimeDiff == TRUE);
+
+	SaveMergePath(); // saves context menu settings as well
+
+	CString sExtEditor = m_strEditorPath;
+	sExtEditor.TrimLeft();
+	sExtEditor.TrimRight();
+	if (sExtEditor.IsEmpty())
+		sExtEditor = sDefaultEditor;
+	m_pOptionsMgr->SaveOption(OPT_EXT_EDITOR_CMD, sExtEditor);
+
+	CString sFilterPath = m_strUserFilterPath;
+	sFilterPath.TrimLeft();
+	sFilterPath.TrimRight();
+	m_pOptionsMgr->SaveOption(OPT_FILTER_USERPATH, sFilterPath);
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropRegistry message handlers
@@ -111,7 +155,7 @@ void CPropRegistry::GetContextRegValues()
 		return;
 	}
 
-	// This will be bit mask, although now there is only one bit defined
+	// Read bitmask for shell extension settings
 	DWORD dwContextEnabled = reg.ReadDword(f_RegValueEnabled, 0);
 
 	if (dwContextEnabled & CONTEXT_F_ENABLED)
@@ -119,15 +163,19 @@ void CPropRegistry::GetContextRegValues()
 
 	if (dwContextEnabled & CONTEXT_F_ADVANCED)
 		m_bContextAdvanced = TRUE;
+
+	if (dwContextEnabled & CONTEXT_F_SUBFOLDERS)
+		m_bContextSubfolders = TRUE;
 }
 
 /// Set registry values for ShellExtension
 void CPropRegistry::OnAddToExplorer()
 {
 	AdvancedContextMenuCheck();
+	SubfolderOptionCheck();
 }
 
-/// Saves given path to registry for ShellExtension
+/// Saves given path to registry for ShellExtension, and Context Menu settings
 void CPropRegistry::SaveMergePath()
 {
 	TCHAR temp[MAX_PATH] = {0};
@@ -167,6 +215,11 @@ void CPropRegistry::SaveMergePath()
 	else
 		dwContextEnabled &= ~CONTEXT_F_ADVANCED;
 
+	if (m_bContextSubfolders)
+		dwContextEnabled |= CONTEXT_F_SUBFOLDERS;
+	else
+		dwContextEnabled &= ~CONTEXT_F_SUBFOLDERS;
+
 	retVal = reg.WriteDword(f_RegValueEnabled, dwContextEnabled);
 	if (retVal != ERROR_SUCCESS)
 	{
@@ -184,7 +237,7 @@ void CPropRegistry::OnBrowseEditor()
 	CString title;
 	VERIFY(title.LoadString(IDS_OPEN_TITLE));
 
-	if (SelectFile(path, NULL, title, IDS_PROGRAMFILES, TRUE))
+	if (SelectFile(GetSafeHwnd(), path, NULL, title, IDS_PROGRAMFILES, TRUE))
 	{
 		m_strEditorPath = path;
 		UpdateData(FALSE);
@@ -201,5 +254,32 @@ void CPropRegistry::AdvancedContextMenuCheck()
 		GetDlgItem(IDC_EXPLORER_ADVANCED)->EnableWindow(FALSE);
 		CheckDlgButton(IDC_EXPLORER_ADVANCED, FALSE);
 		m_bContextAdvanced = FALSE;
+	}
+}
+
+/// Enable/Disable "Include subfolders by default" checkbox.
+void CPropRegistry::SubfolderOptionCheck()
+{
+	if (IsDlgButtonChecked(IDC_EXPLORER_CONTEXT))
+		GetDlgItem(IDC_EXPLORER_SUBFOLDERS)->EnableWindow(TRUE);
+	else
+	{
+		GetDlgItem(IDC_EXPLORER_SUBFOLDERS)->EnableWindow(FALSE);
+		CheckDlgButton(IDC_EXPLORER_SUBFOLDERS, FALSE);
+		m_bContextSubfolders = FALSE;
+	}
+}
+
+/// Open Folder selection dialog for user to select filter folder.
+void CPropRegistry::OnBrowseFilterPath()
+{
+	CString path;
+	CString title;
+	VERIFY(title.LoadString(IDS_OPEN_TITLE));
+
+	if (SelectFolder(path, NULL, title, GetSafeHwnd()))
+	{
+		m_strUserFilterPath = path;
+		UpdateData(FALSE);
 	}
 }

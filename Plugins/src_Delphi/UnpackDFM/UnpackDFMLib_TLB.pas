@@ -11,7 +11,7 @@ unit UnpackDFMLib_TLB;
 // manual modifications will be lost.                                       //
 // ************************************************************************ //
 
-// PASTLWTR : $Revision: 1.2 $
+// PASTLWTR : $Revision: 957 $
 // File generated on 01/11/03 12:34:14 from Type Library described below.
 
 // ************************************************************************ //

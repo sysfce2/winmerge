@@ -283,6 +283,9 @@ struct file_data {
     /* 1 more than the maximum equivalence value used for this or its
        sibling file. */
     int equiv_max;
+
+    /* text stats for WinMerge */
+    int count_crlfs, count_crs, count_lfs;
 };
 
 /* Describe the two files currently being compared.  */
@@ -296,7 +299,8 @@ EXTERN FILE *outfile;
 /* Declare various functions.  */
 
 /* analyze.c */
-struct change * diff_2_files PARAMS((struct file_data[], int, int *, int));
+/* WinMerge: add last two params */
+struct change * diff_2_files PARAMS((struct file_data[], int, int *, int, int*));
 
 /* context.c */
 void print_context_header PARAMS((struct file_data[], int));
@@ -316,7 +320,8 @@ void pr_forward_ed_script PARAMS((struct change *));
 void print_ifdef_script PARAMS((struct change *));
 
 /* io.c */
-int read_files PARAMS((struct file_data[], int));
+/* WinMerge: add last pointer param */
+int read_files PARAMS((struct file_data[], int, int *));
 int sip PARAMS((struct file_data *, int));
 void slurp PARAMS((struct file_data *));
 

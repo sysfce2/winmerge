@@ -10,7 +10,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PluginError.h,v 1.2.2.2 2006/08/08 14:01:21 galh Exp $
+// $Id: PluginError.h 3135 2006-03-06 03:01:38Z elsapo $
 
 #ifndef PluginError_h_included
 #define PluginError_h_included

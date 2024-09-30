@@ -147,10 +147,12 @@ void CGhostTextView::PopCursors ()
 	m_pGhostTextBuffer->RestoreLastChangePos(ptLastChange);
 
 	// restore the scrolling position
-	CPoint temp;
-	popPosition(m_nTopLinePushed, temp);
-	ASSERT_VALIDTEXTPOS(temp);
-	ScrollToLine(temp.y);
+	m_nTopSubLine = m_nTopSubLinePushed;
+	if (m_nTopSubLine >= GetSubLineCount())
+		m_nTopSubLine = GetSubLineCount() - 1;
+	int nDummy;
+	GetLineBySubLine( m_nTopSubLine, m_nTopLine, nDummy );
+    RecalcVertScrollBar(TRUE);
 }
 
 void CGhostTextView::PushCursors ()
@@ -177,7 +179,7 @@ void CGhostTextView::PushCursors ()
 	pushPosition(m_ptLastChangePushed, m_pGhostTextBuffer->GetLastChangePos());
 
 	// and top line positions
-	pushPosition(m_nTopLinePushed, CPoint(0, m_nTopLine));
+	m_nTopSubLinePushed = m_nTopSubLine;
 }
 
 
@@ -223,4 +225,21 @@ HGLOBAL CGhostTextView::PrepareDragData ()
 	m_ptDraggedTextBegin = m_ptDrawSelStart;
 	m_ptDraggedTextEnd = m_ptDrawSelEnd;
 	return hData;
+}
+
+/**
+ * @brief Draw selection margin. 
+ * @param [in] pdc         Pointer to draw context.
+ * @param [in] rect        The rectangle to draw.
+ * @param [in] nLineIndex  Index of line in view.
+ * @param [in] nLineNumber Line number to display. if -1, it's not displayed.
+ */
+void CGhostTextView::DrawMargin (CDC * pdc, const CRect & rect, int nLineIndex, int nLineNumber)
+{
+	int nRealLineNumber;
+	if (nLineIndex < 0 || GetLineFlags(nLineIndex) & LF_GHOST)
+		nRealLineNumber = -1;
+	else
+		nRealLineNumber = ComputeRealLine(nLineIndex) + 1;
+	CCrystalTextView::DrawMargin(pdc, rect, nLineIndex, nRealLineNumber);
 }

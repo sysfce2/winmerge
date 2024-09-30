@@ -4,7 +4,7 @@
  * @brief Implementation of CompareStats class.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: CompareStats.cpp,v 1.4 2005/07/26 07:49:14 kimmov Exp $
+// $Id: CompareStats.cpp 2523 2005-07-26 07:49:20Z kimmov $
 
 #include "stdafx.h"
 #include "DiffItem.h"

@@ -8,7 +8,7 @@
  *  @brief Implementation of methods of CDirView that copy/move/delete files
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirActions.cpp,v 1.64.2.5 2006/08/06 09:22:51 kimmov Exp $
+// $Id: DirActions.cpp 4543 2007-09-15 11:08:02Z kimmov $
 
 // It would be nice to make this independent of the UI (CDirView)
 // but it needs access to the list of selected items.
@@ -23,10 +23,16 @@
 #include "coretools.h"
 #include "OutputDlg.h"
 #include "paths.h"
+#include "7zCommon.h"
 #include "CShellFileOp.h"
 #include "OptionsDef.h"
 #include "WaitStatusCursor.h"
 #include "LogFile.h"
+#include "DiffItem.h"
+#include "FileActionScript.h"
+#include "LoadSaveCodepageDlg.h"
+#include "IntToIntMap.h"
+#include "FileOrFolderSelect.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -42,7 +48,7 @@ static BOOL ConfirmMultipleCopy(int count, int total)
 	CString s;
 	ASSERT(count>1);
 	AfxFormatString2(s, IDS_CONFIRM_COPY2DIR, NumToStr(count), NumToStr(total));
-	int rtn = AfxMessageBox(s, MB_YESNO|MB_ICONQUESTION|MB_DONT_ASK_AGAIN, IDS_CONFIRM_COPY2DIR);
+	int rtn = AfxMessageBox(s, MB_YESNO | MB_ICONWARNING);
 	return (rtn==IDYES);
 }
 
@@ -51,7 +57,7 @@ static BOOL ConfirmSingleCopy(LPCTSTR src, LPCTSTR dest)
 {
 	CString s;
 	AfxFormatString2(s, IDS_CONFIRM_COPY_SINGLE, src, dest);
-	int rtn = AfxMessageBox(s, MB_YESNO|MB_ICONQUESTION|MB_DONT_ASK_AGAIN, IDS_CONFIRM_COPY_SINGLE);
+	int rtn = AfxMessageBox(s, MB_YESNO | MB_ICONWARNING);
 	return (rtn==IDYES);
 }
 
@@ -60,7 +66,7 @@ static BOOL ConfirmMultipleDelete(int count, int total)
 {
 	CString s;
 	AfxFormatString2(s, IDS_CONFIRM_DELETE_ITEMS, NumToStr(count), NumToStr(total));
-	int rtn = AfxMessageBox(s, MB_YESNO|MB_ICONQUESTION|MB_DONT_ASK_AGAIN, IDS_CONFIRM_DELETE_ITEMS);
+	int rtn = AfxMessageBox(s, MB_YESNO | MB_ICONWARNING);
 	return (rtn==IDYES);
 }
 
@@ -69,7 +75,7 @@ static BOOL ConfirmSingleDelete(LPCTSTR filepath)
 {
 	CString s;
 	AfxFormatString1(s, IDS_CONFIRM_DELETE_SINGLE, filepath);
-	int rtn = AfxMessageBox(s, MB_YESNO|MB_ICONQUESTION|MB_DONT_ASK_AGAIN, IDS_CONFIRM_DELETE_SINGLE);
+	int rtn = AfxMessageBox(s, MB_YESNO | MB_ICONWARNING);
 	return (rtn==IDYES);
 }
 
@@ -79,8 +85,10 @@ void CDirView::DoCopyRightToLeft()
 	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_COPYFILES));
 
 	// First we build a list of desired actions
-	ActionList actionList(ActionList::ACT_COPY);
-	int sel=-1;
+	FileActionScript actionScript;
+	const FileAction::ACT_TYPE actType = FileAction::ACT_COPY;
+	int selCount = 0;
+	int sel = -1;
 	CString slFile, srFile;
 	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
 	{
@@ -88,19 +96,20 @@ void CDirView::DoCopyRightToLeft()
 		if (di.diffcode != 0 && IsItemCopyableToLeft(di))
 		{
 			GetItemFileNames(sel, slFile, srFile);
-			ActionList::action act;
+			FileActionItem act;
 			act.src = srFile;
 			act.dest = slFile;
-			act.idx = sel;
-			act.code = di.diffcode;
+			act.context = sel;
 			act.dirflag = di.isDirectory();
-			actionList.actions.AddTail(act);
+			act.atype = actType;
+			act.UIResult = FileActionItem::UI_SYNC;
+			actionScript.AddActionItem(act);
 		}
-		++actionList.selcount;
+		++selCount;
 	}
 
 	// Now we prompt, and execute actions
-	ConfirmAndPerformActions(actionList);
+	ConfirmAndPerformActions(actionScript, selCount);
 }
 // Prompt & copy item from left to right, if legal
 void CDirView::DoCopyLeftToRight()
@@ -108,8 +117,10 @@ void CDirView::DoCopyLeftToRight()
 	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_COPYFILES));
 
 	// First we build a list of desired actions
-	ActionList actionList(ActionList::ACT_COPY);
-	int sel=-1;
+	FileActionScript actionScript;
+	const FileAction::ACT_TYPE actType = FileAction::ACT_COPY;
+	int selCount = 0;
+	int sel = -1;
 	CString slFile, srFile;
 	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
 	{
@@ -117,19 +128,20 @@ void CDirView::DoCopyLeftToRight()
 		if (di.diffcode != 0 && IsItemCopyableToRight(di))
 		{
 			GetItemFileNames(sel, slFile, srFile);
-			ActionList::action act;
+			FileActionItem act;
 			act.src = slFile;
 			act.dest = srFile;
 			act.dirflag = di.isDirectory();
-			act.idx = sel;
-			act.code = di.diffcode;
-			actionList.actions.AddTail(act);
+			act.context = sel;
+			act.atype = actType;
+			act.UIResult = FileActionItem::UI_SYNC;
+			actionScript.AddActionItem(act);
 		}
-		++actionList.selcount;
+		++selCount;
 	}
 
 	// Now we prompt, and execute actions
-	ConfirmAndPerformActions(actionList);
+	ConfirmAndPerformActions(actionScript, selCount);
 }
 
 // Prompt & delete left, if legal
@@ -138,7 +150,9 @@ void CDirView::DoDelLeft()
 	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_DELETEFILES));
 
 	// First we build a list of desired actions
-	ActionList actionList(ActionList::ACT_DEL_LEFT);
+	FileActionScript actionScript;
+	const FileAction::ACT_TYPE actType = FileAction::ACT_DEL;
+	int selCount = 0;
 	int sel=-1;
 	CString slFile, srFile;
 	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
@@ -147,18 +161,19 @@ void CDirView::DoDelLeft()
 		if (di.diffcode != 0 && IsItemDeletableOnLeft(di))
 		{
 			GetItemFileNames(sel, slFile, srFile);
-			ActionList::action act;
+			FileActionItem act;
 			act.src = slFile;
 			act.dirflag = di.isDirectory();
-			act.idx = sel;
-			act.code = di.diffcode;
-			actionList.actions.AddTail(act);
+			act.context = sel;
+			act.atype = actType;
+			act.UIResult = FileActionItem::UI_DEL_LEFT;
+			actionScript.AddActionItem(act);
 		}
-		++actionList.selcount;
+		++selCount;
 	}
 
 	// Now we prompt, and execute actions
-	ConfirmAndPerformActions(actionList);
+	ConfirmAndPerformActions(actionScript, selCount);
 }
 // Prompt & delete right, if legal
 void CDirView::DoDelRight()
@@ -166,8 +181,10 @@ void CDirView::DoDelRight()
 	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_DELETEFILES));
 
 	// First we build a list of desired actions
-	ActionList actionList(ActionList::ACT_DEL_RIGHT);
-	int sel=-1;
+	FileActionScript actionScript;
+	const FileAction::ACT_TYPE actType = FileAction::ACT_DEL;
+	int selCount = 0;
+	int sel = -1;
 	CString slFile, srFile;
 	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
 	{
@@ -176,18 +193,19 @@ void CDirView::DoDelRight()
 		if (di.diffcode != 0 && IsItemDeletableOnRight(di))
 		{
 			GetItemFileNames(sel, slFile, srFile);
-			ActionList::action act;
+			FileActionItem act;
 			act.src = srFile;
 			act.dirflag = di.isDirectory();
-			act.idx = sel;
-			act.code = di.diffcode;
-			actionList.actions.AddTail(act);
+			act.context = sel;
+			act.atype = actType;
+			act.UIResult = FileActionItem::UI_DEL_RIGHT;
+			actionScript.AddActionItem(act);
 		}
-		++actionList.selcount;
+		++selCount;
 	}
 
 	// Now we prompt, and execute actions
-	ConfirmAndPerformActions(actionList);
+	ConfirmAndPerformActions(actionScript, selCount);
 }
 
 /**
@@ -198,8 +216,10 @@ void CDirView::DoDelBoth()
 	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_DELETEFILES));
 
 	// First we build a list of desired actions
-	ActionList actionList(ActionList::ACT_DEL_BOTH);
-	int sel=-1;
+	FileActionScript actionScript;
+	const FileAction::ACT_TYPE actType = FileAction::ACT_DEL;
+	int selCount = 0;
+	int sel = -1;
 	CString slFile, srFile;
 	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
 	{
@@ -208,19 +228,20 @@ void CDirView::DoDelBoth()
 		if (di.diffcode != 0 && IsItemDeletableOnBoth(di))
 		{
 			GetItemFileNames(sel, slFile, srFile);
-			ActionList::action act;
+			FileActionItem act;
 			act.src = srFile;
 			act.dest = slFile;
 			act.dirflag = di.isDirectory();
-			act.idx = sel;
-			act.code = di.diffcode;
-			actionList.actions.AddTail(act);
+			act.context = sel;
+			act.atype = actType;
+			act.UIResult = FileActionItem::UI_DEL_BOTH;
+			actionScript.AddActionItem(act);
 		}
-		++actionList.selcount;
+		++selCount;
 	}
 
 	// Now we prompt, and execute actions
-	ConfirmAndPerformActions(actionList);
+	ConfirmAndPerformActions(actionScript, selCount);
 }
 
 /**
@@ -231,8 +252,10 @@ void CDirView::DoDelAll()
 	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_DELETEFILES));
 
 	// First we build a list of desired actions
-	ActionList actionList(ActionList::ACT_DEL_BOTH);
-	int sel=-1;
+	FileActionScript actionScript;
+	const FileAction::ACT_TYPE actType = FileAction::ACT_DEL;
+	int selCount = 0;
+	int sel = -1;
 	CString slFile, srFile;
 	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
 	{
@@ -241,7 +264,7 @@ void CDirView::DoDelAll()
 		if (di.diffcode != 0)
 		{
 			GetItemFileNames(sel, slFile, srFile);
-			ActionList::action act;
+			FileActionItem act;
 			if (IsItemDeletableOnBoth(di))
 			{
 				act.src = srFile;
@@ -256,15 +279,16 @@ void CDirView::DoDelAll()
 				act.src = srFile;
 			}
 			act.dirflag = di.isDirectory();
-			act.idx = sel;
-			act.code = di.diffcode;
-			actionList.actions.AddTail(act);
+			act.context = sel;
+			act.atype = actType;
+			act.UIResult = FileActionItem::UI_DEL_BOTH;
+			actionScript.AddActionItem(act);
 		}
-		++actionList.selcount;
+		++selCount;
 	}
 
 	// Now we prompt, and execute actions
-	ConfirmAndPerformActions(actionList);
+	ConfirmAndPerformActions(actionScript, selCount);
 }
 
 /**
@@ -276,7 +300,6 @@ void CDirView::DoDelAll()
  */
 void CDirView::DoCopyLeftTo()
 {
-	CShellFileOp fileOp;
 	CString destPath;
 	CString startPath;
 	CString msg;
@@ -287,10 +310,9 @@ void CDirView::DoCopyLeftTo()
 
 	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_COPYFILES));
 
-	fileOp.SetOperationFlags(FO_COPY, this, FOF_NOCONFIRMMKDIR);
-	if (!GetDocument()->GetRecursive())
-		fileOp.AddDestFile(destPath);
-
+	FileActionScript actionScript;
+	const FileAction::ACT_TYPE actType = FileAction::ACT_COPY;
+	int selCount = 0;
 	int sel = -1;
 	CString slFile, srFile;
 	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
@@ -299,25 +321,29 @@ void CDirView::DoCopyLeftTo()
 
 		if (di.diffcode != 0 && IsItemCopyableToOnLeft(di))
 		{
+			FileActionItem act;
+			CString sFullDest(destPath);
+			sFullDest += _T("\\");
 			if (GetDocument()->GetRecursive())
 			{
-				CString sFullDest(destPath);
-				sFullDest += _T("\\");
 				if (!di.sLeftSubdir.IsEmpty())
 					sFullDest += di.sLeftSubdir + _T("\\");
-				sFullDest += di.sLeftFilename;
-				fileOp.AddDestFile(sFullDest);
 			}
+			sFullDest += di.sLeftFilename;
+			act.dest = sFullDest;
+
 			GetItemFileNames(sel, slFile, srFile);
-			fileOp.AddSourceFile(slFile);
+			act.src = slFile;
+			act.dirflag = di.isDirectory();
+			act.context = sel;
+			act.atype = actType;
+			act.UIResult = FileActionItem::UI_DESYNC;
+			actionScript.AddActionItem(act);
+			++selCount;
 		}
 	}
-
-	BOOL bSuccess = FALSE;
-	BOOL bAPICalled = FALSE;
-	BOOL bAborted = FALSE;
-	int  nAPIReturn = 0;
-	bSuccess = fileOp.Go(&bAPICalled, &nAPIReturn, &bAborted);
+	// Now we prompt, and execute actions
+	ConfirmAndPerformActions(actionScript, selCount);
 }
 
 /**
@@ -329,7 +355,6 @@ void CDirView::DoCopyLeftTo()
  */
 void CDirView::DoCopyRightTo()
 {
-	CShellFileOp fileOp;
 	CString destPath;
 	CString startPath;
 	CString msg;
@@ -340,10 +365,9 @@ void CDirView::DoCopyRightTo()
 
 	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_COPYFILES));
 
-	fileOp.SetOperationFlags(FO_COPY, this, FOF_NOCONFIRMMKDIR);
-	if (!GetDocument()->GetRecursive())
-		fileOp.AddDestFile(destPath);
-
+	FileActionScript actionScript;
+	const FileAction::ACT_TYPE actType = FileAction::ACT_COPY;
+	int selCount = 0;
 	int sel = -1;
 	CString slFile, srFile;
 	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
@@ -352,25 +376,29 @@ void CDirView::DoCopyRightTo()
 
 		if (di.diffcode != 0 && IsItemCopyableToOnRight(di))
 		{
+			FileActionItem act;
+			CString sFullDest(destPath);
+			sFullDest += _T("\\");
 			if (GetDocument()->GetRecursive())
 			{
-				CString sFullDest(destPath);
-				sFullDest += _T("\\");
 				if (!di.sRightSubdir.IsEmpty())
 					sFullDest += di.sRightSubdir + _T("\\");
-				sFullDest += di.sRightFilename;
-				fileOp.AddDestFile(sFullDest);
 			}
+			sFullDest += di.sRightFilename;
+			act.dest = sFullDest;
+
 			GetItemFileNames(sel, slFile, srFile);
-			fileOp.AddSourceFile(srFile);
+			act.src = srFile;
+			act.dirflag = di.isDirectory();
+			act.context = sel;
+			act.atype = actType;
+			act.UIResult = FileActionItem::UI_DESYNC;
+			actionScript.AddActionItem(act);
+			++selCount;
 		}
 	}
-
-	BOOL bSuccess = FALSE;
-	BOOL bAPICalled = FALSE;
-	BOOL bAborted = FALSE;
-	int  nAPIReturn = 0;
-	bSuccess = fileOp.Go( &bAPICalled, &nAPIReturn, &bAborted );
+	// Now we prompt, and execute actions
+	ConfirmAndPerformActions(actionScript, selCount);
 }
 
 /**
@@ -392,8 +420,9 @@ void CDirView::DoMoveLeftTo()
 
 	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_MOVEFILES));
 
-	ActionList actionList(ActionList::ACT_MOVE_LEFT);
-
+	FileActionScript actionScript;
+	const FileAction::ACT_TYPE actType = FileAction::ACT_MOVE;
+	int selCount = 0;
 	int sel = -1;
 	CString slFile, srFile;
 	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
@@ -402,7 +431,7 @@ void CDirView::DoMoveLeftTo()
 
 		if (di.diffcode != 0 && IsItemCopyableToOnLeft(di) && IsItemDeletableOnLeft(di))
 		{
-			ActionList::action act;
+			FileActionItem act;
 			CString sFullDest(destPath);
 			sFullDest += _T("\\");
 			if (GetDocument()->GetRecursive())
@@ -416,14 +445,15 @@ void CDirView::DoMoveLeftTo()
 			GetItemFileNames(sel, slFile, srFile);
 			act.src = slFile;
 			act.dirflag = di.isDirectory();
-			act.idx = sel;
-			act.code = di.diffcode;
-			actionList.actions.AddTail(act);
-			++actionList.selcount;
+			act.context = sel;
+			act.atype = actType;
+			act.UIResult = FileActionItem::UI_DEL_LEFT;
+			actionScript.AddActionItem(act);
+			++selCount;
 		}
 	}
 	// Now we prompt, and execute actions
-	ConfirmAndPerformActions(actionList);
+	ConfirmAndPerformActions(actionScript, selCount);
 }
 
 /**
@@ -445,8 +475,9 @@ void CDirView::DoMoveRightTo()
 
 	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_MOVEFILES));
 
-	ActionList actionList(ActionList::ACT_MOVE_RIGHT);
-
+	FileActionScript actionScript;
+	const FileAction::ACT_TYPE actType = FileAction::ACT_MOVE;
+	int selCount = 0;
 	int sel = -1;
 	CString slFile, srFile;
 	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
@@ -455,7 +486,7 @@ void CDirView::DoMoveRightTo()
 
 		if (di.diffcode != 0 && IsItemCopyableToOnRight(di) && IsItemDeletableOnRight(di))
 		{
-			ActionList::action act;
+			FileActionItem act;
 			CString sFullDest(destPath);
 			sFullDest += _T("\\");
 			if (GetDocument()->GetRecursive())
@@ -469,25 +500,26 @@ void CDirView::DoMoveRightTo()
 			GetItemFileNames(sel, slFile, srFile);
 			act.src = srFile;
 			act.dirflag = di.isDirectory();
-			act.idx = sel;
-			act.code = di.diffcode;
-			actionList.actions.AddTail(act);
-			++actionList.selcount;
+			act.context = sel;
+			act.atype = actType;
+			act.UIResult = FileActionItem::UI_DEL_RIGHT;
+			actionScript.AddActionItem(act);
+			++selCount;
 		}
 	}
 	// Now we prompt, and execute actions
-	ConfirmAndPerformActions(actionList);
+	ConfirmAndPerformActions(actionScript, selCount);
 }
 
 // Confirm with user, then perform the action list
-void CDirView::ConfirmAndPerformActions(ActionList & actionList)
+void CDirView::ConfirmAndPerformActions(FileActionScript & actionList, int selCount)
 {
-	if (!actionList.selcount) // Not sure it is possible to get right-click menu without
+	if (selCount == 0) // Not sure it is possible to get right-click menu without
 		return;    // any selected items, but may as well be safe
 
-	ASSERT(actionList.actions.GetCount()>0); // Or else the update handler got it wrong
+	ASSERT(actionList.GetActionItemCount()>0); // Or else the update handler got it wrong
 
-	if (!ConfirmActionList(actionList))
+	if (!ConfirmActionList(actionList, selCount))
 		return;
 
 	PerformActionList(actionList);
@@ -497,33 +529,33 @@ void CDirView::ConfirmAndPerformActions(ActionList & actionList)
  * @brief Confirm actions with user as appropriate
  * (type, whether single or multiple).
  */
-BOOL CDirView::ConfirmActionList(const ActionList & actionList)
+BOOL CDirView::ConfirmActionList(const FileActionScript & actionList, int selCount)
 {
+	// TODO: We need better confirmation for file actions.
+	// Maybe we should show a list of files with actions done..
+	FileActionItem item = actionList.GetHeadActionItem();
+
 	// special handling for the single item case, because it is probably the most common,
 	// and we can give the user exact details easily for it
-	switch(actionList.atype)
+	switch(item.atype)
 	{
-	case ActionList::ACT_COPY:
-		if (actionList.GetCount()==1)
+	case FileAction::ACT_COPY:
+		if (actionList.GetActionItemCount() == 1)
 		{
-			const ActionList::action & act = actionList.actions.GetHead();
-			if (!ConfirmSingleCopy(act.src, act.dest))
+			if (!ConfirmSingleCopy(item.src, item.dest))
 				return FALSE;
 		}
 		else
 		{
-			if (!ConfirmMultipleCopy(actionList.GetCount(), actionList.selcount))
+			if (!ConfirmMultipleCopy(actionList.GetActionItemCount(), selCount))
 				return FALSE;
 		}
 		break;
 		
 	// Deleting does not need confirmation, CShellFileOp takes care of it
-	case ActionList::ACT_DEL_LEFT:
-	case ActionList::ACT_DEL_RIGHT:
-	case ActionList::ACT_DEL_BOTH:
+	case FileAction::ACT_DEL:
 	// Moving does not need confirmation, CShellFileOp takes care of it
-	case ActionList::ACT_MOVE_LEFT:
-	case ActionList::ACT_MOVE_RIGHT:
+	case FileAction::ACT_MOVE:
 		break;
 
 	// Invalid operation
@@ -541,333 +573,117 @@ BOOL CDirView::ConfirmActionList(const ActionList & actionList)
  * @sa CMainFrame::SaveToVersionControl()
  * @sa CMainFrame::SyncFilesToVCS()
  */
-void CDirView::PerformActionList(ActionList & actionList)
+void CDirView::PerformActionList(FileActionScript & actionScript)
 {
-	CShellFileOp fileOp;
-	CString destPath;
-	CString startPath;
-	UINT operation = 0;
-	UINT operFlags = 0;
-	BOOL bUserCancelled = FALSE;
-
 	// Reset suppressing VSS dialog for multiple files.
 	// Set in CMainFrame::SaveToVersionControl().
-	mf->m_CheckOutMulti = FALSE;
-	mf->m_bVssSuppressPathCheck = FALSE;
+	GetMainFrame()->m_CheckOutMulti = FALSE;
+	GetMainFrame()->m_bVssSuppressPathCheck = FALSE;
 
-	switch (actionList.atype)
-	{
-	case ActionList::ACT_COPY:
-		operation = FO_COPY;
-		operFlags |= FOF_NOCONFIRMMKDIR | FOF_MULTIDESTFILES | FOF_NOCONFIRMATION;
-		break;
-	case ActionList::ACT_DEL_LEFT:
-		operation = FO_DELETE;
-		break;
-	case ActionList::ACT_DEL_RIGHT:
-		operation = FO_DELETE;
-		break;
-	case ActionList::ACT_DEL_BOTH:
-		operation = FO_DELETE;
-		break;
-	case ActionList::ACT_MOVE_LEFT:
-		operation = FO_MOVE;
-		break;
-	case ActionList::ACT_MOVE_RIGHT:
-		operation = FO_MOVE;
-		break;
-	default:
-		LogErrorString(_T("Unknown fileoperation in CDirView::PerformActionList()"));
-		_RPTF0(_CRT_ERROR, "Unknown fileoperation in CDirView::PerformActionList()");
-		break;
-	}
-	
 	// Check option and enable putting deleted items to Recycle Bin
-	if (mf->m_options.GetBool(OPT_USE_RECYCLE_BIN))
-		operFlags |= FOF_ALLOWUNDO;
-
-	fileOp.SetOperationFlags(operation, this, operFlags);
-	
-	// Add files/directories
-	BOOL bSucceed = TRUE;
-	const BOOL bMultiFile = (actionList.actions.GetCount() > 1);
-	BOOL bApplyToAll = FALSE;
-	POSITION pos = actionList.actions.GetHeadPosition();
-	POSITION curPos = pos;
-	int nItemCount = 0;
-	while (bSucceed && pos != NULL)
-	{
-		BOOL bSkip = FALSE;
-		curPos = pos; // Save current position for later use
-		const ActionList::action act = actionList.actions.GetNext(pos);
-
-		// If copying files, try to sync files to VCS too
-		if (actionList.atype == ActionList::ACT_COPY && !act.dirflag)
-		{
-			CString strErr;
-			int nRetVal = mf->SyncFileToVCS(act.src, act.dest, bApplyToAll, &strErr);
-			if (nRetVal == -1)
-			{
-				bSucceed = FALSE;
-				bUserCancelled = TRUE; // So we exit without file operations done
-				AfxMessageBox(strErr, MB_OK | MB_ICONERROR);
-			}
-			else if (nRetVal == IDCANCEL)
-			{
-				bUserCancelled = TRUE;
-				bSucceed = FALSE; // User canceled, so we don't continue
-			}
-			else if (nRetVal == IDNO)
-			{
-				actionList.actions.RemoveAt(curPos);
-				if (actionList.actions.GetCount() == 0)
-					pos = NULL;
-				bSkip = TRUE;  // User wants to skip this item
-			}
-		}
-
-		if (bSucceed && !bSkip) // No error from VCS sync (propably just not called)
-		{
-			try
-			{
-				switch (actionList.atype)
-				{
-				case ActionList::ACT_COPY:
-					fileOp.AddSourceFile(act.src);
-					fileOp.AddDestFile(act.dest);
-					gLog.Write(_T("Copy file(s) from: %s\n\tto: %s"), act.src, act.dest);
-					break;
-				case ActionList::ACT_MOVE_LEFT:
-				case ActionList::ACT_MOVE_RIGHT:
-					fileOp.AddSourceFile(act.src);
-					fileOp.AddDestFile(act.dest);
-					gLog.Write(_T("Move file(s) from: %s\n\tto: %s"), act.src, act.dest);
-					break;
-				case ActionList::ACT_DEL_LEFT:
-					fileOp.AddSourceFile(act.src);
-					gLog.Write(_T("Delete file(s) from LEFT: %s"), act.src);
-					break;
-				case ActionList::ACT_DEL_RIGHT:
-					fileOp.AddSourceFile(act.src);
-					gLog.Write(_T("Delete file(s) from RIGHT: %s"), act.src);
-					break;
-				case ActionList::ACT_DEL_BOTH:
-					// When 'delete all' other side item may be missing
-					if (!act.src.IsEmpty())
-						fileOp.AddSourceFile(act.src);
-					if (!act.dest.IsEmpty())
-						fileOp.AddSourceFile(act.dest);
-					gLog.Write(_T("Delete BOTH file(s) from: %s\n\tto: %s"), act.src, act.dest);
-					break;
-				}
-			}
-			catch (CMemoryException *ex)
-			{
-				bSucceed = FALSE;
-				LogErrorString(_T("CDirView::PerformActionList(): ")
-					_T("Adding files to buffer failed!"));
-				ex->ReportError();
-				ex->Delete();
-			}
-			if (bSucceed)
-				nItemCount++;
-		}
-	} 
-
-	// Abort if no items to process
-	if (nItemCount == 0)
-	{
-		gLog.Write(_T("Fileoperation aborted, no items to process."));
-		return;
-	}
-
-	if (bUserCancelled)
-		return;
-
-	// Now process files/directories that got added to list
-	BOOL bOpStarted = FALSE;
-	BOOL bFileOpSucceed = FALSE;
-	BOOL bFatalError = FALSE;
-	int apiRetVal = 0;
-
-	bFileOpSucceed = RunFileOp(fileOp, bOpStarted, apiRetVal,
-		bUserCancelled, bFatalError);
-	// All succeeded
-	if (bFileOpSucceed && !bUserCancelled)
-	{
-		gLog.Write(_T("Fileoperation succeeded, %d item processed."), nItemCount);
-		UpdateCopiedItems(actionList);
-
-		// If there were deleted items, remove them from view
-		if (!actionList.deletedItems.IsEmpty())
-			UpdateDeletedItems(actionList);
-	}
-	else if (!bOpStarted)
-	{
-		// Invalid parameters - is this programmer error only?
-		LogErrorString(_T("Invalid usage of CShellFileOp in ")
-			_T("CDirView::PerformActionList()"));
-		_RPTF0(_CRT_ERROR, "Invalid usage of CShellFileOp in "
-			"CDirView::PerformActionList()");
-	}
-	else if (bUserCancelled)
-	{
-		// User cancelled, we have a problem as we don't know which
-		// items were processed!
-		// User could cancel operation before it was done or during operation
-		gLog.Write(LOGLEVEL::LWARNING, _T("User cancelled fileoperation!"));
-	}
+	if (GetOptionsMgr()->GetBool(OPT_USE_RECYCLE_BIN))
+		actionScript.UseRecycleBin(TRUE);
 	else
-	{
-		if (bFatalError)
-		{
-			ResMsgBox1(IDS_ERROR_FILE_NOT_FOUND, GetSysError(GetLastError()),
-				MB_ICONSTOP);
-		}
-		
-		// CShellFileOp shows errors to user, so just write log
-		LogErrorString(Fmt(_T("File operation failed: %s"),
-			GetSysError(GetLastError())));
-	}
+		actionScript.UseRecycleBin(FALSE);
+
+	actionScript.SetParentWindow(this);
+
+	if (actionScript.Run())
+		UpdateAfterFileScript(actionScript);
 }
 
 /**
- * @brief Run fileactions.
- * This is wrapper function for calling CShellFileOp::Go()
- * inside SEH, so we can trap errors from system. This is to
- * hopefully trap error leading Windows crash as reported in bug:
- * #1379582 Move to right to mapped SharePoint doc lib can crash Windows
- * https://sourceforge.net/tracker/index.php?func=detail&aid=1379582&group_id=13216&atid=113216
+ * @brief Update results after running FileActionScript.
+ * This functions is called after script is finished to update
+ * results (including UI).
+ * @param [in] actionlist Script that was run.
  */
-BOOL CDirView::RunFileOp(CShellFileOp & fileOp, BOOL & bOpStarted,
-		int & apiRetVal, BOOL & bUserCancelled, BOOL & bFatalError)
+void CDirView::UpdateAfterFileScript(FileActionScript & actionList)
 {
-	BOOL bFileOpSucceed = TRUE;
-	__try
-	{
-		bFileOpSucceed = fileOp.Go(&bOpStarted, &apiRetVal, &bUserCancelled);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		bFileOpSucceed = FALSE;
-		bFatalError = TRUE;
-	}
-	return bFileOpSucceed;
-}
-
-/**
- * @brief Update copied items after fileactions
- */
-void CDirView::UpdateCopiedItems(ActionList & actionList)
-{
-	CDirDoc *pDoc = GetDocument();
-	while (actionList.GetCount()>0)
-	{
-		ActionList::action act = actionList.actions.RemoveHead();
-		POSITION diffpos = GetItemKey(act.idx);
-		const DIFFITEM & di = pDoc->GetDiffByKey(diffpos);
-
-		if (actionList.atype == ActionList::ACT_COPY)
-		{
-			// Copy files and folders
-			pDoc->SetDiffSide(DIFFCODE::BOTH, act.idx);
-			
-			// Folders don't have compare flag set!!
-			if (act.dirflag)
-				pDoc->SetDiffCompare(DIFFCODE::NOCMP, act.idx);
-			else
-				pDoc->SetDiffCompare(DIFFCODE::SAME, act.idx);
-
-			pDoc->SetDiffCounts(0, 0, act.idx);
-			pDoc->ReloadItemStatus(act.idx, TRUE, TRUE);
-		}
-		else if (actionList.atype == ActionList::ACT_MOVE_LEFT ||
-			actionList.atype == ActionList::ACT_MOVE_RIGHT)
-		{
-			// Move files and folders
-			// If unique item is moved, don't bother updating statuses,
-			// just remove from list
-			if (actionList.atype == ActionList::ACT_MOVE_LEFT)
-			{
-				if (di.isSideLeft())
-					actionList.deletedItems.AddTail(act.idx);
-				else
-				{
-					pDoc->SetDiffSide(DIFFCODE::RIGHT, act.idx);
-					pDoc->SetDiffCompare(DIFFCODE::NOCMP, act.idx);
-					pDoc->ReloadItemStatus(act.idx, TRUE, FALSE);
-				}
-			}
-
-			if (actionList.atype == ActionList::ACT_MOVE_RIGHT)
-			{
-				if (di.isSideRight())
-					actionList.deletedItems.AddTail(act.idx);
-				else
-				{
-					pDoc->SetDiffSide(DIFFCODE::LEFT, act.idx);
-					pDoc->SetDiffCompare(DIFFCODE::NOCMP, act.idx);
-					pDoc->ReloadItemStatus(act.idx, FALSE, TRUE);
-				}
-			}
-		}
-		else
-		{
-			// Delete files and folders
-			// If both items or unique item is deleted, don't bother updating
-			// statuses, just remove from list
-			if (actionList.atype == ActionList::ACT_DEL_LEFT)
-			{
-				if (di.isSideLeft())
-				{
-					actionList.deletedItems.AddTail(act.idx);
-				}
-				else
-				{
-					pDoc->SetDiffSide(DIFFCODE::RIGHT, act.idx);
-					pDoc->SetDiffCompare(DIFFCODE::NOCMP, act.idx);
-					pDoc->ReloadItemStatus(act.idx, TRUE, FALSE);
-				}
-			}
-			
-			if (actionList.atype == ActionList::ACT_DEL_RIGHT)
-			{
-				if (di.isSideRight())
-				{
-					actionList.deletedItems.AddTail(act.idx);
-				}
-				else
-				{
-					pDoc->SetDiffSide(DIFFCODE::LEFT, act.idx);
-					pDoc->SetDiffCompare(DIFFCODE::NOCMP, act.idx);
-					pDoc->ReloadItemStatus(act.idx, FALSE, TRUE);
-				}
-			}
-
-			if (actionList.atype == ActionList::ACT_DEL_BOTH)
-			{
-				actionList.deletedItems.AddTail(act.idx);
-			}
-		}
-	}
-}
-
-/**
- * @brief Update deleted items after fileactions
- */
-void CDirView::UpdateDeletedItems(ActionList & actionList)
-{
+	BOOL bItemsRemoved = FALSE;
 	int curSel = GetFirstSelectedInd();
-	while (!actionList.deletedItems.IsEmpty())
+	CDirDoc *pDoc = GetDocument();
+	while (actionList.GetActionItemCount()>0)
 	{
-		int idx = actionList.deletedItems.RemoveTail();
-		POSITION diffpos = GetItemKey(idx);
-		GetDocument()->RemoveDiffByKey(diffpos);
-		m_pList->DeleteItem(idx);
+		// Start handling from tail of list, so removing items
+		// doesn't invalidate our item indexes.
+		FileActionItem act = actionList.RemoveTailActionItem();
+		POSITION diffpos = GetItemKey(act.context);
+		const DIFFITEM & di = pDoc->GetDiffByKey(diffpos);
+		BOOL bUpdateLeft = FALSE;
+		BOOL bUpdateRight = FALSE;
+
+		// Synchronized items may need VCS operations
+		if (act.UIResult == FileActionItem::UI_SYNC)
+		{
+			if (GetMainFrame()->m_bCheckinVCS)
+				GetMainFrame()->CheckinToClearCase(act.dest);
+		}
+
+		// Update doc (difflist)
+		pDoc->UpdateDiffAfterOperation(act, diffpos);
+
+		// Update UI
+		switch (act.UIResult)
+		{
+		case FileActionItem::UI_SYNC:
+			bUpdateLeft = TRUE;
+			bUpdateRight = TRUE;
+			break;
+		
+		case FileActionItem::UI_DESYNC:
+			// Cannot happen yet since we have only "simple" operations
+			break;
+
+		case FileActionItem::UI_DEL_LEFT:
+			if (di.isSideLeft())
+			{
+				m_pList->DeleteItem(act.context);
+				bItemsRemoved = TRUE;
+			}
+			else
+			{
+				bUpdateLeft = TRUE;
+			}
+			break;
+
+		case FileActionItem::UI_DEL_RIGHT:
+			if (di.isSideRight())
+			{
+				m_pList->DeleteItem(act.context);
+				bItemsRemoved = TRUE;
+			}
+			else
+			{
+				bUpdateRight = TRUE;
+			}
+			break;
+
+		case FileActionItem::UI_DEL_BOTH:
+			m_pList->DeleteItem(act.context);
+			bItemsRemoved = TRUE;
+			break;
+		}
+
+		if (bUpdateLeft || bUpdateRight)
+		{
+			pDoc->UpdateStatusFromDisk(diffpos, bUpdateLeft, bUpdateRight);
+			UpdateDiffItemStatus(act.context);
+		}
 	}
-	if (curSel < 1)
-		++curSel;
-	MoveSelection(0, curSel - 1, 0);
+	
+	// Make sure selection is at sensible place if all selected items
+	// were removed.
+	if (bItemsRemoved == TRUE)
+	{
+		UINT selected = GetSelectedCount();
+		if (selected == 0)
+		{
+			if (curSel < 1)
+				++curSel;
+			MoveFocus(0, curSel - 1, selected);
+		}
+	}
 }
 
 /// Get directories of first selected item
@@ -884,7 +700,7 @@ BOOL CDirView::GetSelectedDirNames(CString& strLeft, CString& strRight) const
 }
 
 /// is it possible to copy item to left ?
-BOOL CDirView::IsItemCopyableToLeft(const DIFFITEM & di)
+BOOL CDirView::IsItemCopyableToLeft(const DIFFITEM & di) const
 {
 	// don't let them mess with error items
 	if (di.isResultError()) return FALSE;
@@ -897,7 +713,7 @@ BOOL CDirView::IsItemCopyableToLeft(const DIFFITEM & di)
 	return TRUE;
 }
 /// is it possible to copy item to right ?
-BOOL CDirView::IsItemCopyableToRight(const DIFFITEM & di)
+BOOL CDirView::IsItemCopyableToRight(const DIFFITEM & di) const
 {
 	// don't let them mess with error items
 	if (di.isResultError()) return FALSE;
@@ -910,7 +726,7 @@ BOOL CDirView::IsItemCopyableToRight(const DIFFITEM & di)
 	return TRUE;
 }
 /// is it possible to delete left item ?
-BOOL CDirView::IsItemDeletableOnLeft(const DIFFITEM & di)
+BOOL CDirView::IsItemDeletableOnLeft(const DIFFITEM & di) const
 {
 	// don't let them mess with error items
 	if (di.isResultError()) return FALSE;
@@ -920,7 +736,7 @@ BOOL CDirView::IsItemDeletableOnLeft(const DIFFITEM & di)
 	return TRUE;
 }
 /// is it possible to delete right item ?
-BOOL CDirView::IsItemDeletableOnRight(const DIFFITEM & di)
+BOOL CDirView::IsItemDeletableOnRight(const DIFFITEM & di) const
 {
 	// don't let them mess with error items
 	if (di.isResultError()) return FALSE;
@@ -931,7 +747,7 @@ BOOL CDirView::IsItemDeletableOnRight(const DIFFITEM & di)
 	return TRUE;
 }
 /// is it possible to delete both items ?
-BOOL CDirView::IsItemDeletableOnBoth(const DIFFITEM & di)
+BOOL CDirView::IsItemDeletableOnBoth(const DIFFITEM & di) const
 {
 	// don't let them mess with error items
 	if (di.isResultError()) return FALSE;
@@ -956,8 +772,25 @@ BOOL CDirView::AreItemsOpenable(const DIFFITEM & di1, const DIFFITEM & di2) cons
 {
 	CString sLeftBasePath = GetDocument()->GetLeftBasePath();
 	CString sRightBasePath = GetDocument()->GetRightBasePath();
-	// Must not be binary
-	if (di1.isBin() || di2.isBin()) return FALSE;
+	CString sLeftPath1 = paths_ConcatPath(di1.getLeftFilepath(sLeftBasePath), di1.sLeftFilename);
+	CString sLeftPath2 = paths_ConcatPath(di2.getLeftFilepath(sLeftBasePath), di2.sLeftFilename);
+	CString sRightPath1 = paths_ConcatPath(di1.getRightFilepath(sRightBasePath), di1.sRightFilename);
+	CString sRightPath2 = paths_ConcatPath(di2.getRightFilepath(sRightBasePath), di2.sRightFilename);
+	// Must not be binary (unless archive)
+	if
+	(
+		(di1.isBin() || di2.isBin())
+	&&!	(
+			HasZipSupport()
+		&&	(sLeftPath1.IsEmpty() || ArchiveGuessFormat(sLeftPath1))
+		&&	(sRightPath1.IsEmpty() || ArchiveGuessFormat(sRightPath1))
+		&&	(sLeftPath2.IsEmpty() || ArchiveGuessFormat(sLeftPath2))
+		&&	(sRightPath2.IsEmpty() || ArchiveGuessFormat(sRightPath2))
+		)
+	)
+	{
+		return FALSE;
+	}
 
 	// Must be both directory or neither
 	if (di1.isDirectory() != di2.isDirectory()) return FALSE;
@@ -979,7 +812,7 @@ BOOL CDirView::AreItemsOpenable(const DIFFITEM & di1, const DIFFITEM & di2) cons
 	return FALSE;
 }
 /// is it possible to open left item ?
-BOOL CDirView::IsItemOpenableOnLeft(const DIFFITEM & di)
+BOOL CDirView::IsItemOpenableOnLeft(const DIFFITEM & di) const
 {
 	// impossible if only on right
 	if (di.isSideRight()) return FALSE;
@@ -988,7 +821,7 @@ BOOL CDirView::IsItemOpenableOnLeft(const DIFFITEM & di)
 	return TRUE;
 }
 /// is it possible to open right item ?
-BOOL CDirView::IsItemOpenableOnRight(const DIFFITEM & di)
+BOOL CDirView::IsItemOpenableOnRight(const DIFFITEM & di) const
 {
 	// impossible if only on left
 	if (di.isSideLeft()) return FALSE;
@@ -997,17 +830,17 @@ BOOL CDirView::IsItemOpenableOnRight(const DIFFITEM & di)
 	return TRUE;
 }
 /// is it possible to open left ... item ?
-BOOL CDirView::IsItemOpenableOnLeftWith(const DIFFITEM & di)
+BOOL CDirView::IsItemOpenableOnLeftWith(const DIFFITEM & di) const
 {
 	return (!di.isDirectory() && IsItemOpenableOnLeft(di));
 }
 /// is it possible to open with ... right item ?
-BOOL CDirView::IsItemOpenableOnRightWith(const DIFFITEM & di)
+BOOL CDirView::IsItemOpenableOnRightWith(const DIFFITEM & di) const
 {
 	return (!di.isDirectory() && IsItemOpenableOnRight(di));
 }
 /// is it possible to copy to... left item?
-BOOL CDirView::IsItemCopyableToOnLeft(const DIFFITEM & di)
+BOOL CDirView::IsItemCopyableToOnLeft(const DIFFITEM & di) const
 {
 	// impossible if only on right
 	if (di.isSideRight()) return FALSE;
@@ -1016,7 +849,7 @@ BOOL CDirView::IsItemCopyableToOnLeft(const DIFFITEM & di)
 	return TRUE;
 }
 /// is it possible to copy to... right item?
-BOOL CDirView::IsItemCopyableToOnRight(const DIFFITEM & di)
+BOOL CDirView::IsItemCopyableToOnRight(const DIFFITEM & di) const
 {
 	// impossible if only on left
 	if (di.isSideLeft()) return FALSE;
@@ -1121,7 +954,7 @@ void CDirView::DoOpenWithEditor(SIDE_TYPE stype)
 	CString file = GetSelectedFileName(stype);
 	if (file.IsEmpty()) return;
 
-	mf->OpenFileToExternalEditor(file);
+	GetMainFrame()->OpenFileToExternalEditor(file);
 }
 
 /**
@@ -1168,4 +1001,213 @@ UINT CDirView::MarkSelectedForRescan()
 	if (items > 0)
 		GetDocument()->SetMarkedRescan();
 	return items;
+}
+
+/**
+ * @brief Return string such as "15 of 30 Files Affected" or "30 Files Affected"
+ */
+static CString
+FormatFilesAffectedString(int nFilesAffected, int nFilesTotal)
+{
+	CString fmt;
+	if (nFilesAffected == nFilesTotal)
+		AfxFormatString1(fmt, IDS_FILES_AFFECTED_FMT, NumToStr(nFilesTotal));
+	else
+		AfxFormatString2(fmt, IDS_FILES_AFFECTED_FMT2, NumToStr(nFilesAffected), NumToStr(nFilesTotal));
+	return fmt;
+}
+
+/**
+ * @brief Count left & right files, and number with editable text encoding
+ * @param nLeft [out]  #files on left side selected
+ * @param nLeftAffected [out]  #files on left side selected which can have text encoding changed
+ * @param nRight [out]  #files on right side selected
+ * @param nRightAffected [out]  #files on right side selected which can have text encoding changed
+ *
+ * Affected files include all except unicode files
+ */
+void CDirView::FormatEncodingDialogDisplays(CLoadSaveCodepageDlg * dlg)
+{
+	IntToIntMap currentCodepages;
+	int nLeft=0, nLeftAffected=0, nRight=0, nRightAffected=0;
+	int i = -1;
+	while ((i = m_pList->GetNextItem(i, LVNI_SELECTED)) != -1)
+	{
+		const DIFFITEM& di = GetDiffItem(i);
+		if (di.diffcode == 0) // Invalid value, this must be special item
+			continue;
+		if (di.isDirectory())
+			continue;
+
+		if (di.isSideLeftOrBoth())
+		{
+			// exists on left
+			++nLeft;
+			if (di.left.IsEditableEncoding())
+				++nLeftAffected;
+			int codepage = di.left.encoding.m_codepage;
+			currentCodepages.Increment(codepage);
+		}
+		if (di.isSideRightOrBoth())
+		{
+			++nRight;
+			if (di.right.IsEditableEncoding())
+				++nRightAffected;
+			int codepage = di.right.encoding.m_codepage;
+			currentCodepages.Increment(codepage);
+		}
+	}
+
+	// Format strings such as "25 of 30 Files Affected"
+	CString sLeftAffected = FormatFilesAffectedString(nLeftAffected, nLeft);
+	CString sRightAffected = FormatFilesAffectedString(nRightAffected, nRight);
+	dlg->SetLeftRightAffectStrings(sLeftAffected, sRightAffected);
+	int codepage = currentCodepages.FindMaxKey();
+	dlg->SetCodepages(codepage);
+}
+
+/**
+ * @brief Display file encoding dialog to user & handle user's choices
+ *
+ * This handles DirView invocation, so multiple files may be affected
+ */
+void CDirView::DoFileEncodingDialog()
+{
+	CLoadSaveCodepageDlg dlg;
+	// set up labels about what will be affected
+	FormatEncodingDialogDisplays(&dlg);
+	dlg.EnableSaveCodepage(false); // disallow setting a separate codepage for saving
+
+	// Invoke dialog
+	int rtn = dlg.DoModal();
+	if (rtn != IDOK) return;
+
+	int nCodepage = dlg.GetLoadCodepage();
+
+	bool doLeft = dlg.DoesAffectLeft();
+	bool doRight = dlg.DoesAffectRight();
+
+	int i=-1;
+	while ((i = m_pList->GetNextItem(i, LVNI_SELECTED)) != -1)
+	{
+		DIFFITEM & di = GetDiffItemRef(i);
+		if (di.diffcode == 0) // Invalid value, this must be special item
+			continue;
+		if (di.isDirectory())
+			continue;
+
+		// Does it exist on left? (ie, right or both)
+		if (doLeft && di.isSideLeftOrBoth() && di.left.IsEditableEncoding())
+		{
+			di.left.encoding.SetCodepage(nCodepage);
+		}
+		// Does it exist on right (ie, left or both)
+		if (doRight && di.isSideRightOrBoth() && di.right.IsEditableEncoding())
+		{
+			di.right.encoding.SetCodepage(nCodepage);
+		}
+	}
+	m_pList->InvalidateRect(NULL);
+	m_pList->UpdateWindow();
+
+	// TODO: We could loop through any active merge windows belonging to us
+	// and see if any of their files are affected
+	// but, if they've been edited, we cannot throw away the user's work?
+}
+
+void CDirView::DoUpdateFileEncodingDialog(CCmdUI* pCmdUI)
+{
+	BOOL haveSelectedItems = (m_pList->GetNextItem(-1, LVNI_SELECTED) != -1);
+	pCmdUI->Enable(haveSelectedItems);
+}
+
+/**
+ * @brief Rename a file without moving it to different directory.
+ *
+ * @param szOldFileName [in] Full path of file to rename.
+ * @param szNewFileName [in] New file name (without the path).
+ *
+ * @return TRUE if file was renamed successfully.
+ */
+BOOL CDirView::RenameOnSameDir(LPCTSTR szOldFileName, LPCTSTR szNewFileName)
+{
+	ASSERT(NULL != szOldFileName);
+	ASSERT(NULL != szNewFileName);
+
+	BOOL bSuccess = FALSE;
+
+	if (DOES_NOT_EXIST != paths_DoesPathExist(szOldFileName))
+	{
+		CString sFullName;
+
+		SplitFilename(szOldFileName, &sFullName, NULL, NULL);
+		sFullName += _T('\\') + CString(szNewFileName);
+
+		// No need to rename if new file already exist.
+		if ((sFullName.Compare(szOldFileName)) ||
+			(DOES_NOT_EXIST == paths_DoesPathExist(sFullName)))
+		{
+			CShellFileOp fileOp;
+
+			fileOp.SetOperationFlags(FO_RENAME, this, 0);
+			fileOp.AddSourceFile(szOldFileName);
+			fileOp.AddDestFile(sFullName);
+			
+			BOOL bOpStarted = FALSE;
+			bSuccess = fileOp.Go(&bOpStarted);
+		}
+		else
+		{
+			bSuccess = TRUE;
+		}
+	}
+
+	return bSuccess;
+}
+
+/**
+ * @brief Rename selected item on both left and right sides.
+ *
+ * @param szNewItemName [in] New item name.
+ *
+ * @return TRUE if at least one file was renamed successfully.
+ */
+BOOL CDirView::DoItemRename(LPCTSTR szNewItemName)
+{
+	ASSERT(NULL != szNewItemName);
+	
+	CString sLeftFile, sRightFile;
+
+	int nSelItem = m_pList->GetNextItem(-1, LVNI_SELECTED);
+	ASSERT(-1 != nSelItem);
+	GetItemFileNames(nSelItem, sLeftFile, sRightFile);
+
+	POSITION key = GetItemKey(nSelItem);
+	ASSERT(key != (POSITION)SPECIAL_ITEM_POS);
+	DIFFITEM& di = GetDocument()->GetDiffRefByKey(key);
+
+	BOOL bRenameLeft = FALSE;
+	BOOL bRenameRight = FALSE;
+	if (di.isSideLeftOrBoth())
+		bRenameLeft = RenameOnSameDir(sLeftFile, szNewItemName);
+	if (di.isSideRightOrBoth())
+		bRenameRight = RenameOnSameDir(sRightFile, szNewItemName);
+
+	if ((TRUE == bRenameLeft) && (TRUE == bRenameRight))
+	{
+		di.sLeftFilename = szNewItemName;
+		di.sRightFilename = szNewItemName;
+	}
+	else if (TRUE == bRenameLeft)
+	{
+		di.sLeftFilename = szNewItemName;
+		di.sRightFilename.Empty();
+	}
+	else if (TRUE == bRenameRight)
+	{
+		di.sLeftFilename.Empty();
+		di.sRightFilename = szNewItemName;
+	}
+
+	return (bRenameLeft || bRenameRight);
 }

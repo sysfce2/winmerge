@@ -2,10 +2,12 @@
  *  @file   unicoder.h
  *  @author Perry Rapp, Creator, 2003-2004
  *  @date   Created: 2003-10
- *  @date   Edited:  2004-12-28 (Perry Rapp)
+ *  @date   Edited:  2006-02-20 (Perry Rapp)
  *
  *  @brief  Declaration of utility unicode conversion routines
  */ 
+// RCS ID line follows -- this is updated by CVS
+// $Id: unicoder.h 3087 2006-02-20 21:43:58Z elsapo $
 
 #ifndef unicoder_h_included
 #define unicoder_h_included

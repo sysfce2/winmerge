@@ -22,7 +22,7 @@
  * @brief Declaration file for ShellExtension class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: WinMergeShell.h,v 1.6.2.1 2005/12/18 17:08:24 elsapo Exp $
+// $Id: WinMergeShell.h 3564 2006-09-15 20:43:06Z kimmov $
 
 #ifndef __WINMERGESHELL_H_
 #define __WINMERGESHELL_H_
@@ -69,16 +69,16 @@ protected:
 	BOOL CheckExecutable(CString path);
 	int DrawSimpleMenu(HMENU hmenu, UINT uMenuIndex, UINT uidFirstCmd);
 	int DrawAdvancedMenu(HMENU hmenu, UINT uMenuIndex, UINT uidFirstCmd);
-	CString GetHelpText(int idCmd);
+	CString GetHelpText(UINT_PTR idCmd);
 	CString FormatCmdLine(const CString &winmergePath,
-		const CString &path1, const CString &path2);
+		const CString &path1, const CString &path2, BOOL bAlterSubFolders);
 
 public:
     // IShellExtInit
     STDMETHOD(Initialize)(LPCITEMIDLIST, LPDATAOBJECT, HKEY);
 
     // IContextMenu
-    STDMETHOD(GetCommandString)(UINT, UINT, UINT*, LPSTR, UINT);
+    STDMETHOD(GetCommandString)(UINT_PTR, UINT, UINT*, LPSTR, UINT);
     STDMETHOD(InvokeCommand)(LPCMINVOKECOMMANDINFO);
     STDMETHOD(QueryContextMenu)(HMENU, UINT, UINT, UINT, UINT);
 };

@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: stringdiffsi.h,v 1.4 2005/07/24 00:19:28 elsapo Exp $
+// $Id: stringdiffsi.h 2507 2005-07-24 00:19:28Z elsapo $
 
 #ifndef stringdiffsi_h_included
 #define stringdiffsi_h_included

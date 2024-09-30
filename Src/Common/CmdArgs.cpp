@@ -1,4 +1,4 @@
-/* The MIT License
+/* The X License
 Copyright (c) 2005 Perry Rapp
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -12,7 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: CmdArgs.cpp,v 1.1 2005/06/08 20:36:20 elsapo Exp $
+// $Id: CmdArgs.cpp 2877 2005-12-30 00:57:48Z elsapo $
 
 #include "stdafx.h"
 #include "CmdArgs.h"
@@ -100,20 +100,49 @@ CmdArgs::GetParam(int i) const
 	return m_params->GetAt(i);
 }
 
+/**
+ * @brief Lookup a switch (encapsulating case-insensitive logic)
+ */
+BOOL
+CmdArgs::Lookup(LPCTSTR key, CString & value, bool CaseSensitive) const
+{
+	CString lookup = key;
+	if (!CaseSensitive)
+		lookup.MakeUpper();
+	StringMap * map = (CaseSensitive ? m_switches : m_switchesCapitalized);
+	return map->Lookup(lookup, value);
+}
+
+/**
+ * @brief returns true if specified switch was present with no value (no colon)
+ */
 bool
-CmdArgs::HasEmptySwitch(LPCTSTR name) const
+CmdArgs::HasEmptySwitch(LPCTSTR name, bool CaseSensitive) const
 {
 	CString value;
-	if (!m_switches->Lookup(name, value)) return false;
+	if (!Lookup(name, value, CaseSensitive))
+		return false;
 	return value.IsEmpty()!=FALSE;
 }
 
+/**
+ * @brief returns true if specified switch was present
+ */
 bool
-CmdArgs::HasEmptySwitchInsensitive(LPCTSTR name) const
+CmdArgs::HasSwitch(LPCTSTR name, bool CaseSensitive) const
 {
-	CString nameCap = name;
-	nameCap.MakeUpper();
 	CString value;
-	if (!m_switchesCapitalized->Lookup(nameCap, value)) return false;
-	return value.IsEmpty()!=FALSE;
+	return GetSwitch(name, value, CaseSensitive);
 }
+
+/**
+ * @brief Gets value of requested switch if found
+ */
+bool
+CmdArgs::GetSwitch(LPCTSTR name, CString & value, bool CaseSensitive) const
+{
+	if (!Lookup(name, value, CaseSensitive))
+		return false;
+	return true;
+}
+

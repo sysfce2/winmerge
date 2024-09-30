@@ -107,6 +107,8 @@ public:
 
     int m_nSourceEncoding;
     static int m_nDefaultEncoding;
+    DWORD m_dwCurrentRevisionNumber;
+    DWORD m_dwRevisionNumberOnSave;
     BOOL IsTextBufferInitialized () const { return m_bInit; }
 
 protected :
@@ -114,7 +116,7 @@ protected :
     BOOL m_bReadOnly;
     BOOL m_bModified;
     int m_nCRLFMode;
-    BOOL m_EolSensitive;
+    BOOL m_IgnoreEol;
     BOOL m_bCreateBackupFile;
     int m_nUndoBufSize;
     BOOL m_bInsertTabs;
@@ -130,6 +132,7 @@ protected :
         int m_nLength, m_nMax;
         int m_nEolChars; // # of eolchars
         DWORD m_dwFlags;
+        DWORD m_dwRevisionNumber;
 
         int FullLength() const { return m_nLength+m_nEolChars; }
         int Length() const { return m_nLength; }
@@ -153,6 +156,7 @@ protected :
         
         CPoint m_ptStartPos, m_ptEndPos;  //  Block of text participating
         int m_nAction;            //  For information only: action type
+        CDWordArray *m_paSavedRevisonNumbers;
 
 private :
         //  TCHAR   *m_pcText;
@@ -187,11 +191,20 @@ public :
           m_ptEndPos = src.m_ptEndPos;
           m_nAction = src.m_nAction;
           SetText(src.GetText());
+          int size = src.m_paSavedRevisonNumbers->GetSize();
+          if (!m_paSavedRevisonNumbers)
+            m_paSavedRevisonNumbers = new CDWordArray();
+          m_paSavedRevisonNumbers->SetSize(size);
+          int i;
+          for (i = 0; i < size; i++)
+            (*m_paSavedRevisonNumbers)[i] = (*src.m_paSavedRevisonNumbers)[i];
           return *this;
         }
         ~SUndoRecord () // destructor
         {
           FreeText();
+          if (m_paSavedRevisonNumbers)
+            delete m_paSavedRevisonNumbers;
         }
 
         void SetText (LPCTSTR pszText);
@@ -252,7 +265,7 @@ public :
 
     //  [JRT] Support For Descriptions On Undo/Redo Actions
     virtual void AddUndoRecord (BOOL bInsert, const CPoint & ptStartPos, const CPoint & ptEndPos,
-                                LPCTSTR pszText, int nActionType = CE_ACTION_UNKNOWN);
+                                LPCTSTR pszText, int nActionType = CE_ACTION_UNKNOWN, CDWordArray *paSavedRevisonNumbers = NULL);
 
     //  Overridable: provide action description
     virtual BOOL GetActionDescription (int nAction, CString & desc);
@@ -267,8 +280,10 @@ public :
     BOOL InitNew (int nCrlfStyle = CRLF_STYLE_DOS);
 
 // WinMerge has own routines for loading and saving
-#if 0
+#ifdef CRYSTALEDIT_ENABLELOADER
     BOOL LoadFromFile (LPCTSTR pszFileName, int nCrlfStyle = CRLF_STYLE_AUTOMATIC);
+#endif
+#ifdef CRYSTALEDIT_ENABLESAVER
     BOOL SaveToFile(LPCTSTR pszFileName, int nCrlfStyle = CRLF_STYLE_AUTOMATIC, 
     BOOL bClearModifiedFlag = TRUE);
 #endif
@@ -293,6 +308,7 @@ public :
     BOOL ChangeLineEol (int nLine, LPCTSTR lpEOL);
     LPTSTR GetLineChars (int nLine) const;
     DWORD GetLineFlags (int nLine) const;
+    DWORD GetLineRevisionNumber (int nLine) const;
     int GetLineWithFlag (DWORD dwFlag);
     void SetLineFlag (int nLine, DWORD dwFlag, BOOL bSet, BOOL bRemoveFromPreviousLine = TRUE, BOOL bUpdate=TRUE);
     void GetText (int nStartLine, int nStartChar, int nEndLine, int nEndChar, CString & text, LPCTSTR pszCRLF = NULL);
@@ -308,7 +324,7 @@ public :
     BOOL GetReadOnly () const;
     void SetReadOnly (BOOL bReadOnly = TRUE);
 
-    void SetEolSensitivity(BOOL EolSensitive) { m_EolSensitive = EolSensitive; }
+    void SetIgnoreEol(BOOL IgnoreEol) { m_IgnoreEol = IgnoreEol; }
 
     //  Text modification functions
     virtual BOOL InsertText (CCrystalTextView * pSource, int nLine, int nPos, LPCTSTR pszText, int &nEndLine, int &nEndChar, int nAction = CE_ACTION_UNKNOWN, BOOL bHistory =TRUE);

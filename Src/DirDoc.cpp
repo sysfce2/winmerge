@@ -25,7 +25,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirDoc.cpp,v 1.130.2.4 2005/11/30 19:01:05 elsapo Exp $
+// $Id: DirDoc.cpp 3584 2006-09-19 16:35:48Z kimmov $
 //
 
 #include "stdafx.h"
@@ -45,6 +45,7 @@
 #include "7zCommon.h"
 #include "OptionsDef.h"
 #include "dllver.h"
+#include "FileActionScript.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -76,11 +77,12 @@ CDirDoc::CDirDoc()
 {
 	DIFFOPTIONS options = {0};
 
-	m_diffWrapper.SetDetectMovedBlocks(mf->m_options.GetBool(OPT_CMP_MOVED_BLOCKS));
-	options.nIgnoreWhitespace = mf->m_options.GetInt(OPT_CMP_IGNORE_WHITESPACE);
-	options.bIgnoreBlankLines = mf->m_options.GetBool(OPT_CMP_IGNORE_BLANKLINES);
-	options.bIgnoreCase = mf->m_options.GetBool(OPT_CMP_IGNORE_CASE);
-	options.bEolSensitive = mf->m_options.GetBool(OPT_CMP_EOL_SENSITIVE);
+	m_diffWrapper.SetDetectMovedBlocks(GetOptionsMgr()->GetBool(OPT_CMP_MOVED_BLOCKS));
+	options.nIgnoreWhitespace = GetOptionsMgr()->GetInt(OPT_CMP_IGNORE_WHITESPACE);
+	options.bIgnoreBlankLines = GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_BLANKLINES);
+	options.bFilterCommentsLines = GetOptionsMgr()->GetBool(OPT_CMP_FILTER_COMMENTLINES);
+	options.bIgnoreCase = GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_CASE);
+	options.bIgnoreEol = GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_EOL);
 
 	m_diffWrapper.SetOptions(&options);
 }
@@ -281,12 +283,10 @@ void CDirDoc::Rescan()
 
 	m_statusCursor = new CustomStatusCursor(0, IDC_APPSTARTING, LoadResString(IDS_STATUS_RESCANNING));
 
-	gLog.Write(LOGLEVEL::LNOTICE, _T("Starting directory scan:\n\tLeft: %s\n\tRight: %s\n"),
+	gLog.Write(CLogFile::LNOTICE, _T("Starting directory scan:\n\tLeft: %s\n\tRight: %s\n"),
 			m_pCtxt->GetLeftPath(), m_pCtxt->GetRightPath());
 	m_pCompareStats->Reset();
-	pf->SetCompareStats(m_pCompareStats);
-	pf->clearStatus();
-	pf->ShowProcessingBar(TRUE);
+	m_pDirView->StartCompare(m_pCompareStats);
 
 	// Don't clear if only scanning selected items
 	if (!m_bMarkedRescan)
@@ -296,20 +296,19 @@ void CDirDoc::Rescan()
 	}
 
 	m_pCtxt->m_hDirFrame = pf->GetSafeHwnd();
-	m_pCtxt->m_msgUpdateStatus = MSG_STAT_UPDATE;
-	m_pCtxt->m_bGuessEncoding = mf->m_options.GetBool(OPT_CP_DETECT);
-	m_pCtxt->m_nCompMethod = mf->m_options.GetInt(OPT_CMP_METHOD);
-	m_pCtxt->m_bIgnoreSmallTimeDiff = mf->m_options.GetBool(OPT_IGNORE_SMALL_FILETIME);
-	m_pCtxt->m_bStopAfterFirstDiff = mf->m_options.GetBool(OPT_CMP_STOP_AFTER_FIRST);
-	m_pCtxt->m_nQuickCompareLimit = mf->m_options.GetInt(OPT_CMP_QUICK_LIMIT);
+	m_pCtxt->m_bGuessEncoding = GetOptionsMgr()->GetBool(OPT_CP_DETECT);
+	m_pCtxt->m_nCompMethod = GetOptionsMgr()->GetInt(OPT_CMP_METHOD);
+	m_pCtxt->m_bIgnoreSmallTimeDiff = GetOptionsMgr()->GetBool(OPT_IGNORE_SMALL_FILETIME);
+	m_pCtxt->m_bStopAfterFirstDiff = GetOptionsMgr()->GetBool(OPT_CMP_STOP_AFTER_FIRST);
+	m_pCtxt->m_nQuickCompareLimit = GetOptionsMgr()->GetInt(OPT_CMP_QUICK_LIMIT);
 	m_pCtxt->m_pCompareStats = m_pCompareStats;
 
 	// Set total items count since we don't collect items
 	if (m_bMarkedRescan)
 		m_pCompareStats->IncreaseTotalItems(m_pDirView->GetSelectedCount());
 
-	UpdateHeaderPath(TRUE);
-	UpdateHeaderPath(FALSE);
+	UpdateHeaderPath(0);
+	UpdateHeaderPath(1);
 	// draw the headers as active ones
 	pf->GetHeaderInterface()->SetActive(0, TRUE);
 	pf->GetHeaderInterface()->SetActive(1, TRUE);
@@ -350,40 +349,40 @@ BOOL CDirDoc::IsShowable(const DIFFITEM & di)
 	{
 		// Treat SKIPPED as a 'super'-flag. If item is skipped and user
 		// wants to see skipped items show item regardless of other flags
-		return mf->m_options.GetBool(OPT_SHOW_SKIPPED);
+		return GetOptionsMgr()->GetBool(OPT_SHOW_SKIPPED);
 	}
 
 	// Subfolders in non-recursive compare can only be skipped or unique
 	if (!m_bRecursive && di.isDirectory())
 	{
 		// result filters
-		if (di.isResultError() && !mf->m_bShowErrors)
+		if (di.isResultError() && !GetMainFrame()->m_bShowErrors)
 			return 0;
 
 		// left/right filters
-		if (di.isSideLeft() && !mf->m_options.GetBool(OPT_SHOW_UNIQUE_LEFT))
+		if (di.isSideLeft() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_LEFT))
 			return 0;
-		if (di.isSideRight() && !mf->m_options.GetBool(OPT_SHOW_UNIQUE_RIGHT))
+		if (di.isSideRight() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_RIGHT))
 			return 0;
 	}
 	else
 	{
 		// file type filters
-		if (di.isBin() && !mf->m_options.GetBool(OPT_SHOW_BINARIES))
+		if (di.isBin() && !GetOptionsMgr()->GetBool(OPT_SHOW_BINARIES))
 			return 0;
 
 		// result filters
-		if (di.isResultSame() && !mf->m_options.GetBool(OPT_SHOW_IDENTICAL))
+		if (di.isResultSame() && !GetOptionsMgr()->GetBool(OPT_SHOW_IDENTICAL))
 			return 0;
-		if (di.isResultError() && !mf->m_bShowErrors)
+		if (di.isResultError() && !GetMainFrame()->m_bShowErrors)
 			return 0;
-		if (di.isResultDiff() && !mf->m_options.GetBool(OPT_SHOW_DIFFERENT))
+		if (di.isResultDiff() && !GetOptionsMgr()->GetBool(OPT_SHOW_DIFFERENT))
 			return 0;
 
 		// left/right filters
-		if (di.isSideLeft() && !mf->m_options.GetBool(OPT_SHOW_UNIQUE_LEFT))
+		if (di.isSideLeft() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_LEFT))
 			return 0;
-		if (di.isSideRight() && !mf->m_options.GetBool(OPT_SHOW_UNIQUE_RIGHT))
+		if (di.isSideRight() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_RIGHT))
 			return 0;
 	}
 	return 1;
@@ -419,8 +418,24 @@ CDirView * CDirDoc::GetMainView()
 }
 
 /**
- * @brief Update in-memory diffitem status from disk and update view
- * @param nIdx Index of item in UI list
+ * @brief Update in-memory diffitem status from disk.
+ * @param [in] diffPos POSITION of item in UI list.
+ * @param [in] bLeft If TRUE left-side item is updated.
+ * @param [in] bRight If TRUE right-side item is updated.
+ */
+void CDirDoc::UpdateStatusFromDisk(POSITION diffPos, BOOL bLeft, BOOL bRight)
+{
+	m_pCtxt->UpdateStatusFromDisk(diffPos, bLeft, bRight);
+}
+
+/**
+ * @brief Update in-memory diffitem status from disk and update view.
+ * @param [in] nIdx Index of item in UI list.
+ * @param [in] bLeft If TRUE left-side item is updated.
+ * @param [in] bRight If TRUE right-side item is updated.
+ * @note Do not call this function from DirView code! This function
+ * calls slow DirView functions to get item position and to update GUI.
+ * Use UpdateStatusFromDisk() function instead.
  */
 void CDirDoc::ReloadItemStatus(UINT nIdx, BOOL bLeft, BOOL bRight)
 {
@@ -428,7 +443,7 @@ void CDirDoc::ReloadItemStatus(UINT nIdx, BOOL bLeft, BOOL bRight)
 	POSITION diffpos = m_pDirView->GetItemKey(nIdx);
 
 	// in case just copied (into existence) or modified
-	m_pCtxt->UpdateStatusFromDisk(diffpos, bLeft, bRight);
+	UpdateStatusFromDisk(diffpos, bLeft, bRight);
 
 	// Update view
 	m_pDirView->UpdateDiffItemStatus(nIdx);
@@ -585,10 +600,6 @@ BOOL CDirDoc::ReusingDirDoc()
 	ASSERT(m_pDirView);
 	m_pDirView->DeleteAllDisplayItems();
 
-	// hide the floating state bar
-	CDirFrame *pf = m_pDirView->GetParentFrame();
-	pf->ShowProcessingBar(FALSE);
-
 	// delete comparison parameters and results
 	delete m_pCtxt;
 	m_pCtxt = NULL;
@@ -610,7 +621,7 @@ CMergeDoc * CDirDoc::GetMergeDocForDiff(BOOL * pNew)
 {
 	CMergeDoc * pMergeDoc = 0;
 	// policy -- use an existing merge doc if available
-	if (!mf->m_options.GetBool(OPT_MULTIDOC_MERGEDOCS) && !m_MergeDocs.IsEmpty())
+	if (!GetOptionsMgr()->GetBool(OPT_MULTIDOC_MERGEDOCS) && !m_MergeDocs.IsEmpty())
 	{
 		*pNew = FALSE;
 		pMergeDoc = m_MergeDocs.GetHead();
@@ -632,24 +643,32 @@ CMergeDoc * CDirDoc::GetMergeDocForDiff(BOOL * pNew)
  * @param [in] nDiffs Total amount of differences
  * @param [in] nTrivialDiffs Amount of ignored differences
  * @param [in] bIdentical TRUE if files became identical, FALSE otherwise.
- * @note Filenames must be same, otherwise function asserts.
  */
 void CDirDoc::UpdateChangedItem(PathContext &paths,
 	UINT nDiffs, UINT nTrivialDiffs, BOOL bIdentical)
 {
 	POSITION pos = FindItemFromPaths(paths.GetLeft(), paths.GetRight());
-	ASSERT(pos);
-	int ind = m_pDirView->GetItemIndex((DWORD)pos);
+	// If we failed files could have been swapped so lets try again
+	if (!pos)
+		pos = FindItemFromPaths(paths.GetRight(), paths.GetLeft());
+	
+	// Update status if paths were found for items.
+	// Fail means we had unique items compared as 'renamed' items
+	// so there really is not status to update.
+	if (pos > 0)
+	{
+		int ind = m_pDirView->GetItemIndex((DWORD)pos);
 
-	// Figure out new status code
-	UINT diffcode = (bIdentical ? DIFFCODE::SAME : DIFFCODE::DIFF);
+		// Figure out new status code
+		UINT diffcode = (bIdentical ? DIFFCODE::SAME : DIFFCODE::DIFF);
 
-	// Update both views and diff context memory
-	SetDiffCompare(diffcode, ind);
+		// Update both views and diff context memory
+		SetDiffCompare(diffcode, ind);
 
-	if (nDiffs != -1 && nTrivialDiffs != -1)
-		SetDiffCounts(nDiffs, nTrivialDiffs, ind);
-	ReloadItemStatus(ind, TRUE, TRUE);
+		if (nDiffs != -1 && nTrivialDiffs != -1)
+			SetDiffCounts(nDiffs, nTrivialDiffs, ind);
+		ReloadItemStatus(ind, TRUE, TRUE);
+	}
 }
 
 /**
@@ -657,7 +676,7 @@ void CDirDoc::UpdateChangedItem(PathContext &paths,
  */
 void CDirDoc::CompareReady()
 {
-	gLog.Write(LOGLEVEL::LNOTICE, _T("Directory scan complete\n"));
+	gLog.Write(CLogFile::LNOTICE, _T("Directory scan complete\n"));
 
 	// finish the cursor (the hourglass/pointer combo) we had open during display
 	delete m_statusCursor;
@@ -677,11 +696,12 @@ void CDirDoc::RefreshOptions()
 {
 	DIFFOPTIONS options;
 
-	m_diffWrapper.SetDetectMovedBlocks(mf->m_options.GetBool(OPT_CMP_MOVED_BLOCKS));
-	options.nIgnoreWhitespace = mf->m_options.GetInt(OPT_CMP_IGNORE_WHITESPACE);
-	options.bIgnoreBlankLines = mf->m_options.GetBool(OPT_CMP_IGNORE_BLANKLINES);
-	options.bIgnoreCase = mf->m_options.GetBool(OPT_CMP_IGNORE_CASE);
-	options.bEolSensitive = mf->m_options.GetBool(OPT_CMP_EOL_SENSITIVE);
+	m_diffWrapper.SetDetectMovedBlocks(GetOptionsMgr()->GetBool(OPT_CMP_MOVED_BLOCKS));
+	options.nIgnoreWhitespace = GetOptionsMgr()->GetInt(OPT_CMP_IGNORE_WHITESPACE);
+	options.bIgnoreBlankLines = GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_BLANKLINES);
+	options.bFilterCommentsLines = GetOptionsMgr()->GetBool(OPT_CMP_FILTER_COMMENTLINES);
+	options.bIgnoreCase = GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_CASE);
+	options.bIgnoreEol = GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_EOL);
 
 	m_diffWrapper.SetOptions(&options);
 	if (m_pDirView)
@@ -809,14 +829,12 @@ BOOL CDirDoc::SaveModified()
  */
 void CDirDoc::AbortCurrentScan()
 {
-	gLog.Write(LOGLEVEL::LNOTICE, _T("Dircompare aborted!"));
+	gLog.Write(CLogFile::LNOTICE, _T("Dircompare aborted!"));
 	m_diffThread.Abort();
 }
 
 /**
  * @brief Returns true if there is an active scan that hasn't been aborted.
- *
- * @todo: This is for Update command handler of menu item or toolbar button to cancel scan
  */
 bool CDirDoc::IsCurrentScanAbortable() const
 {
@@ -866,6 +884,14 @@ void CDirDoc::SetPluginPrediffSetting(const CString & filteredFilenames, int new
 }
 
 /**
+ * @brief Store a plugin setting for specified file comparison
+ */
+void CDirDoc::SetPluginPrediffer(const CString & filteredFilenames, const CString & prediffer)
+{
+	m_pluginman.SetPrediffer(filteredFilenames, prediffer);
+}
+
+/**
  * @brief Retrieve any cached plugin info for specified comparison
  */
 void CDirDoc::FetchPluginInfos(const CString& filteredFilenames, 
@@ -884,6 +910,62 @@ void CDirDoc::SetDiffCounts(UINT diffs, UINT ignored, int idx)
 
 	// Update diff counts
 	m_pCtxt->SetDiffCounts(diffpos, diffs, ignored);
+}
+
+/**
+ * @brief Update results for FileActionItem.
+ * This functions is called to update DIFFITEM after FileActionItem.
+ * @param [in] act Action that was done.
+ * @param [in] pos List position for DIFFITEM affected.
+ */
+void CDirDoc::UpdateDiffAfterOperation(const FileActionItem & act, POSITION pos)
+{
+	ASSERT(pos != NULL);
+	DIFFITEM di;
+	di = GetDiffByKey(pos);
+
+	// Use FileActionItem types for simplicity for now.
+	// Better would be to use FileAction contained, since it is not
+	// UI dependent.
+	switch (act.UIResult)
+	{
+	case FileActionItem::UI_SYNC:
+		SetDiffSide(DIFFCODE::BOTH, act.context);
+		if (act.dirflag)
+			SetDiffCompare(DIFFCODE::NOCMP, act.context);
+		else
+			SetDiffCompare(DIFFCODE::SAME, act.context);
+		SetDiffCounts(0, 0, act.context);
+		break;
+
+	case FileActionItem::UI_DEL_LEFT:
+		if (di.isSideLeft())
+		{
+			RemoveDiffByKey(pos);
+		}
+		else
+		{
+			SetDiffSide(DIFFCODE::RIGHT, act.context);
+			SetDiffCompare(DIFFCODE::NOCMP, act.context);
+		}
+		break;
+
+	case FileActionItem::UI_DEL_RIGHT:
+		if (di.isSideRight())
+		{
+			RemoveDiffByKey(pos);
+		}
+		else
+		{
+			SetDiffSide(DIFFCODE::LEFT, act.context);
+			SetDiffCompare(DIFFCODE::NOCMP, act.context);
+		}
+		break;
+
+	case FileActionItem::UI_DEL_BOTH:
+		RemoveDiffByKey(pos);
+		break;
+	}
 }
 
 /**

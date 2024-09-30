@@ -4,11 +4,13 @@
  * @brief Implementation of CPropEditor propertysheet
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropEditor.cpp,v 1.5 2005/05/03 15:12:45 elsapo Exp $
+// $Id: PropEditor.cpp 3394 2006-07-25 13:14:34Z kimmov $
 
 #include "stdafx.h"
 #include "merge.h"
 #include "PropEditor.h"
+#include "OptionsDef.h"
+#include "OptionsMgr.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -16,29 +18,32 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+/** @brief Maximum size for tabs in spaces. */
 static const int MAX_TABSIZE = 64;
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropEditor dialog
 
-IMPLEMENT_DYNCREATE(CPropEditor, CPropertyPage)
-
-CPropEditor::CPropEditor() : CPropertyPage(CPropEditor::IDD)
+/** 
+ * @brief Constructor.
+ * @param [in] optionsMgr Pointer to options manager for handling options.
+ */
+CPropEditor::CPropEditor(COptionsMgr *optionsMgr) : CPropertyPage(CPropEditor::IDD)
+, m_pOptionsMgr(optionsMgr)
+, m_bHiliteSyntax(FALSE)
+, m_nTabType(-1)
+, m_nTabSize(0)
+, m_bAutomaticRescan(FALSE)
+, m_bAllowMixedEol(FALSE)
+, m_bViewLineDifferences(FALSE)
+, m_bBreakOnWords(FALSE)
+, m_nBreakType(0)
 {
-	//{{AFX_DATA_INIT(CPropEditor)
-	m_bHiliteSyntax = FALSE;
-	m_nTabType = -1;
-	m_nTabSize = 0;
-	m_bAutomaticRescan = FALSE;
-	m_bAllowMixedEol = FALSE;
-	m_bApplySyntax = FALSE;
-	m_bViewLineDifferences = FALSE;
-	m_bBreakOnWords = FALSE;
-	m_nBreakType = 0;
-	//}}AFX_DATA_INIT
 }
 
-
+/** 
+ * @brief Function handling dialog data exchange between GUI and variables.
+ */
 void CPropEditor::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
@@ -46,12 +51,10 @@ void CPropEditor::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_HILITE_CHECK, m_bHiliteSyntax);
 	DDX_Radio(pDX, IDC_PROP_INSERT_TABS, m_nTabType);
 	DDX_Text(pDX, IDC_TAB_EDIT, m_nTabSize);
-	DDV_MinMaxInt(pDX, m_nTabSize, 1, MAX_TABSIZE);
 	DDX_Check(pDX, IDC_AUTOMRESCAN_CHECK, m_bAutomaticRescan);
 	DDX_Check(pDX, IDC_MIXED_EOL, m_bAllowMixedEol);
-	DDX_Check(pDX, IDC_UNREC_APPLYSYNTAX, m_bApplySyntax);
 	DDX_Check(pDX, IDC_VIEW_LINE_DIFFERENCES, m_bViewLineDifferences);
-	DDX_Check(pDX, IDC_BREAK_ON_WORDS, m_bBreakOnWords);
+	DDX_Radio(pDX, IDC_EDITOR_CHARLEVEL, m_bBreakOnWords);
 	DDX_CBIndex(pDX, IDC_BREAK_TYPE, m_nBreakType);
 	//}}AFX_DATA_MAP
 }
@@ -59,9 +62,47 @@ void CPropEditor::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CPropEditor, CDialog)
 	//{{AFX_MSG_MAP(CPropEditor)
-	ON_BN_CLICKED(IDC_HILITE_CHECK, OnSyntaxHighlight)
+	ON_BN_CLICKED(IDC_VIEW_LINE_DIFFERENCES, OnLineDiffControlClicked)
+	ON_BN_CLICKED(IDC_EDITOR_CHARLEVEL, OnLineDiffControlClicked)
+	ON_BN_CLICKED(IDC_EDITOR_WORDLEVEL, OnLineDiffControlClicked)
+	ON_EN_KILLFOCUS(IDC_TAB_EDIT, OnEnKillfocusTabEdit)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
+
+/** 
+ * @brief Reads options values from storage to UI.
+ */
+void CPropEditor::ReadOptions()
+{
+	m_nTabSize = m_pOptionsMgr->GetInt(OPT_TAB_SIZE);
+	m_nTabType = m_pOptionsMgr->GetInt(OPT_TAB_TYPE);
+	m_bAutomaticRescan = m_pOptionsMgr->GetBool(OPT_AUTOMATIC_RESCAN);
+	m_bHiliteSyntax = m_pOptionsMgr->GetBool(OPT_SYNTAX_HIGHLIGHT);
+	m_bAllowMixedEol = m_pOptionsMgr->GetBool(OPT_ALLOW_MIXED_EOL);
+	m_bViewLineDifferences = m_pOptionsMgr->GetBool(OPT_WORDDIFF_HIGHLIGHT);
+	m_bBreakOnWords = m_pOptionsMgr->GetBool(OPT_BREAK_ON_WORDS);
+	m_nBreakType = m_pOptionsMgr->GetInt(OPT_BREAK_TYPE);
+}
+
+/** 
+ * @brief Writes options values from UI to storage.
+ */
+void CPropEditor::WriteOptions()
+{
+	// Sanity check tabsize
+	if (m_nTabSize < 1)
+		m_nTabSize = 1;
+	if (m_nTabSize > MAX_TABSIZE)
+		m_nTabSize = MAX_TABSIZE;
+	m_pOptionsMgr->SaveOption(OPT_TAB_SIZE, (int)m_nTabSize);
+	m_pOptionsMgr->SaveOption(OPT_TAB_TYPE, (int)m_nTabType);
+	m_pOptionsMgr->SaveOption(OPT_AUTOMATIC_RESCAN, m_bAutomaticRescan == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_ALLOW_MIXED_EOL, m_bAllowMixedEol == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_SYNTAX_HIGHLIGHT, m_bHiliteSyntax == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_WORDDIFF_HIGHLIGHT, !!m_bViewLineDifferences);
+	m_pOptionsMgr->SaveOption(OPT_BREAK_ON_WORDS, !!m_bBreakOnWords);
+	m_pOptionsMgr->SaveOption(OPT_BREAK_TYPE, m_nBreakType);
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropEditor message handlers
@@ -80,20 +121,9 @@ BOOL CPropEditor::OnInitDialog()
 	if (pEdit != NULL)
 		pEdit->SetLimitText(2);
 
-	// Enable/disable "Apply to unrecognized side" checkbox
-	if (IsDlgButtonChecked(IDC_HILITE_CHECK))
-		GetDlgItem(IDC_UNREC_APPLYSYNTAX)->EnableWindow(TRUE);
-	else
-	{
-		GetDlgItem(IDC_UNREC_APPLYSYNTAX)->EnableWindow(FALSE);
-	}
-
 	LoadBreakTypeStrings();
 	UpdateDataToWindow();
-
-	/// @TODO Need to implement the option controlled by this control, 2005-05-03, Perry
-	GetDlgItem(IDC_BREAK_ON_WORDS)->ShowWindow(SW_HIDE);
-
+	UpdateLineDiffControls();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
@@ -109,20 +139,53 @@ void CPropEditor::LoadBreakTypeStrings()
 	cbo->AddString(LoadResString(IDS_BREAK_ON_PUNCTUATION));
 }
 
-/** 
- * @brief Enable/Disable "Apply to other side" checkbox.
- *
- * "Apply to other side" checkbox is enabled only when syntax
- * highlight is enabled.
+/**
+ * @brief Handlers any clicks in any of the line differencing controls
  */
-void CPropEditor::OnSyntaxHighlight()
+void CPropEditor::OnLineDiffControlClicked()
 {
-	if (IsDlgButtonChecked(IDC_HILITE_CHECK))
-		GetDlgItem(IDC_UNREC_APPLYSYNTAX)->EnableWindow(TRUE);
-	else
+	UpdateLineDiffControls();
+}
+
+/**
+ * @brief Shortcut to enable or disable a control
+ * @param [in] item ID of dialog control to enable/disable.
+ * @paran [in] enable if true control is enabled, else disabled.
+ */
+void CPropEditor::EnableDlgItem(int item, bool enable)
+{
+	GetDlgItem(item)->EnableWindow(!!enable);
+}
+
+/** 
+ * @brief Update availability of line difference controls
+ */
+void CPropEditor::UpdateLineDiffControls()
+{
+	UpdateDataFromWindow();
+	// Can only choose char/word level if line differences are enabled
+	EnableDlgItem(IDC_EDITOR_CHARLEVEL, !!m_bViewLineDifferences);
+	EnableDlgItem(IDC_EDITOR_WORDLEVEL, !!m_bViewLineDifferences);
+	// Can only choose break type if line differences are enabled & we're breaking on words
+	EnableDlgItem(IDC_BREAK_TYPE, !!m_bViewLineDifferences);
+}
+
+/** 
+ * @brief Check tabsize value when control loses focus.
+ */
+void CPropEditor::OnEnKillfocusTabEdit()
+{
+	CEdit * pEdit = (CEdit *)GetDlgItem(IDC_TAB_EDIT);
+	CString valueAsText;
+	pEdit->GetWindowText(valueAsText);
+	int value = _ttoi(valueAsText);
+	
+	if (value < 1 || value > MAX_TABSIZE)
 	{
-		GetDlgItem(IDC_UNREC_APPLYSYNTAX)->EnableWindow(FALSE);
-		CheckDlgButton(IDC_UNREC_APPLYSYNTAX, FALSE);
-		m_bApplySyntax = FALSE;
+		CString msg;
+		CString num;
+		num.Format(_T("%d"), MAX_TABSIZE);
+		AfxFormatString1(msg, IDS_OPTIONS_INVALID_TABSIZE, num);
+		AfxMessageBox(msg, MB_ICONWARNING);
 	}
 }

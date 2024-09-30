@@ -24,15 +24,12 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirFrame.h,v 1.15 2005/08/24 15:24:28 kimmov Exp $
+// $Id: DirFrame.h 2744 2005-11-17 22:09:05Z kimmov $
 
 #if !defined(AFX_DIRFRAME_H__95565903_35C4_11D1_BAA7_00A024706EDC__INCLUDED_)
 #define AFX_DIRFRAME_H__95565903_35C4_11D1_BAA7_00A024706EDC__INCLUDED_
 
 #include "EditorFilepathBar.h"
-#include "DirCompStateBar.h"
-
-class CompareStats;
 
 /////////////////////////////////////////////////////////////////////////////
 // CDirFrame frame
@@ -56,13 +53,8 @@ public:
 	CStatusBar  m_wndStatusBar;
 	void SetClosableCallback(bool (*canclose)(void *), void * param);
 	IHeaderBar * GetHeaderInterface();
-	void clearStatus();
-	void ShowProcessingBar(BOOL bShow);
-	void NotifyHideStateBar();
 	void UpdateResources();
 	void SetSharedMenu(HMENU hMenu) { m_hMenuShared = hMenu; };
-	void SetCompareStats(CompareStats *pCompareStats);
-	void UpdateStats();
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -74,31 +66,13 @@ public:
 
 protected:
 	CEditorFilePathBar m_wndFilePathBar;
-	CDirCompStateBar m_wndCompStateBar;
-	/* @brief The state bar is active when 
-	 * <ul>
-	 *	<li> visible 
-	 *	<li> the frame is unactive, and the state bar was visible when the frame was active
-	 * </ul>
-	 */
-	BOOL m_bStateBarIsActive;
-	/* @brief Track the activity of this frame, without delay.
-	 * This flag must be updated when CMDIChildWnd::OnMDIActivate is called. 
-	 * GetParentFrame()->GetActiveFrame() introduces some delay.
-	 */
-	BOOL m_bFrameIsActive;
-
 	virtual ~CDirFrame();
-	void ShowControlBar( CControlBar* pBar, BOOL bShow, BOOL bDelay );
-	bool CreateStateBar();
-	void SetStateBarLoc();
 
 	// Generated message map functions
 	//{{AFX_MSG(CDirFrame)
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnClose();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnMDIActivate(BOOL bActivate, CWnd* pActivateWnd, CWnd* pDeactivateWnd);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

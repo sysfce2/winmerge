@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: MergeDocLineDiffs.cpp,v 1.11 2005/07/24 00:19:27 elsapo Exp $
+// $Id: MergeDocLineDiffs.cpp 3035 2006-02-08 15:55:37Z elsapo $
 
 #include "stdafx.h"
 #include "Merge.h"
@@ -78,7 +78,7 @@ HighlightDiffRect(CMergeDiffDetailView * pView, const CRect & rc)
 void CMergeDoc::Showlinediff(CMergeEditView * pView, DIFFLEVEL difflvl)
 {
 	CRect rc1, rc2;
-	Computelinediff(m_pLeftView, m_pRightView, pView->GetCursorPos().y, &rc1, &rc2, difflvl);
+	Computelinediff(m_pView[0], m_pView[1], pView->GetCursorPos().y, &rc1, &rc2, difflvl);
 
 	if (rc1.top == -1 && rc2.top == -1)
 	{
@@ -91,8 +91,8 @@ void CMergeDoc::Showlinediff(CMergeEditView * pView, DIFFLEVEL difflvl)
 	}
 
 	// Actually display selection areas on screen in both edit panels
-	HighlightDiffRect(m_pLeftView, rc1);
-	HighlightDiffRect(m_pRightView, rc2);
+	HighlightDiffRect(m_pView[0], rc1);
+	HighlightDiffRect(m_pView[1], rc2);
 }
 
 /**
@@ -101,7 +101,7 @@ void CMergeDoc::Showlinediff(CMergeEditView * pView, DIFFLEVEL difflvl)
 void CMergeDoc::Showlinediff(CMergeDiffDetailView * pView, DIFFLEVEL difflvl)
 {
 	CRect rc1, rc2;
-	Computelinediff(m_pLeftDetailView, m_pRightDetailView, pView->GetCursorPos().y, &rc1, &rc2, difflvl);
+	Computelinediff(m_pDetailView[0], m_pDetailView[1], pView->GetCursorPos().y, &rc1, &rc2, difflvl);
 
 	if (rc1.top == -1 && rc2.top == -1)
 	{
@@ -114,8 +114,8 @@ void CMergeDoc::Showlinediff(CMergeDiffDetailView * pView, DIFFLEVEL difflvl)
 	}
 
 	// Actually display selection areas on screen in both detail panels
-	HighlightDiffRect(m_pLeftDetailView, rc1);
-	HighlightDiffRect(m_pRightDetailView, rc2);
+	HighlightDiffRect(m_pDetailView[0], rc1);
+	HighlightDiffRect(m_pDetailView[1], rc2);
 }
 
 /**
@@ -183,8 +183,8 @@ void CMergeDoc::Computelinediff(CCrystalTextView * pView1, CCrystalTextView * pV
 	static CRect lastRc1, lastRc2;
 	static int whichdiff=-2; // last diff highlighted (-2==none, -1=whole line)
 
-	// Only remember place in cycle if same line and same view (and not doing bytelevel)
-	if (lastView != pView1 || lastLine != line || difflvl==BYTEDIFF)
+	// Only remember place in cycle if same line and same view
+	if (lastView != pView1 || lastLine != line)
 	{
 		lastView = pView1;
 		lastLine = line;
@@ -197,7 +197,7 @@ void CMergeDoc::Computelinediff(CCrystalTextView * pView1, CCrystalTextView * pV
 	CString str1 = pView1->GetLineChars(line);
 	CString str2 = pView2->GetLineChars(line);
 
-	if (!diffOptions.bEolSensitive)
+	if (diffOptions.bIgnoreEol)
 	{
 		/* Commented out code because GetLineActualLength is buggy
 		// Chop of eol (end of line) characters
@@ -226,19 +226,10 @@ void CMergeDoc::Computelinediff(CCrystalTextView * pView1, CCrystalTextView * pV
 	bool casitive = !diffOptions.bIgnoreCase;
 	int xwhite = diffOptions.nIgnoreWhitespace;
 
-	if (difflvl==BYTEDIFF)
-	{
-		int begin1=-1, end1=-1, begin2=-1, end2=-1;
-		sd_ComputeByteDiff(str1, str2, casitive, xwhite, begin1, begin2, end1, end2);
-		SetLineHighlightRect(begin1, end1, line, width1, rc1);
-		SetLineHighlightRect(begin2, end2, line, width2, rc2);
-		return;
-	}
-
 	// Make the call to stringdiffs, which does all the hard & tedious computations
 	wdiffarray worddiffs;
 	bool breakType = GetBreakType();
-	sd_ComputeWordDiffs(str1, str2, casitive, xwhite, breakType, &worddiffs);
+	sd_ComputeWordDiffs(str1, str2, casitive, xwhite, breakType, difflvl == BYTEDIFF, &worddiffs);
 
 	if (!worddiffs.GetSize())
 	{
@@ -322,16 +313,16 @@ void CMergeDoc::Computelinediff(CCrystalTextView * pView1, CCrystalTextView * pV
  */
 void CMergeDoc::GetWordDiffArray(int nLineIndex, wdiffarray *pworddiffs)
 {
-	if (nLineIndex >= m_pLeftView->GetLineCount()) return;
-	if (nLineIndex >= m_pRightView->GetLineCount()) return;
+	if (nLineIndex >= m_pView[0]->GetLineCount()) return;
+	if (nLineIndex >= m_pView[1]->GetLineCount()) return;
 
 	DIFFOPTIONS diffOptions = {0};
 	m_diffWrapper.GetOptions(&diffOptions);
 
-	CString str1 = m_pLeftView->GetLineChars(nLineIndex);
-	CString str2 = m_pRightView->GetLineChars(nLineIndex);
+	CString str1 = m_pView[0]->GetLineChars(nLineIndex);
+	CString str2 = m_pView[1]->GetLineChars(nLineIndex);
 
-	if (!diffOptions.bEolSensitive)
+	if (diffOptions.bIgnoreEol)
 	{
 		/* Commented out code because GetLineActualLength is buggy
 		// Chop of eol (end of line) characters
@@ -352,17 +343,14 @@ void CMergeDoc::GetWordDiffArray(int nLineIndex, wdiffarray *pworddiffs)
 			str2 = str2.Left(i+1);
 	}
 
-	// We truncate diffs to remain inside line (ie, to not flag eol characters)
-	int width1 = m_pLeftView->GetLineLength(nLineIndex);
-	int width2 = m_pRightView->GetLineLength(nLineIndex);
-
 	// Options that affect comparison
 	bool casitive = !diffOptions.bIgnoreCase;
 	int xwhite = diffOptions.nIgnoreWhitespace;
-	int breakType = GetBreakType();
+	int breakType = GetBreakType(); // whitespace only or include punctuation
+	bool byteColoring = GetByteColoringOption();
 
-	// Make the call to stringdiffs, which does all the hard & tedious computations
-	sd_ComputeWordDiffs(str1, str2, casitive, xwhite, breakType, pworddiffs);
+		// Make the call to stringdiffs, which does all the hard & tedious computations
+	sd_ComputeWordDiffs(str1, str2, casitive, xwhite, breakType, byteColoring, pworddiffs);
 
 	return;
 }

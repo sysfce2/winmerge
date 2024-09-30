@@ -4,13 +4,14 @@
  * @brief Implementation of CPropCompare propertysheet
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropCompare.h,v 1.6 2005/08/26 20:47:23 kimmov Exp $
+// $Id: PropCompare.h 3363 2006-07-13 10:19:15Z kimmov $
 
 #ifndef _PROPPAGE_COMPARE_H_
 #define _PROPPAGE_COMPARE_H_
 
-class COptionsMgr;
+#include "IOptionsPanel.h"
 
+class COptionsMgr;
 
 /////////////////////////////////////////////////////////////////////////////
 // CPropCompare dialog
@@ -26,10 +27,11 @@ class COptionsMgr;
  * Compare methods:
  *  - compare by contents
  *  - compare by modified date
+ *  - compare by quick contents
  *
- * @author Tim Musschoot, several modifications by Kimmo Varis
+ * @author Tim Musschoot, several modifications by others
  */
-class CPropCompare : public CPropertyPage
+class CPropCompare : public CPropertyPage, public IOptionsPanel
 {
 // Construction
 public:
@@ -37,16 +39,21 @@ public:
 
 	CPropCompare(COptionsMgr *optionsMgr);
 
+// Implement IOptionsPanel
+	virtual void ReadOptions();
+	virtual void WriteOptions();
+
 // Dialog Data
 	//{{AFX_DATA(CPropCompare)
 	enum { IDD = IDD_PROPPAGE_COMPARE };
-	int		m_compareMethod;
-	BOOL	m_bEolSensitive;
-	BOOL	m_bIgnoreCase;
-	BOOL	m_bIgnoreBlankLines;
-	int		m_nIgnoreWhite;
-	BOOL	m_bMovedBlocks;
-	BOOL	m_bStopAfterFirst;
+	int     m_compareMethod;
+	BOOL    m_bIgnoreEol;
+	BOOL    m_bIgnoreCase;
+	BOOL    m_bIgnoreBlankLines;
+	int     m_nIgnoreWhite;
+	BOOL    m_bMovedBlocks;
+	BOOL    m_bStopAfterFirst;
+	BOOL	m_bFilterCommentsLines;
 	//}}AFX_DATA
 
 

@@ -24,7 +24,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: Merge.h,v 1.34.2.2 2006/02/15 20:20:48 kimmov Exp $
+// $Id: Merge.h 3850 2006-11-26 11:29:07Z kimmov $
 
 #if !defined(AFX_MERGE_H__BBCD4F88_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MERGE_H__BBCD4F88_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -86,18 +86,25 @@ protected:
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	void InitializeFileFilters();
+
+	// In MergeArgs.cpp
 	void ParseArgs(int argc, TCHAR *argv[], CMainFrame* pMainFrame, CStringArray & files, UINT & nFiles, BOOL & recurse,
-		DWORD & dwLeftFlags, DWORD & dwRightFlags);
-	void ParseCCaseArgs(int argc, TCHAR *argv[], CMainFrame* pMainFrame, CStringArray & files, UINT & nFiles,
-		DWORD & dwLeftFlags, DWORD & dwRightFlags);
+		DWORD & dwLeftFlags, DWORD & dwRightFlags, CString & prediffer);
+ 	void ParseCCaseArgs(int argc, TCHAR *argv[], CMainFrame* pMainFrame, CStringArray & files, UINT & nFiles,
+ 		DWORD & dwLeftFlags, DWORD & dwRightFlags);
 	void ParseArgsAndDoOpen(int argc, TCHAR *argv[], CMainFrame* pMainFrame);
-	BOOL LoadProjectFile(CStringArray & files, BOOL & recursive);
+	CString GetUsageDescription();
+	// End MergeArgs.cpp
 
+	bool LoadAndOpenProjectFile(const CString & sFilepath);
+	bool IsProjectFile(const CString & filepath) const;
 
+	void ReloadMenu();
 
 	//{{AFX_MSG(CMergeApp)
 	afx_msg void OnAppAbout();
 	afx_msg void OnViewLanguage();
+	afx_msg void OnUpdateViewLanguage(CCmdUI* pCmdUI);
 	afx_msg void OnHelp();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
@@ -105,22 +112,13 @@ private:
 	CAssureScriptsForThread * m_mainThreadScripts;
 	int m_nLastCompareResult;
 	bool m_bNoninteractive;
+	bool m_bShowUsage;
 };
 
 extern CMergeApp theApp;
 
 /////////////////////////////////////////////////////////////////////////////
 CMergeDoc *GetDoc();
-BOOL SelectFile(CString& path, LPCTSTR root_path = NULL, 
-			 LPCTSTR title = _T("Open"), 
-			 UINT filterid =0,
-			 BOOL is_open =TRUE);
-
-BOOL SelectFolder(CString& path, LPCTSTR root_path = NULL, 
-			 LPCTSTR title = NULL, 
-			 HWND hwndOwner = NULL);
-
-void ConvertFilter(LPTSTR filterStr);
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Developer Studio will insert additional declarations immediately before the previous line.

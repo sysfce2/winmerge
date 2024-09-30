@@ -4,10 +4,11 @@
  *  @brief Implementation of DirScan (q.v.) and helper functions
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirScan.cpp,v 1.58.2.3 2006/01/07 11:40:02 kimmov Exp $
+// $Id: DirScan.cpp 3944 2006-12-11 22:06:57Z kimmov $
 
 #include "stdafx.h"
 #include <shlwapi.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include "DirScan.h"
 #include "CompareStats.h"
@@ -22,6 +23,7 @@
 #include "DiffItemList.h"
 #include "PathContext.h"
 #include "IAbortable.h"
+#include "DiffFileData.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -36,13 +38,11 @@ static char THIS_FILE[] = __FILE__;
  */
 struct fentry
 {
-	CString name;
-	// storing __time_t if MSVC6 (__MSC_VER<1300)
-	// storing __time64_t if MSVC7 (VC.NET)
+	CString name; /**< Item name */
 	__int64 mtime; /**< Last modify time */
 	__int64 ctime; /**< Creation modify time */
-	__int64 size;
-	int attrs;
+	__int64 size; /**< File size */
+	int attrs; /**< Item attributes */
 };
 typedef CArray<fentry, fentry&> fentryArray;
 
@@ -52,11 +52,13 @@ static void LoadFiles(const CString & sDir, fentryArray * dirs, fentryArray * fi
 void LoadAndSortFiles(const CString & sDir, fentryArray * dirs, fentryArray * files, bool casesensitive);
 static void Sort(fentryArray * dirs, bool casesensitive);;
 static int collstr(const CString & s1, const CString & s2, bool casesensitive);
-static void StoreDiffResult(DIFFITEM &di, CDiffContext * pCtxt,
+static void StoreDiffData(DIFFITEM &di, CDiffContext * pCtxt,
 		const DiffFileData * pDiffFileData);
 static void AddToList(const CString & sLeftDir, const CString & sRightDir, const fentry * lent, const fentry * rent,
 	int code, DiffItemList * pList, CDiffContext *pCtxt);
 static void UpdateDiffItem(DIFFITEM & di, BOOL & bExists, CDiffContext *pCtxt);
+
+static __int64 FiletimeToTimeT(FILETIME time);
 
 /** @brief cmpmth is a typedef for a pointer to a method */
 typedef int (CString::*cmpmth)(LPCTSTR sz) const;
@@ -121,13 +123,14 @@ int DirScan_GetItems(const PathContext &paths, const CString & leftsubdir, const
 	// i points to current directory in left list (leftDirs)
 	// j points to current directory in right list (rightDirs)
 
-	bool bTreatDirAsEqual
-	(
-		leftDirs.GetSize() == 1
-	&&	rightDirs.GetSize() == 1
-	&&	leftFiles.GetSize() == 0
-	&&	rightFiles.GetSize() == 0
-	);
+	// If there is only one directory on each side, and no files
+	// then pretend the directories have the same name
+	bool bTreatDirAsEqual = 
+		  (leftDirs.GetSize() == 1)
+		&& (rightDirs.GetSize() == 1)
+		&& (leftFiles.GetSize() == 0)
+		&& (rightFiles.GetSize() == 0)
+		;
 
 	int i=0, j=0;
 	while (1)
@@ -135,11 +138,8 @@ int DirScan_GetItems(const PathContext &paths, const CString & leftsubdir, const
 		if (pCtxt->ShouldAbort())
 			return -1;
 
-		// In debug mode, send current status to debug window
-		if (i<leftDirs.GetSize())
-			TRACE(_T("Candidate left: leftDirs[i]=%s\n"), (LPCTSTR)leftDirs[i].name);
-		if (j<rightDirs.GetSize())
-			TRACE(_T("Candidate right: rightDirs[j]=%s\n"), (LPCTSTR)rightDirs[j].name);
+		// Comparing directories leftDirs[i].name to rightDirs[j].name
+
 		if (!bTreatDirAsEqual)
 		{
 			if (i<leftDirs.GetSize() && (j==rightDirs.GetSize() || collstr(leftDirs[i].name, rightDirs[j].name, casesensitive)<0))
@@ -212,11 +212,8 @@ int DirScan_GetItems(const PathContext &paths, const CString & leftsubdir, const
 		if (pCtxt->ShouldAbort())
 			return -1;
 
-		// In debug mode, send current status to debug window
-		if (i<leftFiles.GetSize())
-			TRACE(_T("Candidate left: leftFiles[i]=%s\n"), (LPCTSTR)leftFiles[i].name);
-		if (j<rightFiles.GetSize())
-			TRACE(_T("Candidate right: rightFiles[j]=%s\n"), (LPCTSTR)rightFiles[j].name);
+
+		// Comparing file leftFiles[i].name to rightFiles[j].name
 		
 		if (i<leftFiles.GetSize() && (j==rightFiles.GetSize() ||
 				collstr(leftFiles[i].name, rightFiles[j].name, casesensitive) < 0))
@@ -327,48 +324,25 @@ int DirScan_CompareItems(CDiffContext * pCtxt)
  */
 void UpdateDiffItem(DIFFITEM & di, BOOL & bExists, CDiffContext *pCtxt)
 {
-	struct _stat stats;
-	BOOL bLeftExists = FALSE;
-	BOOL bRightExists = FALSE;
-
-	bExists = TRUE;
-	CString leftpath = di.getLeftFilepath(pCtxt->GetNormalizedLeft());
-	leftpath = paths_ConcatPath(leftpath, di.sLeftFilename);
-	CString rightpath = di.getRightFilepath(pCtxt->GetNormalizedRight());
-	rightpath = paths_ConcatPath(rightpath, di.sRightFilename);
-	
-	// Re-check if left/right sides still exists (or are added)
-	if (_tstat(leftpath, &stats) == 0)
-		bLeftExists = TRUE;
-	if (_tstat(rightpath, &stats) == 0)
-		bRightExists = TRUE;
-
 	// Clear side-info and file-infos
-	di.setSideNone();
 	di.left.Clear();
 	di.right.Clear();
-
-	// Update infos for existing sides
-	if (bLeftExists && bRightExists)
+	BOOL bLeftExists = pCtxt->UpdateInfoFromDiskHalf(di, TRUE);
+	BOOL bRightExists = pCtxt->UpdateInfoFromDiskHalf(di, FALSE);
+	bExists = bLeftExists || bRightExists;
+	if (bLeftExists)
 	{
-		di.setSideBoth();
-		di.diffcode |= DIFFCODE::BOTH;
-		pCtxt->UpdateInfoFromDiskHalf(di, di.left);
-		pCtxt->UpdateInfoFromDiskHalf(di, di.right);
+		if (bRightExists)
+			di.setSideBoth();
+		else
+			di.setSideLeft();
 	}
-	else if (bLeftExists && !bRightExists)
+	else
 	{
-		di.setSideLeft();
-		pCtxt->UpdateInfoFromDiskHalf(di, di.left);
-	}
-	else if (!bLeftExists && bRightExists)
-	{
-		di.setSideRight();
-		pCtxt->UpdateInfoFromDiskHalf(di, di.right);
-	}
-	else if (!bLeftExists && !bRightExists)
-	{
-		bExists = FALSE;
+		if (bRightExists)
+			di.setSideRight();
+		else
+			di.setSideNone();
 	}
 }
 
@@ -384,107 +358,125 @@ void UpdateDiffItem(DIFFITEM & di, BOOL & bExists, CDiffContext *pCtxt)
  *
  * @param [in] di DiffItem to compare
  * @param [in,out] pCtxt Compare context: contains difflist, encoding info etc.
+ * @todo For date compare, maybe we should use creation date if modification
+ * date is missing?
  */
 void CompareDiffItem(DIFFITEM di, CDiffContext * pCtxt)
 {
 	// Clear rescan-request flag (not set by all codepaths)
 	di.diffcode &= ~DIFFCODE::NEEDSCAN;
-
-	// 1. Test against filters
+	// Is it a directory?
 	if (di.isDirectory())
 	{
-		if (!pCtxt->m_piFilterGlobal->includeDir(di.sLeftFilename, di.sRightFilename))
-		{
-			di.diffcode |= DIFFCODE::SKIPPED;
-			StoreDiffResult(di, pCtxt, NULL);
-			return;
-		}
-		else
+		// 1. Test against filters
+		if (pCtxt->m_piFilterGlobal->includeDir(di.sLeftFilename, di.sRightFilename))
 			di.diffcode |= DIFFCODE::INCLUDED;
-
+		else
+			di.diffcode |= DIFFCODE::SKIPPED;
 		// We don't actually 'compare' directories, just add non-ignored
 		// directories to list.
-		StoreDiffResult(di, pCtxt, NULL);
-		return;
+		StoreDiffData(di, pCtxt, NULL);
 	}
 	else
 	{
-		if (!pCtxt->m_piFilterGlobal->includeFile(di.sLeftFilename, di.sRightFilename))
+		// 1. Test against filters
+		if (pCtxt->m_piFilterGlobal->includeFile(di.sLeftFilename, di.sRightFilename))
+		{
+			di.diffcode |= DIFFCODE::INCLUDED;
+			// 2. Add unique files
+			// We must compare unique files to itself to detect encoding
+			if (di.isSideLeft() || di.isSideRight())
+			{
+				if (pCtxt->m_nCompMethod != CMP_DATE &&
+					pCtxt->m_nCompMethod != CMP_DATE_SIZE &&
+					pCtxt->m_nCompMethod != CMP_SIZE)
+				{
+					DiffFileData diffdata;
+					int diffCode = diffdata.prepAndCompareTwoFiles(pCtxt, di);
+					
+					// Add possible binary flag for unique items
+					if (diffCode & DIFFCODE::BIN)
+						di.diffcode |= DIFFCODE::BIN;
+					StoreDiffData(di, pCtxt, &diffdata);
+				}
+				else
+				{
+					StoreDiffData(di, pCtxt, NULL);
+				}
+			}
+			// 3. Compare two files
+			else if (pCtxt->m_nCompMethod == CMP_DATE ||
+				pCtxt->m_nCompMethod == CMP_DATE_SIZE)
+			{
+				// Compare by modified date
+				// Check that we have both filetimes
+				if (di.left.mtime != 0 && di.right.mtime != 0)
+				{
+					__int64 nTimeDiff = di.left.mtime - di.right.mtime;
+					// Remove sign
+					nTimeDiff = (nTimeDiff > 0 ? nTimeDiff : -nTimeDiff);
+					if (pCtxt->m_bIgnoreSmallTimeDiff)
+					{
+						// If option to ignore small timediffs (couple of seconds)
+						// is set, decrease absolute difference by allowed diff
+						nTimeDiff -= SmallTimeDiff;
+					}
+					if (nTimeDiff <= 0)
+						di.diffcode |= DIFFCODE::TEXT | DIFFCODE::SAME;
+					else
+						di.diffcode |= DIFFCODE::TEXT | DIFFCODE::DIFF;
+				}
+				else
+				{
+					// Filetimes for item(s) could not be read. So we have to
+					// set error status, unless we have DATE_SIZE -compare
+					// when we have still hope for size compare..
+					if (pCtxt->m_nCompMethod == CMP_DATE_SIZE)
+						di.diffcode |= DIFFCODE::TEXT | DIFFCODE::SAME;
+					else
+						di.diffcode |= DIFFCODE::TEXT | DIFFCODE::CMPERR;
+				}
+				
+				// This is actual CMP_DATE_SIZE method..
+				// If file sizes differ mark them different
+				if ( pCtxt->m_nCompMethod == CMP_DATE_SIZE && di.isResultSame())
+				{
+					if (di.left.size != di.right.size)
+					{
+						di.diffcode &= ~DIFFCODE::SAME;
+						di.diffcode |= DIFFCODE::DIFF;
+					}
+				}
+
+				// report result back to caller
+				StoreDiffData(di, pCtxt, NULL);
+			}
+			else if (pCtxt->m_nCompMethod == CMP_SIZE)
+			{
+				// Compare by size
+				if (di.left.size == di.right.size)
+					di.diffcode |= DIFFCODE::SAME;
+				else
+					di.diffcode |= DIFFCODE::DIFF;
+
+				// report result back to caller
+				StoreDiffData(di, pCtxt, NULL);
+			}
+			else
+			{
+				// Really compare
+				DiffFileData diffdata;
+				di.diffcode |= diffdata.prepAndCompareTwoFiles(pCtxt, di);
+				// report result back to caller
+				StoreDiffData(di, pCtxt, &diffdata);
+			}
+		}
+		else
 		{
 			di.diffcode |= DIFFCODE::SKIPPED;
-			StoreDiffResult(di, pCtxt, NULL);
-			return;
+			StoreDiffData(di, pCtxt, NULL);
 		}
-		else
-			di.diffcode |= DIFFCODE::INCLUDED;
 	}
-
-	// 2. Add unique files
-	// We must compare unique files to itself to detect encoding
-	if (di.isSideLeft())
-	{
-		if (pCtxt->m_nCompMethod != CMP_DATE)
-		{
-			DiffFileData diffdata;
-			int diffCode = diffdata.prepAndCompareTwoFiles(pCtxt, di);
-
-			// Add possible binary flag for unique items
-			if (diffCode & DIFFCODE::BIN)
-				di.diffcode |= DIFFCODE::BIN;
-			StoreDiffResult(di, pCtxt, &diffdata);
-		}
-		else
-		{
-			StoreDiffResult(di, pCtxt, NULL);
-		}
-		return;
-	}
-	else if (di.isSideRight())
-	{
-		if (pCtxt->m_nCompMethod != CMP_DATE)
-		{
-			DiffFileData diffdata;
-			diffdata.prepAndCompareTwoFiles(pCtxt, di);
-			StoreDiffResult(di, pCtxt, &diffdata);
-
-		}
-		else
-		{
-			StoreDiffResult(di, pCtxt, NULL);
-		}
-		return;
-	}
-	// 3. Compare two files
-	else
-	{
-		if (pCtxt->m_nCompMethod == CMP_DATE)
-		{
-			// Compare by modified date
-			__int64 nTimeDiff = di.left.mtime - di.right.mtime;
-			// Remove sign
-			nTimeDiff = (nTimeDiff > 0 ? nTimeDiff : -nTimeDiff);
-			if (pCtxt->m_bIgnoreSmallTimeDiff)
-			{
-				// If option to ignore small timediffs (couple of seconds)
-				// is set, decrease absolute difference by allowed diff
-				nTimeDiff -= SmallTimeDiff;
-			}
-			if (nTimeDiff <= 0)
-				di.diffcode |= DIFFCODE::TEXT | DIFFCODE::SAME;
-			else
-				di.diffcode |= DIFFCODE::TEXT | DIFFCODE::DIFF;
-			// report result back to caller
-			StoreDiffResult(di, pCtxt, NULL);
-			return;
-		}
-		// Really compare
-		DiffFileData diffdata;
-		di.diffcode |= diffdata.prepAndCompareTwoFiles(pCtxt, di);
-		// report result back to caller
-		StoreDiffResult(di, pCtxt, &diffdata);
-	}
-				
-	return;
 }
 
 /**
@@ -498,7 +490,32 @@ void LoadAndSortFiles(const CString & sDir, fentryArray * dirs, fentryArray * fi
 }
 
 /**
- * @brief Load arrays with all directories & files in specified dir
+ * @brief Convert time in type FILETIME to type int (time_t compatible).
+ * @param [in] time Time in FILETIME type.
+ * @return Time in time_t compiliant integer.
+ */
+static __int64 FiletimeToTimeT(FILETIME time)
+{
+	const __int64 SecsTo100ns = 10000000;
+	const __int64 SecsBetweenEpochs = 11644473600;
+	__int64 converted_time;
+	converted_time = ((__int64)time.dwHighDateTime << 32) + time.dwLowDateTime;
+	converted_time -= (SecsBetweenEpochs * SecsTo100ns);
+	converted_time /= SecsTo100ns;
+	return converted_time;
+}
+
+/**
+ * @brief Find files and subfolders from given folder.
+ * This function saves all files and subfolders in given folder to arrays.
+ * We use 64-bit version of stat() to get times since find doesn't return
+ * valid times for very old files (around year 1970). Even stat() seems to
+ * give negative time values but we can live with that. Those around 1970
+ * times can happen when file is created so that it  doesn't get valid
+ * creation or modificatio dates.
+ * @param [in] sDir Base folder for files and subfolders.
+ * @param [in, out] dirs Array where subfolders are stored.
+ * @param [in, out] files Array where files are stored.
  */
 void LoadFiles(const CString & sDir, fentryArray * dirs, fentryArray * files)
 {
@@ -515,14 +532,27 @@ void LoadFiles(const CString & sDir, fentryArray * dirs, fentryArray * files)
 			DWORD dwIsDirectory = ff.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
 			if (dwIsDirectory && StrStr(_T(".."), ff.cFileName))
 				continue;
+
 			fentry ent;
+
 			// Save filetimes as seconds since January 1, 1970
-			ent.ctime = CTime(ff.ftCreationTime).GetTime();
-			ent.mtime = CTime(ff.ftLastWriteTime).GetTime();
-			if (!dwIsDirectory)
-				ent.size = ff.nFileSizeLow + (ff.nFileSizeHigh << 32);
-			else
+			// Note that times can be < 0 if they are around that 1970..
+			// Anyway that is not sensible case for normal files so we can
+			// just use zero for their time.
+			ent.ctime = FiletimeToTimeT(ff.ftCreationTime);
+			if (ent.ctime < 0)
+				ent.ctime = 0;
+			ent.mtime = FiletimeToTimeT(ff.ftLastWriteTime);
+			if (ent.mtime < 0)
+				ent.mtime = 0;
+
+			if (ff.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 				ent.size = -1;  // No size for directories
+			else
+			{
+				ent.size = ((__int64)ff.nFileSizeHigh << 32) + ff.nFileSizeLow;
+			}
+
 			ent.name = ff.cFileName;
 			ent.attrs = ff.dwFileAttributes;
 			(dwIsDirectory ? dirs : files) -> Add(ent);
@@ -576,31 +606,34 @@ static int collstr(const CString & s1, const CString & s2, bool casesensitive)
 /**
  * @brief Send one file or directory result back through the diff context
  */
-static void StoreDiffResult(DIFFITEM &di, CDiffContext * pCtxt,
+static void StoreDiffData(DIFFITEM &di, CDiffContext * pCtxt,
 		const DiffFileData * pDiffFileData)
 {
 	if (pDiffFileData)
 	{
-		if (pDiffFileData->m_ntrivialdiffs > -1)
-			di.nsdiffs = pDiffFileData->m_ndiffs - pDiffFileData->m_ntrivialdiffs;
-		di.ndiffs = pDiffFileData->m_ndiffs;
+		// Set text statistics
+		if (di.isSideLeftOrBoth())
+			di.left.m_textStats = pDiffFileData->m_textStats0;
+		if (di.isSideRightOrBoth())
+			di.right.m_textStats = pDiffFileData->m_textStats1;
+
+		di.nsdiffs = pDiffFileData->m_ndiffs;
+		di.nidiffs = pDiffFileData->m_ntrivialdiffs;
 
 		if (!di.isSideLeft())
 		{
-			di.right.unicoding = pDiffFileData->m_sFilepath[1].unicoding;
-			di.right.codepage = pDiffFileData->m_sFilepath[1].codepage;
+			di.right.encoding = pDiffFileData->m_FileLocation[1].encoding;
 		}
 		
 		if (!di.isSideRight())
 		{
-			di.left.unicoding = pDiffFileData->m_sFilepath[0].unicoding;
-			di.left.codepage = pDiffFileData->m_sFilepath[0].codepage;
+			di.left.encoding = pDiffFileData->m_FileLocation[0].encoding;
 		}
 	}
 
 	gLog.Write
 	(
-		LOGLEVEL::LCOMPAREDATA, _T("name=<%s>, leftdir=<%s>, rightdir=<%s>, code=%d"),
+		CLogFile::LCOMPAREDATA, _T("name=<%s>, leftdir=<%s>, rightdir=<%s>, code=%d"),
 		(LPCTSTR)di.sLeftFilename, (LPCTSTR)_T("di.left.spath"), (LPCTSTR)_T("di.right.spath"), di.diffcode
 	);
 	pCtxt->AddDiff(di);
@@ -656,7 +689,7 @@ static void AddToList(const CString & sLeftDir, const CString & sRightDir, const
 
 	gLog.Write
 	(
-		LOGLEVEL::LCOMPAREDATA, _T("name=<%s>, leftdir=<%s>, rightdir=<%s>, code=%d"),
+		CLogFile::LCOMPAREDATA, _T("name=<%s>, leftdir=<%s>, rightdir=<%s>, code=%d"),
 		(LPCTSTR)di.sLeftFilename, (LPCTSTR)_T("di.left.spath"), (LPCTSTR)_T("di.right.spath"), code
 	);
 	pCtxt->m_pCompareStats->IncreaseTotalItems();

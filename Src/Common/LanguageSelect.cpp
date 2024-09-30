@@ -1,6 +1,10 @@
 /**
+ * @file  LanguageSelect.cpp
+ *
  * @brief Implements the Language Selection dialog class (which contains the language data)
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: LanguageSelect.cpp 4815 2007-12-07 22:52:32Z gerundt $
 
 
 #include "stdafx.h"
@@ -22,7 +26,9 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-// Relative path to WinMerge executable for lang files
+/**
+ * @brief Relative path to WinMerge executable for lang files.
+ */
 static const TCHAR szRelativePath[] = _T("Languages\\");
 
 /////////////////////////////////////////////////////////////////////////////
@@ -259,11 +265,6 @@ BOOL  CLanguageSelect::SetLanguage(WORD wLangId, bool override)
 		SetThreadLocale(MAKELCID(m_wCurLanguage, SORT_DEFAULT));
 
 		int idx = GetLanguageArrayIndex(m_wCurLanguage);
-		if (idx != -1
-			&& *lang_map[idx].pszLocale != _T('\0'))
-		{
-			_tsetlocale(LC_ALL, lang_map[idx].pszLocale);
-		}
 	}
 	
 	return result;
@@ -449,7 +450,7 @@ typedef long GetDllLangProc();
 /**
  * @brief Return path part of fully qualified filename
  */
-CString CLanguageSelect::GetPath( LPCTSTR FileName)
+CString CLanguageSelect::GetPath( LPCTSTR FileName) const
 {
 	TCHAR drive[_MAX_DRIVE];
 	TCHAR dir[_MAX_PATH];
@@ -470,11 +471,49 @@ CString CLanguageSelect::GetPath( LPCTSTR FileName)
 /**
  * @brief Build Language subdirectory from fully qualified exe filename
  */
-CString CLanguageSelect::GetLanguagePath(LPCTSTR FileName)
+CString CLanguageSelect::GetLanguagePath(LPCTSTR FileName) const
 {
 	CString Path = GetPath(FileName);
 	Path += szRelativePath;
 	return Path;
+}
+
+/**
+ * @brief Check if there are language files installed.
+ *
+ * This function does as fast as possible check for installed language
+ * files. It needs to be fast since it is used in enabling/disabling
+ * GUI item(s). So the simple check we do is just find one .lang file.
+ * If there is a .lang file we assume we have at least one language
+ * installed.
+ * @return TRUE if at least one lang file is found. FALSE if no lang
+ * files are found.
+ */
+BOOL CLanguageSelect::AreLangsInstalled() const
+{
+	WIN32_FIND_DATA ffi;
+	CString strFileSpec;
+	BOOL bFound = FALSE;
+	TCHAR fullpath[MAX_PATH] = {0};
+
+	if (GetModuleFileName(m_hModule, fullpath, _MAX_PATH))
+	{
+		CString strSearchPath = GetLanguagePath(fullpath);
+
+		strFileSpec.Format(_T("%s*.lang"), strSearchPath);
+		HANDLE hff = FindFirstFile(strFileSpec, &ffi);
+
+		if (hff != INVALID_HANDLE_VALUE)
+		{
+			// Found a .lang item, check it is a file
+			if (!(ffi.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			{
+				bFound = TRUE;
+			}
+			FindClose(hff);
+		}
+	}
+	return bFound;
 }
 
 void CLanguageSelect::GetAvailLangs( CWordArray& wLanguageAry,
@@ -648,6 +687,29 @@ BOOL CLanguageSelect::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	
+	CMainFrame::SetMainIcon(this);
+
+	// setup handler for resizing this dialog	
+	m_constraint.InitializeCurrentSize(this);
+	// configure how individual controls adjust when dialog resizes
+	m_constraint.ConstrainItem(IDC_LANGUAGE_LIST, 0, 1, 0, 1); // grows right & down
+	m_constraint.ConstrainItem(IDCANCEL, .6, 0, 1, 0); // slides down, floats right
+	m_constraint.ConstrainItem(IDOK, .3, 0, 1, 0); // slides down, floats right
+	m_constraint.SubclassWnd(); // install subclassing
+	m_constraint.LoadPosition(_T("ResizeableDialogs"), _T("LanguageSelectDlg"), false); // persist size via registry
+
+	GetMainFrame()->CenterToMainFrame(this);
+
+	LoadAndDisplayLanguages();
+
+	return TRUE;
+}
+
+/**
+ * @brief Load languages available on disk, and display in list, and select current
+ */
+void CLanguageSelect::LoadAndDisplayLanguages()
+{
 	if (m_wLangIds.GetSize()<=0)
 	{
 		// get all available resource only Dlls
@@ -664,7 +726,8 @@ BOOL CLanguageSelect::OnInitDialog()
 		
 // Fill the ComboBox
 	CString Language;
-	for ( int i = 0; i < m_wLangIds.GetSize(); i++)
+	int i=0;
+	for (i = 0; i < m_wLangIds.GetSize(); i++)
 	{
 		CString Language = GetLanguageString(m_wLangIds[i]);
 		if ( !Language.IsEmpty() )
@@ -682,8 +745,6 @@ BOOL CLanguageSelect::OnInitDialog()
 			break;
 		}
 	}
-	
-	return TRUE;  
 }
 
 
@@ -715,6 +776,10 @@ CString CLanguageSelect::GetNativeLanguageNameString( int idx )
 	// Otherwise, take the name from the RC file (which will be the name from the English RC
 	// file, as none of the other RC files have language name entries, and the names in the
 	// English RC file are all ASCII, so they fit into any codepage)
+	//
+	// Note: Even in Unicode build, we still do this test of conversion to current codepage
+	// because if the name fits in the current codepage, then we're sure they have glyphs
+	// otherwise, they might not have glyphs in their current font, so it might be illegible
 	LPCWSTR name = lang_map[idx].m_NativeName;
 	if (name[0])
 	{
@@ -747,14 +812,14 @@ CString CLanguageSelect::GetNativeLanguageNameString( int idx )
 static WORD
 GetLangFromLocale(LCID lcid)
 {
-		TCHAR buff[8];
-		if (GetLocaleInfo(lcid, LOCALE_IDEFAULTLANGUAGE, buff, countof(buff)))
-		{
-			LANGID langid = 0;
-			if (1 == _stscanf(buff, _T("%x"), &langid) && langid)
-				return langid;
-		}
-		return -1;
+	TCHAR buff[8] = {0};
+	if (GetLocaleInfo(lcid, LOCALE_IDEFAULTLANGUAGE, buff, countof(buff)))
+	{
+		int langID = 0;
+		if ((1 == _stscanf(buff, _T("%4x"), &langID)) && langID)
+			return (WORD)langID;
+	}
+	return (WORD)-1;
 }
 
 void

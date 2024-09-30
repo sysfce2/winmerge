@@ -42,12 +42,12 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "Debug"
-# PROP Intermediate_Dir "Debug"
+# PROP Output_Dir "..\..\..\BuildTmp\DisplayXMLFiles\Debug"
+# PROP Intermediate_Dir "..\..\..\BuildTmp\DisplayXMLFiles\Debug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\..\Src\ExpatLib" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\..\Src\ExpatLib" /I "..\..\..\Src\ExpatMapLib" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x40c /d "_DEBUG"
 # ADD RSC /l 0x40c /d "_DEBUG"
 BSC32=bscmake.exe
@@ -55,7 +55,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /out:"C:\Download\WinMerge-2.3.3.4\MergePlugins\DisplayXMLFiles.dll" /pdbtype:sept /libpath:"..\..\..\Src\ExpatLib\Debug_static"
+# ADD LINK32 libexpatMapsMT.lib libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /out:"..\..\..\Build\MergeDebug\MergePlugins/DisplayXMLFiles.dll" /pdbtype:sept /libpath:"..\..\..\Build\MergeDebugStatic"
 
 !ELSEIF  "$(CFG)" == "DisplayXMLFiles - Win32 Unicode Debug"
 
@@ -66,12 +66,12 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "DebugU"
-# PROP Intermediate_Dir "DebugU"
+# PROP Output_Dir "..\..\..\BuildTmp\DisplayXMLFiles\DebugU"
+# PROP Intermediate_Dir "..\..\..\BuildTmp\DisplayXMLFiles\DebugU"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\..\Src\ExpatLib" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\..\Src\ExpatLib" /I "..\..\..\Src\ExpatMapLib" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x40c /d "_DEBUG"
 # ADD RSC /l 0x40c /d "_DEBUG"
 BSC32=bscmake.exe
@@ -79,7 +79,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /pdbtype:sept /libpath:"..\..\..\Src\ExpatLib\Debug_static"
+# ADD LINK32 libexpatMapsMT.lib libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /out:"..\..\..\Build\MergeUnicodeDebug\MergePlugins/DisplayXMLFiles.dll" /pdbtype:sept /libpath:"..\..\..\Build\MergeDebugStatic"
 
 !ELSEIF  "$(CFG)" == "DisplayXMLFiles - Win32 Release MinSize"
 
@@ -90,12 +90,12 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "ReleaseMinSize"
-# PROP Intermediate_Dir "ReleaseMinSize"
+# PROP Output_Dir "..\..\..\BuildTmp\DisplayXMLFiles\ReleaseMinSize"
+# PROP Intermediate_Dir "..\..\..\BuildTmp\DisplayXMLFiles\ReleaseMinSize"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\..\Src\ExpatLib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\..\Src\ExpatLib" /I "..\..\..\Src\ExpatMapLib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /YX /FD /c
 # ADD BASE RSC /l 0x40c /d "NDEBUG"
 # ADD RSC /l 0x40c /d "NDEBUG"
 BSC32=bscmake.exe
@@ -103,7 +103,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /libpath:"..\..\..\Src\ExpatLib\Release_static"
+# ADD LINK32 libexpatMapsMT.lib libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /out:"..\..\..\Build\MergeReleaseMinSize\MergePlugins/DisplayXMLFiles.dll" /libpath:"..\..\..\Build\MergeReleaseStatic"
 
 !ELSEIF  "$(CFG)" == "DisplayXMLFiles - Win32 Release MinDependency"
 
@@ -114,12 +114,12 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "ReleaseMinDependency"
-# PROP Intermediate_Dir "ReleaseMinDependency"
+# PROP Output_Dir "..\..\..\BuildTmp\DisplayXMLFiles\ReleaseMinDependency"
+# PROP Intermediate_Dir "..\..\..\BuildTmp\DisplayXMLFiles\ReleaseMinDependency"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\..\Src\ExpatLib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\..\Src\ExpatLib" /I "..\..\..\Src\ExpatMapLib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /YX /FD /c
 # ADD BASE RSC /l 0x40c /d "NDEBUG"
 # ADD RSC /l 0x40c /d "NDEBUG"
 BSC32=bscmake.exe
@@ -127,7 +127,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /libpath:"..\..\..\Src\ExpatLib\Release_static"
+# ADD LINK32 libexpatMapsMT.lib libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /out:"..\..\..\Build\MergeRelease\MergePlugins/DisplayXMLFiles.dll" /libpath:"..\..\..\Build\MergeReleaseStatic"
 
 !ELSEIF  "$(CFG)" == "DisplayXMLFiles - Win32 Unicode Release MinSize"
 
@@ -138,12 +138,12 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "ReleaseUMinSize"
-# PROP Intermediate_Dir "ReleaseUMinSize"
+# PROP Output_Dir "..\..\..\BuildTmp\DisplayXMLFiles\ReleaseUMinSize"
+# PROP Intermediate_Dir "..\..\..\BuildTmp\DisplayXMLFiles\ReleaseUMinSize"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\..\Src\ExpatLib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\..\Src\ExpatLib" /I "..\..\..\Src\ExpatMapLib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /YX /FD /c
 # ADD BASE RSC /l 0x40c /d "NDEBUG"
 # ADD RSC /l 0x40c /d "NDEBUG"
 BSC32=bscmake.exe
@@ -151,7 +151,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /libpath:"..\..\..\Src\ExpatLib\Release_static"
+# ADD LINK32 libexpatMapsMT.lib libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /out:"..\..\..\Build\MergeUnicodeReleaseMinSize\MergePlugins/DisplayXMLFiles.dll" /libpath:"..\..\..\Build\MergeReleaseStatic"
 
 !ELSEIF  "$(CFG)" == "DisplayXMLFiles - Win32 Unicode Release MinDependency"
 
@@ -162,12 +162,12 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "ReleaseUMinDependency"
-# PROP Intermediate_Dir "ReleaseUMinDependency"
+# PROP Output_Dir "..\..\..\BuildTmp\DisplayXMLFiles\ReleaseUMinDependency"
+# PROP Intermediate_Dir "..\..\..\BuildTmp\DisplayXMLFiles\ReleaseUMinDependency"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\..\Src\ExpatLib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\..\Src\ExpatLib" /I "..\..\..\Src\ExpatMapLib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "XML_STATIC" /YX /FD /c
 # ADD BASE RSC /l 0x40c /d "NDEBUG"
 # ADD RSC /l 0x40c /d "NDEBUG"
 BSC32=bscmake.exe
@@ -175,7 +175,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /libpath:"..\..\..\Src\ExpatLib\Release_static"
+# ADD LINK32 libexpatMapsMT.lib libexpatMT.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /out:"..\..\..\Build\MergeUnicodeRelease\MergePlugins/DisplayXMLFiles.dll" /libpath:"..\..\..\Build\MergeReleaseStatic"
 
 !ENDIF 
 

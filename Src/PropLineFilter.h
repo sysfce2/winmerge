@@ -11,7 +11,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropLineFilter.h,v 1.1 2005/07/11 20:33:06 elsapo Exp $
+// $Id: PropLineFilter.h 3169 2006-03-14 16:56:41Z kimmov $
 
 /// Class for Line filter propertypage
 class CPropLineFilter : public CPropertyPage
@@ -47,6 +47,7 @@ protected:
 	//{{AFX_MSG(CPropLineFilter)
 	virtual BOOL OnInitDialog();
 	afx_msg void OnIgnoreregexp();
+	afx_msg void OnHelp();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

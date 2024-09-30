@@ -1,12 +1,14 @@
 /**
  *  @file   UniFile.cpp
- *  @author Perry Rapp, Creator, 2003-2005
- *  @author Kimmo Varis, 2004-2005
+ *  @author Perry Rapp, Creator, 2003-2006
+ *  @author Kimmo Varis, 2004-2006
  *  @date   Created: 2003-10
- *  @date   Edited:  2005-07-25 (Perry Rapp)
+ *  @date   Edited:  2006-12-07 (Kimmo Varis)
  *
  *  @brief Implementation of Unicode enabled file classes (Memory-mapped reader class, and Stdio replacement class)
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: UniFile.cpp 3945 2006-12-11 22:12:20Z kimmov $
 
 /* The MIT License
 Copyright (c) 2003 Perry Rapp
@@ -57,11 +59,7 @@ void UniLocalFile::Clear()
 /**
  * @brief Get file status into member variables
  *
- * Reads filestatus (size and full path) of non-open file.
- * This version of function (See also one with HANDLE parameter)
- * reads filestatus using CRT function, so file cannot be open
- * at the same time.
- * 
+ * Reads filestatus (size and full path) of a file.
  * @return true on success, false on failure.
  * @note Function sets filesize member to zero, and status as read
  * also when failing. That is needed so caller doesn't need to waste
@@ -89,58 +87,6 @@ bool UniLocalFile::DoGetFileStatus()
 		LastError(_T("_tstati64"), 0);
 		return false;
 	}
-}
-
-/**
- * @brief Get file status into member variables
- * 
- * Reads filestatus (size and full path) of already open file.
- * Using already open handle and CFile is more efficient than
- * requiring caller first to close file so we can use CRT
- * functions or CFile static function for reading status for
- * non-open file.
- * 
- * @param [in] handle Handle to open file
- * @return true on success, false on failure.
- */
-bool UniLocalFile::DoGetFileStatus(HANDLE handle)
-{
-	m_lastError.ClearError();
-	m_statusFetched = -1;
-
-	if (handle == INVALID_HANDLE_VALUE)
-		return false;
-
-	// Attach CFile to already open filehandle
-#if _MSC_VER < 1300
-		// MSVC6
-	CFile file((HFILE)handle);
-#else
-		// MSVC7 (VC.NET)
-	CFile file(handle);
-#endif
-	
-	CFileStatus status;
-	if (!file.GetStatus(status))
-	{
-		LastError(_T("CFile::GetStatus"), 0);
-		return false;
-	}
-	m_filepath = status.m_szFullName;
-
-	DWORD sizehi = 0;
-	DWORD sizelo = GetFileSize(handle, &sizehi);
-	if (sizelo == INVALID_FILE_SIZE)
-	{  // MSDN says errnum will not be NO_ERROR
-		int errnum = GetLastError();
-		LastError(_T("GetFileSize"), errnum);
-		return false;
-	}
-
-	m_filesize = sizelo + (sizehi << 32);
-	m_statusFetched = 1;
-
-	return true;
 }
 
 /** @brief Record an API call failure */
@@ -209,7 +155,7 @@ bool UniMemFile::IsOpen() const
 bool UniMemFile::GetFileStatus()
 {
 	if (!IsOpen()) return false;
-	return DoGetFileStatus(m_handle);
+	return DoGetFileStatus();
 }
 
 /** @brief Open file for generic read-only access */
@@ -351,11 +297,14 @@ bool UniMemFile::ReadBom()
 
 /**
  * @brief Read one (DOS or UNIX or Mac) line. Do not include eol chars.
+ * @param [out] line Line read.
+ * @param [out] lossy TRUE if there were lossy encoding.
+ * @return TRUE if there is more lines to read, TRUE when last line is read.
  */
-BOOL UniMemFile::ReadString(CString & line)
+BOOL UniMemFile::ReadString(CString & line, bool * lossy)
 {
 	CString eol;
-	BOOL ok = ReadString(line, eol);
+	BOOL ok = ReadString(line, eol, lossy);
 	return ok;
 }
 
@@ -388,9 +337,13 @@ static void RecordZero(UniFile::txtstats & txstats, int offset)
 }
 
 /**
- * @brief Read one (DOS or UNIX or Mac) line
+ * @brief Read one (DOS or UNIX or Mac) line.
+ * @param [out] line Line read.
+ * @param [out] eol EOL bytes read (if any).
+ * @param [out] lossy TRUE if there were lossy encoding.
+ * @return TRUE if there is more lines to read, TRUE when last line is read.
  */
-BOOL UniMemFile::ReadString(CString & line, CString & eol)
+BOOL UniMemFile::ReadString(CString & line, CString & eol, bool * lossy)
 {
 	line = _T("");
 	eol = _T("");
@@ -502,7 +455,8 @@ BOOL UniMemFile::ReadString(CString & line, CString & eol)
 	if (m_unicoding == ucr::NONE)
 	{
 		bool eof=true;
-		for (LPBYTE eolptr = m_current; (eolptr - m_base + (m_charsize-1) < m_filesize); ++eolptr)
+		LPBYTE eolptr=0;
+		for (eolptr = m_current; (eolptr - m_base + (m_charsize-1) < m_filesize); ++eolptr)
 		{
 			if (*eolptr == '\n' || *eolptr == '\r')
 			{
@@ -515,8 +469,9 @@ BOOL UniMemFile::ReadString(CString & line, CString & eol)
 				RecordZero(m_txtstats, offset);
 			}
 		}
-		bool lossy=false;
-		line = ucr::maketstring((LPCSTR)m_current, eolptr-m_current, m_codepage, &lossy);
+		line = ucr::maketstring((LPCSTR)m_current, eolptr-m_current, m_codepage, lossy);
+		if (lossy && *lossy)
+			++m_txtstats.nlosses;
 		if (!eof)
 		{
 			eol += (TCHAR)*eolptr;
@@ -750,7 +705,6 @@ bool UniStdioFile::DoOpen(LPCTSTR filename, LPCTSTR mode)
 		return false;
 
 	DWORD sizehi = (DWORD)(m_filesize >> 32);
-	DWORD sizelo = (DWORD)(m_filesize & 0xFFFFFFFF);
 
 	if (sizehi)
 	{
@@ -821,23 +775,23 @@ bool UniStdioFile::ReadBom()
 	return (m_data != 0);
 }
 
-BOOL UniStdioFile::ReadString(CString & line)
+BOOL UniStdioFile::ReadString(CString & line, bool * lossy)
 {
 	ASSERT(0); // unimplemented -- currently cannot read from a UniStdioFile!
 	return FALSE;
 }
 
-BOOL UniStdioFile::ReadString(CString & line, CString & eol)
+BOOL UniStdioFile::ReadString(CString & line, CString & eol, bool * lossy)
 {
 	ASSERT(0); // unimplemented -- currently cannot read from a UniStdioFile!
 	return FALSE;
 }
-BOOL UniStdioFile::ReadString(sbuffer & sline)
+BOOL UniStdioFile::ReadString(sbuffer & sline, bool * lossy)
 {
 	ASSERT(0); // unimplemented -- currently cannot read from a UniStdioFile!
 	return FALSE;
 }
-BOOL UniStdioFile::ReadString(sbuffer & sline, CString & eol)
+BOOL UniStdioFile::ReadString(sbuffer & sline, CString & eol, bool * lossy)
 {
 	ASSERT(0); // unimplemented -- currently cannot read from a UniStdioFile!
 	return FALSE;

@@ -4,13 +4,20 @@
  * @brief Declaration file for path routines
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: paths.h,v 1.16.2.1 2006/02/14 22:28:49 elsapo Exp $
+// $Id: paths.h 3295 2006-05-25 10:45:16Z kimmov $
 
 #ifndef paths_h_included
 #define paths_h_included
 
-typedef enum { DOES_NOT_EXIST, IS_EXISTING_FILE, IS_EXISTING_DIR } PATH_EXISTENCE;
-typedef enum { DIRSLASH, NODIRSLASH } DIRSLASH_TYPE;
+/**
+ * @brief Possible values when checking for file/folder existence.
+ */
+typedef enum
+{
+	DOES_NOT_EXIST, /**< File or folder does not exist. */
+	IS_EXISTING_FILE, /**< It is existing file */
+	IS_EXISTING_DIR, /**< It is existing folder */
+} PATH_EXISTENCE;
 
 bool paths_EndsWithSlash(const CString & s);
 PATH_EXISTENCE paths_DoesPathExist(LPCTSTR szPath);
@@ -24,9 +31,9 @@ CString ExpandShortcut(const CString &inFile);
 CString paths_ConcatPath(const CString & path, const CString & subpath);
 CString paths_GetParentPath(CString path);
 CString paths_GetLastSubdir(CString path);
-bool IsSlash(LPCTSTR pszStart, int nPos);
 BOOL paths_IsPathAbsolute(const CString &path);
-CString paths_EnsurePathExist(CString sPath);
+CString paths_EnsurePathExist(const CString & sPath);
 CString paths_GetWindowsDirectory();
+CString paths_GetMyDocuments(HWND hWindow);
 
 #endif // paths_h_included

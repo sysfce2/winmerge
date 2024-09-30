@@ -6,7 +6,7 @@
  * @date  Created: 2003-08-19
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DirViewColItems.cpp,v 1.29.2.1 2006/02/23 18:36:38 kimmov Exp $
+// $Id: DirViewColItems.cpp 3467 2006-08-11 15:09:42Z kimmov $
 
 
 #include "stdafx.h"
@@ -20,6 +20,7 @@
 #include "locality.h"
 #include "unicoder.h"
 #include "coretools.h"
+#include "DiffFileData.h"
 
 // shlwapi.h prior to VC6SP6 might lack definition of StrIsIntlEqual
 #ifdef UNICODE
@@ -35,22 +36,17 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 /**
- * @brief Return string representation of encoding, eg "UCS-2LE", or "1252"
+ * @name Constants for short sizes.
  */
-static CString EncodingString(int unicoding, int codepage)
-{
-	if (unicoding == ucr::UCS2LE)
-		return _T("UCS-2LE");
-	if (unicoding == ucr::UCS2BE)
-		return _T("UCS-2BE");
-	if (unicoding == ucr::UTF8)
-		return _T("UTF-8");
-	CString str;
-	LPTSTR s = str.GetBuffer(32);
-	_sntprintf(s, 32, _T("%d"), codepage);
-	str.ReleaseBuffer();
-	return str;
-}
+/* @{ */
+static const UINT KILO = 1024;
+static const UINT MEGA = 1024 * KILO;
+static const UINT GIGA = 1024 * MEGA;
+static const __int64 TERA = 1024 * (__int64) GIGA;
+/**
+ * @}
+ */
+
 /**
  * @brief Function to compare two __int64s for a sort
  */
@@ -86,6 +82,85 @@ static int cmpfloat(double v1, double v2)
 	if (v1<v2)
 		return -1;
 	return 0;
+}
+/**
+ * @brief Formats a size as a short string.
+ *
+ * MakeShortSize(500) = "500b"
+ * MakeShortSize(1024) = "1Kb"
+ * MakeShortSize(12000) = "1.7Kb"
+ * MakeShortSize(200000) = "195Kb"
+ * @param [in] size File's size to convert.
+ * @return Size string with localized suffix.
+ * @note Localized suffix strings are read from resource.
+ * @todo Can't handle > terabyte filesizes.
+ */
+static CString MakeShortSize(__int64 size)
+{
+#pragma warning(disable:4244) // warning C4244: '=' : conversion from '__int64' to 'double', possible loss of data
+	double fsize = size;
+#pragma warning(default:4244) // warning C4244: '=' : conversion from '__int64' to 'double', possible loss of data
+	double number = 0;
+	int ndigits = 0;
+	CString suffix;
+
+	if (size < KILO)
+	{
+		number = fsize;
+		VERIFY(suffix.LoadString(IDS_SUFFIX_BYTE));
+	}
+	else if (size < MEGA)
+	{
+		number = fsize / KILO;
+		VERIFY(suffix.LoadString(IDS_SUFFIX_KILO));
+		if (size < KILO * 10)
+		{
+			ndigits = 2;
+		}
+		else if (size < KILO * 100)
+		{
+			ndigits = 1;
+		}
+	}
+	else if (size < GIGA)
+	{
+		number = fsize / (MEGA);
+		VERIFY(suffix.LoadString(IDS_SUFFIX_MEGA));
+		if (size < MEGA * 10)
+		{
+			ndigits = 2;
+		}
+		else if (size < MEGA * 100)
+		{
+			ndigits = 1;
+		}
+	}
+	else if (size < (__int64)TERA)
+	{
+		number = fsize / ((__int64)GIGA);
+		VERIFY(suffix.LoadString(IDS_SUFFIX_GIGA));
+		if (size < (__int64)GIGA * 10)
+		{
+			ndigits = 2;
+		}
+		else if (size < (__int64)GIGA * 100)
+		{
+			ndigits = 1;
+		}
+	}
+	else
+	{
+		// overflow (?) -- show ">TB"
+		CString s(_T(">"));
+		VERIFY(suffix.LoadString(IDS_SUFFIX_TERA));
+		s += suffix;
+		return s;
+	}
+
+	CString s;
+	s.Format(_T("%lf"), number);
+	s = locality::GetLocaleStr(s, ndigits) + suffix;
+	return s;
 }
 
 /**
@@ -207,6 +282,16 @@ static CString ColSizeGet(const CDiffContext *, const void *p)
 	}
 	return s;
 }
+static CString ColSizeShortGet(const CDiffContext *, const void *p)
+{
+	const __int64 &r = *static_cast<const __int64*>(p);
+	CString s;
+	if (r != -1)
+	{
+		s = MakeShortSize(r);
+	}
+	return s;
+}
 static CString ColDiffsGet(const CDiffContext *, const void *p)
 {
 	const int &r = *static_cast<const int*>(p);
@@ -251,25 +336,25 @@ static CString ColNewerGet(const CDiffContext *, const void *p)
 	}
 	return _T("***");
 }
-static CString GetVersion(const CDiffContext * pCtxt, const DIFFITEM * pdi, const DiffFileInfo * pfinfo)
+static CString GetVersion(const CDiffContext * pCtxt, const DIFFITEM * pdi, BOOL bLeft)
 {
-	if (!pfinfo->bVersionChecked)
+	DIFFITEM & di = const_cast<DIFFITEM &>(*pdi);
+	DiffFileInfo & dfi = bLeft ? di.left : di.right;
+	if (!dfi.bVersionChecked)
 	{
-		DIFFITEM & di = const_cast<DIFFITEM &>(*pdi);
-		DiffFileInfo & dfi = const_cast<DiffFileInfo &>(*pfinfo);
-		pCtxt->UpdateVersion(di, dfi);
+		pCtxt->UpdateVersion(di, bLeft);
 	}
-	return pfinfo->version;
+	return dfi.version;
 }
 static CString ColLversionGet(const CDiffContext * pCtxt, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
-	return GetVersion(pCtxt, &di, &di.left);
+	return GetVersion(pCtxt, &di, TRUE);
 }
 static CString ColRversionGet(const CDiffContext * pCtxt, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
-	return GetVersion(pCtxt, &di, &di.right);
+	return GetVersion(pCtxt, &di, FALSE);
 }
 static CString ColStatusAbbrGet(const CDiffContext *, const void *p)
 {
@@ -332,8 +417,59 @@ static CString ColAttrGet(const CDiffContext *, const void *p)
 static CString ColEncodingGet(const CDiffContext *, const void *p)
 {
 	const DiffFileInfo &r = *static_cast<const DiffFileInfo *>(p);
-	return EncodingString(r.unicoding, r.codepage);
+	return r.encoding.GetName();
 }
+static CString GetEOLType(const CDiffContext *, const void *p, BOOL bLeft)
+{
+	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
+	const DiffFileInfo & dfi = bLeft ? di.left : di.right;
+	const FileTextStats &stats = dfi.m_textStats;
+
+	if (stats.ncrlfs == 0 && stats.ncrs == 0 && stats.nlfs == 0)
+	{
+		return _T("");
+	}
+	if (di.isBin())
+	{
+		int id = IDS_EOL_BIN;
+		return LoadResString(id);
+	}
+
+	int id = 0;
+	if (stats.ncrlfs > 0 && stats.ncrs == 0 && stats.nlfs == 0)
+	{
+		id = IDS_EOL_DOS;
+	}
+	else if (stats.ncrlfs == 0 && stats.ncrs > 0 && stats.nlfs == 0)
+	{
+		id = IDS_EOL_MAC;
+	}
+	else if (stats.ncrlfs == 0 && stats.ncrs == 0 && stats.nlfs > 0)
+	{
+		id = IDS_EOL_UNIX;
+	}
+	else
+	{
+		CString s = LoadResString(IDS_EOL_MIXED);
+		CString strstats;
+		strstats.Format(_T(":%d/%d/%d"), stats.ncrlfs, stats.ncrs, stats.nlfs);
+		s += strstats;
+		return s;
+	}
+	
+	return LoadResString(id);
+}
+static CString ColLEOLTypeGet(const CDiffContext * pCtxt, const void *p)
+{
+	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
+	return GetEOLType(pCtxt, &di, TRUE);
+}
+static CString ColREOLTypeGet(const CDiffContext * pCtxt, const void *p)
+{
+	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
+	return GetEOLType(pCtxt, &di, FALSE);
+}
+
 /**
  * @}
  */
@@ -425,22 +561,32 @@ static int ColEncodingSort(const CDiffContext *, const void *p, const void *q)
 {
 	const DiffFileInfo &r = *static_cast<const DiffFileInfo *>(p);
 	const DiffFileInfo &s = *static_cast<const DiffFileInfo *>(q);
-	__int64 n = cmp64(r.unicoding, s.unicoding);
-	if (n) return sign64(n);
-	n = cmp64(r.codepage, s.codepage);
-	return sign64(n);
+	return FileTextEncoding::Collate(r.encoding, s.encoding);
+}
+static int ColEOLTypeSort(const CDiffContext *, const void *p, const void *q)
+{
+	const CString &r = *static_cast<const CString*>(p);
+	const CString &s = *static_cast<const CString*>(q);
+	return r.CompareNoCase(s);
 }
 /* @} */
 
 /**
- * @brief All existing columns
+ * @brief All existing folder compare columns.
  *
- * Column internal name, followed by resource ID for localized name
- *  then resource ID for localized description (all -1 currently)
- *  then custom get & custom sort functions (NULL for generic properties)
- *  then default order (or -1 if not shown by default), then whether to start ascending
+ * This table has information for all folder compare columns. Fields are
+ * (in this order):
+ *  - internal name
+ *  - name resource ID: column's name shown in header
+ *  - description resource ID: columns description text
+ *  - custom function for getting column data
+ *  - custom function for sorting column data
+ *  - parameter for custom functions: DIFFITEM (if NULL) or one of its fields
+ *  - default column order number, -1 if not shown by default
+ *  - ascending (TRUE) or descending (FALSE) default sort order
+ *  - alignment of column contents: numbers are usually right-aligned
  */
-DirColInfo g_cols[] =
+static DirColInfo f_cols[] =
 {
 	{ _T("Name"), IDS_COLHDR_FILENAME, IDS_COLDESC_FILENAME, &ColFileNameGet, &ColFileNameSort, 0, 0, true, LVCFMT_LEFT },
 	{ _T("Path"), IDS_COLHDR_DIR, IDS_COLDESC_DIR, &ColPathGet, &ColPathSort, 0, 1, true, LVCFMT_LEFT },
@@ -452,6 +598,8 @@ DirColInfo g_cols[] =
 	{ _T("Ext"), IDS_COLHDR_EXTENSION, IDS_COLDESC_EXTENSION, &ColExtGet, &ColExtSort, FIELD_OFFSET(DIFFITEM, sLeftFilename), 5, true, LVCFMT_LEFT },
 	{ _T("Lsize"), IDS_COLHDR_LSIZE, IDS_COLDESC_LSIZE, &ColSizeGet, &ColSizeSort, FIELD_OFFSET(DIFFITEM, left.size), -1, false, LVCFMT_RIGHT },
 	{ _T("Rsize"), IDS_COLHDR_RSIZE, IDS_COLDESC_RSIZE, &ColSizeGet, &ColSizeSort, FIELD_OFFSET(DIFFITEM, right.size), -1, false, LVCFMT_RIGHT },
+	{ _T("LsizeShort"), IDS_COLHDR_LSIZE_SHORT, IDS_COLDESC_LSIZE_SHORT, &ColSizeShortGet, &ColSizeSort, FIELD_OFFSET(DIFFITEM, left.size), -1, false, LVCFMT_RIGHT },
+	{ _T("RsizeShort"), IDS_COLHDR_RSIZE_SHORT, IDS_COLDESC_RSIZE_SHORT, &ColSizeShortGet, &ColSizeSort, FIELD_OFFSET(DIFFITEM, right.size), -1, false, LVCFMT_RIGHT },
 	{ _T("Newer"), IDS_COLHDR_NEWER, IDS_COLDESC_NEWER, &ColNewerGet, &ColNewerSort, 0, -1, true, LVCFMT_LEFT },
 	{ _T("Lversion"), IDS_COLHDR_LVERSION, IDS_COLDESC_LVERSION, &ColLversionGet, &ColLversionSort, 0, -1, true, LVCFMT_LEFT },
 	{ _T("Rversion"), IDS_COLHDR_RVERSION, IDS_COLDESC_RVERSION, &ColRversionGet, &ColRversionSort, 0, -1, true, LVCFMT_LEFT },
@@ -461,31 +609,104 @@ DirColInfo g_cols[] =
 	{ _T("Rattr"), IDS_COLHDR_RATTRIBUTES, IDS_COLDESC_RATTRIBUTES, &ColAttrGet, &ColAttrSort, FIELD_OFFSET(DIFFITEM, right.flags), -1, true, LVCFMT_LEFT },
 	{ _T("Lencoding"), IDS_COLHDR_LENCODING, IDS_COLDESC_LENCODING, &ColEncodingGet, &ColEncodingSort, FIELD_OFFSET(DIFFITEM, left), -1, true, LVCFMT_LEFT },
 	{ _T("Rencoding"), IDS_COLHDR_RENCODING, IDS_COLDESC_RENCODING, &ColEncodingGet, &ColEncodingSort, FIELD_OFFSET(DIFFITEM, right), -1, true, LVCFMT_LEFT },
-	{ _T("Sndiffs"), IDS_COLHDR_NDIFFS, IDS_COLDESC_NDIFFS, ColDiffsGet, ColDiffsSort, FIELD_OFFSET(DIFFITEM, ndiffs), -1, false, LVCFMT_RIGHT },
 	{ _T("Snsdiffs"), IDS_COLHDR_NSDIFFS, IDS_COLDESC_NSDIFFS, ColDiffsGet, ColDiffsSort, FIELD_OFFSET(DIFFITEM, nsdiffs), -1, false, LVCFMT_RIGHT },
+	{ _T("Snidiffs"), IDS_COLHDR_NIDIFFS, IDS_COLDESC_NIDIFFS, ColDiffsGet, ColDiffsSort, FIELD_OFFSET(DIFFITEM, nidiffs), -1, false, LVCFMT_RIGHT },
+	{ _T("Leoltype"), IDS_COLHDR_LEOL_TYPE, IDS_COLDESC_LEOL_TYPE, &ColLEOLTypeGet, &ColAttrSort, 0, -1, true, LVCFMT_LEFT },
+	{ _T("Reoltype"), IDS_COLHDR_REOL_TYPE, IDS_COLDESC_REOL_TYPE, &ColREOLTypeGet, &ColEOLTypeSort, 0, -1, true, LVCFMT_LEFT },
 };
 
 /**
  * @brief Count of all known columns
  */
-int g_ncols = countof(g_cols);
+int g_ncols = countof(f_cols);
 
 /**
  * @brief Registry base value name for saving/loading info for this column
  */
-CString CDirView::GetColRegValueNameBase(int col) const
+CString
+CDirView::GetColRegValueNameBase(int col) const
 {
-	ASSERT(col>=0 && col<countof(g_cols));
+	ASSERT(col>=0 && col<countof(f_cols));
 	CString regName;
-	regName.Format(_T("WDirHdr_%s"), g_cols[col].regName);
+	regName.Format(_T("WDirHdr_%s"), f_cols[col].regName);
 	return regName;
 }
 
 /**
  * @brief Get default physical order for specified logical column
  */
-int CDirView::GetColDefaultOrder(int col) const
+int
+CDirView::GetColDefaultOrder(int col) const
 {
-	ASSERT(col>=0 && col<countof(g_cols));
-	return g_cols[col].physicalIndex;
+	ASSERT(col>=0 && col<countof(f_cols));
+	return f_cols[col].physicalIndex;
+}
+
+/**
+ * @brief Return the info about the specified physical column
+ */
+const DirColInfo *
+CDirView::DirViewColItems_GetDirColInfo(int col) const
+{
+	if (col < 0 || col >= sizeof(f_cols)/sizeof(f_cols[0]))
+	{
+		ASSERT(0); // fix caller, should not ask for nonexistent columns
+		return 0;
+	}
+	return &f_cols[col];
+}
+
+/**
+ * @brief Check if specified physical column has specified resource id name
+ */
+static bool
+IsColById(int col, int id)
+{
+	if (col < 0 || col >= sizeof(f_cols)/sizeof(f_cols[0]))
+	{
+		ASSERT(0); // fix caller, should not ask for nonexistent columns
+		return false;
+	}
+	return f_cols[col].idName == id;
+}
+
+/**
+ * @brief Is specified physical column the name column?
+ */
+bool
+CDirView::IsColName(int col) const
+{
+	return IsColById(col, IDS_COLHDR_FILENAME);
+}
+/**
+ * @brief Is specified physical column the left modification time column?
+ */
+bool
+CDirView::IsColLmTime(int col) const
+{
+	return IsColById(col, IDS_COLHDR_LTIMEM);
+}
+/**
+ * @brief Is specified physical column the right modification time column?
+ */
+bool
+CDirView::IsColRmTime(int col) const
+{
+	return IsColById(col, IDS_COLHDR_RTIMEM);
+}
+/**
+ * @brief Is specified physical column the full status (result) column?
+ */
+bool
+CDirView::IsColStatus(int col) const
+{
+	return IsColById(col, IDS_COLHDR_RESULT);
+}
+/**
+ * @brief Is specified physical column the full status (result) column?
+ */
+bool
+CDirView::IsColStatusAbbr(int col) const
+{
+	return IsColById(col, IDS_COLHDR_RESULT_ABBR);
 }

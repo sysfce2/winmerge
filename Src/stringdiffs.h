@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: stringdiffs.h,v 1.4 2005/07/24 00:19:28 elsapo Exp $
+// $Id: stringdiffs.h 2953 2006-01-17 04:31:41Z elsapo $
 
 #ifndef stringdiffs_h_included
 #define stringdiffs_h_included
@@ -36,7 +36,7 @@ typedef CArray<wdiff, wdiff&> wdiffarray; /**< An array of differences between t
 
 
 void sd_ComputeWordDiffs(const CString & str1, const CString & str2,
-                   bool case_sensitive, int whitespace, int breakType,
+                   bool case_sensitive, int whitespace, int breakType, bool byte_level,
                    wdiffarray * pDiffs);
 
 void sd_ComputeByteDiff(CString & str1, CString & str2, 

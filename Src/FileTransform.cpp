@@ -24,7 +24,7 @@
  *  @brief Implementation of file transformations
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: FileTransform.cpp,v 1.19 2005/07/24 00:16:14 elsapo Exp $
+// $Id: FileTransform.cpp 2877 2005-12-30 00:57:48Z elsapo $
 
 #include "StdAfx.h"
 #include "FileTransform.h"
@@ -282,8 +282,12 @@ BOOL FileTransform_Prediffing(CString & filepath, PrediffingInfo handler, BOOL b
 	BOOL bHandled = FALSE;
 
 	PluginInfo * plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"FILE_PREDIFF", handler.pluginName);
-	if (plugin == NULL)
+	if (!plugin)
+	{
 		plugin = CAllThreadsScripts::GetActiveSet()->GetPluginByName(L"BUFFER_PREDIFF", handler.pluginName);
+		if (!plugin)
+			return FALSE;
+	}
 	LPDISPATCH piScript = plugin->lpDispatch;
 	if (handler.bWithFile)
 	{
@@ -313,6 +317,7 @@ BOOL FileTransform_Prediffing(CString & filepath, PrediffingInfo handler, BOOL b
 	BOOL bSuccess = TRUE;
 	if (bufferData.GetNChangedValid() > 0)
 	{
+		// bufferData changes filepath here to temp filepath
 		bSuccess = bufferData.SaveAsFile(filepath);
 	}
 

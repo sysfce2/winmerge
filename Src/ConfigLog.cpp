@@ -20,7 +20,7 @@
  * @brief CConfigLog implementation
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ConfigLog.cpp,v 1.22.2.3 2005/12/31 00:25:31 elsapo Exp $
+// $Id: ConfigLog.cpp 4653 2007-10-21 19:51:25Z kimmov $
 
 #include "stdafx.h"
 #ifndef UNICODE
@@ -84,6 +84,9 @@ void CConfigLog::WritePluginsInLogFile(LPCWSTR transformationEvent, CStdioFile &
 		PluginInfo & plugin = piPluginArray->ElementAt(iPlugin);
 		file.WriteString(_T("\n  "));
 		file.WriteString(plugin.name);
+		file.WriteString(_T(" ["));
+		file.WriteString(plugin.filepath);
+		file.WriteString(_T("]"));
 	}
 }
 
@@ -207,7 +210,7 @@ static void WriteVersionOf1(CStdioFile &file, int indent, LPTSTR path)
 	if (file.m_hFile == CFile::hFileNull) return;
 
 	LPTSTR name = PathFindFileName(path);
-	CVersionInfo vi = path;
+	CVersionInfo vi(path, TRUE);
 	CString text;
 	text.Format
 	(
@@ -418,19 +421,19 @@ BOOL CConfigLog::DoFile(bool writing, CString &sError)
 	WriteVersionOf1(m_file, 1, _T("ShellExtension.dll"));
 	WriteVersionOf1(m_file, 1, _T("ShellExtensionU.dll"));
 
-	FileWriteString(_T("\n"));
-	WriteArchiveSupport(m_file);
 // WinMerge settings
 	FileWriteString(_T("\nWinMerge configuration:\n"));
 	FileWriteString(_T(" Compare settings:\n"));
 
 	WriteItemYesNo(2, _T("Ignore blank lines"), &m_diffOptions.bIgnoreBlankLines);
 	WriteItemYesNo(2, _T("Ignore case"), &m_diffOptions.bIgnoreCase);
-	WriteItemYesNoInverted(2, _T("Ignore carriage return differences"), &m_diffOptions.bEolSensitive);
+	WriteItemYesNo(2, _T("Ignore carriage return differences"), &m_diffOptions.bIgnoreEol);
 
 	WriteItemWhitespace(2, _T("Whitespace compare"), &m_diffOptions.nIgnoreWhitespace);
 
 	WriteItemYesNo(2, _T("Detect moved blocks"), &m_miscSettings.bMovedBlocks);
+	WriteItem(m_file, 2, _T("Compare method"), m_compareSettings.nCompareMethod);
+	WriteItemYesNo(2, _T("Stop after first diff"), &m_compareSettings.bStopAfterFirst);
 
 	FileWriteString(_T("\n Other settings:\n"));
 	WriteItemYesNo(2, _T("Automatic rescan"), &m_miscSettings.bAutomaticRescan);
@@ -446,8 +449,14 @@ BOOL CConfigLog::DoFile(bool writing, CString &sError)
 	WriteItemYesNo(2, _T("Binary files"), &m_viewSettings.bShowBinaries);
 	WriteItemYesNo(2, _T("Skipped files"), &m_viewSettings.bShowSkipped);
 
-	FileWriteString(_T("\n"));
-	WriteItemYesNo(1, _T("View Whitespace"), &m_miscSettings.bViewWhitespace);
+	FileWriteString(_T("\n Editor settings:\n"));
+	WriteItemYesNo(2, _T("View Whitespace"), &m_miscSettings.bViewWhitespace);
+	WriteItemYesNo(2, _T("Merge Mode enabled"), &m_miscSettings.bMergeMode);
+	WriteItemYesNo(2, _T("Show linenumbers"), &m_miscSettings.bShowLinenumbers);
+	WriteItemYesNo(2, _T("Wrap lines"), &m_miscSettings.bWrapLines);
+	WriteItemYesNo(2, _T("Syntax Highlight"), &m_miscSettings.bSyntaxHighlight);
+	WriteItem(m_file, 2, _T("Tab size"), m_miscSettings.nTabSize);
+	WriteItemYesNoInverted(2, _T("Insert tabs"), &m_miscSettings.bInsertTabs);
 	
 // Font settings
 	FileWriteString(_T("\n Font:\n"));
@@ -483,6 +492,9 @@ BOOL CConfigLog::DoFile(bool writing, CString &sError)
 	WritePluginsInLogFile(L"EDITOR_SCRIPT", m_file);
 	if (IsWindowsScriptThere() == FALSE)
 		FileWriteString(_T("\n .sct scripts disabled (Windows Script Host not found)\n"));
+
+	FileWriteString(_T("\n\n"));
+	WriteArchiveSupport(m_file);
 
 	CloseFile();
 
@@ -639,7 +651,7 @@ CString CConfigLog::GetWindowsVer()
 		else if ( osvi.dwMajorVersion <= 4 )
 			sVersion = _T("Microsoft Windows NT ");
 		else if ( osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 0 )
-			sVersion = _T("Microsoft Windows Longhorn ");
+			sVersion = _T("Microsoft Windows Vista ");
 		else
 			sVersion.Format(_T("[? WindowsNT %d.%d] "), 
 				osvi.dwMajorVersion, osvi.dwMinorVersion);
@@ -749,6 +761,10 @@ CString CConfigLog::GetBuildFlags()
 
 #ifdef _UNICODE
 	flags += " _UNICODE ";
+#endif
+
+#ifdef _MBCS
+	flags += " _MBCS ";
 #endif
 
 	return flags;

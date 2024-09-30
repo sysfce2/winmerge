@@ -17,70 +17,132 @@
 /** 
  * @file  DiffWrapper.h
  *
- * @brief Declaration file for CDiffWrapper
+ * @brief Declaration file for CDiffWrapper.
  *
  * @date  Created: 2003-08-22
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffWrapper.h,v 1.33.2.4 2006/02/23 18:36:38 kimmov Exp $
+// $Id: DiffWrapper.h 3590 2006-09-20 14:38:13Z kimmov $
 
 #ifndef _DIFFWRAPPER_H
 #define _DIFFWRAPPER_H
+
+#include "FileLocation.h"
+
+#ifndef FileTextStats_h_included
+#include "FileTextStats.h"
+#endif
 
 class CDiffContext;
 class PrediffingInfo;
 struct DIFFRANGE;
 class DiffList;
 struct DiffFileData;
+struct file_data;
+class FilterCommentsManager;
+struct FilterCommentsSet;
 
-/**
- * @brief Different compare methods
+/** @enum COMPARE_TYPE
+ * @brief Different foldercompare methods.
+ * These values are the foldercompare methods WinMerge supports.
  */
-enum
+
+/** @var CMP_CONTENT
+ * @brief Normal by content compare.
+ * This compare type is first, default and all-seeing compare type.
+ * diffutils is used for producing compare results. So all limitations
+ * of diffutils (like buffering) apply to this compare method. But this
+ * is also currently only compare method that produces difference lists
+ * we can use in file compare.
+ */
+
+/** @var CMP_QUICK_CONTENT
+ * @brief Faster byte per byte -compare.
+ * This type of compare was a response for needing faster compare results
+ * in folder compare. It independent from diffutils, and fully customised
+ * for WinMerge. It basically does byte-per-byte compare, still implementing
+ * different whitespace ignore options.
+ *
+ * Optionally this compare type can be stopped when first difference is found.
+ * Which gets compare as fast as possible. But misses sometimes binary files
+ * if zero bytes aren't found before first difference. Also difference counts
+ * are not useful with that option.
+ */
+
+/** @var CMP_DATE
+ * @brief Compare by modified date.
+ * This compare type was added after requests and realization that in some
+ * situations difference in file's timestamps is enough to judge them
+ * different. E.g. when modifying files in local machine, file timestamps
+ * are certainly different after modifying them. This method doesn't even
+ * open files for reading them. It only reads file's infos for timestamps
+ * and compares them.
+ *
+ * This is no doubt fastest way to compare files.
+ */
+
+/** @var CMP_DATE_SIZE
+ * @brief Compare by date and then by size.
+ * This method is basically same than CMP_DATE, but it adds check for file
+ * sizes if timestamps are identical. This is because there are situations
+ * timestamps can't be trusted alone, especially with network shares. Adding
+ * checking for file sizes adds some more reliability for results with
+ * minimal increase in compare time.
+ */
+
+/** @var CMP_SIZE
+ * @brief Compare by file size.
+ * This compare method compares file sizes. This isn't quite accurate method,
+ * other than it can detect files that certainly differ. But it can show lot of
+ * different files as identical too. Advantage is in some use cases where different
+ * size always means files are different. E.g. automatically created logs - when
+ * more data is added size increases.
+ */
+enum COMPARE_TYPE
 {
-	CMP_CONTENT = 0, /**< Normal by content compare */
-	CMP_QUICK_CONTENT, /**< Custom content compare */
-	CMP_DATE, /**< Compare by modified date */
+	CMP_CONTENT = 0,
+	CMP_QUICK_CONTENT,
+	CMP_DATE,
+	CMP_DATE_SIZE,
+	CMP_SIZE,
 };
 
 /**
  * @brief Patch styles
  *
  * Diffutils can output patch in these formats.
+ * @note We really use only first three types (normal + context formats).
  */
-enum
+enum DIFF_OUTPUT_TYPE
 {
-	/* Default output style.  */
+	/**< Default output style.  */
 	DIFF_OUTPUT_NORMAL,
-	/* Output the differences with lines of context before and after (-c).  */
+	/**< Output the differences with lines of context before and after (-c).  */
 	DIFF_OUTPUT_CONTEXT,
-	/* Output the differences in a unified context diff format (-u). */
+	/**< Output the differences in a unified context diff format (-u). */
 	DIFF_OUTPUT_UNIFIED,
-	/* Output the differences as commands suitable for `ed' (-e).  */
+	/**< Output the differences as commands suitable for `ed' (-e).  */
 	DIFF_OUTPUT_ED,
-	/* Output the diff as a forward ed script (-f).  */
+	/**< Output the diff as a forward ed script (-f).  */
 	DIFF_OUTPUT_FORWARD_ED,
-	/* Like -f, but output a count of changed lines in each "command" (-n). */
+	/**< Like -f, but output a count of changed lines in each "command" (-n). */
 	DIFF_OUTPUT_RCS,
-	/* Output merged #ifdef'd file (-D).  */
+	/**< Output merged #ifdef'd file (-D).  */
 	DIFF_OUTPUT_IFDEF,
-	/* Output sdiff style (-y).  */
+	/**< Output sdiff style (-y).  */
 	DIFF_OUTPUT_SDIFF
 };
 
-typedef enum {
-	YESTEMPFILES // arguments are temp files
-	, NOTEMPFILES // arguments not temp files
-} ARETEMPFILES;
 /**
  * @brief Diffutils options users of this class must use
  */
 struct DIFFOPTIONS
 {
-	int nIgnoreWhitespace;
-	BOOL bIgnoreCase;
-	BOOL bIgnoreBlankLines;
-	BOOL bEolSensitive;
+	int nIgnoreWhitespace; /**< Ignore whitespace -option. */
+	BOOL bIgnoreCase; /**< Ignore case -option. */
+	BOOL bIgnoreBlankLines; /**< Ignore blank lines -option. */
+	BOOL bIgnoreEol; /**< Ignore EOL differences -option. */
+	BOOL bFilterCommentsLines; /**< Ignore Multiline comments differences -option. */
 };
 
 /**
@@ -88,9 +150,9 @@ struct DIFFOPTIONS
  */
 struct PATCHOPTIONS
 {
-	enum output_style outputStyle;
-	int nContext;
-	BOOL bAddCommandline;
+	enum output_style outputStyle; /**< Patch file style. */
+	int nContext; /**< Number of context lines. */
+	BOOL bAddCommandline; /**< Add diff-style commandline to patch file. */
 };
 
 /**
@@ -108,51 +170,57 @@ struct DIFFSTATUS
 };
 
 /**
- * @brief Internally used diffutils options
+ * @brief Internally used diffutils options.
  */
 struct DIFFSETTINGS
 {
-	enum output_style outputStyle;
-	int context;
+	enum output_style outputStyle; /**< Output style (for patch files) */
+	int context; /**< Number of context lines (for patch files) */
 	int alwaysText;
 	int horizLines;
 	int ignoreSpaceChange;
 	int ignoreAllSpace;
-	int ignoreBlankLines;
-	int ignoreCase;
-	int ignoreEOLDiff;
+	int ignoreBlankLines; /**< Ignore blank lines (both sides) */
+	int filterCommentsLines;/**< Ignore Multiline comments differences.*/	
+	int ignoreCase; /**< Ignore case differences? */
+	int ignoreEOLDiff; /**< Ignore EOL style differences? */
 	int ignoreSomeChanges;
 	int lengthVaries;
 	int heuristic;
-	int recursive;
+	int recursive; /**< Recurse to subfolders? (not used) */
 };
 
+class FilterCommentsManager;
+
 /**
- * @brief Wrapper class for GNU/diffutils
+ * @brief Wrapper class for diffengine (diffutils and ByteComparator).
+ * Diffwappre class is used to run selected diffengine. For folder compare
+ * there are several methods (COMPARE_TYPE), but for file compare diffutils
+ * is used always. For file compare diffutils can output results to external
+ * DiffList or to patch file. Output type must be selected with member
+ * functions SetCreatePatchFile() and SetCreateDiffList().
  */
 class CDiffWrapper
 {
 public:
 	CDiffWrapper();
 	~CDiffWrapper();
-	void SetCompareFiles(CString file1, CString file2, ARETEMPFILES areTempFiles);
-	void SetPatchFile(CString file);
+	void SetCreatePatchFile(const CString &filename);
+	void SetCreateDiffList(DiffList *diffList);
 	void SetDiffList(DiffList *diffList);
-	void GetOptions(DIFFOPTIONS *options);
-	void SetOptions(DIFFOPTIONS *options);
-	void SetTextForAutomaticPrediff(CString text);
+	void GetOptions(DIFFOPTIONS *options) const;
+	void SetOptions(const DIFFOPTIONS *options);
+	void SetTextForAutomaticPrediff(const CString &text);
 	void SetPrediffer(PrediffingInfo * prediffer =NULL);
 	void GetPrediffer(PrediffingInfo * prediffer);
-	void GetPatchOptions(PATCHOPTIONS *options);
-	void SetPatchOptions(PATCHOPTIONS *options);
-	BOOL GetUseDiffList() const;
-	BOOL SetUseDiffList(BOOL bUseDiffList);
+	void GetPatchOptions(PATCHOPTIONS *options) const;
+	void SetPatchOptions(const PATCHOPTIONS *options);
 	void SetDetectMovedBlocks(BOOL bDetectMovedBlocks) { m_bDetectMovedBlocks = bDetectMovedBlocks; }
 	BOOL GetDetectMovedBlocks() { return m_bDetectMovedBlocks; }
 	BOOL GetAppendFiles() const;
 	BOOL SetAppendFiles(BOOL bAppendFiles);
-	BOOL GetCreatePatchFile() const;
-	BOOL SetCreatePatchFile(BOOL bCreatePatchFile);
+	void SetPaths(const CString &filepath1, const CString &filepath2, BOOL tempPaths);
+	void SetAlternativePaths(const CString &altPath1, const CString &altPath2);
 	BOOL RunFileDiff();
 	void GetDiffStatus(DIFFSTATUS *status);
 	void AddDiffRange(UINT begin0, UINT end0, UINT begin1, UINT end1, BYTE op);
@@ -164,104 +232,46 @@ public:
 	int RightLineInMovedBlock(int leftLine);
 	int LeftLineInMovedBlock(int rightLine);
 	void ClearMovedLists();
+	void SetCompareFiles(const CString &OriginalFile1, const CString &OriginalFile2);
 
 protected:
-	void InternalGetOptions(DIFFOPTIONS *options);
-	void InternalSetOptions(DIFFOPTIONS *options);
+	void InternalGetOptions(DIFFOPTIONS *options) const;
+	void InternalSetOptions(const DIFFOPTIONS *options);
 	void SwapToInternalSettings();
 	void SwapToGlobalSettings();
 	CString FormatSwitchString();
 	BOOL Diff2Files(struct change ** diffs, DiffFileData *diffData,
-		int * bin_status);
+		int * bin_status, int * bin_file);
+	void LoadWinMergeDiffsFromDiffUtilsScript(struct change * script, const file_data * inf);
+	void WritePatchFile(struct change * script, file_data * inf);
 
 private:
-	DIFFSETTINGS m_settings;
-	DIFFSETTINGS m_globalSettings;	// Temp for storing globals
-	DIFFSTATUS m_status;
-	CString m_sFile1;
-	CString m_sFile2;
-	CString m_sOrigFile1;
-	CString m_sOrigFile2;
-	ARETEMPFILES m_areTempFiles;
-	CString m_sPatchFile;
+	DIFFSETTINGS m_settings; /**< Compare settings for current compare */
+	DIFFSETTINGS m_globalSettings; /**< Global compare settings */
+	DIFFSTATUS m_status; /**< Status of last compare */
+	CString m_s1File; /**< Full path to first diff'ed file. */
+	CString m_s2File; /**< Full path to second diff'ed file. */
+	CString m_s1AlternativePath; /**< First file's alternative path (may be relative). */
+	CString m_s2AlternativePath; /**< Second file's alternative path (may be relative). */
+	CString m_sOriginalFile1; /**< First file's original (NON-TEMP) path. */
+	CString m_sOriginalFile2; /**< Second file's original (NON-TEMP) path. */
+	CString m_sPatchFile; /**< Full path to created patch file. */
+	BOOL m_bPathsAreTemp; /**< Are compared paths temporary? */
 	/// prediffer info are stored only for MergeDoc
 	PrediffingInfo * m_infoPrediffer;
 	/// prediffer info are stored only for MergeDoc
 	CString m_sToFindPrediffer;
-	BOOL m_bUseDiffList;
-	BOOL m_bDetectMovedBlocks;
-	BOOL m_bCreatePatchFile;
-	BOOL m_bAddCmdLine;
-	BOOL m_bAppendFiles;
-	int m_nDiffs;
-	DiffList *m_pDiffList;
-	CMap<int, int, int, int> m_moved0;
-	CMap<int, int, int, int> m_moved1;
+	BOOL m_bUseDiffList; /**< Are results returned in difflist? */
+	BOOL m_bDetectMovedBlocks; /**< Are moved blocks detected? */
+	BOOL m_bCreatePatchFile; /**< Do we create a patch file? */
+	BOOL m_bAddCmdLine; /**< Do we add commandline to patch file? */
+	BOOL m_bAppendFiles; /**< Do we append to existing patch file? */
+	int m_nDiffs; /**< Difference count */
+	DiffList *m_pDiffList; /**< Pointer to external DiffList */
+	CMap<int, int, int, int> m_moved0; /**< Moved lines map for first side */
+	CMap<int, int, int, int> m_moved1; /**< Moved lines map for second side */
+	FilterCommentsManager * m_FilterCommentsManager; /**< Comments filtering manager */
 };
 
-// forward declarations needed by DiffFileData
-struct file_data;
-class PrediffingInfo;
-struct DIFFITEM;
-class IAbortable;
-
-/**
- * @brief C++ container for the structure (file_data) used by diffutils' diff_2_files(...)
- */
-struct DiffFileData
-{
-// class interface
-
-	static void SetDefaultCodepage(int defcp); // set codepage to assume for all unknown files
-
-// enums
-	enum { DIFFS_UNKNOWN=-1, DIFFS_UNKNOWN_QUICKCOMPARE=-9 };
-
-// instance interface
-
-	DiffFileData();
-	~DiffFileData();
-
-	bool OpenFiles(LPCTSTR szFilepath1, LPCTSTR szFilepath2);
-	void Reset();
-	void Close() { Reset(); }
-
-	int diffutils_compare_files(int depth);
-	int byte_compare_files(BOOL bStopAfterFirstDiff, const IAbortable * piAbortable);
-	int prepAndCompareTwoFiles(CDiffContext * pCtxt, DIFFITEM &di);
-	BOOL Diff2Files(struct change ** diffs, int depth,
-		int * bin_status, BOOL bMovedBlocks);
-
-	file_data * m_inf;
-	bool m_used; // whether m_inf has real data
-	struct FilepathWithEncoding : CString
-	{
-		int unicoding;
-		int codepage;
-		FilepathWithEncoding():unicoding(0),codepage(0)
-		{
-		}
-		bool Transform(const CString & filepath, CString & filepathTransformed,
-			const CString & filteredFilenames, PrediffingInfo * infoPrediffer, int fd);
-		void GuessEncoding_from_buffer(const char **data, int count);
-		void AssignPath(const CString & sFilePath) { CString::operator=(sFilePath); }
-	} m_sFilepath[2];
-
-	void GuessEncoding_from_buffer_in_DiffContext(int side, CDiffContext * pCtxt);
-	void GuessEncoding_from_FilepathWithEncoding(FilepathWithEncoding & fpwe);
-
-	int m_ndiffs;
-	int m_ntrivialdiffs;
-	struct UniFileBom // detect unicode file and quess encoding
-	{
-		UniFileBom(int); // initialize from file descriptor
-		int size;
-		int unicoding;
-		unsigned char buffer[4];
-	};
-
-private:
-	bool DoOpenFiles();
-};
 
 #endif // _DIFFWRAPPER_H

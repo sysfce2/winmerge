@@ -8,7 +8,7 @@
  * WinMerge.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropertyPageHost.h,v 1.1 2005/03/21 20:08:39 kimmov Exp $
+// $Id: PropertyPageHost.h 2219 2005-03-21 20:12:48Z kimmov $
 
 #if !defined(AFX_PROPERTYPAGEHOST_H__43CF5AE7_C70B_443D_BC8B_7DA1D0E082DD__INCLUDED_)
 #define AFX_PROPERTYPAGEHOST_H__43CF5AE7_C70B_443D_BC8B_7DA1D0E082DD__INCLUDED_

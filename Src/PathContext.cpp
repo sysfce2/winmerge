@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PathContext.cpp,v 1.7 2005/08/28 19:01:13 kimmov Exp $
+// $Id: PathContext.cpp 2838 2005-12-17 04:49:05Z elsapo $
 
 #include "stdafx.h"
 #include "PathContext.h"
@@ -83,6 +83,16 @@ CString PathContext::GetRight(BOOL bNormalized) const
 }
 
 /**
+ * @brief Return path
+ * @param [in] index index of path to return
+ * @param [in] sNormalized If TRUE normalized path is returned.
+ */
+CString PathContext::GetPath(int index, BOOL bNormalized) const
+{
+	return index == 0 ? m_pathLeft.GetPath(bNormalized) : m_pathRight.GetPath(bNormalized);
+}
+
+/**
  * @brief Set left path.
  * @param [in] path New path for item.
  */
@@ -100,6 +110,25 @@ void PathContext::SetRight(LPCTSTR path)
 {
 	m_pathRight.SetPath(path);
 	m_pathRight.NormalizePath();
+}
+
+/**
+ * @brief Set path
+ * @param [in] index index of path to set
+ * @param [in] path New path for item.
+ */
+void PathContext::SetPath(int index, LPCTSTR path)
+{
+	if (index == 0)
+	{
+		m_pathLeft.SetPath(path);
+		m_pathLeft.NormalizePath();
+	}
+	else
+	{
+		m_pathRight.SetPath(path);
+		m_pathRight.NormalizePath();
+	}
 }
 
 /**
@@ -187,17 +216,15 @@ BOOL TempFileContext::CreateFiles(const PathContext &paths)
  */
 BOOL TempFileContext::FilesExist()
 {
-	CFileStatus s1,s2;
 	BOOL bLeftExists = FALSE;
 	BOOL bRightExists = FALSE;
 
 	if (!GetLeft().IsEmpty())
-		bLeftExists = CFile::GetStatus(GetLeft(), s1);
+		bLeftExists = (paths_DoesPathExist(GetLeft()) == IS_EXISTING_FILE);
 	if (!GetRight().IsEmpty())
-		bRightExists = CFile::GetStatus(GetRight(), s2);
+		bLeftExists = (paths_DoesPathExist(GetRight()) == IS_EXISTING_FILE);
 	
 	return bLeftExists || bRightExists;
-
 }
 
 /**

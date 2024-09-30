@@ -4,6 +4,8 @@
 #include "stdafx.h"
 #include "SuperComboBox.h"
 
+#include <shlwapi.h>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -48,6 +50,7 @@ CSuperComboBox::CSuperComboBox(BOOL bAdd /*= TRUE*/, UINT idstrAddText /*= 0*/)
 	m_bEditChanged=FALSE;
 	m_bDoComplete = FALSE;
 	m_bAutoComplete = FALSE;
+
 	m_strCurSel = _T("");
 	if (bAdd)
 	{
@@ -107,6 +110,15 @@ void CSuperComboBox::LoadState(LPCTSTR szRegSubKey, UINT nMaxItems)
 	}
 }
 
+/** 
+ * @brief Saves strings in combobox.
+ * This function saves strings in combobox, in editbox and in dropdown.
+ * Whitespace characters are stripped from begin and end of the strings
+ * before saving. Empty strings are not saved. So strings which have only
+ * whitespace characters aren't save either.
+ * @param [in] szRegSubKey Registry subkey where to save strings.
+ * @param [in] nMaxItems Max number of strings to save.
+ */
 void CSuperComboBox::SaveState(LPCTSTR szRegSubKey, UINT nMaxItems)
 {
 	CString strItem,s,s2;
@@ -123,8 +135,9 @@ void CSuperComboBox::SaveState(LPCTSTR szRegSubKey, UINT nMaxItems)
 	for (i=0; i < cnt && idx < (int)nMaxItems; i++)
 	{
 		GetLBText(i, s);
-		if (s != strItem
-			&& !s.IsEmpty())
+		s.TrimLeft();
+		s.TrimRight();
+		if (s != strItem && !s.IsEmpty())
 		{
 			s2.Format(_T("Item_%d"), idx);
 			AfxGetApp()->WriteProfileString(szRegSubKey, s2, s);
@@ -268,6 +281,38 @@ BOOL CSuperComboBox::OnAddTemplate()
 	return FALSE;
 }
 
+void CSuperComboBox::SetAutoComplete(INT nSource)
+{
+	switch (nSource)
+	{
+		case AUTO_COMPLETE_DISABLED:
+			m_bAutoComplete = FALSE;
+			break;
+
+		case AUTO_COMPLETE_FILE_SYSTEM:
+		{
+			// Disable the build-in auto-completion and use the Windows
+			// shell functionality.
+			m_bAutoComplete = FALSE;
+
+			// ComboBox's edit control is alway 1001.
+			CWnd *pWnd = GetDlgItem(1001);
+			ASSERT(NULL != pWnd);
+			::SHAutoComplete(pWnd->m_hWnd, SHACF_FILESYSTEM);
+
+			break;
+		}
+
+		case AUTO_COMPLETE_RECENTLY_USED:
+			m_bAutoComplete = TRUE;
+			break;
+
+		default:
+			ASSERT(!"Unknown AutoComplete source.");
+			m_bAutoComplete = FALSE;
+	}
+}
+
 void CSuperComboBox::ResetContent()
 {
 	CComboBox::ResetContent();
@@ -375,16 +420,15 @@ CString CSuperComboBox::ExpandShortcut(CString &inFile)
         hres = psl->QueryInterface(IID_IPersistFile, (LPVOID*) &ppf);
         if (SUCCEEDED(hres))
         {
-            // Make sure it's ANSI
-            WORD wsz[MAX_PATH];
+            WCHAR wsz[MAX_PATH];
 #ifdef _UNICODE
-	     wcsncpy(wsz, lpsz, sizeof(wsz)/sizeof(WCHAR));
+	     wcsncpy((wchar_t *)wsz, lpsz, sizeof(wsz)/sizeof(WCHAR));
 #else
             ::MultiByteToWideChar(CP_ACP, 0, lpsz, -1, wsz, MAX_PATH);
 #endif
 
             // Load shortcut
-            hres = ppf->Load(wsz, STGM_READ);
+            hres = ppf->Load((LPCOLESTR)wsz, STGM_READ);
             if (SUCCEEDED(hres)) {
 				WIN32_FIND_DATA wfd;
 				// find the path from that

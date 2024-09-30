@@ -24,7 +24,7 @@
  *  @brief Implementation of CDiffContext
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffContext.cpp,v 1.54 2005/08/26 20:47:22 kimmov Exp $
+// $Id: DiffContext.cpp 3230 2006-04-26 17:40:19Z kimmov $
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
@@ -57,10 +57,8 @@ static char THIS_FILE[]=__FILE__;
  * @param [in] pszRight Initial right-side path.
  */
 CDiffContext::CDiffContext(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*/)
-: m_bRecurse(FALSE)
-, m_piFilterGlobal(NULL)
+: m_piFilterGlobal(NULL)
 , m_piPluginInfos(NULL)
-, m_msgUpdateStatus(0)
 , m_hDirFrame(NULL)
 , m_nCompMethod(-1)
 , m_bIgnoreSmallTimeDiff(FALSE)
@@ -88,12 +86,10 @@ CDiffContext::CDiffContext(LPCTSTR pszLeft, LPCTSTR pszRight, CDiffContext& src)
 	// and then the temporary goes away
 	// so the temporary never exists while the user is interacting with the GUI
 
-	m_bRecurse=src.m_bRecurse;
 	m_paths.SetLeft(pszLeft);
 	m_paths.SetRight(pszRight);
 	m_pList = src.m_pList;
 	m_piFilterGlobal = src.m_piFilterGlobal;
-	m_msgUpdateStatus = src.m_msgUpdateStatus;
 	m_hDirFrame = src.m_hDirFrame;
 	m_nCompMethod = src.m_nCompMethod;
 	m_bIgnoreSmallTimeDiff = src.m_bIgnoreSmallTimeDiff;
@@ -119,10 +115,10 @@ void CDiffContext::AddDiff(const DIFFITEM & di)
 }
 
 /**
- * @brief Update info in list (specified by position) from disk
- * @param [in] diffpos Difference to update
- * @param [in] bLeft Update left-side item
- * @param [in] bRight Update right-side item
+ * @brief Update info in DIFFITEM from disk.
+ * @param [in] diffpos DIFFITEM to update.
+ * @param [in] bLeft Update left-side info.
+ * @param [in] bRight Update right-side info.
  */
 void CDiffContext::UpdateStatusFromDisk(POSITION diffpos, BOOL bLeft, BOOL bRight)
 {
@@ -131,31 +127,37 @@ void CDiffContext::UpdateStatusFromDisk(POSITION diffpos, BOOL bLeft, BOOL bRigh
 	{
 		di.left.Clear();
 		if (!di.isSideRight())
-			UpdateInfoFromDiskHalf(di, di.left);
+			UpdateInfoFromDiskHalf(di, TRUE);
 	}
 	if (bRight)
 	{
 		di.right.Clear();
 		if (!di.isSideLeft())
-			UpdateInfoFromDiskHalf(di, di.right);
+			UpdateInfoFromDiskHalf(di, FALSE);
 	}
 }
 
 /**
- * @brief Update information from disk (for one side)
+ * @brief Update information from disk for selected side.
+ * @param [in, out] di DIFFITEM to update (selected side, see bLeft param).
+ * @param [in] bLeft If TRUE left side information is updated,
+ *  right side otherwise.
+ * @return TRUE if file exists
  */
-void CDiffContext::UpdateInfoFromDiskHalf(DIFFITEM & di, DiffFileInfo & dfi)
+BOOL CDiffContext::UpdateInfoFromDiskHalf(DIFFITEM & di, BOOL bLeft)
 {
-	UpdateVersion(di, dfi);
-	ASSERT(&dfi == &di.left || &dfi == &di.right);
 	CString filepath
 	(
-		&dfi == &di.left
+		bLeft == TRUE
 	?	paths_ConcatPath(di.getLeftFilepath(GetNormalizedLeft()), di.sLeftFilename)
 	:	paths_ConcatPath(di.getRightFilepath(GetNormalizedRight()), di.sRightFilename)
 	);
-	dfi.Update(filepath);
-	GuessCodepageEncoding(filepath, &dfi.unicoding, &dfi.codepage, m_bGuessEncoding);
+	DiffFileInfo & dfi = bLeft ? di.left : di.right;
+	if (!dfi.Update(filepath))
+		return FALSE;
+	UpdateVersion(di, bLeft);
+	GuessCodepageEncoding(filepath, &dfi.encoding, m_bGuessEncoding);
+	return TRUE;
 }
 
 /**
@@ -176,10 +178,16 @@ static bool CheckFileForVersion(LPCTSTR ext)
 }
 
 /**
- * @brief Load file versions from disk
+ * @brief Load file version from disk.
+ * Update fileversion for given item and side from disk. Note that versions
+ * are read from only some filetypes. See CheckFileForVersion() function
+ * for list of files to check versions.
+ * @param [in,out] di DIFFITEM to update.
+ * @param [in] bLeft If TRUE left-side file is updated, right-side otherwise.
  */
-void CDiffContext::UpdateVersion(DIFFITEM & di, DiffFileInfo & dfi) const
+void CDiffContext::UpdateVersion(DIFFITEM & di, BOOL bLeft) const
 {
+	DiffFileInfo & dfi = bLeft ? di.left : di.right;
 	// Check only binary files
 	dfi.version = _T("");
 	dfi.bVersionChecked = true;
@@ -188,7 +196,7 @@ void CDiffContext::UpdateVersion(DIFFITEM & di, DiffFileInfo & dfi) const
 		return;
 	
 	CString spath;
-	if (&dfi == &di.left)
+	if (bLeft)
 	{
 		if (di.isSideRight())
 			return;
@@ -200,7 +208,6 @@ void CDiffContext::UpdateVersion(DIFFITEM & di, DiffFileInfo & dfi) const
 	}
 	else
 	{
-		ASSERT(&dfi == &di.right);
 		if (di.isSideLeft())
 			return;
 		LPCTSTR ext = PathFindExtension(di.sRightFilename);

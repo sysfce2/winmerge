@@ -22,7 +22,7 @@
  * @file  codepage.cpp
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: codepage.cpp,v 1.5.2.1 2006/01/09 00:23:06 elsapo Exp $
+// $Id: codepage.cpp 2775 2005-12-03 21:50:50Z elsapo $
 
 #include "stdafx.h"
 #include "Merge.h"

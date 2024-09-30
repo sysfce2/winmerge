@@ -23,7 +23,7 @@ DATE:		BY:					DESCRIPTION:
 2003/11/28	Laoran 				      header and RCS ID
 */
 // RCS ID line follows -- this is updated by CVS
-// $Id: lwdisp.h,v 1.8 2003/11/28 13:39:12 laoran Exp $
+// $Id: lwdisp.h 3081 2006-02-19 20:23:16Z elsapo $
 
 #ifndef __LWDISP_H__
 #define __LWDISP_H__
@@ -74,7 +74,9 @@ extern "C"{
 	#define VT_BSTRA            14
 	#define VT_BSTRT            VT_BSTRA
 #endif
+#ifndef VTS_UI1
 #define VTS_UI1             "\x0F"      // a 'BYTE'
+#endif
 
 // parameter types: by reference VTs
 #define VTS_PI2             "\x42"      // a 'short*'
@@ -89,7 +91,6 @@ extern "C"{
 #define VTS_PBOOL           "\x4B"      // a 'VARIANT_BOOL*'
 #define VTS_PVARIANT        "\x4C"      // a 'VARIANT*'
 #define VTS_PUNKNOWN        "\x4D"      // an 'IUnknown**'
-#define VTS_PUI1            "\x4F"      // a 'BYTE*'
 
 // special VT_ and VTS_ values
 #define VTS_NONE            NULL        // used for members with 0 params

@@ -20,45 +20,48 @@
  * @brief Implementation for FileInfo routines
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: FileInfo.cpp,v 1.3 2005/06/17 19:21:17 kimmov Exp $
+// $Id: FileInfo.cpp 3944 2006-12-11 22:06:57Z kimmov $
 
 #include "stdafx.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "FileInfo.h"
-
-/**
- * @brief Convert a FILETIME to a long (standard time)
- */
-static __int64 FileTimeToInt64(FILETIME & ft)
-{
-	return CTime(ft).GetTime();
-}
 
 /**
  * @brief Update fileinfo from given file
  * @param [in] sFilePath Full path to file/directory to update
+ * @return TRUE if information was updated (item was found).
  */
-void FileInfo::Update(CString sFilePath)
+BOOL FileInfo::Update(CString sFilePath)
 {
-	// CFileFind doesn't expose the attributes
-	// CFileStatus doesn't expose 64 bit size
-
-	WIN32_FIND_DATA wfd;
-	HANDLE h = FindFirstFile(sFilePath, &wfd);
+	struct _stati64 fstats;
 	__int64 mtime64 = 0;
+	BOOL retVal = FALSE;
+
 	size = -1;
 	flags.reset();
 	mtime = 0;
-	if (h != INVALID_HANDLE_VALUE)
-	{
-		mtime64 = FileTimeToInt64(wfd.ftLastWriteTime);
-		flags.attributes = wfd.dwFileAttributes;
 
-		// No size for directory (remains as -1)
-		if ((flags.attributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
-			size = (wfd.nFileSizeHigh << 32) + wfd.nFileSizeLow;
-		FindClose(h);
+	if (_tstati64(sFilePath, &fstats) == 0)
+	{
+		// There can be files without modification date.
+		// Then we must use creation date. Of course we assume
+		// creation date then exists...
+		if (fstats.st_mtime == 0)
+			mtime64 = fstats.st_ctime;
+		else
+			mtime64 = fstats.st_mtime;
+
+		// No size for directory ( size remains as -1)
+		if ((fstats.st_mode & _S_IFDIR) == 0)
+			size = fstats.st_size;
+
+		flags.attributes = GetFileAttributes(sFilePath);
+
+		retVal = TRUE;
 	}
 	mtime = mtime64;
+	return retVal;
 }
 
 /**

@@ -173,6 +173,7 @@ static LPTSTR s_apszBasicKeywordList[] =
     _T ("Public"),
     _T ("Private"),
     _T ("Property"),
+    _T ("ReDim"),
     _T ("Rem"),
     _T ("Resume"),
     _T ("Right"),
@@ -298,6 +299,13 @@ ParseLineBasic (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualIt
   int I=0;
   for (I = 0;; nPrevI = I, I = ::CharNext(pszChars+I) - pszChars)
     {
+      if (I == nPrevI)
+        {
+          // CharNext did not advance, so we're at the end of the string
+          // and we already handled this character, so stop
+          break;
+        }
+
       if (bRedefineBlock)
         {
           int nPos = I;

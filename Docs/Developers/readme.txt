@@ -1,18 +1,10 @@
-2006-02-21 Kimmo
- PATCH: [ 1435488 ] Update for readme-developers.html
-  readme-developers.html
-
-2006-01-11 Tim
- PATCH: [ 1402858 ] Web: New background color for 'important' and 'note'
-  readme-developers.html
-
-2005-12-28 Perry
- BUG: [ 1389855 ] grammar fix in plugin docs
-  Plugins.html
+2005-09-22
+ Old history from 2005-04-04 through 2005-09-22.
+ See Changes.txt for more up-to-date information.
 
 2005-09-22 Kimmo
- PATCH: [ 1298109 ] Docs: Document ShellExtension versioning
-  Developers: readme-developers.html
+ New file Changes.txt created.
+ See Changes.txt for more up-to-date information.
 
 2005-08-28 Kimmo
  PATCH: [ 1274509 ] Small update for installer doc

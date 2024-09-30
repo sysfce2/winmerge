@@ -4,7 +4,7 @@
  *  @brief Declaration of DiffItemList
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: DiffItemList.h,v 1.3 2005/08/11 20:13:17 kimmov Exp $
+// $Id: DiffItemList.h 2549 2005-08-11 20:13:17Z kimmov $
 
 #ifndef _DIFF_ITEM_LIST_H_
 #define _DIFF_ITEM_LIST_H_

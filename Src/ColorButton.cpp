@@ -5,7 +5,7 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ColorButton.cpp,v 1.3 2005/05/24 14:07:23 elsapo Exp $
+// $Id: ColorButton.cpp 2384 2005-05-24 14:07:23Z elsapo $
 
 #include "stdafx.h"
 #include "ColorButton.h"

@@ -20,7 +20,7 @@
  * @brief Implementation of the CWMGotoDlg class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: WMGotoDlg.cpp,v 1.1 2004/01/18 13:54:23 kimmov Exp $
+// $Id: WMGotoDlg.cpp 956 2004-01-18 13:56:30Z kimmov $
 
 #include "stdafx.h"
 #include "merge.h"

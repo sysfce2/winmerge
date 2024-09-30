@@ -9,7 +9,7 @@
  * This uses the CRegExp class from WinMerge Src\Common.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PatternSet.h,v 1.2.2.2 2006/08/08 14:01:20 galh Exp $
+// $Id: PatternSet.h 3135 2006-03-06 03:01:38Z elsapo $
 
 #ifndef PatternSet_h_included
 #define PatternSet_h_included

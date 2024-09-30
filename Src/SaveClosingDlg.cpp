@@ -20,7 +20,7 @@
  * @brief Implementation file for SaveClosingDlg dialog
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: SaveClosingDlg.cpp,v 1.5 2005/07/26 14:50:10 elsapo Exp $
+// $Id: SaveClosingDlg.cpp 2527 2005-07-26 14:50:10Z elsapo $
 
 #include "stdafx.h"
 #include "SaveClosingDlg.h"

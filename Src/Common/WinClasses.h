@@ -8,7 +8,7 @@
  * WinMerge.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: WinClasses.h,v 1.1 2005/03/21 20:08:39 kimmov Exp $
+// $Id: WinClasses.h 2219 2005-03-21 20:12:48Z kimmov $
 
 #if !defined(AFX_WINCLASSES_H__4A958ACC_A399_4B69_A988_FA70F16C3EAC__INCLUDED_)
 #define AFX_WINCLASSES_H__4A958ACC_A399_4B69_A988_FA70F16C3EAC__INCLUDED_

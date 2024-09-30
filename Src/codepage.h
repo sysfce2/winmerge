@@ -2,12 +2,10 @@
  * @file  codepage.h
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: codepage.h,v 1.4 2005/05/31 16:11:55 elsapo Exp $
+// $Id: codepage.h 2870 2005-12-29 08:09:08Z elsapo $
 
 #ifndef __CODEPAGE_H__
 #define __CODEPAGE_H__
-
-class CRegOptions;
 
 void updateDefaultCodepage(int cpDefaultMode, int customCodepage);
 int getDefaultCodepage();

@@ -4,7 +4,7 @@
  * @brief Declaration file for CColorButton class
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ColorButton.h,v 1.5 2004/03/02 13:03:01 kimmov Exp $
+// $Id: ColorButton.h 1052 2004-03-02 13:03:01Z kimmov $
 
 #if !defined(AFX_COLORBUTTON_H__75623C05_2D2D_4FBE_B819_661F49DEAE94__INCLUDED_)
 #define AFX_COLORBUTTON_H__75623C05_2D2D_4FBE_B819_661F49DEAE94__INCLUDED_

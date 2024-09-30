@@ -6,12 +6,13 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: SplitterWndEx.cpp,v 1.5 2004/06/17 11:18:44 laoran Exp $
+// $Id: SplitterWndEx.cpp 4857 2008-01-05 12:46:03Z sdottaka $
 //
 //////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
 #include "SplitterWndEx.h"
+#include "MergeEditView.h"  // For printing - MasterPrint()
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -76,8 +77,7 @@ void CSplitterWndEx::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar *pScrollBar)
 			continue;
 
 		CScrollBar* curBar = GetPane(0, col)->GetScrollBarCtrl(SB_HORZ);
-		double temp = ((double) pScrollBar->GetScrollPos()) * curBar->GetScrollLimit() + oldLimit/2;
-		int newPos = (int) (temp/oldLimit);
+		int newPos = min(pScrollBar->GetScrollPos(), curBar->GetScrollLimit());
 
 		// Set the scrollbar info using SetScrollInfo(), limited to 2.000.000.000 characters,
 		// better than the 32.768 characters (signed short) of SendMessage(WM_HSCROLL,...) 
@@ -101,12 +101,12 @@ void CSplitterWndEx::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar *pScrollBar)
 
 void CSplitterWndEx::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar *pScrollBar)
 {
-	// maintain original synchronization functionality (all panes left from the scrollbar)
-	CSplitterWnd::OnVScroll(nSBCode, nPos, pScrollBar);
-
 	// only sync if shared vertical bars
 	if((GetScrollStyle()&WS_VSCROLL) == 0)
 		return;
+
+	// maintain original synchronization functionality (all panes left from the scrollbar)
+	CSplitterWnd::OnVScroll(nSBCode, nPos, pScrollBar);
 
 	// enhance with proportional vertical scroll synchronization
 	ASSERT(pScrollBar != NULL);
@@ -179,21 +179,27 @@ void CSplitterWndEx::EqualizeCols()
 	int i;
 	int sum = 0;
 	int hmin;
+
 	for (i = 0 ; i < m_nCols ; i++)
 	{
 		int v;
 		GetColumnInfo(i, v, hmin);
 		sum += v;
 	}
-	int vEqual = sum/m_nCols;
-	for (i = 0 ; i < m_nCols-1 ; i++)
-	{
-		SetColumnInfo(i, vEqual, hmin);
-		sum -= vEqual;
-	}
-	SetColumnInfo(i, sum, hmin);
 
-	RecalcLayout();
+	// Sum is negative if WinMerge started minimized.
+	if (sum > 0)
+	{
+		int vEqual = sum/m_nCols;
+		for (i = 0 ; i < m_nCols-1 ; i++)
+		{
+			SetColumnInfo(i, vEqual, hmin);
+			sum -= vEqual;
+		}
+		SetColumnInfo(i, sum, hmin);
+
+		RecalcLayout();
+	}
 }
 
 
@@ -213,4 +219,21 @@ void CSplitterWndEx::OnSize(UINT nType, int cx, int cy)
 
 }
 
+void CSplitterWndEx::MasterPrint(CDC* pDC, CPrintInfo* pInfo)
+{
+	CRect rDraw = pInfo->m_rectDraw;
+	CSize sz = rDraw.Size();
+	int midX = sz.cx / 2;
+	
+	// print left pane	
+	pInfo->m_rectDraw.right	= midX;
+	CMergeEditView* pLeftPane = (CMergeEditView*)GetPane(0,0);
+	pLeftPane->SlavePrint(pDC,pInfo);
 
+	// print right pane
+	pInfo->m_rectDraw = rDraw;
+	pInfo->m_rectDraw.left = midX;
+
+	CMergeEditView* pRightPane = (CMergeEditView*)GetPane(0,1);
+	pRightPane->SlavePrint(pDC,pInfo);
+}

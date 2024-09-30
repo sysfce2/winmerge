@@ -8,13 +8,18 @@
  * @brief Project-wide includes and declarations
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: StdAfx.h,v 1.17.2.2 2006/01/07 12:03:21 kimmov Exp $
+// $Id: StdAfx.h 3354 2006-07-08 13:59:03Z kimmov $
 
 #if !defined(AFX_STDAFX_H__BBCD4F8A_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_STDAFX_H__BBCD4F8A_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
 
 #define WINVER 0x400
 #define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
+
+//Make VS2005 build less noisy by disabling warnings for deprecated string functions.
+#if _MSC_VER >= 1400
+	#define _CRT_SECURE_NO_DEPRECATE
+#endif
 
 // Common MFC headers
 
@@ -44,7 +49,21 @@
 const UINT MSG_UI_UPDATE = WM_USER + 1;
 /// New item compared, update statepane
 const UINT MSG_STAT_UPDATE = WM_USER + 2;
+/// Request to save panesizes
+const UINT MSG_STORE_PANESIZES = WM_USER + 3;
 /* @} */
+
+/**
+ * @brief Indexes to Merge views (file compare).
+ * We currently have two views, left and right, but in future there
+ * can be more views.
+ */
+enum MERGE_VIEW_ID
+{
+	MERGE_VIEW_LEFT, /**< Left view */
+	MERGE_VIEW_RIGHT, /**< Right view */
+	MERGE_VIEW_COUNT, /**< Count of views */
+};
 
 /// Seconds ignored in filetime differences if option enabled
 static const UINT SmallTimeDiff = 2;
@@ -83,6 +102,7 @@ struct gLog
 	static UINT DeleteFileFailed(LPCTSTR path);
 };
 
+bool IsUnicodeBuild();
 
 	/** @brief include for the custom dialog boxes, with do not ask/display again */
 #include "MessageBoxDialog.h"

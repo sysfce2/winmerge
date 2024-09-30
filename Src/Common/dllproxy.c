@@ -39,7 +39,7 @@ DATE:		BY:					DESCRIPTION:
 
 */
 // RCS ID line follows -- this is updated by CVS
-// $Id: dllproxy.c,v 1.3 2003/10/17 09:49:15 laoran Exp $
+// $Id: dllproxy.c 650 2003-10-17 09:49:15Z laoran $
 
 #if defined(_MSC_VER)&&!defined(NO_ALLOCA_RECOVERY)||defined(ALLOCA_RECOVERY)
 #undef ALLOCA_RECOVERY
