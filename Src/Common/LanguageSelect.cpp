@@ -4,11 +4,11 @@
  * @brief Implements the Language Selection dialog class (which contains the language data)
  */
 // ID line follows -- this is updated by SVN
-// $Id: LanguageSelect.cpp 5488 2008-06-16 17:40:20Z kimmov $
+// $Id: LanguageSelect.cpp 5911 2008-09-07 03:30:21Z marcelgosselin $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "OptionsDef.h"
-#include "merge.h"
+#include "Merge.h"
 #include "version.h"
 #include "resource.h"
 #include "LanguageSelect.h"
@@ -497,6 +497,7 @@ CLanguageSelect::CLanguageSelect(UINT idMainMenu, UINT idDocMenu, BOOL bReloadMe
 , m_bReloadMenu(bReloadMenu)
 , m_bUpdateTitle(bUpdateTitle)
 {
+	SetThreadLocale(MAKELCID(m_wCurLanguage, SORT_DEFAULT));
 }
 
 void CLanguageSelect::DoDataExchange(CDataExchange* pDX)
@@ -509,7 +510,7 @@ void CLanguageSelect::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CLanguageSelect, CDialog)
 //{{AFX_MSG_MAP(CLanguageSelect)
-	ON_LBN_DBLCLK(IDC_LANGUAGE_LIST, OnDblclkLanguageList)
+	ON_LBN_DBLCLK(IDC_LANGUAGE_LIST, OnOK)
 //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -1206,11 +1207,6 @@ void CLanguageSelect::OnOK()
 	}
 	
 	EndDialog(IDOK);
-}
-
-void CLanguageSelect::OnDblclkLanguageList()
-{
-	OnOK();
 }
 
 BOOL CLanguageSelect::OnInitDialog()

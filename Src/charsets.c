@@ -3,7 +3,7 @@
   (c) 1998-2004 (W3C) MIT, ERCIM, Keio University
   See tidy.h for the copyright notice.
 
-  $Id: charsets.c 3841 2006-11-23 17:54:41Z kimmov $
+  $Id: charsets.c 5895 2008-09-05 10:08:59Z jtuc $
 
 * Changes 2005-01-09 Jochen Tucht
   This file originates from the Tidy library (tidy.sourceforge.net).
@@ -962,9 +962,9 @@ static struct _charsetInfo
   {   0, NULL,                                                0,  no }
 };
 
-static struct _charsetInfo **index1;
-static struct _charsetInfo **index2;
-static struct _charsetInfo **index3;
+static struct _charsetInfo const **index1;
+static struct _charsetInfo const **index2;
+static struct _charsetInfo const **index3;
 
 enum { numCharsetInfo = sizeof charsetInfo / sizeof *charsetInfo - 1 };
 
@@ -1061,17 +1061,17 @@ void charsets_cleanup(void)
 {
 	if (index1)
 	{
-		free(index1);
+		free((void *)index1);
 		index1 = NULL;
 	}
 	if (index2)
 	{
-		free(index2);
+		free((void *)index2);
 		index2 = NULL;
 	}
 	if (index3)
 	{
-		free(index3);
+		free((void *)index3);
 		index3 = NULL;
 	}
 }

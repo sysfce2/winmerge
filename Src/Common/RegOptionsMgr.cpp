@@ -5,8 +5,12 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: RegOptionsMgr.cpp 5490 2008-06-16 18:54:40Z kimmov $
+// $Id: RegOptionsMgr.cpp 6498 2009-02-25 13:25:32Z kimmov $
 
+// Disable VC6's "identifier was truncated..." warning. It is meaningless.
+#if _MSC_VER == 1200
+	#pragma warning(disable: 4786)
+#endif
 #include <windows.h>
 #include <tchar.h>
 #include "OptionsMgr.h"
@@ -62,7 +66,6 @@ int CRegOptionsMgr::LoadValueFromReg(HKEY hKey, LPCTSTR strName,
 	LONG retValReg = 0;
 	LPBYTE pData = NULL;
 	DWORD type = 0;
-	TCHAR * valueBuf = NULL;
 	DWORD size = 0;
 	int valType = value.GetType();
 	int retVal = OPT_OK;
@@ -233,7 +236,7 @@ int CRegOptionsMgr::InitOption(LPCTSTR name, varprop::VariantValue defaultValue)
 			retVal = SaveValueToReg(hKey, strValueName.c_str(), defaultValue);
 		}
 		// Value already exists so read it.
-		else if (retValReg == ERROR_SUCCESS || ERROR_MORE_DATA)
+		else if (retValReg == ERROR_SUCCESS || retValReg == ERROR_MORE_DATA)
 		{
 			retVal = LoadValueFromReg(hKey, name, defaultValue);
 			if (retVal == OPT_OK)

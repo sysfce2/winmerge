@@ -21,7 +21,7 @@
  * @brief String utilities.
  */
 // ID line follows -- this is updated by SVN
-// $Id: UnicodeString.cpp 5057 2008-02-19 21:02:22Z kimmov $
+// $Id: UnicodeString.cpp 6063 2008-11-04 20:07:22Z kimmov $
 
 #include <tchar.h>
 #include "UnicodeString.h"
@@ -56,11 +56,35 @@ int string_compare_nocase(const String &str1, const String &str2)
 {
 	String s1(str1);
 	String s2(str2);
-	int i = 0;
+    String::size_type i = 0;
 	for (i = 0; i < s1.length(); i++)
 		s1[i] = _totlower(s1[i]);
 	for (i = 0; i < s2.length(); i++)
 		s2[i] = _totlower(s2[i]);
 
 	return s1.compare(s2);
+}
+
+/**
+ * @brief Trims whitespace chars from begin and end of the string.
+ * @param [in] str the original string.
+ * @return Trimmed string.
+ */
+String string_trim_ws(const String & str)
+{
+	String result(str);
+	String::iterator it = result.begin();
+	while (_istspace(*it))
+		++it;
+	
+	if (it != result.begin())
+		result.erase(result.begin(), it);
+
+	it = result.end() - 1;
+	while (_istspace(*it))
+		--it;
+
+	if (it != result.end() - 1)
+		result.erase(it + 1, result.end());
+	return result;
 }

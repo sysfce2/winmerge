@@ -4,7 +4,7 @@
  * @brief Compare options classes and types.
  */
 // ID line follows -- this is updated by SVN
-// $Id: CompareOptions.h 4455 2007-08-21 14:11:04Z kimmov $
+// $Id: CompareOptions.h 5920 2008-09-07 16:15:10Z marcelgosselin $
 
 #ifndef CompareOptions_h_included
 #define CompareOptions_h_included
@@ -69,10 +69,10 @@ enum DiffOutputType
 struct DIFFOPTIONS
 {
 	int nIgnoreWhitespace; /**< Ignore whitespace -option. */
-	BOOL bIgnoreCase; /**< Ignore case -option. */
-	BOOL bIgnoreBlankLines; /**< Ignore blank lines -option. */
-	BOOL bIgnoreEol; /**< Ignore EOL differences -option. */
-	BOOL bFilterCommentsLines; /**< Ignore Multiline comments differences -option. */
+	bool bIgnoreCase; /**< Ignore case -option. */
+	bool bIgnoreBlankLines; /**< Ignore blank lines -option. */
+	bool bIgnoreEol; /**< Ignore EOL differences -option. */
+	bool bFilterCommentsLines; /**< Ignore Multiline comments differences -option. */
 };
 
 /**
@@ -110,7 +110,7 @@ public:
 
 	enum DiffOutputType m_outputStyle; /**< Output style (for patch files) */
 	int m_contextLines; /**< Number of context lines (for patch files) */
-	int m_filterCommentsLines;/**< Ignore Multiline comments differences.*/
+	bool m_filterCommentsLines;/**< Ignore Multiline comments differences.*/
 };
 
 /**
@@ -124,7 +124,7 @@ public:
 	QuickCompareOptions();
 	QuickCompareOptions(const CompareOptions& options);
 
-	BOOL m_bStopAfterFirstDiff; /**< Optimize compare by stopping after first difference? */
+	bool m_bStopAfterFirstDiff; /**< Optimize compare by stopping after first difference? */
 };
 
 #endif // CompareOptions_h_included

@@ -4,10 +4,10 @@
  *  @brief Implementation of CVersionInfo class
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: version.cpp 5350 2008-05-21 13:30:03Z kimmov $
+// $Id: version.cpp 5911 2008-09-07 03:30:21Z marcelgosselin $
 
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "version.h"
 
 /** 

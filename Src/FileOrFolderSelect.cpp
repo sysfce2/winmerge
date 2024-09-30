@@ -24,7 +24,7 @@
  * @brief Implementation of the file and folder selection routines.
  */
 // ID line follows -- this is updated by SVN
-// $Id: FileOrFolderSelect.cpp 5294 2008-04-14 06:41:02Z kimmov $
+// $Id: FileOrFolderSelect.cpp 6571 2009-03-15 18:16:50Z kimmov $
 
 #include "stdafx.h"
 #include <sys/stat.h>
@@ -48,7 +48,12 @@
 #define BIF_USENEWUI           (BIF_NEWDIALOGSTYLE | BIF_EDITBOX)
 #endif
 
+static int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam,
+		LPARAM lpData);
 static void ConvertFilter(LPTSTR filterStr);
+
+/** @brief Last selected folder for folder selection dialog. */
+static String LastSelectedFolder;
 
 /**
  * @brief Helper function for selecting folder or file.
@@ -60,7 +65,7 @@ static void ConvertFilter(LPTSTR filterStr);
  *     CMainFrame is used which can cause modality problems.
  * @param [out] path Selected path is returned in this string
  * @param [in] initialPath Initial path (and file) shown when dialog is opened
- * @param [in] title Title for path selection dialog
+ * @param [in] titleid Resource string ID for dialog title.
  * @param [in] filterid 0 or STRING ID for filter string
  *     - 0 means "All files (*.*)". Note the string formatting!
  * @param [in] is_open Selects Open/Save -dialog (mode).
@@ -140,7 +145,7 @@ BOOL SelectFile(HWND parent, CString& path, LPCTSTR initialPath /*=NULL*/,
  * @brief Helper function for selecting directory
  * @param [out] path Selected path is returned in this string
  * @param [in] root_path Initial path shown when dialog is opened
- * @param [in] title Title for path selection dialog
+ * @param [in] titleid Resource string ID for dialog title.
  * @param [in] hwndOwner Handle to owner window or NULL
  * @return TRUE if valid folder selected (not cancelled)
  */
@@ -148,20 +153,23 @@ BOOL SelectFolder(CString& path, LPCTSTR root_path /*=NULL*/,
 			UINT titleid /*=0*/, 
 			HWND hwndOwner /*=NULL*/) 
 {
-	UNREFERENCED_PARAMETER(root_path);
 	BROWSEINFO bi;
 	LPMALLOC pMalloc;
 	LPITEMIDLIST pidl;
 	TCHAR szPath[MAX_PATH] = {0};
 	BOOL bRet = FALSE;
 	String title = theApp.LoadString(titleid);
+	if (root_path == NULL)
+		LastSelectedFolder.clear();
+	else
+		LastSelectedFolder = root_path;
 
 	bi.hwndOwner = hwndOwner;
 	bi.pidlRoot = NULL;  // Start from desktop folder
 	bi.pszDisplayName = szPath;
 	bi.lpszTitle = title.c_str();
-	bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_USENEWUI;
-	bi.lpfn = NULL;
+	bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_USENEWUI | BIF_VALIDATE;
+	bi.lpfn = BrowseCallbackProc;
 	bi.lParam = NULL;
 
 	pidl = SHBrowseForFolder(&bi);
@@ -180,6 +188,21 @@ BOOL SelectFolder(CString& path, LPCTSTR root_path /*=NULL*/,
 	}
 	return bRet;
 }
+
+/**
+ * @brief Callback function for setting selected folder for folder dialog.
+ */
+static int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam,
+		LPARAM lpData)
+{
+	// Look for BFFM_INITIALIZED
+	if (uMsg == BFFM_INITIALIZED)
+	{
+		SendMessage(hwnd, BFFM_SETSELECTION, TRUE, (LPARAM)LastSelectedFolder.c_str());
+	}
+	return 0;
+}
+
 
 /** 
  * @brief Shows file/folder selection dialog.

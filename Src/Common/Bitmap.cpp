@@ -5,9 +5,9 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: Bitmap.cpp 5283 2008-04-11 19:56:56Z kimmov $
+// $Id: Bitmap.cpp 6344 2009-01-16 14:37:18Z kimmov $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include <math.h>
 #include "Bitmap.h"
 
@@ -126,7 +126,7 @@ CBitmap *GetDarkenedBitmap(CDC *pDC, CBitmap *pBitmap)
 	}
 
 	SetDIBits(dcMem.m_hDC, (HBITMAP)*pBitmapDarkened, 0, bm.bmHeight, pbuf, &bi, DIB_RGB_COLORS);
-	delete pbuf;
+	delete[] pbuf;
 	dcMem.SelectObject(pOldBitmap);
 	dcMem.DeleteDC();
 	return pBitmapDarkened;

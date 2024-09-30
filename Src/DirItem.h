@@ -20,7 +20,7 @@
  * @brief Declaration file for DirItem
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirItem.h 5019 2008-02-10 11:50:33Z jtuc $
+// $Id: DirItem.h 5630 2008-07-17 16:46:29Z kimmov $
 
 #ifndef _DIR_ITEM_H_INCLUDED
 #define _DIR_ITEM_H_INCLUDED
@@ -43,6 +43,9 @@ struct FileFlags
  * This class stores basic information from a file or folder.
  * Information consists of item name, times, size and attributes.
  * Also version info can be get for files supporting it.
+ *
+ * @note times in are seconds since January 1, 1970.
+ * See Dirscan.cpp/fentry and Dirscan.cpp/LoadFiles()
  */
 struct DirItem
 {
@@ -54,10 +57,10 @@ struct DirItem
 	bool bIsDir; /**< is this a directory item or file item? */
 	FileVersion version; /**< string of fixed file version, eg, 1.2.3.4 */
 	FileFlags flags; /**< file attributes */
+
 	DirItem() : ctime(0), mtime(0), size(-1), bIsDir(false) { }
 	void SetFile(String fullPath);
 	BOOL Update(const String &sFilePath);
-	//void Clear();
 	void ClearPartial();
 };
 

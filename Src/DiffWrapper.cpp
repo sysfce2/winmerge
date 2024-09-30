@@ -22,20 +22,22 @@
  * @date  Created: 2003-08-22
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffWrapper.cpp 5647 2008-07-21 09:41:45Z kimmov $
+// $Id: DiffWrapper.cpp 6808 2009-06-01 16:52:57Z kimmov $
 
-#include "stdafx.h"
+#include "StdAfx.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <string>
 #include <map>
 #include <shlwapi.h>
 #include "Ucs2Utf8.h"
 #include "coretools.h"
-#include "diffcontext.h"
+#include "DiffContext.h"
 #include "DiffList.h"
 #include "MovedLines.h"
 #include "FilterList.h"
-#include "diffwrapper.h"
-#include "diff.h"
+#include "DiffWrapper.h"
+#include "DIFF.H"
 #include "FileTransform.h"
 #include "LogFile.h"
 #include "paths.h"
@@ -45,6 +47,7 @@
 #include "FilterCommentsManager.h"
 #include "Environment.h"
 #include "AnsiConvert.h"
+#include "UnicodeString.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -242,7 +245,7 @@ void CDiffWrapper::SetPatchOptions(const PATCHOPTIONS *options)
  * @brief Enables/disables moved block detection.
  * @param [in] bDetectMovedBlocks If TRUE moved blocks are detected.
  */
-void CDiffWrapper::SetDetectMovedBlocks(BOOL bDetectMovedBlocks)
+void CDiffWrapper::SetDetectMovedBlocks(bool bDetectMovedBlocks)
 {
 	if (bDetectMovedBlocks)
 	{
@@ -322,13 +325,13 @@ static bool IsTrivialLine(const std::string &Line,
 
 /**
 	@brief Performs post-filtering, by setting comment blocks to trivial
-	@param[in]  StartPos			- First line number to read
-	@param[in]  EndPos				- The line number PASS the last line number to read
-	@param[in]  QtyLinesInBlock		- Number of lines in diff block.  Not needed in backward direction.
-	@param[in]  Direction			- This should be 1 or -1, to indicate which direction to read (backward or forward)
-	@param[in/out]  Op				- This variable is set to trivial if block should be ignored.
-	@param[in]  FileNo				- Should be 0 or 1, to indicate left or right file.
-	@param[in]  filtercommentsset	- Comment marker set used to indicate comment blocks.
+	@param [in]  StartPos			- First line number to read
+	@param [in]  EndPos				- The line number PASS the last line number to read
+	@param [in]  QtyLinesInBlock		- Number of lines in diff block.  Not needed in backward direction.
+	@param [in]  Direction			- This should be 1 or -1, to indicate which direction to read (backward or forward)
+	@param [in,out]  Op				- This variable is set to trivial if block should be ignored.
+	@param [in]  FileNo				- Should be 0 or 1, to indicate left or right file.
+	@param [in]  filtercommentsset	- Comment marker set used to indicate comment blocks.
 	@return		Always returns true in reverse direction.
 				In forward direction, returns false if none trivial data is found within QtyLinesInBlock
 */
@@ -454,10 +457,10 @@ static bool PostFilter(int StartPos, int EndPos, int Direction,
 
 /**
 @brief Performs post-filtering on single line comments, by setting comment blocks to trivial
-@param[in]  LineStr				- Line of string to check that must be NULL terminated.
-@param[in/out]  Op				- This variable is set to trivial if block should be ignored.
-@param[in]  filtercommentsset	- Comment marker set used to indicate comment blocks.
-@param[in]  PartOfMultiLineCheck- Set to true, if this block is a multiple line block
+@param [in]  LineStr				- Line of string to check that must be NULL terminated.
+@param [in,out]  Op				- This variable is set to trivial if block should be ignored.
+@param [in]  filtercommentsset	- Comment marker set used to indicate comment blocks.
+@param [in]  PartOfMultiLineCheck- Set to true, if this block is a multiple line block
 */
 static void PostFilterSingleLine(const char* LineStr, int &Op,
 	const FilterCommentsSet& filtercommentsset, bool PartOfMultiLineCheck)
@@ -493,13 +496,13 @@ static void PostFilterSingleLine(const char* LineStr, int &Op,
 
 /**
 @brief The main entry for post filtering.  Performs post-filtering, by setting comment blocks to trivial
-@param[in]  LineNumberLeft		- First line number to read from left file
-@param[in]  QtyLinesLeft		- Number of lines in the block for left file
-@param[in]  LineNumberRight		- First line number to read from right file
-@param[in]  QtyLinesRight		- Number of lines in the block for right file
-@param[in/out]  Op				- This variable is set to trivial if block should be ignored.
-@param[in]  filtercommentsset	- Comment marker set used to indicate comment blocks.
-@param[in]  FileNameExt			- The file name extension.  Needs to be lower case string ("cpp", "java", "c")
+@param [in]  LineNumberLeft		- First line number to read from left file
+@param [in]  QtyLinesLeft		- Number of lines in the block for left file
+@param [in]  LineNumberRight		- First line number to read from right file
+@param [in]  QtyLinesRight		- Number of lines in the block for right file
+@param [in,out]  Op				- This variable is set to trivial if block should be ignored.
+@param [in]  filtercommentsset	- Comment marker set used to indicate comment blocks.
+@param [in]  FileNameExt			- The file name extension.  Needs to be lower case string ("cpp", "java", "c")
 */
 static void PostFilter(int LineNumberLeft, int QtyLinesLeft, int LineNumberRight,
 	int QtyLinesRight, int &Op, const FilterCommentsManager &filtercommentsmanager,
@@ -1062,17 +1065,18 @@ bool CDiffWrapper::RegExpFilter(int StartPos, int EndPos, int FileNo)
 
 	while (line <= EndPos && linesMatch == true)
 	{
-		std::string LineData(files[FileNo].linbuf[line]);
-		size_t EolPos = LineData.find_first_of(EolIndicators);
-		if (EolPos != std::string::npos)
+		char * linedata = strdup(files[FileNo].linbuf[line]);
+		int eolpos = strcspn(linedata, EolIndicators);
+		if (eolpos != strlen(linedata))
 		{
-			LineData.erase(EolPos);
+			linedata[eolpos] = '\0';
 		}
 
-		if (!m_pFilterList->Match(LineData.c_str(), m_codepage))
+		if (!m_pFilterList->Match(linedata, m_codepage))
 		{
 			linesMatch = false;
 		}
+		free(linedata);
 		++line;
 	}
 	return linesMatch;
@@ -1224,6 +1228,19 @@ void CDiffWrapper::WritePatchFile(struct change * script, file_data * inf)
 	replace_char(&*path2.begin(), '\\', '/');
 	inf_patch[0].name = ansiconvert_SystemCP(path1.c_str());
 	inf_patch[1].name = ansiconvert_SystemCP(path2.c_str());
+
+	// Fix timestamps for generated patch files
+	// If there are translations needed (e.g. when comparing UTF-16 files)
+	// then the stats in 'inf' are read from temp files. If the original
+	// file's and read timestamps differ, use original file's timestamps.
+	// See also sf.net bug item #2791506.
+	struct __stat64 st;
+	_tstat64(path1.c_str(), &st);
+	if (st.st_mtime != inf_patch[0].stat.st_mtime)
+		inf_patch[0].stat.st_mtime = st.st_mtime;
+	_tstat64(path2.c_str(), &st);
+	if (st.st_mtime != inf_patch[1].stat.st_mtime)
+		inf_patch[1].stat.st_mtime = st.st_mtime;
 
 	outfile = NULL;
 	if (!m_sPatchFile.IsEmpty())

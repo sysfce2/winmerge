@@ -8,7 +8,7 @@
  * WinMerge.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: PropertyPageHost.h 2219 2005-03-21 20:12:48Z kimmov $
+// $Id: PropertyPageHost.h 6810 2009-06-02 04:41:46Z kimmov $
 
 #if !defined(AFX_PROPERTYPAGEHOST_H__43CF5AE7_C70B_443D_BC8B_7DA1D0E082DD__INCLUDED_)
 #define AFX_PROPERTYPAGEHOST_H__43CF5AE7_C70B_443D_BC8B_7DA1D0E082DD__INCLUDED_
@@ -41,6 +41,7 @@ public:
 	BOOL Create(LPRECT lpRect, CWnd* pParent, UINT uCtrlID = AFX_IDW_PANE_FIRST);
 	BOOL Create(UINT nRefCtrlID, CWnd* pParent, UINT uCtrlID = AFX_IDW_PANE_FIRST);
 	void OnOK();
+	void UpdatePagesData();
 	
 	int GetActiveIndex();
 	CPropertyPage* GetActivePage();

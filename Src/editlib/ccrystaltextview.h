@@ -29,7 +29,7 @@
  * @brief Declaration file for CCrystalTextView
  */
 // ID line follows -- this is updated by SVN
-// $Id: ccrystaltextview.h 5514 2008-06-24 08:47:25Z kimmov $
+// $Id: ccrystaltextview.h 6093 2008-11-17 23:35:56Z gerundt $
 
 #if !defined(AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_)
 #define AFX_CCRYSTALTEXTVIEW_H__AD7F2F41_6CB3_11D2_8C32_0080ADB86836__INCLUDED_
@@ -461,12 +461,15 @@ protected:
     virtual void DrawMargin (CDC * pdc, const CRect & rect, int nLineIndex, int nLineNumber);
 
     int GetCharWidthFromChar(TCHAR ch);
-	int GetCharWidthFromString(LPCTSTR lpsz);
-	int GetCharWidthFromDisplayableChar(const ViewableWhitespaceChars * lpspc, TCHAR ch);
+    int GetCharWidthFromString(LPCTSTR lpsz);
+    int GetCharWidthFromDisplayableChar(const ViewableWhitespaceChars * lpspc, TCHAR ch);
 
 #ifdef _UNICODE
+    BOOL m_bChWidthsCalculated[65536/256];
+    int m_iChDoubleWidthFlags[65536/32];
     int GetCharWidthUnicodeChar(wchar_t ch);
 #endif
+    void ResetCharWidths();
 
 	//BEGIN SW
 	// word wrapping
@@ -663,6 +666,7 @@ public :
     DWORD ParseLineSql (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineTcl (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineTex (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
+    DWORD ParseLineVerilog (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
     DWORD ParseLineXml (DWORD dwCookie, int nLineIndex, TEXTBLOCK * pBuf, int &nActualItems);
 
     // Attributes
@@ -742,6 +746,7 @@ public :
       SRC_SQL,
       SRC_TCL,
       SRC_TEX,
+      SRC_VERILOG,
       SRC_XML
     }
     TextType;

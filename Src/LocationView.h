@@ -8,11 +8,12 @@
 //////////////////////////////////////////////////////////////////////
 
 // ID line follows -- this is updated by SVN
-// $Id: LocationView.h 6050 2008-10-29 20:07:21Z kimmov $
+// $Id: LocationView.h 6085 2008-11-12 17:31:24Z kimmov $
 
 #ifndef __LOCATIONVIEW_H__
 #define __LOCATIONVIEW_H__
 
+#include <vector>
 
 /**
  * @brief Status for display moved block
@@ -50,9 +51,6 @@ struct DiffBlock
 	unsigned diff_index; /**< Index of difference in the original diff list. */
 };
 
-typedef CList<DiffBlock, DiffBlock&> DIFFBLOCK_LIST;
-
-
 /** 
  * @brief Class showing map of files.
  * The location is a view showing two vertical bars. Each bar depicts one file
@@ -87,7 +85,7 @@ protected:
 protected:
 	CMergeDoc* GetDocument();
 	void DrawRect(CDC* pDC, const CRect& r, COLORREF cr, BOOL bSelected = FALSE);
-	BOOL GotoLocation(const CPoint& point, BOOL bRealLine = TRUE);
+	bool GotoLocation(const CPoint& point, bool bRealLine = true);
 	int GetLineFromYPos(int nYCoord, int bar, BOOL bRealLine = TRUE);
 	int IsInsideBar(const CRect& rc, const POINT& pt);
 	void DrawVisibleAreaRect(CDC* pDC, int nTopLine = -1, int nBottomLine = -1);
@@ -95,6 +93,8 @@ protected:
 	void DrawDiffMarker(CDC* pDC, int yCoord);
 	void CalculateBars();
 	void CalculateBlocks();
+	void CalculateBlocksPixel(int nBlockStart, int nBlockEnd, int nBlockLength,
+			int &nBeginY, int &nEndY);
 	void DrawBackground(CDC* pDC);
 
 private:
@@ -110,7 +110,7 @@ private:
 	HWND m_hwndFrame; //*< Frame window handle */
 	CBitmap *m_pSavedBackgroundBitmap; //*< Saved background */
 	bool m_bDrawn; //*< Is already drawn in location pane? */
-	DIFFBLOCK_LIST m_diffBlocks; //*< List of pre-calculated diff blocks.
+	std::vector<DiffBlock> m_diffBlocks; //*< List of pre-calculated diff blocks.
 	BOOL m_bRecalculateBlocks; //*< Recalculate diff blocks in next repaint.
 	CSize m_currentSize; //*< Current size of the panel.
 

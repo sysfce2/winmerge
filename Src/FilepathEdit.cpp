@@ -24,7 +24,7 @@
  * @brief Implementation of the CFilepathEdit class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: FilepathEdit.cpp 5401 2008-05-30 12:09:27Z kimmov $
+// $Id: FilepathEdit.cpp 6501 2009-02-25 13:37:09Z kimmov $
 
 #include "stdafx.h"
 #include "Merge.h"
@@ -287,7 +287,7 @@ void CFilepathEdit::OnContextMenu(CWnd*, CPoint point)
 			return;
 
 		// compute the beginning of the text to copy (in OriginalText)
-		int iBegin;
+		int iBegin = 0;
 		switch (command)
 		{
 		case ID_EDITOR_COPY_FILENAME:

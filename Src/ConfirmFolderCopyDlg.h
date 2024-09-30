@@ -20,7 +20,7 @@
  * @brief Declaration file for ConfirmFolderCopyDlg dialog
  */
 // ID line follows -- this is updated by SVN
-// $Id: ConfirmFolderCopyDlg.h 5711 2008-07-31 19:35:03Z kimmov $
+// $Id: ConfirmFolderCopyDlg.h 5670 2008-07-24 08:12:11Z kimmov $
 
 #ifndef _CONFIRM_FOLDER_COPY_DLG_H_
 #define _CONFIRM_FOLDER_COPY_DLG_H_

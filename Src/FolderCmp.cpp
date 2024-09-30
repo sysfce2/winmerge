@@ -4,9 +4,9 @@
  * @brief Implementation file for FolderCmp
  */
 // ID line follows -- this is updated by SVN
-// $Id: FolderCmp.cpp 6220 2008-12-21 12:26:31Z sdottaka $
+// $Id: FolderCmp.cpp 6831 2009-06-09 09:32:19Z kimmov $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "DiffUtils.h"
 #include "ByteCompare.h"
 #include "LogFile.h"
@@ -16,13 +16,13 @@
 #include "DiffContext.h"
 #include "DiffWrapper.h"
 #include "FileTransform.h"
-#include "diff.h"
+#include "DIFF.H"
 #include "IAbortable.h"
 #include "FolderCmp.h"
 #include "ByteComparator.h"
 #include "codepage_detect.h"
 
-using namespace CompareEngines;
+using CompareEngines::ByteCompare;
 
 static void GetComparePaths(CDiffContext * pCtxt, const DIFFITEM &di, String & left, String & right);
 static bool Unpack(String & filepathTransformed,
@@ -159,6 +159,7 @@ UINT FolderCmp::prepAndCompareTwoFiles(CDiffContext * pCtxt, DIFFITEM &di)
 {
 	PluginsContext plugCtxt;
 	int nCompMethod = pCtxt->m_nCompMethod;
+	const int origCompMethod = pCtxt->m_nCompMethod;
 	m_pCtx = pCtxt;
 
 	// Reset text stats
@@ -292,9 +293,9 @@ UINT FolderCmp::prepAndCompareTwoFiles(CDiffContext * pCtxt, DIFFITEM &di)
 				nTimeDiff -= SmallTimeDiff;
 			}
 			if (nTimeDiff <= 0)
-				code = DIFFCODE::TEXT | DIFFCODE::SAME;
+				code = DIFFCODE::SAME;
 			else
-				code = DIFFCODE::TEXT | DIFFCODE::DIFF;
+				code = DIFFCODE::DIFF;
 		}
 		else
 		{
@@ -302,9 +303,9 @@ UINT FolderCmp::prepAndCompareTwoFiles(CDiffContext * pCtxt, DIFFITEM &di)
 			// set error status, unless we have DATE_SIZE -compare
 			// when we have still hope for size compare..
 			if (pCtxt->m_nCompMethod == CMP_DATE_SIZE)
-				code = DIFFCODE::TEXT | DIFFCODE::SAME;
+				code = DIFFCODE::SAME;
 			else
-				code = DIFFCODE::TEXT | DIFFCODE::CMPERR;
+				code = DIFFCODE::CMPERR;
 		}
 		
 		// This is actual CMP_DATE_SIZE method..
@@ -333,6 +334,8 @@ UINT FolderCmp::prepAndCompareTwoFiles(CDiffContext * pCtxt, DIFFITEM &di)
 		di.errorDesc = _T("Bad compare type");
 	}
 
+	// Reset the compare method to original (could have been changed)
+	m_pCtx->GetCompareOptions(origCompMethod);
 	m_diffFileData.Reset();
 	if (pCtxt->m_bPluginsEnabled && (pCtxt->m_nCompMethod == CMP_CONTENT ||
 		pCtxt->m_nCompMethod == CMP_QUICK_CONTENT))

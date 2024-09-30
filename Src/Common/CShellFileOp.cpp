@@ -36,9 +36,9 @@
  * @brief Implementation file for CShellFileOp class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: CShellFileOp.cpp 5796 2008-08-13 05:28:25Z kimmov $
+// $Id: CShellFileOp.cpp 5911 2008-09-07 03:30:21Z marcelgosselin $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "shlobj.h"
 #include "objbase.h"
 #include "CShellFileOp.h"

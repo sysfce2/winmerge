@@ -3,6 +3,7 @@
 // Used by Merge.rc
 //
 #define IDR_MAINFRAME                   100
+#define IDB_TOOLBAR_ENABLED             100  // = IDR_MAINFRAME
 #define IDR_MERGEPROJECT                101
 #define IDR_POPUP_EDITOR_HEADERBAR      102
 #define IDR_POPUP_PLUGINS_SETTINGS      103
@@ -54,6 +55,7 @@
 #define IDD_PROPPAGE_BACKUPS            234
 #define IDD_CONFIRM_COPY                235
 #define IDD_PLUGINS_LIST                236
+#define IDD_PROPPAGE_SHELL              237
 #define IDR_SPLASH                      308
 #define IDB_WINMERGE                    309
 #define IDB_OLDSPLASH                   310
@@ -85,7 +87,6 @@
 #define IDB_EDIT_GOTO_NEXT_BOOKMARK     343
 #define IDB_EDIT_GOTO_PREV_BOOKMARK     344
 #define IDB_EDIT_CLEAR_ALL_BOOKMARKS    345
-#define IDB_TOOLBAR_ENABLED             100  // = IDR_MAINFRAME
 #define IDB_TOOLBAR_DISABLED            346
 #define IDB_LEFT                        347
 #define IDB_RIGHT                       348
@@ -100,8 +101,10 @@
 #define IDB_TOOLBAR_ENABLED32           357
 #define IDB_VIEW_ZOOMIN                 358
 #define IDB_VIEW_ZOOMOUT                359
+#define IDB_TREE_STATE                  360
 #define IDB_FILE_OPENCONFLICT           361
 #define IDB_PLUGINS_LIST                362
+#define IDB_MERGE_COMPARE               363
 #define IDI_FOLDER                      500
 #define IDI_LFOLDER                     501
 #define IDI_RFOLDER                     502
@@ -120,6 +123,10 @@
 #define IDI_COMPARE_ABORTED             515
 #define IDI_FILEFILTER                  516
 #define IDI_LINEFILTER                  517
+#define IDI_EQUALFOLDER                 518
+#define IDI_NOTEQUALFOLDER              519
+#define IDI_EQUALTEXTFILE               520
+#define IDI_NOTEQUALTEXTFILE            521
 #define IDC_LEFT_EDIT                   1000
 #define IDC_FILE_EDIT                   1000
 #define IDC_LEFT_BUTTON                 1001
@@ -436,6 +443,8 @@
 #define IDC_TMPFOLDER_NAME              1340
 #define IDC_PLUGINS_ENABLE              1341
 #define IDC_PLUGINSLIST_LIST            1342
+#define IDC_ENABLE_SHELL_CONTEXT_MENU   1343
+#define IDC_STARTUP_FOLDER_SELECT       1344
 #define IDC_EDIT_WHOLE_WORD             8603
 #define IDC_EDIT_MATCH_CASE             8604
 #define IDC_EDIT_FINDTEXT               8605
@@ -482,6 +491,7 @@
 #define IDS_OPTIONSPG_CODEPAGE          9049
 #define IDS_OPTIONSPG_ARCHIVE           9050
 #define IDS_OPTIONSPG_BACKUPS           9051
+#define IDS_OPTIONSPG_SHELL             9052
 #define IDS_TO                          16000
 #define IDS_FROM_LEFT                   16001
 #define IDS_TO_LEFT                     16002
@@ -489,6 +499,7 @@
 #define IDS_TO_RIGHT                    16004
 #define IDS_VERSION_FMT                 16385
 #define IDS_UNICODE                     16387
+#define IDS_WINX64                      16388
 #define IDS_OPTIONS_TITLE               16400
 #define IDS_MESSAGE_BOX_ARE_RESET       16401
 #define IDS_DIFF_OPEN_NO_SET_PROPS      16402
@@ -579,6 +590,7 @@
 #define IDS_FILECHANGED_RESCAN          17243
 #define IDS_SAVE_LEFT_AS                17244
 #define IDS_SAVE_RIGHT_AS               17245
+#define IDS_FILE_DISAPPEARED            17246
 #define IDS_NOPROJECT                   17264
 #define IDS_VSS_CHECKOUT_STATUS         17265
 #define IDS_VSSERROR                    17266
@@ -677,9 +689,12 @@
 #define IDS_DIFFERENT                   17739
 #define IDS_ABORTED_ITEM                17740
 #define IDS_CMPRES_ERROR                17741
-#define IDS_ELAPSED_TIME                17744
-#define IDS_STATUS_SELITEM1             17745
-#define IDS_STATUS_SELITEMS             17746
+#define IDS_FOLDERS_ARE_DIFFERENT       17742
+#define IDS_TEXT_FILES_SAME             17743
+#define IDS_TEXT_FILES_DIFF             17744
+#define IDS_ELAPSED_TIME                17750
+#define IDS_STATUS_SELITEM1             17751
+#define IDS_STATUS_SELITEMS             17752
 #define IDS_COLDESC_FILENAME            17760
 #define IDS_COLDESC_DIR                 17761
 #define IDS_COLDESC_RESULT              17762
@@ -913,6 +928,9 @@
 #define ID_VIEW_WORDWRAP                32824
 #define ID_VIEW_LINENUMBERS             32825
 #define ID_VIEW_TAB_BAR                 32826
+#define ID_VIEW_TREEMODE                32827
+#define ID_VIEW_EXPAND_ALLSUBDIRS       32828
+#define ID_VIEW_COLLAPSE_ALLSUBDIRS     32829
 #define ID_PREVDIFF                     32832
 #define ID_NEXTDIFF                     32833
 #define ID_FIRSTDIFF                    32834
@@ -1038,8 +1056,11 @@
 #define IDS_COLORSCHEME_SQL             33150
 #define IDS_COLORSCHEME_TCL             33151
 #define IDS_COLORSCHEME_TEX             33152
-#define IDS_COLORSCHEME_XML             33153
-#define ID_COLORSCHEME_LAST             33153 // = IDS_COLORSCHEME_XML
+#define IDS_COLORSCHEME_VERILOG         33153
+#define IDS_COLORSCHEME_XML             33154
+#define ID_COLORSCHEME_LAST             33154 // = IDS_COLORSCHEME_XML
+#define IDS_SHELL_CONTEXT_MENU_LEFT     33162
+#define IDS_SHELL_CONTEXT_MENU_RIGHT    33163
 #define ID_TOOLBAR_NONE                 33164
 #define ID_TOOLBAR_SMALL                33165
 #define ID_TOOLBAR_BIG                  33166
@@ -1058,7 +1079,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        237
 #define _APS_NEXT_COMMAND_VALUE         33174
-#define _APS_NEXT_CONTROL_VALUE         1344
+#define _APS_NEXT_CONTROL_VALUE         1345
 #define _APS_NEXT_SYMED_VALUE           113
 #endif
 #endif

@@ -4,7 +4,7 @@
  *  @brief Declaration of DirScan module (see DirScan function)
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: DirScan.h 5646 2008-07-20 16:22:24Z jtuc $
+// $Id: DirScan.h 6136 2008-12-01 17:04:25Z kimmov $
 
 #ifndef DirScan_h_included
 #define DirScan_h_included
@@ -13,13 +13,15 @@ class CDiffContext;
 class DiffItemList;
 class PathContext;
 class IAbortable;
+struct DIFFITEM;
 struct DiffFuncStruct;
 
-int DirScan_GetItems(const PathContext &paths, const String &leftsubdir, const String &rightsubdir, DiffFuncStruct *myStruct,
-		bool casesensitive, int depth);
+int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
+		bool bLeftUniq, const String &rightsubdir, bool bRightUniq, DiffFuncStruct *myStruct,
+		bool casesensitive, int depth, DIFFITEM *parent, bool bUniques);
 
-int DirScan_CompareItems(DiffFuncStruct *);
-int DirScan_CompareRequestedItems(DiffFuncStruct *);
+int DirScan_CompareItems(DiffFuncStruct *, UINT_PTR parentdiffpos);
+int DirScan_CompareRequestedItems(DiffFuncStruct *, UINT_PTR parentdiffpos);
 
 void DirScan_InitializeDefaultCodepage();
 

@@ -27,10 +27,11 @@
  */
 
 // ID line follows -- this is updated by SVN
-// $Id: LocationView.cpp 6050 2008-10-29 20:07:21Z kimmov $
+// $Id: LocationView.cpp 6314 2009-01-11 20:21:06Z kimmov $
 
-#include "stdafx.h"
-#include "merge.h"
+#include "StdAfx.h"
+#include <vector>
+#include "Merge.h"
 #include "OptionsMgr.h"
 #include "MergeEditView.h"
 #include "LocationView.h"
@@ -47,6 +48,8 @@
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
+
+using std::vector;
 
 /** @brief Size of empty frame above and below bars (in pixels). */
 static const int Y_OFFSET = 5;
@@ -168,8 +171,8 @@ void CLocationView::OnUpdate( CView* pSender, LPARAM lHint, CObject* pHint )
 	m_view[MERGE_VIEW_RIGHT] = pDoc->GetRightView();
 
 	// Give pointer to MergeEditView
-	m_view[MERGE_VIEW_LEFT]->SetLocationView(GetSafeHwnd(), this);
-	m_view[MERGE_VIEW_RIGHT]->SetLocationView(GetSafeHwnd(), this);
+	m_view[MERGE_VIEW_LEFT]->SetLocationView(this);
+	m_view[MERGE_VIEW_RIGHT]->SetLocationView(this);
 
 	m_bRecalculateBlocks = TRUE;
 	Invalidate();
@@ -242,10 +245,16 @@ void CLocationView::CalculateBars()
  */
 void CLocationView::CalculateBlocks()
 {
-	m_diffBlocks.RemoveAll();
-	
+	// lineposition in pixels.
+	int nBeginY;
+	int nEndY;
+
+	m_diffBlocks.clear();
+
 	CMergeDoc *pDoc = GetDocument();
 	const int nDiffs = pDoc->m_diffList.GetSize();
+	if (nDiffs > 0)
+		m_diffBlocks.reserve(nDiffs); // Pre-allocate space for the list.
 
 	int nDiff = pDoc->m_diffList.FirstSignificantDiff();
 	while (nDiff != -1)
@@ -253,33 +262,123 @@ void CLocationView::CalculateBlocks()
 		DIFFRANGE diff;
 		VERIFY(pDoc->m_diffList.GetDiff(nDiff, diff));
 
-		// Find end of diff. If first side has blank lines use other side.
-		const int nLineEndDiff = (diff.blank0 > 0) ? diff.dend1 : diff.dend0;
-
 		CMergeEditView *pView = m_view[MERGE_VIEW_LEFT];
 
-		// Count how many line does the diff block have.
-		const int nBlockStart = pView->GetSubLineIndex(diff.dbegin0);
-		const int nBlockEnd = pView->GetSubLineIndex(nLineEndDiff);
-		const int nBlockHeight = nBlockEnd - nBlockStart + pView->GetSubLines(nLineEndDiff);
-
-		// Convert diff block size from lines to pixels.
-		const int nBeginY = (int)(nBlockStart * m_lineInPix + Y_OFFSET);
-		const int nEndY = (int)((nBlockStart + nBlockHeight) * m_lineInPix + Y_OFFSET);
-
 		DiffBlock block;
-		block.top_line = diff.dbegin0;
-		block.bottom_line = nLineEndDiff;
-		block.top_coord = nBeginY;
-		block.bottom_coord = nEndY;
-		block.diff_index = nDiff;
-		m_diffBlocks.AddTail(block);
+		//there are no blanks on both side
+		if ((diff.blank0 < 0) && (diff.blank1 < 0))
+		{
+			CalculateBlocksPixel(
+				pView->GetSubLineIndex(diff.dbegin0),
+				pView->GetSubLineIndex(diff.dend0),
+				pView->GetSubLines(diff.dend0),	nBeginY, nEndY);
+
+			block.top_line = diff.dbegin0;
+			block.bottom_line = diff.dend0;
+			block.top_coord = nBeginY;
+			block.bottom_coord = nEndY;
+			block.diff_index = nDiff;
+			m_diffBlocks.push_back(block);
+		}
+		//side0 has blank lines?
+		else if (diff.blank0 > 0)
+		{
+			//Is there a common block on side0?
+			if ((int)diff.dbegin0 < diff.blank0)
+			{
+				CalculateBlocksPixel(
+					pView->GetSubLineIndex(diff.dbegin0),
+					pView->GetSubLineIndex(diff.blank0 - 1),
+					pView->GetSubLines(diff.blank0 - 1), nBeginY, nEndY);
+
+				block.top_line = diff.dbegin0;
+				block.bottom_line = diff.blank0 - 1;
+				block.top_coord = nBeginY;
+				block.bottom_coord = nEndY;
+				block.diff_index = nDiff;
+				m_diffBlocks.push_back(block);
+			}
+
+			// First diff having only blank lines in other side causes the
+			// blank value be -1. Set it to 0 as top line of diff.
+			if (diff.blank0 == -1)
+				diff.blank0 = 0;
+
+			// Now the block for blank lines side0!
+			CalculateBlocksPixel(
+				pView->GetSubLineIndex(diff.blank0),
+				pView->GetSubLineIndex(diff.dend1),
+				pView->GetSubLines(diff.dend1), nBeginY, nEndY);
+
+			block.top_line = diff.blank0;
+			block.bottom_line = diff.dend1;
+			block.top_coord = nBeginY;
+			block.bottom_coord = nEndY;
+			block.diff_index = nDiff;
+			m_diffBlocks.push_back(block);
+		}
+		//side1 has blank lines?
+		else
+		{
+			// Is there a common block on side1?
+			if ((int)diff.dbegin0 < diff.blank1)
+			{
+				CalculateBlocksPixel(
+					pView->GetSubLineIndex(diff.dbegin0),
+					pView->GetSubLineIndex(diff.blank1 - 1),
+					pView->GetSubLines(diff.blank1 - 1), nBeginY, nEndY);
+
+				block.top_line = diff.dbegin0;
+				block.bottom_line = diff.blank1 - 1;
+				block.top_coord = nBeginY;
+				block.bottom_coord = nEndY;
+				block.diff_index = nDiff;
+				m_diffBlocks.push_back(block);
+			}
+
+			// First diff having only blank lines in other side causes the
+			// blank value be -1. Set it to 0 as top line of diff.
+			if (diff.blank1 == -1)
+				diff.blank1 = 0;
+
+			// Now the block for blank lines side1!
+			CalculateBlocksPixel(
+				pView->GetSubLineIndex(diff.blank1),
+				pView->GetSubLineIndex(diff.dend0),
+				pView->GetSubLines(diff.dend0), nBeginY, nEndY);
+
+			block.top_line = diff.blank1;
+			block.bottom_line = diff.dend0;
+			block.top_coord = nBeginY;
+			block.bottom_coord = nEndY;
+			block.diff_index = nDiff;
+			m_diffBlocks.push_back(block);
+		}
 
 		nDiff = pDoc->m_diffList.NextSignificantDiff(nDiff);
 	}
 	m_bRecalculateBlocks = FALSE;
 }
 
+/**
+ * @brief Calculate Blocksize to pixel.
+ * @param [in] nBlockStart line where block starts
+ * @param [in] nBlockEnd   line where block ends 
+ * @param [in] nBlockLength length of the block
+ * @param [in,out] nBeginY pixel in y  where block starts
+ * @param [in,out] nEndY   pixel in y  where block ends
+
+ */
+void CLocationView::CalculateBlocksPixel(int nBlockStart, int nBlockEnd,
+		int nBlockLength, int &nBeginY, int &nEndY)
+{
+	// Count how many line does the diff block have.
+	const int nBlockHeight = nBlockEnd - nBlockStart + nBlockLength;
+
+	// Convert diff block size from lines to pixels.
+	nBeginY = (int)(nBlockStart * m_lineInPix + Y_OFFSET);
+	nEndY = (int)((nBlockStart + nBlockHeight) * m_lineInPix + Y_OFFSET);
+}
 /** 
  * @brief Draw maps of files.
  *
@@ -334,27 +433,25 @@ void CLocationView::OnDraw(CDC* pDC)
 	int nPrevEndY = -1;
 	const int nCurDiff = pDoc->GetCurrentDiff();
 
-	POSITION pos = m_diffBlocks.GetHeadPosition();
-
-	while (pos)
+	vector<DiffBlock>::const_iterator iter = m_diffBlocks.begin();
+	while (iter != m_diffBlocks.end())
 	{
-		const DiffBlock &block = m_diffBlocks.GetNext(pos);
 		CMergeEditView *pView = m_view[MERGE_VIEW_LEFT];
-		const BOOL bInsideDiff = (nCurDiff == block.diff_index);
+		const BOOL bInsideDiff = (nCurDiff == (*iter).diff_index);
 
-		if ((nPrevEndY != block.bottom_coord) || bInsideDiff)
+		if ((nPrevEndY != (*iter).bottom_coord) || bInsideDiff)
 		{
 			// Draw left side block
-			m_view[MERGE_VIEW_LEFT]->GetLineColors2(block.top_line, 0, cr0, crt, bwh);
-			CRect r0(m_leftBar.left, block.top_coord, m_leftBar.right, block.bottom_coord);
+			m_view[MERGE_VIEW_LEFT]->GetLineColors2((*iter).top_line, 0, cr0, crt, bwh);
+			CRect r0(m_leftBar.left, (*iter).top_coord, m_leftBar.right, (*iter).bottom_coord);
 			DrawRect(&dc, r0, cr0, bInsideDiff);
 
 			// Draw right side block
-			m_view[MERGE_VIEW_RIGHT]->GetLineColors2(block.top_line, 0, cr1, crt, bwh);
-			CRect r1(m_rightBar.left, block.top_coord, m_rightBar.right, block.bottom_coord);
+			m_view[MERGE_VIEW_RIGHT]->GetLineColors2((*iter).top_line, 0, cr1, crt, bwh);
+			CRect r1(m_rightBar.left, (*iter).top_coord, m_rightBar.right, (*iter).bottom_coord);
 			DrawRect(&dc, r1, cr1, bInsideDiff);
 		}
-		nPrevEndY = block.bottom_coord;
+		nPrevEndY = (*iter).bottom_coord;
 
 		// Test if we draw a connector
 		BOOL bDisplayConnectorFromLeft = FALSE;
@@ -380,9 +477,9 @@ void CLocationView::OnDraw(CDC* pDC)
 
 		if (bDisplayConnectorFromLeft)
 		{
-			int apparent0 = block.top_line;
+			int apparent0 = (*iter).top_line;
 			int apparent1 = pDoc->RightLineInMovedBlock(apparent0);
-			const int nBlockHeight = block.bottom_line - block.top_line;
+			const int nBlockHeight = (*iter).bottom_line - (*iter).top_line;
 			if (apparent1 != -1)
 			{
 				MovedLine line;
@@ -408,9 +505,9 @@ void CLocationView::OnDraw(CDC* pDC)
 
 		if (bDisplayConnectorFromRight)
 		{
-			int apparent1 = block.top_line;
+			int apparent1 = (*iter).top_line;
 			int apparent0 = pDoc->LeftLineInMovedBlock(apparent1);
-			const int nBlockHeight = block.bottom_line - block.top_line;
+			const int nBlockHeight = (*iter).bottom_line - (*iter).top_line;
 			if (apparent0 != -1)
 			{
 				MovedLine line;
@@ -433,6 +530,7 @@ void CLocationView::OnDraw(CDC* pDC)
 				m_movedLines.AddTail(line);
 			}
 		}
+		++iter;
 	}
 
 	if (m_displayMovedBlocks != DISPLAY_MOVED_NONE)
@@ -487,7 +585,7 @@ void CLocationView::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	SetCapture();
 
-	if (!GotoLocation(point, FALSE))
+	if (!GotoLocation(point, false))
 		CView::OnLButtonDown(nFlags, point);
 }
 
@@ -547,7 +645,7 @@ void CLocationView::OnMouseMove(UINT nFlags, CPoint point)
  */
 void CLocationView::OnLButtonDblClk(UINT nFlags, CPoint point) 
 {
-	if (!GotoLocation(point, FALSE))
+	if (!GotoLocation(point, false))
 		CView::OnLButtonDblClk(nFlags, point);
 }
 
@@ -565,7 +663,7 @@ void CLocationView::OnLButtonDblClk(UINT nFlags, CPoint point)
  * FALSE if view linenumbers are OK.
  * @return TRUE if succeeds, FALSE if point not inside bars.
  */
-BOOL CLocationView::GotoLocation(const CPoint& point, BOOL bRealLine)
+bool CLocationView::GotoLocation(const CPoint& point, bool bRealLine)
 {
 	CRect rc;
 	GetClientRect(rc);
@@ -584,13 +682,13 @@ BOOL CLocationView::GotoLocation(const CPoint& point, BOOL bRealLine)
 		line = GetLineFromYPos(point.y, bar, FALSE);
 	}
 	else
-		return FALSE;
+		return false;
 
 	m_view[MERGE_VIEW_LEFT]->GotoLine(line, bRealLine, bar);
 	if (bar == BAR_LEFT || bar == BAR_RIGHT)
 		m_view[bar]->SetFocus();
 
-	return TRUE;
+	return true;
 }
 
 /**
@@ -686,7 +784,7 @@ void CLocationView::OnContextMenu(CWnd* pWnd, CPoint point)
 	switch (command)
 	{
 	case ID_LOCBAR_GOTODIFF:
-		m_view[MERGE_VIEW_LEFT]->GotoLine(nLine, TRUE, bar);
+		m_view[MERGE_VIEW_LEFT]->GotoLine(nLine, true, bar);
 	if (bar == BAR_LEFT || bar == BAR_RIGHT)
 		m_view[bar]->SetFocus();
 		break;
@@ -821,7 +919,16 @@ void CLocationView::DrawVisibleAreaRect(CDC *pClientDC, int nTopLine, int nBotto
 		if (nTopCoord < Y_OFFSET + 20)
 			nBottomCoord += INDICATOR_MIN_HEIGHT - (nBottomCoord - nTopCoord);
 		else
-			nTopCoord -= INDICATOR_MIN_HEIGHT - (nBottomCoord - nTopCoord);
+		{
+			// Make sure locationbox has min hight
+			if ((nBottomCoord - nTopCoord) < INDICATOR_MIN_HEIGHT)
+			{
+				int iPos = (INDICATOR_MIN_HEIGHT - (nBottomCoord - nTopCoord) )/2;
+				nTopCoord -= iPos;
+				nBottomCoord +=iPos;
+			}
+		}
+
 	}
 
 	// Store current values for later use (to check if area changes)
@@ -872,8 +979,8 @@ void CLocationView::UpdateVisiblePos(int nTopLine, int nBottomLine)
  */
 void CLocationView::OnClose()
 {
-	m_view[MERGE_VIEW_LEFT]->SetLocationView(NULL, NULL);
-	m_view[MERGE_VIEW_RIGHT]->SetLocationView(NULL, NULL);
+	m_view[MERGE_VIEW_LEFT]->SetLocationView(NULL);
+	m_view[MERGE_VIEW_RIGHT]->SetLocationView(NULL);
 
 	CView::OnClose();
 }
@@ -929,7 +1036,8 @@ void CLocationView::OnSize(UINT nType, int cx, int cy)
 			::PostMessage(m_hwndFrame, MSG_STORE_PANESIZES, 0, 0);
 	}
 
-	m_currentSize.SetSize(cx, cy);
+	m_currentSize.cx = cx;
+	m_currentSize.cy = cy;
 }
 
 /** 

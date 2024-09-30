@@ -4,7 +4,7 @@
  * @brief Implementation file for PluginsList dialog
  */
 // ID line follows -- this is updated by SVN
-// $Id: PluginsListDlg.cpp 5647 2008-07-21 09:41:45Z kimmov $
+// $Id: PluginsListDlg.cpp 5657 2008-07-22 16:31:42Z jtuc $
 
 #include "stdafx.h"
 #include "UnicodeString.h"
@@ -17,7 +17,7 @@
 IMPLEMENT_DYNAMIC(PluginsListDlg, CDialog)
 
 BEGIN_MESSAGE_MAP(PluginsListDlg, CDialog)
-	ON_BN_CLICKED(IDOK, &PluginsListDlg::OnBnClickedOk)
+	ON_BN_CLICKED(IDOK, OnBnClickedOk)
 END_MESSAGE_MAP()
 
 /**
@@ -115,7 +115,7 @@ void PluginsListDlg::AddPluginsToList(LPCWSTR pluginEvent, LPCTSTR pluginType)
 		PluginInfo & plugin = piPluginArray->ElementAt(iPlugin);
 		int ind = m_list.InsertItem(m_list.GetItemCount(), plugin.m_name.c_str());
 		m_list.SetItemText(ind, 1, pluginType);
-		m_list.SetItemText(ind, 2, plugin.m_description);
+		m_list.SetItemText(ind, 2, plugin.m_description.c_str());
 	}
 }
 

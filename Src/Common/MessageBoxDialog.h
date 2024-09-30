@@ -31,6 +31,7 @@
 #pragma once
 
 #include "resource.h"
+#include <vector>
 
 //////////////////////////////////////////////////////////////////////////////
 // Message box style definitions (mostly taken from WinUser.h).
@@ -220,7 +221,7 @@ private:
 		UINT	nTitle;				// ID of the title string resource.
 	} MSGBOXBTN;
 
-	CArray<MSGBOXBTN, const MSGBOXBTN&> m_aButtons;
+    std::vector<MSGBOXBTN> m_aButtons;
 									// List of all buttons in the dialog.
 
 	int			m_nDefaultButton;	// ID of the default button.

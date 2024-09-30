@@ -25,7 +25,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: Merge.cpp 5892 2008-09-05 06:43:12Z jtuc $
+// $Id: Merge.cpp 6134 2008-11-28 19:58:25Z kimmov $
 
 #include "stdafx.h"
 #include "Constants.h"
@@ -33,6 +33,9 @@
 #include "Environment.h"
 #include "OptionsMgr.h"
 #include "Merge.h"
+#include "HexMergeDoc.h"
+#include "HexMergeFrm.h"
+#include "HexMergeView.h"
 #include "AboutDlg.h"
 #include "MainFrm.h"
 #include "ChildFrm.h"
@@ -131,6 +134,7 @@ CLogFile * GetLog()
 CMergeApp::CMergeApp() :
   m_bNeedIdleTimer(FALSE)
 , m_pDiffTemplate(0)
+, m_pHexMergeTemplate(0)
 , m_pDirTemplate(0)
 , m_mainThreadScripts(NULL)
 , m_nLastCompareResult(0)
@@ -238,17 +242,18 @@ BOOL CMergeApp::InitInstance()
 
 	BOOL bSingleInstance = GetOptionsMgr()->GetBool(OPT_SINGLE_INSTANCE) ||
 		(true == cmdInfo.m_bSingleInstance);
-	
+
 	// Create exclusion mutex name
-	TCHAR szDesktopName[_MAX_PATH] = _T("Win9xDesktop");
+	TCHAR szDesktopName[MAX_PATH] = _T("Win9xDesktop");
 	DWORD dwLengthNeeded;
 	GetUserObjectInformation(GetThreadDesktop(GetCurrentThreadId()), UOI_NAME, 
 		szDesktopName, sizeof(szDesktopName), &dwLengthNeeded);
-	String mutexName = 
-		String(_T("WinMerge{05963771-8B2E-11d8-B3B9-000000000000}-")) 
-			+ szDesktopName;
-
-	HANDLE hMutex = CreateMutex(NULL, FALSE, mutexName.c_str());
+	TCHAR szMutexName[MAX_PATH + 40];
+	// Combine window class name and desktop name to form a unique mutex name.
+	// As the window class name is decorated to distinguish between ANSI and
+	// UNICODE build, so will be the mutex name.
+	wsprintf(szMutexName, _T("%s-%s"), CMainFrame::szClassName, szDesktopName);
+	HANDLE hMutex = CreateMutex(NULL, FALSE, szMutexName);
 	if (hMutex)
 		WaitForSingleObject(hMutex, INFINITE);
 	if (bSingleInstance && GetLastError() == ERROR_ALREADY_EXISTS)
@@ -308,6 +313,14 @@ BOOL CMergeApp::InitInstance()
 		RUNTIME_CLASS(CMergeEditView));
 	AddDocTemplate(m_pDiffTemplate);
 
+	// Merge Edit view
+	m_pHexMergeTemplate = new CMultiDocTemplate(
+		IDR_MERGEDOCTYPE,
+		RUNTIME_CLASS(CHexMergeDoc),
+		RUNTIME_CLASS(CHexMergeFrame), // custom MDI child frame
+		RUNTIME_CLASS(CHexMergeView));
+	AddDocTemplate(m_pHexMergeTemplate);
+
 	// Directory view
 	m_pDirTemplate = new CMultiDocTemplate(
 		IDR_DIRDOCTYPE,
@@ -334,6 +347,7 @@ BOOL CMergeApp::InitInstance()
 	// Init menus -- hMenuDefault is for MainFrame, other
 	// two are for dirdoc and mergedoc (commented out for now)
 	m_pDiffTemplate->m_hMenuShared = pMainFrame->NewMergeViewMenu();
+	m_pHexMergeTemplate->m_hMenuShared = pMainFrame->NewHexMergeViewMenu();
 	m_pDirTemplate->m_hMenuShared = pMainFrame->NewDirViewMenu();
 	pMainFrame->m_hMenuDefault = pMainFrame->NewDefaultMenu();
 
@@ -519,7 +533,7 @@ void CMergeApp::InitializeFileFilters()
 
 	if (!filterPath.IsEmpty())
 	{
-		m_globalFileFilter.SetUserFilterPath(filterPath);
+		m_globalFileFilter.SetUserFilterPath((LPCTSTR)filterPath);
 	}
 	m_globalFileFilter.LoadAllFileFilters();
 }
@@ -599,6 +613,12 @@ BOOL CMergeApp::ParseArgsAndDoOpen(MergeCmdLineInfo& cmdInfo, CMainFrame* pMainF
 					cmdInfo.m_bRecurse, NULL, cmdInfo.m_sPreDiffer.c_str());
 			}
 		}
+		else if (cmdInfo.m_Files.size() == 0) // if there are no input args, we can check the display file dialog flag
+		{
+			BOOL showFiles = m_pOptions->GetBool(OPT_SHOW_SELECT_FILES_AT_STARTUP);
+			if (showFiles)
+				pMainFrame->DoFileOpen();
+		}
 	}
 	return bCompared;
 }
@@ -654,9 +674,8 @@ bool CMergeApp::LoadAndOpenProjectFile(LPCTSTR sProject)
 	sRight = project.GetRight(&bRightReadOnly);
 	if (project.HasFilter())
 	{
-		CString filter = project.GetFilter();
-		filter.TrimLeft();
-		filter.TrimRight();
+		String filter = (LPCTSTR)project.GetFilter();
+		filter = string_trim_ws(filter);
 		m_globalFileFilter.SetFilter(filter);
 	}
 	if (project.HasSubfolders())

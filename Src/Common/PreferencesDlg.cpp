@@ -8,9 +8,9 @@
  * WinMerge.
  */
 // ID line follows -- this is updated by SVN
-// $Id: PreferencesDlg.cpp 4637 2007-10-16 16:57:44Z jtuc $
+// $Id: PreferencesDlg.cpp 6810 2009-06-02 04:41:46Z kimmov $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "resource.h"
 #include "UnicodeString.h"
 #include "OptionsDef.h"
@@ -22,7 +22,7 @@
 #include "coretools.h" //SplitFilename()
 #include "FileOrFolderSelect.h"
 
-#include "winclasses.h"
+#include "WinClasses.h"
 #include "wclassdefines.h"
 
 #ifdef _DEBUG
@@ -57,6 +57,7 @@ CPreferencesDlg::CPreferencesDlg(COptionsMgr *regOptions, SyntaxColors *colors,
 , m_pageSystem(regOptions)
 , m_pageBackups(regOptions)
 , m_pageVss(regOptions)
+, m_pageShell(regOptions)
 {
 	UNREFERENCED_PARAMETER(nMenuID);
 }
@@ -109,6 +110,7 @@ BOOL CPreferencesDlg::OnInitDialog()
 	AddPage(&m_pageBackups, IDS_OPTIONSPG_BACKUPS);
 	AddPage(&m_pageVss, IDS_OPTIONSPG_VERSIONCONTROL);
 	AddPage(&m_pageCodepage, IDS_OPTIONSPG_CODEPAGE);
+	AddPage(&m_pageShell, IDS_OPTIONSPG_SHELL);
 
 	ReadOptions();
 	
@@ -255,6 +257,7 @@ void CPreferencesDlg::ReadOptions(BOOL bUpdate)
 	m_pageVss.ReadOptions();
 	m_pageArchive.ReadOptions();
 	m_pageBackups.ReadOptions();
+	m_pageShell.ReadOptions();
 
 	if (bUpdate)
 	{
@@ -269,6 +272,7 @@ void CPreferencesDlg::ReadOptions(BOOL bUpdate)
 		SafeUpdatePage(&m_pageVss, FALSE);
 		SafeUpdatePage(&m_pageArchive, FALSE);
 		SafeUpdatePage(&m_pageBackups, FALSE);
+		SafeUpdatePage(&m_pageShell, FALSE);
 	}
 }
 
@@ -288,6 +292,7 @@ void CPreferencesDlg::SaveOptions()
 	m_pageVss.WriteOptions();	
 	m_pageArchive.WriteOptions();
 	m_pageBackups.WriteOptions();
+	m_pageShell.WriteOptions();
 }
 
 void CPreferencesDlg::SetSyntaxColors(SyntaxColors *pColors)
@@ -328,6 +333,10 @@ void CPreferencesDlg::OnExportButton()
 		SplitFilename(settingsFile, NULL, NULL, &extension);
 		if (extension.empty())
 			settingsFile += _T(".ini");
+
+		// Save all new settings before exporting
+		m_pphost.UpdatePagesData();
+		SaveOptions();
 
 		if (m_pOptionsMgr->ExportOptions(settingsFile) == OPT_OK)
 			LangMessageBox(IDS_OPT_EXPORT_DONE, MB_ICONINFORMATION);

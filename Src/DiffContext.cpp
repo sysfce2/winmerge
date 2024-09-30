@@ -24,10 +24,10 @@
  *  @brief Implementation of CDiffContext
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: DiffContext.cpp 5647 2008-07-21 09:41:45Z kimmov $
+// $Id: DiffContext.cpp 6136 2008-12-01 17:04:25Z kimmov $
 //////////////////////////////////////////////////////////////////////
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include <shlwapi.h>
 #include "UnicodeString.h"
 #include "Merge.h"
@@ -66,7 +66,7 @@ CDiffContext::CDiffContext(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*/
 , m_bIgnoreSmallTimeDiff(FALSE)
 , m_pCompareStats(NULL)
 , m_piAbortable(NULL)
-, m_bStopAfterFirstDiff(FALSE)
+, m_bStopAfterFirstDiff(false)
 , m_pFilterList(NULL)
 , m_pCompareOptions(NULL)
 , m_pOptions(NULL)
@@ -94,7 +94,7 @@ CDiffContext::~CDiffContext()
  * @param [in] bLeft Update left-side info.
  * @param [in] bRight Update right-side info.
  */
-void CDiffContext::UpdateStatusFromDisk(POSITION diffpos, BOOL bLeft, BOOL bRight)
+void CDiffContext::UpdateStatusFromDisk(UINT_PTR diffpos, BOOL bLeft, BOOL bRight)
 {
 	DIFFITEM &di = GetDiffRefAt(diffpos);
 	if (bLeft)

@@ -24,9 +24,9 @@
  * @brief Implementation of the CMainFrame class
  */
 // ID line follows -- this is updated by SVN
-// $Id: MainFrm.cpp 5924 2008-09-07 22:25:05Z sdottaka $
+// $Id: MainFrm.cpp 6785 2009-05-26 10:57:25Z kimmov $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include <vector>
 #include <htmlhelp.h>  // From HTMLHelp Workshop (incl. in Platform SDK)
 #include <shlwapi.h>
@@ -37,10 +37,12 @@
 #include "MainFrm.h"
 #include "DirFrame.h"		// Include type information
 #include "ChildFrm.h"
+#include "HexMergeFrm.h"
 #include "DirView.h"
 #include "DirDoc.h"
 #include "OpenDlg.h"
 #include "MergeEditView.h"
+#include "HexMergeDoc.h"
 #include "MergeDiffDetailView.h"
 #include "LocationView.h"
 #include "SyntaxColors.h"
@@ -49,7 +51,7 @@
 #include "coretools.h"
 #include "Splash.h"
 #include "LineFiltersDlg.h"
-#include "logfile.h"
+#include "LogFile.h"
 #include "paths.h"
 #include "WaitStatusCursor.h"
 #include "PatchTool.h"
@@ -125,6 +127,7 @@ const CMainFrame::MENUITEM_ICON CMainFrame::m_MenuIcons[] = {
 	{ ID_EDIT_CLEAR_ALL_BOOKMARKS,	IDB_EDIT_CLEAR_ALL_BOOKMARKS,	CMainFrame::MENU_FILECMP },
 	{ ID_VIEW_ZOOMIN,				IDB_VIEW_ZOOMIN,				CMainFrame::MENU_FILECMP },
 	{ ID_VIEW_ZOOMOUT,				IDB_VIEW_ZOOMOUT,				CMainFrame::MENU_FILECMP },
+	{ ID_MERGE_COMPARE,				IDB_MERGE_COMPARE,				CMainFrame::MENU_FOLDERCMP },
 	{ ID_MERGE_DELETE,				IDB_MERGE_DELETE,				CMainFrame::MENU_FOLDERCMP },
 	{ ID_TOOLS_GENERATEREPORT,		IDB_TOOLS_GENERATEREPORT,		CMainFrame::MENU_FOLDERCMP },
 	{ ID_DIR_COPY_LEFT_TO_RIGHT,	IDB_LEFT_TO_RIGHT,				CMainFrame::MENU_FOLDERCMP },
@@ -201,7 +204,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(ID_VIEW_RESIZE_PANES, OnResizePanes)
 	ON_COMMAND(ID_FILE_OPENPROJECT, OnFileOpenproject)
 	ON_MESSAGE(WM_COPYDATA, OnCopyData)
-	ON_MESSAGE(WM_USER, OnUser)
 	ON_COMMAND(ID_WINDOW_CLOSEALL, OnWindowCloseAll)
 	ON_UPDATE_COMMAND_UI(ID_WINDOW_CLOSEALL, OnUpdateWindowCloseAll)
 	ON_COMMAND(ID_FILE_SAVEPROJECT, OnSaveProject)
@@ -241,6 +243,9 @@ static const UINT ID_TIMER_FLASH = 1;
 
 /** @brief Timeout for window flashing timer, in milliseconds. */
 static const UINT WINDOW_FLASH_TIMEOUT = 500;
+
+/** @brief Backup file extension. */
+static const TCHAR BACKUP_FILE_EXT[] = _T("bak");
 
 /**
   * @brief Return a const reference to a CMultiDocTemplate's list of documents.
@@ -327,17 +332,8 @@ CMainFrame::~CMainFrame()
 	}
 
 	delete m_pLineFilters;
-
-	// BCMenu destructor calls DestroyMenu()
-	m_pMenus[MENU_DEFAULT]->Detach();
-	delete m_pMenus[MENU_DEFAULT];
-	m_pMenus[MENU_DEFAULT] = NULL;
-	m_pMenus[MENU_MERGEVIEW]->Detach();
-	delete m_pMenus[MENU_MERGEVIEW];
-	m_pMenus[MENU_MERGEVIEW] = NULL;
-	m_pMenus[MENU_DIRVIEW]->Detach();
-	delete m_pMenus[MENU_DIRVIEW];
-	m_pMenus[MENU_DIRVIEW] = NULL;
+	int i = MENU_COUNT;
+	do { delete m_pMenus[--i]; } while (i);
 	delete m_pSyntaxColors;
 }
 
@@ -587,6 +583,14 @@ HMENU CMainFrame::NewDirViewMenu()
 }
 
 /**
+ * @brief Create new File compare (CHexMergeView) menu.
+ */
+HMENU CMainFrame::NewHexMergeViewMenu()
+{
+	return NewMenu( MENU_HEXMERGEVIEW, IDR_MERGEDOCTYPE);
+}
+
+/**
  * @brief This handler ensures that the popup menu items are drawn correctly.
  */
 void CMainFrame::OnMeasureItem(int nIDCtl,
@@ -779,6 +783,14 @@ int CMainFrame::ShowMergeDoc(CDirDoc * pDirDoc,
 			MDINext();
 	}
 	return openResults;
+}
+
+void CMainFrame::ShowHexMergeDoc(CDirDoc * pDirDoc,
+	LPCTSTR pathLeft, LPCTSTR pathRight, BOOL bLeftRO, BOOL bRightRO)
+{
+	BOOL docNull;
+	if (CHexMergeDoc *pHexMergeDoc = GetHexMergeDocToShow(pDirDoc, &docNull))
+		pHexMergeDoc->OpenDocs(pathLeft, pathRight, bLeftRO, bRightRO);
 }
 
 void CMainFrame::RedisplayAllDirDocs()
@@ -1015,7 +1027,7 @@ void CMainFrame::OnOptions()
 	{
 		// Set new filterpath
 		String filterPath = GetOptionsMgr()->GetString(OPT_FILTER_USERPATH);
-		theApp.m_globalFileFilter.SetUserFilterPath(filterPath.c_str());
+		theApp.m_globalFileFilter.SetUserFilterPath(filterPath);
 
 		UpdateCodepageModule();
 		// Call the wrapper to set m_bAllowMixedEol (the wrapper updates the registry)
@@ -1338,12 +1350,17 @@ BOOL CMainFrame::CreateBackup(BOOL bFolder, LPCTSTR pszPath)
 			_RPTF0(_CRT_ERROR, "Unknown backup location!");
 		}
 
-		if (bakPath[bakPath.length() - 1] != '\\')
+		if (!paths_EndsWithSlash(bakPath.c_str()))
 			bakPath += _T("\\");
 
 		BOOL success = FALSE;
 		if (GetOptionsMgr()->GetBool(OPT_BACKUP_ADD_BAK))
+		{
+			// Don't add dot if there is no existing extension
+			if (ext.size() > 0)
+				ext += _T(".");
 			ext += BACKUP_FILE_EXT;
+		}
 
 		// Append time to filename if wanted so
 		// NOTE just adds timestamp at the moment as I couldn't figure out
@@ -1681,7 +1698,7 @@ void CMainFrame::OnHelpContents()
 {
 	String sPath = GetModulePath(0) + DocsPath;
 	if (paths_DoesPathExist(sPath.c_str()) == IS_EXISTING_FILE)
-		::HtmlHelp(GetSafeHwnd(), sPath.c_str(), HH_DISPLAY_TOC, NULL);
+		::HtmlHelp(NULL, sPath.c_str(), HH_DISPLAY_TOC, NULL);
 	else
 		ShellExecute(NULL, _T("open"), DocsURL, NULL, NULL, SW_SHOWNORMAL);
 }
@@ -1850,25 +1867,29 @@ void CMainFrame::ApplyViewWhitespace()
 		{
 			pLeft->SetViewTabs(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE));
 			pLeft->SetViewEols(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE),
-				GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL));
+				GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL) ||
+				pLeft->GetDocument()->IsMixedEOL(pLeft->m_nThisPane));
 		}
 		if (pRight)
 		{
 			pRight->SetViewTabs(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE));
 			pRight->SetViewEols(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE),
-				GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL));
+				GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL) ||
+				pRight->GetDocument()->IsMixedEOL(pRight->m_nThisPane));
 		}
 		if (pLeftDetail)
 		{
 			pLeftDetail->SetViewTabs(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE));
 			pLeftDetail->SetViewEols(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE),
-				GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL));
+				GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL) ||
+				pLeft->GetDocument()->IsMixedEOL(pLeft->m_nThisPane));
 		}
 		if (pRightDetail)
 		{
 			pRightDetail->SetViewTabs(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE));
 			pRightDetail->SetViewEols(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE),
-				GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL));
+				GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL) ||
+				pRight->GetDocument()->IsMixedEOL(pRight->m_nThisPane));
 		}
 	}
 }
@@ -1898,6 +1919,12 @@ const DirDocList &CMainFrame::GetAllDirDocs()
 	return static_cast<const DirDocList &>(GetDocList(theApp.m_pDirTemplate));
 }
 
+/// Get list of HexMergeDocs (documents underlying edit sessions)
+const HexMergeDocList &CMainFrame::GetAllHexMergeDocs()
+{
+	return static_cast<const HexMergeDocList &>(GetDocList(theApp.m_pHexMergeTemplate));
+}
+
 /**
  * @brief Obtain a merge doc to display a difference in files.
  * This function (usually) uses DirDoc to determine if new or existing
@@ -1921,6 +1948,31 @@ CMergeDoc * CMainFrame::GetMergeDocToShow(CDirDoc * pDirDoc, BOOL * pNew)
 	}
 	CMergeDoc * pMergeDoc = pDirDoc->GetMergeDocForDiff(pNew);
 	return pMergeDoc;
+}
+
+/**
+ * @brief Obtain a hex merge doc to display a difference in files.
+ * This function (usually) uses DirDoc to determine if new or existing
+ * MergeDoc is used. However there is exceptional case when DirDoc does
+ * not contain diffs. Then we have only file compare, and if we also have
+ * limited file compare windows, we always reuse existing MergeDoc.
+ * @param [in] pDirDoc Dir compare document.
+ * @param [out] pNew Did we create a new document?
+ * @return Pointer to merge doucument.
+ */
+CHexMergeDoc * CMainFrame::GetHexMergeDocToShow(CDirDoc * pDirDoc, BOOL * pNew)
+{
+	const BOOL bMultiDocs = GetOptionsMgr()->GetBool(OPT_MULTIDOC_MERGEDOCS);
+	const HexMergeDocList &docs = GetAllHexMergeDocs();
+
+	if (!pDirDoc->HasDiffs() && !bMultiDocs && !docs.IsEmpty())
+	{
+		POSITION pos = docs.GetHeadPosition();
+		CHexMergeDoc * pHexMergeDoc = docs.GetAt(pos);
+		pHexMergeDoc->CloseNow();
+	}
+	CHexMergeDoc * pHexMergeDoc = pDirDoc->GetHexMergeDocForDiff(pNew);
+	return pHexMergeDoc;
 }
 
 /// Get pointer to a dir doc for displaying a scan
@@ -2168,6 +2220,11 @@ void CMainFrame::OnPluginUnpackMode(UINT nID )
 
 void CMainFrame::OnUpdatePluginUnpackMode(CCmdUI* pCmdUI) 
 {
+	if (GetOptionsMgr()->GetBool(OPT_PLUGINS_ENABLED))
+		pCmdUI->Enable(TRUE);
+	else
+		pCmdUI->Enable(FALSE);
+
 	if (pCmdUI->m_nID == ID_UNPACK_MANUAL)
 		pCmdUI->SetRadio(PLUGIN_MANUAL == g_bUnpackerMode);
 	if (pCmdUI->m_nID == ID_UNPACK_AUTO)
@@ -2179,7 +2236,10 @@ void CMainFrame::OnUpdatePluginUnpackMode(CCmdUI* pCmdUI)
  */
 void CMainFrame::OnUpdateReloadPlugins(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(TRUE);
+	if (GetOptionsMgr()->GetBool(OPT_PLUGINS_ENABLED))
+		pCmdUI->Enable(TRUE);
+	else
+		pCmdUI->Enable(FALSE);
 }
 
 void CMainFrame::OnReloadPlugins()
@@ -2331,6 +2391,25 @@ LoadConfigBoolSetting(BOOL * cfgval, COptionsMgr * options, const CString & name
 }
 
 /**
+ * @brief Copy one piece of data from options object to config log, or vice-versa
+ */
+static void
+LoadConfigBoolSetting(bool * cfgval, COptionsMgr * options, const CString & name, ConfigLogDirection cfgdir)
+{
+	if (options == NULL)
+		return;
+
+	if (cfgdir == ToConfigLog)
+	{
+			*cfgval = options->GetBool(name);
+	}
+	else
+	{
+		options->SetBool(name, !!(*cfgval));
+	}
+}
+
+/**
  * @brief Pass options settings from options manager object to config log, or vice-versa
  */
 static void LoadConfigLog(CConfigLog & configLog, COptionsMgr * options,
@@ -2353,6 +2432,9 @@ static void LoadConfigLog(CConfigLog & configLog, COptionsMgr * options,
 	LoadConfigBoolSetting(&configLog.m_viewSettings.bShowUniqueRight, options, OPT_SHOW_UNIQUE_RIGHT, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_viewSettings.bShowBinaries, options, OPT_SHOW_BINARIES, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_viewSettings.bShowSkipped, options, OPT_SHOW_SKIPPED, cfgdir);
+	LoadConfigBoolSetting(&configLog.m_viewSettings.bTreeView, options, OPT_TREE_MODE, cfgdir);
+
+	LoadConfigBoolSetting(&configLog.m_miscSettings.bPreserveFiletimes, options, OPT_PRESERVE_FILETIMES, cfgdir);
 
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bAutomaticRescan, options, OPT_AUTOMATIC_RESCAN, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bAllowMixedEol, options, OPT_ALLOW_MIXED_EOL, cfgdir);
@@ -2363,9 +2445,10 @@ static void LoadConfigLog(CConfigLog & configLog, COptionsMgr * options,
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bWrapLines, options, OPT_WORDWRAP, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bMergeMode, options, OPT_MERGE_MODE, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bSyntaxHighlight, options, OPT_SYNTAX_HIGHLIGHT, cfgdir);
-	LoadConfigIntSetting(&configLog.m_miscSettings.bInsertTabs, options, OPT_TAB_TYPE, cfgdir);
+	LoadConfigIntSetting(&configLog.m_miscSettings.nInsertTabs, options, OPT_TAB_TYPE, cfgdir);
 	LoadConfigIntSetting(&configLog.m_miscSettings.nTabSize, options, OPT_TAB_SIZE, cfgdir);
 	LoadConfigBoolSetting(&configLog.m_miscSettings.bPluginsEnabled, options, OPT_PLUGINS_ENABLED, cfgdir);
+	LoadConfigBoolSetting(&configLog.m_miscSettings.bMatchSimilarLines, options, OPT_CMP_MATCH_SIMILAR_LINES, cfgdir);	
 
 	LoadConfigIntSetting(&configLog.m_cpSettings.nDefaultMode, options, OPT_CP_DEFAULT_MODE, cfgdir);
 	LoadConfigIntSetting(&configLog.m_cpSettings.nDefaultCustomValue, options, OPT_CP_DEFAULT_CUSTOM, cfgdir);
@@ -2501,9 +2584,9 @@ void CMainFrame::OnToolsFilters()
 			// Don't overwrite mask we already have
 			if (!theApp.m_globalFileFilter.IsUsingMask())
 			{
-				CString sFilter = _T("*.*");
+				String sFilter(_T("*.*"));
 				theApp.m_globalFileFilter.SetFilter(sFilter);
-				GetOptionsMgr()->SaveOption(OPT_FILEFILTER_CURRENT, sFilter);
+				GetOptionsMgr()->SaveOption(OPT_FILEFILTER_CURRENT, sFilter.c_str());
 			}
 		}
 		else
@@ -2660,7 +2743,7 @@ void CMainFrame::ShowHelp(LPCTSTR helpLocation /*= NULL*/)
 		if (paths_DoesPathExist(sPath.c_str()) == IS_EXISTING_FILE)
 		{
 			sPath += helpLocation;
-			::HtmlHelp(GetSafeHwnd(), sPath.c_str(), HH_DISPLAY_TOPIC, NULL);
+			::HtmlHelp(NULL, sPath.c_str(), HH_DISPLAY_TOPIC, NULL);
 		}
 	}
 }
@@ -2730,9 +2813,15 @@ void CMainFrame::OnResizePanes()
 {
 	bool bResize = !GetOptionsMgr()->GetBool(OPT_RESIZE_PANES);
 	GetOptionsMgr()->SaveOption(OPT_RESIZE_PANES, bResize);
-
-	CChildFrame * pFrame = dynamic_cast<CChildFrame *>(GetActiveFrame());
-	if (pFrame)
+	// TODO: Introduce a common merge frame superclass?
+	CFrameWnd *pActiveFrame = GetActiveFrame();
+	if (CChildFrame *pFrame = DYNAMIC_DOWNCAST(CChildFrame, pActiveFrame))
+	{
+		pFrame->UpdateAutoPaneResize();
+		if (bResize)
+			pFrame->UpdateSplitter();
+	}
+	else if (CHexMergeFrame *pFrame = DYNAMIC_DOWNCAST(CHexMergeFrame, pActiveFrame))
 	{
 		pFrame->UpdateAutoPaneResize();
 		if (bResize)
@@ -2770,22 +2859,14 @@ void CMainFrame::OnFileOpenproject()
 LRESULT CMainFrame::OnCopyData(WPARAM wParam, LPARAM lParam)
 {
 	COPYDATASTRUCT *pCopyData = (COPYDATASTRUCT*)lParam;
+	LPCTSTR pchData = (LPCTSTR)pCopyData->lpData;
 	// Bail out if data isn't zero-terminated
 	DWORD cchData = pCopyData->cbData / sizeof(TCHAR);
-	if (cchData == 0 || ((LPCTSTR)(pCopyData->lpData))[cchData - 1] != _T('\0'))
+	if (cchData == 0 || pchData[cchData - 1] != _T('\0'))
 		return FALSE;
-	LPTSTR pchData = new TCHAR[cchData];
-	memcpy(pchData, pCopyData->lpData, pCopyData->cbData);
-	PostMessage(WM_USER, (WPARAM)pchData, (LPARAM)0);
-	return TRUE;
-}
-
-LRESULT CMainFrame::OnUser(WPARAM wParam, LPARAM lParam)
-{
-	LPCTSTR pchData = (LPCTSTR)wParam;
+	ReplyMessage(TRUE);
 	MergeCmdLineInfo cmdInfo = pchData;
 	theApp.ParseArgsAndDoOpen(cmdInfo, this);
-	delete pchData;
 	return TRUE;
 }
 
@@ -3506,4 +3587,31 @@ void CMainFrame::OnPluginsList()
 {
 	PluginsListDlg dlg;
 	dlg.DoModal();
+}
+
+LRESULT CMainFrame::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_DRAWITEM:
+	case WM_INITMENUPOPUP:
+	case WM_MEASUREITEM:
+	case WM_MENUCHAR:
+		{
+			if (GetOptionsMgr()->GetBool(OPT_DIRVIEW_ENABLE_SHELL_CONTEXT_MENU))
+			{
+				// in case of folder comparison we need to pass these messages to shell context menu
+				CFrameWnd * pFrame = GetActiveFrame();
+				FRAMETYPE frame = GetFrameType(pFrame);
+				if (frame == FRAME_FOLDER)
+				{
+					CDirDoc * pDoc = (CDirDoc*)pFrame->GetActiveDocument();
+					CDirView *pView = pDoc->GetMainView();
+					pView->HandleMenuMessage(message, wParam, lParam);
+				}
+			}
+		}
+	}
+
+	return CMDIFrameWnd::WindowProc(message, wParam, lParam);
 }

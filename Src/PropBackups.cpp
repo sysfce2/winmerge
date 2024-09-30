@@ -4,7 +4,7 @@
  * @brief Implementation of CPropBackups propertysheet
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropBackups.cpp 4588 2007-10-05 11:35:46Z jtuc $
+// $Id: PropBackups.cpp 6468 2009-02-16 21:47:33Z sdottaka $
 
 #include "stdafx.h"
 #include "Merge.h"
@@ -115,7 +115,6 @@ void CPropBackups::OnBnClickedBackupBrowse()
 	CString path;
 	if (SelectFolder(path, NULL, 0, GetSafeHwnd()))
 	{
-		m_sGlobalFolder = path;
-		UpdateData(FALSE);
+		SetDlgItemText(IDC_BACKUP_FOLDER, path);
 	}
 }

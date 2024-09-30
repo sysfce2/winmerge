@@ -24,7 +24,7 @@
  */ 
 //
 // ID line follows -- this is updated by SVN
-// $Id: DirView.h 5647 2008-07-21 09:41:45Z kimmov $
+// $Id: DirView.h 6535 2009-03-05 16:13:21Z kimmov $
 
 #if !defined(AFX_DirView_H__16E7C721_351C_11D1_95CD_444553540000__INCLUDED_)
 #define AFX_DirView_H__16E7C721_351C_11D1_95CD_444553540000__INCLUDED_
@@ -50,6 +50,7 @@ class DirCompProgressDlg;
 class CompareStats;
 struct DirColInfo;
 class CLoadSaveCodepageDlg;
+class CShellContextMenu;
 
 struct ViewCustomFlags
 {
@@ -60,14 +61,14 @@ struct ViewCustomFlags
 		// to make debugging easier
 		// These can always be packed down in the future
 		INVALID_CODE=0,
-		VISIBILITY=0x3, VISIBLE=0x1, HIDDEN=0x2,
+		VISIBILITY=0x3, VISIBLE=0x1, HIDDEN=0x2, EXPANDED=0x4
 	};
 };
 
 /**
  * @brief Position value for special items (..) in directory compare view.
  */
-const POSITION SPECIAL_ITEM_POS = (POSITION)-1L;
+const UINT_PTR SPECIAL_ITEM_POS = (UINT_PTR)-1L;
 
 /** Default column width in directory compare */
 const UINT DefColumnWidth = 150;
@@ -104,10 +105,11 @@ public:
 
 	void StartCompare(CompareStats *pCompareStats);
 	void Redisplay();
+	void RedisplayChildren(UINT_PTR diffpos, int level, UINT &index, int &alldiffs);
 	void UpdateResources();
 	void LoadColumnHeaderItems();
-	POSITION GetItemKey(int idx) const;
-	int GetItemIndex(POSITION key);
+	UINT_PTR GetItemKey(int idx) const;
+	int GetItemIndex(UINT_PTR key);
 	// for populating list
 	void DeleteAllDisplayItems();
 	void SetColumnWidths();
@@ -120,6 +122,8 @@ public:
 	DIFFITEM & GetItemAt(int ind);
 	void AddParentFolderItem(BOOL bEnable);
 	void RefreshOptions();
+
+	LRESULT HandleMenuMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
 // Implementation types
 private:
@@ -194,7 +198,7 @@ public:
 private:
 	void InitiateSort();
 	void NameColumn(int id, int subitem);
-	int AddNewItem(int i, POSITION diffpos, int iImage);
+	int AddNewItem(int i, UINT_PTR diffpos, int iImage, int iIndent);
 	bool IsDefaultSortAscending(int col) const;
 	int ColPhysToLog(int i) const { return m_invcolorder[i]; }
 	int ColLogToPhys(int i) const { return m_colorder[i]; } /**< -1 if not displayed */
@@ -245,10 +249,10 @@ protected:
 	int AddSpecialItems();
 	void GetCurrentColRegKeys(CStringArray & colKeys);
 	void WarnContentsChanged(const CString & failedPath);
-	void OpenSpecialItems(POSITION pos1, POSITION pos2);
-	bool OpenOneItem(POSITION pos1, DIFFITEM **di1, DIFFITEM **di2,
+	void OpenSpecialItems(UINT_PTR pos1, UINT_PTR pos2);
+	bool OpenOneItem(UINT_PTR pos1, DIFFITEM **di1, DIFFITEM **di2,
 		String &path1, String &path2, int & sel1, bool & isDir);
-	bool OpenTwoItems(POSITION pos1, POSITION pos2, DIFFITEM **di1, DIFFITEM **di2,
+	bool OpenTwoItems(UINT_PTR pos1, UINT_PTR pos2, DIFFITEM **di1, DIFFITEM **di2,
 		String &path1, String &path2, int & sel1, int & sel2, bool & isDir);
 	bool CreateFoldersPair(DIFFITEM & di, bool side1);
 
@@ -257,17 +261,24 @@ protected:
 	CString GenerateReport();
 	CSortHeaderCtrl m_ctlSortHeader;
 	CImageList m_imageList;
+	CImageList m_imageState;
 	CListCtrl * m_pList;
 	int m_numcols;
 	int m_dispcols;
-	CArray<int, int> m_colorder; /**< colorder[logical#]=physical# */
-	CArray<int, int> m_invcolorder; /**< invcolorder[physical]=logical# */
+    std::vector<int> m_colorder; /**< colorder[logical#]=physical# */
+	std::vector<int> m_invcolorder; /**< invcolorder[physical]=logical# */
 	BOOL m_bEscCloses; /**< Cached value for option for ESC closing window */
 	CFont m_font; /**< User-selected font */
 	UINT m_nHiddenItems; /**< Count of items we have hidden */
+	BOOL m_bTreeMode; /**< TRUE if tree mode is on*/
 	DirCompProgressDlg * m_pCmpProgressDlg;
 	clock_t m_compareStart; /**< Starting process time of the compare */
 	BOOL m_bUserCancelEdit; /**< TRUE if the user cancels rename */
+	String m_lastCopyFolder; /**< Last Copy To -target folder. */
+
+	CShellContextMenu* m_pShellContextMenuLeft; /**< Shell context menu for group of left files */
+	CShellContextMenu* m_pShellContextMenuRight; /**< Shell context menu for group of right files */
+	HMENU m_hCurrentMenu; /**< Current shell context menu (either left or right) */
 
 	// Generated message map functions
 	afx_msg void OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult);
@@ -306,6 +317,8 @@ protected:
 	afx_msg void OnUpdateCtxtDirCopyRightTo(CCmdUI* pCmdUI);
 	afx_msg void OnDestroy();
 	afx_msg void OnChar(UINT nChar, UINT nRepCnt, UINT nFlags);
+	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	afx_msg void OnClick(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnFirstdiff();
 	afx_msg void OnUpdateFirstdiff(CCmdUI* pCmdUI);
 	afx_msg void OnLastdiff();
@@ -361,8 +374,15 @@ protected:
 	afx_msg void OnUpdateStatusNum(CCmdUI* pCmdUI);
 	afx_msg void OnViewShowHiddenItems();
 	afx_msg void OnUpdateViewShowHiddenItems(CCmdUI* pCmdUI);
+	afx_msg void OnViewTreeMode();
+	afx_msg void OnUpdateViewTreeMode(CCmdUI* pCmdUI);
+	afx_msg void OnViewExpandAllSubdirs();
+	afx_msg void OnUpdateViewExpandAllSubdirs(CCmdUI* pCmdUI);
+	afx_msg void OnViewCollapseAllSubdirs();
+	afx_msg void OnUpdateViewCollapseAllSubdirs(CCmdUI* pCmdUI);
 	afx_msg void OnMergeCompare();
 	afx_msg void OnMergeCompareXML();
+	afx_msg void OnMergeCompareHex();
 	afx_msg void OnUpdateMergeCompare(CCmdUI *pCmdUI);
 	afx_msg void OnViewCompareStatistics();
 	afx_msg void OnFileEncoding();
@@ -384,6 +404,7 @@ protected:
 
 private:
 	void OpenSelection(PackingInfo * infoUnpacker = NULL);
+	void OpenSelectionHex();
 	bool GetSelectedItems(int * sel1, int * sel2);
 	void OpenParentDirectory();
 	void DoUpdateDirCopyRightToLeft(CCmdUI* pCmdUI, eMenuType menuType);
@@ -403,7 +424,6 @@ private:
 	void DoUpdateCtxtDirCopyRightTo(CCmdUI* pCmdUI);
 	void DoUpdateCtxtDirMoveLeftTo(CCmdUI* pCmdUI);
 	void DoUpdateCtxtDirMoveRightTo(CCmdUI* pCmdUI);
-	POSITION GetItemKeyFromData(DWORD_PTR dw) const;
 	const DIFFITEM & GetDiffItem(int sel) const;
 	DIFFITEM & GetDiffItemRef(int sel);
 	int GetSingleSelectedItem() const;
@@ -414,10 +434,14 @@ private:
 	void FixReordering();
 	void HeaderContextMenu(CPoint point, int i);
 	void ListContextMenu(CPoint point, int i);
+	bool ListShellContextMenu(SIDE_TYPE side);
+	CShellContextMenu* GetCorrespondingShellContextMenu(HMENU hMenu) const;
 	void ReloadColumns();
 	void ResetColumnWidths();
 	BOOL IsLabelEdit();
 	BOOL IsItemSelectedSpecial();
+	void CollapseSubdir(int sel);
+	void ExpandSubdir(int sel);
 };
 
 

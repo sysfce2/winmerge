@@ -4,7 +4,7 @@
  * @brief Implementation of helper functions involving locale
  */
 // ID line follows -- this is updated by SVN
-// $Id: locality.cpp 5919 2008-09-07 16:06:38Z sdottaka $
+// $Id: locality.cpp 5918 2008-09-07 16:05:46Z sdottaka $
 
 #include "StdAfx.h"
 #include "locality.h"

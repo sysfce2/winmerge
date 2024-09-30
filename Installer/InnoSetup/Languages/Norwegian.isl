@@ -327,7 +327,6 @@ CustomInstallation=Egendefinert installasjon
 
 ;Components
 AppCoreFiles=WinMerge kjernefiler
-ApplicationRuntimes=Program kjørefiler
 Filters=Filter
 Plugins=Programtillegg
 
@@ -367,15 +366,12 @@ ExplorerContextMenu=&Aktiver integrasjon i Windows utforsker sin kontekstmeny
 IntegrateTortoiseCVS=Integrer med &TortoiseCVS
 IntegrateTortoiseSVN=Integrer med T&ortoiseSVN
 IntegrateClearCase=Integrer med Rational &ClearCase
-IntegrateDelphi4=Støtte for Borland® Delphi &4 binære file
-UpdatingCommonControls=Oppdater systemets felles kontrollelement
+AddToPath=&Add WinMerge folder to your system path
 
 ;Icon Labels
 ReadMe=LesMeg
 UsersGuide=Brukermanual
-UpdatingCommonControls=Oppdater systemets felles kontrollelement
 ViewStartMenuFolder=&Vis WinMerge sin startmeny-mappe
-PluginsText=Plugins
 
 ;Code Dialogs
 DeletePreviousStartMenu=Installasjonsprogrammet har oppdaget at du har endret plasseringen av startmenyen fra "%s" til "%s". Vil du slette den forrige startmeny-mappen?

@@ -4,7 +4,7 @@
  *  @brief Declarations of CDiffContext and diff structures
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffContext.h 5647 2008-07-21 09:41:45Z kimmov $
+// $Id: DiffContext.h 6136 2008-12-01 17:04:25Z kimmov $
 
 #if !defined(AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_)
 #define AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_
@@ -91,7 +91,7 @@ public:
 
 	// change an existing difference
 	BOOL UpdateInfoFromDiskHalf(DIFFITEM & di, BOOL bLeft);
-	void UpdateStatusFromDisk(POSITION diffpos, BOOL bLeft, BOOL bRight);
+	void UpdateStatusFromDisk(UINT_PTR diffpos, BOOL bLeft, BOOL bRight);
 
 	BOOL CreateCompareOptions(int compareMethod, const DIFFOPTIONS & options);
 	CompareOptions * GetCompareOptions(int compareMethod);
@@ -143,7 +143,7 @@ public:
 	 * compare right after finding the first difference. This speeds up the
 	 * compare, but also causes compare statistics to be inaccurate.
 	 */
-	BOOL m_bStopAfterFirstDiff;
+	bool m_bStopAfterFirstDiff;
 
 	/**
 	 * Threshold size for switching to quick compare.

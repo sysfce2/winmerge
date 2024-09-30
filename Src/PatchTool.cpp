@@ -20,14 +20,14 @@
  * @brief Code file routines
  */
 // ID line follows -- this is updated by SVN
-// $Id: PatchTool.cpp 5067 2008-02-22 15:48:03Z kimmov $
+// $Id: PatchTool.cpp 5983 2008-09-28 07:13:38Z kimmov $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "UnicodeString.h"
 #include "DiffWrapper.h"
-#include "patchtool.h"
+#include "PatchTool.h"
 #include "PatchDlg.h"
-#include "Coretools.h"
+#include "coretools.h"
 #include "paths.h"
 
 #ifdef _DEBUG
@@ -64,7 +64,7 @@ void CPatchTool::AddFiles(const String &file1, const String &file2)
 	files.rfile = file2;
 
 	// TODO: Read and add file's timestamps
-	m_fileList.AddTail(files);
+	m_fileList.push_back(files);
 }
 
 /**
@@ -88,7 +88,7 @@ void CPatchTool::AddFiles(const String &file1, const String &altPath1,
 	files.pathRight = altPath2;
 
 	// TODO: Read and add file's timestamps
-	m_fileList.AddTail(files);
+	m_fileList.push_back(files);
 }
 
 /** 
@@ -107,13 +107,9 @@ int CPatchTool::CreatePatch()
 		m_pDlgPatch = new CPatchDlg();
 
 	// If files already inserted, add them to dialog
-	int count = m_fileList.GetCount();
-	POSITION pos = m_fileList.GetHeadPosition();
-
-	for (int i = 0; i < count; i++)
-	{
-		PATCHFILES files = m_fileList.GetNext(pos);
-		m_pDlgPatch->AddItem(files);
+    for(std::vector<PATCHFILES>::iterator iter = m_fileList.begin(); iter != m_fileList.end(); ++iter)
+    {
+        m_pDlgPatch->AddItem(*iter);
 	}
 
 	if (ShowDialog())
@@ -132,11 +128,9 @@ int CPatchTool::CreatePatch()
 		m_diffWrapper.SetPrediffer(NULL);
 
 		int fileCount = m_pDlgPatch->GetItemCount();
-		POSITION pos = m_pDlgPatch->GetFirstItem();
-
-		for (int i = 0; i < fileCount; i++)
+		for (int index = 0; index < fileCount; index++)
 		{
-			PATCHFILES files = m_pDlgPatch->GetNextItem(pos);
+			const PATCHFILES& files = m_pDlgPatch->GetItemAt(index);
 			
 			// Set up DiffWrapper
 			m_diffWrapper.SetPaths(files.lfile, files.rfile, FALSE);
@@ -210,14 +204,14 @@ BOOL CPatchTool::ShowDialog()
 
 		// These are from checkboxes and radiobuttons - can't be wrong
 		diffOptions.nIgnoreWhitespace = m_pDlgPatch->m_whitespaceCompare;
-		diffOptions.bIgnoreBlankLines = m_pDlgPatch->m_ignoreBlanks;
+		diffOptions.bIgnoreBlankLines = !!m_pDlgPatch->m_ignoreBlanks;
 		m_diffWrapper.SetAppendFiles(m_pDlgPatch->m_appendFile);
 
 		// Use this because non-sensitive setting can't write
 		// patch file EOLs correctly
-		diffOptions.bIgnoreEol = FALSE;
+		diffOptions.bIgnoreEol = false;
 		
-		diffOptions.bIgnoreCase = !m_pDlgPatch->m_caseSensitive;
+		diffOptions.bIgnoreCase = m_pDlgPatch->m_caseSensitive == FALSE;
 		m_diffWrapper.SetOptions(&diffOptions);
 	}
 	else

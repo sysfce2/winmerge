@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: AnsiConvert.cpp 5592 2008-07-10 17:01:15Z kimmov $
+// $Id: AnsiConvert.cpp 5590 2008-07-10 13:10:18Z kimmov $
 
 #include <windows.h>
 
@@ -59,5 +59,3 @@ LPCSTR convert(LPCTSTR str, UINT codepage)
 	return NULL;
 #endif
 }
-
-

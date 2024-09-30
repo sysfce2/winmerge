@@ -1,9 +1,9 @@
 body {
 	margin: 0;
 	padding: 0;
-	min-width: 40em;
 	color: black;
-	background: white;
+	background: #FFFFCC url(/images/body-bg.png) repeat-x;
+	text-align: center;
 	font-family: Verdana,Helvetica,Arial,sans-serif;
 	font-size: small;
 }
@@ -31,15 +31,21 @@ a:active { color:#003399; text-decoration:none; }
 
 a[name]:hover { color:black; text-decoration:none; }
 
+#wrap {
+	width: 60em;
+	margin: 0 auto;
+	padding: 1em;
+	text-align: left;
+}
+
 #head {
 	margin: 0;
 	padding: 5px;
 	padding-left: 1em;
-	background: #FFCC00;
+	background: transparent;
 }
 
 #head h1 {
-	float: left;
 	margin: 0;
 	padding: 0;
 	width: 266px;
@@ -48,16 +54,12 @@ a[name]:hover { color:black; text-decoration:none; }
 	text-indent: -999em;
 }
 
-#rightcorner {
-	text-align: right;
-}
-
 /* Based on "Eric Meyer's tabbed navbar" from Eric Meyer:
    http://css.maxdesign.com.au/listamatic/horizontal05.htm */
 #tabs {
 	margin: 0;
 	padding: 3px 1em;
-	background: #FFCC00;
+	background: transparent;
 	border-bottom: 1px solid black;
 }
 
@@ -87,15 +89,18 @@ a[name]:hover { color:black; text-decoration:none; }
 }
 
 #tabs li a#current {
-	background: white;
+	background: #F2F2F2;
 	border: 1px solid black;
-	border-bottom: 1px solid white;
+	border-bottom: 1px solid #F2F2F2;
 }
 
 #subtabs {
 	margin: 0;
 	padding: 5px;
-	background: white;
+	background: #F2F2F2 url(/images/subtabs-bg.png) repeat-x bottom;
+	border-left: 1px solid black;
+	border-right: 1px solid black;
+	/*border-bottom: 1px solid #D2D2D2;*/
 }
 
 #subtabs li {
@@ -113,15 +118,32 @@ a[name]:hover { color:black; text-decoration:none; }
 	margin: 0;
 	padding: 10px 5px 10px 5px;
 	text-align: center;
+	background: white;
+	border-left: 1px solid black;
+	border-right: 1px solid black;
 }
 
 #content {
 	margin: 0;
 	padding: 1em;
+	background: white;
+	border: 1px solid black;
+	border-top: 0;
 }
 
-#content h2, p {
+#content h2 {
 	margin-top: 0;
+}
+
+#content p {
+	margin-top: 0;
+}
+
+#poweredby {
+	margin: 0;
+	margin-top: 1em;
+	padding: 0;
+	text-align: center;
 }
 
 /* "Download Now!" link */
@@ -210,6 +232,26 @@ a.downloadnow em {
 	color: #FFFFFF;
 }
 
+/* SHA-1 Checksums */
+#checksums {
+	margin-bottom: 1em;
+}
+
+#checksums h3,
+#checksums h4 {
+	margin: 0;
+	padding: 0;
+	font-size: 100%;
+}
+
+#checksumslist {
+	margin: 0;
+	margin-top: .5em;
+	padding: .5em;
+	background: #f2f2f2;
+	border: 1px solid #aaaaaa;
+}
+
 /* Heading list */
 .headinglist dt {
 	font-weight: bold;
@@ -266,6 +308,55 @@ ul.inline li {
 	list-style: none;
 }
 
+/* "What is WinMerge?" box */
+.whatisbox {
+	width: 45em;
+	margin: 0 auto;
+	background: #f9f9f9;
+	border: 1px solid #aaaaaa;
+}
+
+.whatisbox h2 {
+	margin: 0;
+	padding: 0.25em;
+	background: #f2f2f2;
+	border-bottom: 1px solid #aaaaaa;
+	font-size: 140%;
+}
+
+.whatisimage {
+	float: right;
+	margin: 0.25em;
+	padding: 0.25em;
+	text-align: center;
+}
+
+.whatistext {
+	margin: 0.25em;
+	padding: 0.25em;
+	line-height: 1.5em;
+	/*text-align: justify;*/
+}
+
+.whatistext strong {
+	font-size: larger;
+}
+
+.whatisclear {
+	clear: both;
+}
+
+/* RSS feed items */
+.rssfeeditems li {
+	margin-bottom: .5em;
+}
+
+.rssfeeditems em {
+	margin-left: .5em;
+	color: gray;
+	font-size: smaller;
+}
+
 /* Info card (Mailing lists, History) */
 .infocard {
 	width: 40em;
@@ -286,6 +377,28 @@ ul.inline li {
 	margin: 0;
 	padding: 5px;
 	padding-top: 0;
+}
+
+/* Screenshots */
+.screenshots {
+  height: 1%; /* IE fix */
+}
+
+.screenshots h3 {
+	clear: left;
+	margin: 0;
+	margin-bottom: .5em;
+}
+
+.screenshots img {
+	float: left;
+	margin-right: 1em;
+	margin-bottom: 1.5em;
+	padding: 0;
+}
+
+.screenshots br {
+	clear: left;
 }
 
 /* Translations Status */

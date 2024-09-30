@@ -4,7 +4,7 @@
  *  @brief Declaration of DIFFITEM
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffItem.h 5646 2008-07-20 16:22:24Z jtuc $
+// $Id: DiffItem.h 6095 2008-11-18 20:05:27Z kimmov $
 
 #ifndef _DIFF_ITEM_H_
 #define _DIFF_ITEM_H_
@@ -54,7 +54,7 @@ struct DIFFCODE
 		// to make debugging easier
 		// These can always be packed down in the future
 		TEXTFLAGS=0x7, TEXT=0x1, BINSIDE1=0x2, BINSIDE2=0x3, BIN=0x4,
-		DIRFLAGS=0x30, FILE=0x10, DIR=0x20,
+		TYPEFLAGS=0x30, FILE=0x10, DIR=0x20,
 		SIDEFLAGS=0x300, LEFT=0x100, RIGHT=0x200, BOTH=0x300,
 		COMPAREFLAGS=0x7000, NOCMP=0x0000, SAME=0x1000, DIFF=0x2000, CMPERR=0x3000, CMPABORT=0x4000,
 		FILTERFLAGS=0x30000, INCLUDED=0x10000, SKIPPED=0x20000,
@@ -82,7 +82,7 @@ protected:
 public:
 
 	// file/directory
-	bool isDirectory() const { return Check(diffcode, DIFFCODE::DIRFLAGS, DIFFCODE::DIR); }
+	bool isDirectory() const { return Check(diffcode, DIFFCODE::TYPEFLAGS, DIFFCODE::DIR); }
 	// left/right
 	bool isSideLeftOnly() const { return CheckSide(diffcode, DIFFCODE::LEFT); }
 	bool isSideLeftOrBoth() const { return isSideLeftOnly() || isSideBoth(); }
@@ -95,7 +95,7 @@ public:
 	void setSideNone() { SetSide(0); }
 	// compare result
 	bool isResultSame() const { return CheckCompare(diffcode, DIFFCODE::SAME); }
-	bool isResultDiff() const { return (!isResultSame() && !isResultFiltered() && !isResultError() &&
+	bool isResultDiff() const { return (CheckCompare(diffcode, DIFFCODE::DIFF) && !isResultFiltered() &&
 			!isSideLeftOnly() && !isSideRightOnly()); }
 	static bool isResultError(UINT code) { return CheckCompare(code, DIFFCODE::CMPERR); }
 	bool isResultError() const { return isResultError(diffcode); }
@@ -104,6 +104,8 @@ public:
 	// filter status
 	bool isResultFiltered() const { return CheckFilter(diffcode, DIFFCODE::SKIPPED); }
 	// type
+	bool isText() const { return Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::TEXT); }
+	void setText() { Set(DIFFCODE::TEXTFLAGS, DIFFCODE::TEXT); }
 	bool isBin() const { return Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::BIN) ||
 			Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::BINSIDE1) ||
 			Check(diffcode, DIFFCODE::TEXTFLAGS, DIFFCODE::BINSIDE2); }
@@ -114,13 +116,21 @@ public:
 };
 
 /**
- * @brief information about one diff (including files on both sides)
+ * @brief information about one file/folder item.
+ * This class holds information about one compared item in the folder compare.
+ * The item can be a file item or folder item. The item can have data from
+ * both compare sides (file/folder exists in both sides) or just from one
+ * side (file/folder exists only in other side).
  *
- * @note times in fileinfo's are seconds since January 1, 1970.
- * See Dirscan.cpp/fentry and Dirscan.cpp/LoadFiles()
+ * This class is for backend differences processing, presenting physical
+ * files and folders. This class is not for GUI data like selection or
+ * visibility statuses. So do not include any GUI-dependent data here. 
  */
 struct DIFFITEM : ListEntry
 {
+	DIFFITEM *parent; /**< Parent of current item */
+	ListEntry children; /**< Head of doubly linked list for chldren */
+
 	DiffFileInfo left; /**< Fileinfo for left file */
 	DiffFileInfo right; /**< Fileinfo for right file */
 	int	nsdiffs; /**< Amount of non-ignored differences */
@@ -131,13 +141,15 @@ struct DIFFITEM : ListEntry
 
 	static DIFFITEM emptyitem; /**< singleton to represent a diffitem that doesn't have any data */
 
-	DIFFITEM() : nidiffs(-1), nsdiffs(-1), customFlags1(0)
-	{
-	}
+	DIFFITEM() : parent(NULL), nidiffs(-1), nsdiffs(-1), customFlags1(0) { }
+	~DIFFITEM();
 
 	bool isEmpty() const { return this == &emptyitem; }
 	String getLeftFilepath(const String &sLeftRoot) const;
 	String getRightFilepath(const String &sRightRoot) const;
+	int GetDepth() const;
+	bool IsAncestor(const DIFFITEM *pdi) const;
+	bool HasChildren() const;
 };
 
 #endif // _DIFF_ITEM_H_

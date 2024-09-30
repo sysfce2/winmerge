@@ -4,9 +4,9 @@
  * @brief ClipBoard helper functions implementations.
  */
 // ID line follows -- this is updated by SVN
-// $Id: ClipBoard.cpp 5545 2008-06-30 01:45:21Z marcelgosselin $
+// $Id: ClipBoard.cpp 5911 2008-09-07 03:30:21Z marcelgosselin $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "ClipBoard.h"
 
 /**

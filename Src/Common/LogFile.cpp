@@ -5,9 +5,9 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: LogFile.cpp 4855 2008-01-04 15:55:30Z kimmov $
+// $Id: LogFile.cpp 5911 2008-09-07 03:30:21Z marcelgosselin $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "LogFile.h"
 #include <afxinet.h>
 #include "UnicodeString.h"

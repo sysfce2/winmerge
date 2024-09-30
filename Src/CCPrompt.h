@@ -21,7 +21,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: CCPrompt.h 5858 2008-08-24 20:31:56Z kimmov $
+// $Id: CCPrompt.h 5849 2008-08-22 17:57:48Z kimmov $
 
 #if !defined(AFX_CCPROMPT_H__7ED564F2_CCB8_11D4_92BB_00B0D0221937__INCLUDED_)
 #define AFX_CCPROMPT_H__7ED564F2_CCB8_11D4_92BB_00B0D0221937__INCLUDED_

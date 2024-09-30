@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: Constants.h 5990 2008-09-30 21:35:18Z gerundt $
+// $Id: Constants.h 6733 2009-05-12 07:31:07Z kimmov $
 
 #ifndef _CONSTANTS_H_
 #define _CONSTANTS_H_
@@ -37,8 +37,11 @@ const TCHAR ContributorsPath[] = _T("\\contributors.txt");
 /** @brief Release notes in HTML format. */
 const TCHAR RelNotes[] = _T("\\Docs\\ReleaseNotes.html");
 
-/** @brief GLP Licence local file name. */
+/** @brief GPL Licence local file name. */
 const TCHAR LicenseFile[] = _T("\\Copying");
+
+/** @brief WinMerge folder in My Folders-folder. */
+const TCHAR WinMergeDocumentsFolder[] = _T("WinMerge");
 
 /**
  * @brief Default relative path to "My Documents" for private filters.

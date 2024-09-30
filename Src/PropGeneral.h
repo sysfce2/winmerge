@@ -4,7 +4,7 @@
  * @brief Declaration of CPropGeneral class
  */
 // ID line follows -- this is updated by SVN
-// $Id: PropGeneral.h 4875 2008-01-08 20:57:23Z kimmov $
+// $Id: PropGeneral.h 6359 2009-01-22 19:12:53Z kimmov $
 
 #if !defined(AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_)
 #define AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_
@@ -43,6 +43,7 @@ public:
 	BOOL	m_bMultipleDirCmp;
 	int		m_nAutoCompleteSource;
 	BOOL	m_bPreserveFiletime;
+	BOOL	m_bShowSelectFolderOnStartup;
 	//}}AFX_DATA
 
 
@@ -71,4 +72,3 @@ private:
 // Microsoft Developer Studio will insert additional declarations immediately before the previous line.
 
 #endif // !defined(AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_)
-

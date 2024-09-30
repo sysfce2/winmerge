@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: OptionsMgr.cpp 5489 2008-06-16 18:46:28Z kimmov $
+// $Id: OptionsMgr.cpp 5658 2008-07-22 16:32:39Z jtuc $
 
 
 /* The MIT License
@@ -28,6 +28,10 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+// Disable VC6's "identifier was truncated..." warning. It is meaningless.
+#if _MSC_VER == 1200
+	#pragma warning(disable: 4786)
+#endif
 #include <windows.h>
 #include <tchar.h>
 #include <algorithm>

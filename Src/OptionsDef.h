@@ -4,7 +4,7 @@
  * @brief Constants for option-names
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: OptionsDef.h 5647 2008-07-21 09:41:45Z kimmov $
+// $Id: OptionsDef.h 6134 2008-11-28 19:58:25Z kimmov $
 
 #ifndef _OPTIONS_DEF_H_
 #define _OPTIONS_DEF_H_
@@ -21,6 +21,7 @@ const TCHAR OPT_SHOW_DIFFERENT[] = _T("Settings/ShowDifferent");
 const TCHAR OPT_SHOW_IDENTICAL[] = _T("Settings/ShowIdentical");
 const TCHAR OPT_SHOW_BINARIES[] = _T("Settings/ShowBinaries");
 const TCHAR OPT_SHOW_SKIPPED[] = _T("Settings/ShowSkipped");
+const TCHAR OPT_TREE_MODE[] = _T("Settings/TreeMode");
 
 // Show/hide toolbar/statusbar/tabbar
 const TCHAR OPT_SHOW_TOOLBAR[] = _T("Settings/ShowToolbar");
@@ -46,6 +47,7 @@ const TCHAR OPT_BACKUP_ADD_TIME[] = _T("Backup/NameAddTime");
 
 const TCHAR OPT_DIRVIEW_SORT_COLUMN[] =  _T("Settings/DirViewSortCol");
 const TCHAR OPT_DIRVIEW_SORT_ASCENDING[] =  _T("Settings/DirViewSortAscending");
+const TCHAR OPT_DIRVIEW_ENABLE_SHELL_CONTEXT_MENU[] = _T("Settings/DirViewEnableShellContextMenu");
 
 // File compare
 const TCHAR OPT_AUTOMATIC_RESCAN[] = _T("Settings/AutomaticRescan");
@@ -153,6 +155,9 @@ const TCHAR OPT_ARCHIVE_PROBETYPE[] = _T("Merge7z/ProbeSignature");
 
 // Plugins
 const TCHAR OPT_PLUGINS_ENABLED[] = _T("Settings/PluginsEnabled");
+
+// Startup options
+const TCHAR OPT_SHOW_SELECT_FILES_AT_STARTUP[] = _T("Settings/ShowFileDialog");
 
 // Font options
 const TCHAR OPT_FONT_FILECMP_USECUSTOM[] = _T("Font/Specified");

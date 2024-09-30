@@ -23,7 +23,7 @@
  * @brief Declaration of CMergeDoc class
  */
 // ID line follows -- this is updated by SVN
-// $Id: MergeDoc.h 5511 2008-06-23 22:54:36Z kimmov $
+// $Id: MergeDoc.h 6750 2009-05-14 14:34:10Z kimmov $
 
 #if !defined(AFX_MERGEDOC_H__BBCD4F90_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MERGEDOC_H__BBCD4F90_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -120,6 +120,14 @@ class CDirDoc;
  */
 class CMergeDoc : public CDocument
 {
+public:
+	enum FileChange
+	{
+		FileNoChange,
+		FileChanged,
+		FileRemoved,
+	};
+
 // Attributes
 public:
 	CDiffTextBuffer *m_ptBuf[2]; /**< Left/Right side text buffer */
@@ -141,24 +149,25 @@ public:
 	int GetActiveMergeViewIndexType() const;
 	CMergeEditView * GetActiveMergeView();
 	void UpdateHeaderPath(int pane);
-	void UpdateHeaderActivity(int pane, BOOL bActivate);
+	void UpdateHeaderActivity(int pane, bool bActivate);
 	void RefreshOptions();
 	void UpdateResources();
 	OPENRESULTS_TYPE OpenDocs(FileLocation filelocLeft, FileLocation filelocRight,
 		BOOL bROLeft, BOOL bRORight);
+	OPENRESULTS_TYPE ReloadDoc(int index);
 	void RescanIfNeeded(float timeOutInSecond);
 	int Rescan(BOOL &bBinary, BOOL &bIdentical, BOOL bForced = FALSE);
 	void ShowRescanError(int nRescanResult, BOOL bIdentical);
 	void AddUndoAction(UINT nBegin, UINT nEnd, UINT nDiff, int nBlanks, BOOL bInsert, CMergeEditView *pList);
-	BOOL Undo();
+	bool Undo();
 	void CopyAllList(int srcPane, int dstPane);
 	void CopyMultipleList(int srcPane, int dstPane, int firstDiff, int lastDiff);
-	BOOL SanityCheckDiff(DIFFRANGE dr);
+	bool SanityCheckDiff(DIFFRANGE dr);
 	bool ListCopy(int srcPane, int dstPane, int nDiff = -1, bool bGroupWithPrevious = false);
-	BOOL TrySaveAs(CString &strPath, int &nLastErrorCode, CString & sError,
+	bool TrySaveAs(CString &strPath, int &nLastErrorCode, String & sError,
 		int nBuffer, PackingInfo * pInfoTempUnpacker);
-	BOOL DoSave(LPCTSTR szPath, BOOL &bSaveSuccess, int nBuffer);
-	BOOL DoSaveAs(LPCTSTR szPath, BOOL &bSaveSuccess, int nBuffer);
+	bool DoSave(LPCTSTR szPath, BOOL &bSaveSuccess, int nBuffer);
+	bool DoSaveAs(LPCTSTR szPath, BOOL &bSaveSuccess, int nBuffer);
 	int RightLineInMovedBlock(int leftLine);
 	int LeftLineInMovedBlock(int rightLine);
 	void SetEditedAfterRescan(int nBuffer);
@@ -211,9 +220,9 @@ public:
 
 // Implementation
 public:
-	BOOL IsFileChangedOnDisk(LPCTSTR szPath, DiffFileInfo &dfi,
-		BOOL bSave, int nBuffer);
-	BOOL PromptAndSaveIfNeeded(BOOL bAllowCancel);
+	FileChange IsFileChangedOnDisk(LPCTSTR szPath, DiffFileInfo &dfi,
+		bool bSave, int nBuffer);
+	bool PromptAndSaveIfNeeded(BOOL bAllowCancel);
 	std::vector<CMergeEditView*> undoTgt;
 	std::vector<CMergeEditView*>::iterator curUndo;
 	void FlushAndRescan(BOOL bForced = FALSE);
@@ -221,10 +230,10 @@ public:
 	int GetCurrentDiff() { return m_nCurDiff; }
 	virtual ~CMergeDoc();
 	virtual void OnFileEvent (WPARAM wEvent, LPCTSTR pszPathName);
-	BOOL GetMergingMode() const;
-	void SetMergingMode(BOOL bMergingMode);
-	void SetDetectMovedBlocks(BOOL bDetectMovedBlocks);
-	BOOL IsMixedEOL() const { return m_bMixedEol; }
+	bool GetMergingMode() const;
+	void SetMergingMode(bool bMergingMode);
+	void SetDetectMovedBlocks(bool bDetectMovedBlocks);
+	bool IsMixedEOL(int nBuffer) const;
 
 // implementation methods
 private:
@@ -241,17 +250,17 @@ protected:
 	CMergeEditView * m_pView[MERGE_VIEW_COUNT]; /**< Pointer to left/right view */
 	CMergeDiffDetailView * m_pDetailView[2];
 	CDirDoc * m_pDirDoc;
-	BOOL m_bEnableRescan; /**< Automatic rescan enabled/disabled */
+	bool m_bEnableRescan; /**< Automatic rescan enabled/disabled */
 	COleDateTime m_LastRescan; /**< Time of last rescan (for delaying) */ 
 	CDiffWrapper m_diffWrapper;
 	/// information about the file packer/unpacker
 	PackingInfo * m_pInfoUnpacker;
 	String m_strDesc[2]; /**< Left/right side description text */
 	BUFFERTYPE m_nBufferType[2];
-	BOOL m_bMergingMode; /**< Merging or Edit mode */
-	BOOL m_bEditAfterRescan[2]; /**< Left/right doc edited after rescanning */
+	bool m_bMergingMode; /**< Merging or Edit mode */
+	bool m_bEditAfterRescan[2]; /**< Left/right doc edited after rescanning */
 	TempFile m_tempFiles[2]; /**< Temp files for compared files */
-	BOOL m_bMixedEol; /**< Does this document have mixed EOL style? */
+	bool m_bMixedEol; /**< Does this document have mixed EOL style? */
 
 // friend access
 	friend class RescanSuppress;

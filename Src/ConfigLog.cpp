@@ -20,12 +20,13 @@
  * @brief CConfigLog implementation
  */
 // ID line follows -- this is updated by SVN
-// $Id: ConfigLog.cpp 5647 2008-07-21 09:41:45Z kimmov $
+// $Id: ConfigLog.cpp 6785 2009-05-26 10:57:25Z kimmov $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #ifndef UNICODE
 #include <mbctype.h>
 #endif
+#include "Constants.h"
 #include "version.h"
 #include "dllver.h"
 #include "DiffWrapper.h"
@@ -35,12 +36,12 @@
 #include "paths.h"
 #include "unicoder.h"
 #include "codepage.h"
-#include "7zcommon.h"
+#include "7zCommon.h"
 #include "CompareOptions.h"
 #include "Environment.h"
 
 // Static function declarations
-static bool LoadYesNoFromConfig(CfgSettings * cfgSettings, LPCTSTR name, BOOL * pbflag);
+static bool LoadYesNoFromConfig(CfgSettings * cfgSettings, LPCTSTR name, bool * pbflag);
 
 
 
@@ -160,7 +161,7 @@ static void WriteItem(CStdioFile &file, int indent, LPCTSTR key, long value)
 /**
  * @brief Write boolean item using keywords (Yes|No)
  */
-void CConfigLog::WriteItemYesNo(int indent, LPCTSTR key, BOOL *pvalue)
+void CConfigLog::WriteItemYesNo(int indent, LPCTSTR key, bool *pvalue)
 {
 	if (m_writing)
 	{
@@ -177,9 +178,19 @@ void CConfigLog::WriteItemYesNo(int indent, LPCTSTR key, BOOL *pvalue)
 /**
  * @brief Same as WriteItemYesNo, except store Yes/No in reverse
  */
-void CConfigLog::WriteItemYesNoInverted(int indent, LPCTSTR key, BOOL *pvalue)
+void CConfigLog::WriteItemYesNoInverted(int indent, LPCTSTR key, bool *pvalue)
 {
-	BOOL tempval = !(*pvalue);
+	bool tempval = !(*pvalue);
+	WriteItemYesNo(indent, key, &tempval);
+	*pvalue = !(tempval);
+}
+
+/**
+ * @brief Same as WriteItemYesNo, except store Yes/No in reverse
+ */
+void CConfigLog::WriteItemYesNoInverted(int indent, LPCTSTR key, int *pvalue)
+{
+	bool tempval = !(*pvalue);
 	WriteItemYesNo(indent, key, &tempval);
 	*pvalue = !(tempval);
 }
@@ -363,7 +374,7 @@ WriteItemWhitespace(int indent, LPCTSTR key, int *pvalue)
 /** 
  * @brief Write logfile
  */
-BOOL CConfigLog::DoFile(bool writing, CString &sError)
+bool CConfigLog::DoFile(bool writing, CString &sError)
 {
 	CFileException e;
 	CVersionInfo version;
@@ -373,17 +384,17 @@ BOOL CConfigLog::DoFile(bool writing, CString &sError)
 
 	if (writing)
 	{
-		m_sFileName = _T("WinMerge.txt");
-
-		// Get path to $temp/WinMerge.txt
-		m_sFileName.Insert(0, env_GetTempPath());
+		String sFileName = paths_ConcatPath(env_GetMyDocuments(NULL), WinMergeDocumentsFolder);
+		paths_CreateIfNeeded(sFileName.c_str());
+		sFileName = paths_ConcatPath(sFileName, _T("WinMerge.txt"));
+		m_sFileName = sFileName.c_str();
 
 		if (!m_file.Open(m_sFileName, CFile::modeCreate | CFile::modeWrite))
 		{
 			TCHAR szError[1024];
 			e.GetErrorMessage(szError, 1024);
 			sError = szError;
-			return FALSE;
+			return false;
 		}
 	}
 
@@ -472,13 +483,18 @@ BOOL CConfigLog::DoFile(bool writing, CString &sError)
 	WriteItemYesNo(2, _T("Automatic scroll to 1st difference"), &m_miscSettings.bScrollToFirst);
 	WriteItemYesNo(2, _T("Backup original file"), &m_miscSettings.bBackup);
 
-	FileWriteString(_T("\n Show:\n"));
+	FileWriteString(_T("\n Folder compare:\n"));
 	WriteItemYesNo(2, _T("Identical files"), &m_viewSettings.bShowIdent);
 	WriteItemYesNo(2, _T("Different files"), &m_viewSettings.bShowDiff);
 	WriteItemYesNo(2, _T("Left Unique files"), &m_viewSettings.bShowUniqueLeft);
 	WriteItemYesNo(2, _T("Right Unique files"), &m_viewSettings.bShowUniqueRight);
 	WriteItemYesNo(2, _T("Binary files"), &m_viewSettings.bShowBinaries);
 	WriteItemYesNo(2, _T("Skipped files"), &m_viewSettings.bShowSkipped);
+	WriteItemYesNo(2, _T("Tree-mode enabled"), &m_viewSettings.bTreeView);
+
+	FileWriteString(_T("\n File compare:\n"));
+	WriteItemYesNo(2, _T("Preserve filetimes"), &m_miscSettings.bPreserveFiletimes);
+	WriteItemYesNo(2, _T("Match similar lines"), &m_miscSettings.bMatchSimilarLines);
 
 	FileWriteString(_T("\n Editor settings:\n"));
 	WriteItemYesNo(2, _T("View Whitespace"), &m_miscSettings.bViewWhitespace);
@@ -487,7 +503,7 @@ BOOL CConfigLog::DoFile(bool writing, CString &sError)
 	WriteItemYesNo(2, _T("Wrap lines"), &m_miscSettings.bWrapLines);
 	WriteItemYesNo(2, _T("Syntax Highlight"), &m_miscSettings.bSyntaxHighlight);
 	WriteItem(m_file, 2, _T("Tab size"), m_miscSettings.nTabSize);
-	WriteItemYesNoInverted(2, _T("Insert tabs"), &m_miscSettings.bInsertTabs);
+	WriteItemYesNoInverted(2, _T("Insert tabs"), &m_miscSettings.nInsertTabs);
 	
 // Font settings
 	FileWriteString(_T("\n Font:\n"));
@@ -530,7 +546,7 @@ BOOL CConfigLog::DoFile(bool writing, CString &sError)
 
 	CloseFile();
 
-	return TRUE;
+	return true;
 }
 
 /** @brief osvi.wProductType that works with MSVC6 headers */
@@ -648,7 +664,10 @@ static CString GetNtProductFromRegistry(const OSVERSIONINFOEX & osvi)
 }
 
 /** 
- * @brief Parse Windows version data to string
+ * @brief Parse Windows version data to string.
+ * See info about how to determine Windows versions from URL:
+ * http://msdn.microsoft.com/en-us/library/ms724833(VS.85).aspx
+ * @return String describing Windows version.
  */
 CString CConfigLog::GetWindowsVer()
 {
@@ -683,7 +702,19 @@ CString CConfigLog::GetWindowsVer()
 		else if ( osvi.dwMajorVersion <= 4 )
 			sVersion = _T("Microsoft Windows NT ");
 		else if ( osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 0 )
-			sVersion = _T("Microsoft Windows Vista ");
+		{
+			if (osvi.wProductType == VER_NT_WORKSTATION)
+				sVersion = _T("Microsoft Windows Vista ");
+			else
+				sVersion = _T("Microsoft Windows Server 2008 ");
+		}
+		else if ( osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 1 )
+		{
+			if (osvi.wProductType == VER_NT_WORKSTATION)
+				sVersion = _T("Microsoft Windows 7 ");
+			else
+				sVersion = _T("Microsoft Windows Server 2008 R2 ");
+		}
 		else
 			sVersion.Format(_T("[? WindowsNT %d.%d] "), 
 				osvi.dwMajorVersion, osvi.dwMinorVersion);
@@ -799,6 +830,10 @@ CString CConfigLog::GetBuildFlags()
 	flags += " _MBCS ";
 #endif
 
+#ifdef WIN64
+	flags += " WIN64 ";
+#endif
+
 	return flags;
 }
 
@@ -819,28 +854,26 @@ private:
  * @brief  Lookup named setting in cfgSettings, and if found, set pbflag accordingly
  */
 static bool
-LoadYesNoFromConfig(CfgSettings * cfgSettings, LPCTSTR name, BOOL * pbflag)
+LoadYesNoFromConfig(CfgSettings * cfgSettings, LPCTSTR name, bool * pbflag)
 {
 	CString value;
 	if (cfgSettings->Lookup(name, value))
 	{
 		if (value == _T("Yes"))
 		{
-			*pbflag = TRUE;
+			*pbflag = true;
 			return true;
 		}
 		else if (value == _T("No"))
 		{
-			*pbflag = FALSE;
+			*pbflag = false;
 			return true;
 		}
 	}
 	return false;
 }
 
-
-
-BOOL
+bool
 CConfigLog::WriteLogFile(CString &sError)
 {
 	CloseFile();

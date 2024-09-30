@@ -8,7 +8,7 @@
  * WinMerge.
  */
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "PropertyPageHost.h"
 
 #if _MSC_VER > 1200
@@ -320,6 +320,24 @@ void CPropertyPageHost::OnOK()
 		{
 			pPage->UpdateData();
 			pPage->OnOK();
+		}
+	}
+}
+
+/**
+ * @brief Update all PropertyPages.
+ */
+void CPropertyPageHost::UpdatePagesData()
+{
+	int nPage = m_aPages.GetSize();
+
+	while (nPage--)
+	{
+		CPropertyPage* pPage = m_aPages[nPage].pPage;
+
+		if (pPage && pPage->GetSafeHwnd())
+		{
+			pPage->UpdateData();
 		}
 	}
 }

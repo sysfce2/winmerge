@@ -10,12 +10,8 @@
 // GNU General Public License for more details.
 
   define ('TAB_HOME', 'home');
-  define ('WINMERGE_1_7', '1.7');
-  define ('WINMERGE_2_0', '2.0');
-  define ('WINMERGE_2_2', '2.2');
-  define ('WINMERGE_2_4', '2.4');
-  define ('WINMERGE_2_6', '2.6');
-  define ('WINMERGE_2_8', '2.8');
+  define ('TAB_ABOUT', 'about');
+  define ('TAB_DOCS', 'docs');
   define ('TAB_DOWNLOADS', 'downloads');
   define ('TAB_SUPPORT', 'support');
   define ('TAB_TRANSLATIONS', 'translations');
@@ -35,23 +31,23 @@
      * Constructor
      */
     function Page() {
-      $this->_title = 'WinMerge 2.8';
+      $this->_title = 'WinMerge';
       $this->_charset = 'ISO-8859-1';
       $this->_description = 'WinMerge HomePage: Visual text file comparison and merging (Open Source software).';
       $this->_keywords = 'WinMerge, free, download, Beyond Compare, Scooter Software, DLSuperC, DLSubCF, Component Software Diff, Viff, TreeDiff, FileSync, WMatch, Quick Spot, NTDMatch, windiff, WDIFF, FolderMatch, Merge 99, Merge99, PMdiff, PMDiff, PMDIFF, pmdiff, visual, visually, file, folder, directory, synchronization, comparison, graphical, document, text, compare, diff, difference, revision, Araxis, compare folders, compare files, synchronize folders, merge files, merge folders, Y2K, Year 2000, Year 2K, side-by-side, VFC, GFC, gdiff, CSDiff, OS2GFC, vdiff, ediff, fc';
       $this->_rssfeeds = array();
-      $this->_tab = WINMERGE_2_8;
+      $this->_tab = TAB_HOME;
       /* _Stable Release */
       $this->_stablerelease = new Release;
-      $this->_stablerelease->setVersionNumber('2.8.4');
-      $this->_stablerelease->setDate('2008-06-17');
-      $this->_stablerelease->addDownload('setup.exe', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.8.4-Setup.exe', 3034028);
-      $this->_stablerelease->addDownload('exe.zip', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.8.4-exe.zip', 3321093);
-      $this->_stablerelease->addDownload('exe.7z', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.8.4-exe.7z', 1808742);
-      $this->_stablerelease->addDownload('rt.zip', 'http://downloads.sourceforge.net/winmerge/Runtimes-2.8.4.zip', 1287510);
-      $this->_stablerelease->addDownload('rt.7z', 'http://downloads.sourceforge.net/winmerge/Runtimes-2.8.4.7z', 753831);
-      $this->_stablerelease->addDownload('src.zip', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.8.4-src.zip', 8571235);
-      $this->_stablerelease->addDownload('src.7z', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.8.4-src.7z', 4359449);
+      $this->_stablerelease->setVersionNumber('2.10.2');
+      $this->_stablerelease->setDate('2008-11-06');
+      $this->_stablerelease->addDownload('setup.exe', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.10.2-Setup.exe', 3243855, 'ccef6cbb1436e82924b58fdf193fb9fba1887130');
+      $this->_stablerelease->addDownload('exe.zip', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.10.2-exe.zip', 3441767, '7b07b131304c450136a5de591985c6cb823fb8a3');
+      $this->_stablerelease->addDownload('exe.7z', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.10.2-exe.7z', 2015200, '7b73243f7b72daae277ca6984e4acd4ccdff00e4');
+      $this->_stablerelease->addDownload('rt.zip', 'http://downloads.sourceforge.net/winmerge/Runtimes-2.10.2.zip', 1287520, '0634a46cb8893c41fa759d2b43ca3ae50645cdf3');
+      $this->_stablerelease->addDownload('rt.7z', 'http://downloads.sourceforge.net/winmerge/Runtimes-2.10.2.7z', 753833, '6e4b2edae0becae50cb3ba9d6fe68ef2a6b003aa');
+      $this->_stablerelease->addDownload('src.zip', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.10.2-src.zip', 9767957, 'bd1efe95f324bbe608bdb969eea1fb852cec1a68');
+      $this->_stablerelease->addDownload('src.7z', 'http://downloads.sourceforge.net/winmerge/WinMerge-2.10.2-src.7z', 5106442, '0d19fda436bb2938f6e6e76753a4644c65da3cd5');
     }
 
     /**
@@ -99,7 +95,7 @@
     /**
      * print the head from the page
      */
-    function printHead($title = '', $tab = '') {
+    function printHead($title = '', $tab = '', $onload = '') {
       if ($title != '') {
         $this->_title = $title;
       }
@@ -116,32 +112,23 @@
       $temp .= "  <meta name=\"keywords\" content=\"" . $this->_keywords . "\">\n";
       $temp .= "  <style type=\"text/css\" media=\"screen\">@import \"/css/screen.css\";</style>\n";
       $temp .= "  <link rel=\"stylesheet\" type=\"text/css\" media=\"print\" href=\"/css/print.css\">\n";
+      $temp .= "  <script src=\"/engine/javascript/winmerge.js\" type=\"text/javascript\"></script>\n";
       $temp .= "  <link rel=\"shortcut icon\" type=\"image/x-icon\" href=\"/favicon.ico\">\n";
       foreach ($this->_rssfeeds as $rssurl => $rsstitle) { //for all RSS feeds...
         $temp .= "  <link rel=\"alternate\" type=\"application/rss+xml\" title=\"" . $rsstitle . "\" href=\"" . $rssurl . "\">\n";
       }
       $temp .= "</head>\n\n";
-      $temp .= "<body>\n";
-      $temp .= "<div id=\"head\">\n";
+      if ($onload != '')
+        $temp .= "<body onload=\"".$onload."\">\n";
+      else
+        $temp .= "<body>\n";
+      $temp .= "<div id=\"wrap\">\n";
+      $temp .= "  <div id=\"head\">\n";
       $temp .= "<h1>WinMerge</h1>\n";
-      $temp .= "<p id=\"rightcorner\">\n";
-      $temp .= "  <a href=\"http://sourceforge.net/\"><img src=\"http://sourceforge.net/sflogo.php?group_id=13216\" width=\"88\" height=\"31\" border=\"0\" alt=\"SourceForge\" title=\"SourceForge.net\"></a>\n";
-      $temp .= "  <a href=\"/WinMergePAD.php\"><img src=\"/images/padbutton.gif\" width=\"80\" height=\"31\" border=\"0\" alt=\"PAD Enabled\" title=\"PAD Enabled\"></a>\n";
-      $temp .= "  <a href=\"http://sourceforge.net/donate/index.php?group_id=13216\"><img src=\"/images/project-support.jpg\" width=\"88\" height=\"32\" border=\"0\" alt=\"Donate\" title=\"Donate money to WinMerge\"></a>\n";
-      $temp .= "</p>\n";
-      $temp .= "</div>\n";
+      $temp .= "  </div> <!-- #head -->\n";
       $temp .= $this->getTabs();
       $temp .= $this->getAds();
-      $temp .= "<div id=\"content\">\n";
-      switch ($this->_tab) {
-        case WINMERGE_1_7: //if WinMerge 1.7 ...
-        case WINMERGE_2_0: //if WinMerge 2.0 ...
-        case WINMERGE_2_2: //if WinMerge 2.2 ...
-        case WINMERGE_2_4: //if WinMerge 2.4 ...
-        case WINMERGE_2_6: //if WinMerge 2.6 ...
-          $temp .= "<p class=\"important\">This is an old version of WinMerge, for the latest version go to the <a href=\"/index.php\">main site</a>.</p>\n";
-          break;
-      }
+      $temp .= "  <div id=\"content\">\n";
       print($temp);
     }
 
@@ -149,10 +136,31 @@
      * print the foot from the page
      */
     function printFoot() {
-      $temp = "</div>\n";
+      $temp = "  </div> <!-- #content -->\n";
+      $temp .= "<p id=\"poweredby\">\n";
+      $temp .= "  <a href=\"http://sourceforge.net/\"><img src=\"http://sourceforge.net/sflogo.php?group_id=13216&amp;type=3\" width=\"125\" height=\"37\" border=\"0\" alt=\"SourceForge\" title=\"SourceForge.net\"></a>\n";
+      $temp .= "  <a href=\"/WinMergePAD.php\"><img src=\"/images/padbutton.gif\" width=\"80\" height=\"31\" border=\"0\" alt=\"PAD Enabled\" title=\"PAD Enabled\"></a>\n";
+      $temp .= "  <a href=\"http://sourceforge.net/donate/index.php?group_id=13216\"><img src=\"/images/project-support.jpg\" width=\"88\" height=\"32\" border=\"0\" alt=\"Donate\" title=\"Donate money to WinMerge\"></a>\n";
+      $temp .= "</p>\n";
+      $temp .= "</div> <!-- #wrap -->\n";
+      $temp .= $this->getPiwikCode();
       $temp .= "</body>\n\n";
       $temp .= "</html>\n";
       print($temp);
+    }
+
+    /**
+     * print a <h2> heading with a RSS feed link
+     */
+    function printRssHeading($title, $rssfeedurl) {
+      print("<h2>" . $title . " " . $this->getRssFeedLink($rssfeedurl) . "</h2>\n");
+    }
+
+    /**
+     * print a <h3> heading with a RSS feed link
+     */
+    function printRssSubHeading($title, $rssfeedurl) {
+      print("<h3>" . $title . " " . $this->getRssFeedLink($rssfeedurl) . "</h3>\n");
     }
 
     /**
@@ -167,14 +175,21 @@
     }
 
     /**
-     * print a RSS feed link
+     * get a RSS feed link
      */
-    function printRssFeedLink($url, $text = '') {
+    function getRssFeedLink($url, $text = '') {
       $temp = "<a href=\"" . $url . "\"><img src=\"/images/rss.png\" alt=\"RSS\" border=\"0\"></a>";
       if ($text != '') { //if WITH text...
         $temp .= " <a href=\"" . $url . "\"> " . $text . "</a>";
       }
-      print($temp);
+      return $temp;
+    }
+
+    /**
+     * print a RSS feed link
+     */
+    function printRssFeedLink($url, $text = '') {
+      print($this->getRssFeedLink($url, $text));
     }
 
     /**
@@ -184,114 +199,78 @@
       /* Main Tabs */
       $temp = "<ul id=\"tabs\">\n";
       if ($this->_tab == TAB_HOME) { //if "Home" ...
-        $temp .= "  <li><a href=\"/index.php\" id=\"current\">Home</a></li>\n";
+        $temp .= "  <li><strong><a href=\"/\" id=\"current\">Home</a></strong></li>\n";
       }
       else { //if NOT "Home" ...
-        $temp .= "  <li><a href=\"/index.php\">Home</a></li>\n";
+        $temp .= "  <li><a href=\"/\">Home</a></li>\n";
       }
-      if ($this->_tab == WINMERGE_2_8) { //if WinMerge 2.8 ...
-        $temp .= "  <li><a href=\"/2.8/index.php\" id=\"current\">WinMerge&nbsp;2.8</a></li>\n";
+      if ($this->_tab == TAB_ABOUT) { //if "About" ...
+        $temp .= "  <li><strong><a href=\"/about/\" id=\"current\">About</a></strong></li>\n";
       }
-      else { //if NOT WinMerge 2.8 ...
-        $temp .= "  <li><a href=\"/2.8/index.php\">WinMerge&nbsp;2.8</a></li>\n";
+      else { //if NOT "About" ...
+        $temp .= "  <li><a href=\"/about/\">About</a></li>\n";
       }
-      if ($this->_tab == WINMERGE_2_6) { //if WinMerge 2.6 ...
-        $temp .= "  <li><a href=\"/2.6/index.php\" id=\"current\">WinMerge&nbsp;2.6</a></li>\n";
+      if ($this->_tab == TAB_DOCS) { //if "Documentation" ...
+        $temp .= "  <li><strong><a href=\"/docs/\" id=\"current\">Documentation</a></strong></li>\n";
       }
-      if ($this->_tab == WINMERGE_2_4) { //if WinMerge 2.4 ...
-        $temp .= "  <li><a href=\"/2.4/index.php\" id=\"current\">WinMerge&nbsp;2.4</a></li>\n";
-      }
-      if ($this->_tab == WINMERGE_2_2) { //if WinMerge 2.2 ...
-        $temp .= "  <li><a href=\"/2.2/index.php\" id=\"current\">WinMerge&nbsp;2.2</a></li>\n";
-      }
-      if ($this->_tab == WINMERGE_2_0) { //if WinMerge 2.0 ...
-        $temp .= "  <li><a href=\"/2.0/index.php\" id=\"current\">WinMerge&nbsp;2.0</a></li>\n";
-      }
-      if ($this->_tab == WINMERGE_1_7) { //if WinMerge 1.7 ...
-        $temp .= "  <li><a href=\"/1.7/index.php\" id=\"current\">WinMerge&nbsp;1.7</a></li>\n";
+      else { //if NOT "Documentation" ...
+        $temp .= "  <li><a href=\"/docs/\">Documentation</a></li>\n";
       }
       if ($this->_tab == TAB_DOWNLOADS) { //if "Downloads" ...
-        $temp .= "  <li><a href=\"/downloads/index.php\" id=\"current\">Downloads</a></li>\n";
+        $temp .= "  <li><strong><a href=\"/downloads/\" id=\"current\">Downloads</a></strong></li>\n";
       }
       else { //if NOT "Downloads" ...
-        $temp .= "  <li><a href=\"/downloads/index.php\">Downloads</a></li>\n";
+        $temp .= "  <li><a href=\"/downloads/\">Downloads</a></li>\n";
       }
       if ($this->_tab == TAB_SUPPORT) { //if "Support" ...
-        $temp .= "  <li><a href=\"/support/index.php\" id=\"current\">Support</a></li>\n";
+        $temp .= "  <li><strong><a href=\"/support/\" id=\"current\">Support</a></strong></li>\n";
       }
       else { //if NOT "Support" ...
-        $temp .= "  <li><a href=\"/support/index.php\">Support</a></li>\n";
+        $temp .= "  <li><a href=\"/support/\">Support</a></li>\n";
       }
       if ($this->_tab == TAB_TRANSLATIONS) { //if "Translations" ...
-        $temp .= "  <li><a href=\"/translations/index.php\" id=\"current\">Translations</a></li>\n";
+        $temp .= "  <li><strong><a href=\"/translations/\" id=\"current\">Translations</a></strong></li>\n";
       }
       else { //if NOT "Translations" ...
-        $temp .= "  <li><a href=\"/translations/index.php\">Translations</a></li>\n";
+        $temp .= "  <li><a href=\"/translations/\">Translations</a></li>\n";
       }
-      $temp .= "  <li><a href=\"/Wiki/\">Developer&nbsp;Wiki</a></li>\n";
       $temp .= "</ul>\n";
       /* Sub Tabs */
       switch ($this->_tab) {
         case TAB_HOME: //if "Home" ...
           $temp .= "<ul id=\"subtabs\">\n";
           $temp .= "  <li><a href=\"http://sourceforge.net/projects/winmerge\">Project&nbsp;Page</a></li>\n";
-          $temp .= "  <li><a href=\"/history.php\">History</a></li>\n";
           $temp .= "  <li><a href=\"/links.php\">Links</a></li>\n";
           $temp .= "  <li><a href=\"/WinMergePAD.php\">PAD&nbsp;file</a></li>\n";
           $temp .= "</ul>\n";
           break;
-        case WINMERGE_1_7: //if WinMerge 1.7 ...
+        case TAB_ABOUT: //if "About" ...
           $temp .= "<ul id=\"subtabs\">\n";
-          $temp .= "  <li><a href=\"/1.7/docs/index.html\">User's Guide</a></li>\n";
-          $temp .= "  <li><a href=\"/1.7/changes.php\">Change History</a></li>\n";
+          $temp .= "  <li><a href=\"/about/\" title=\"Index\">Index</a></li>\n";
+          $temp .= "  <li><a href=\"/about/screenshots/\" title=\"Screenshots\">Screenshots</a></li>\n";
+          $temp .= "  <li><a href=\"/about/history.php\">History</a></li>\n";
           $temp .= "</ul>\n";
           break;
-        case WINMERGE_2_0: //if WinMerge 2.0 ...
+        case TAB_DOCS: //if "Documentation" ...
           $temp .= "<ul id=\"subtabs\">\n";
-          $temp .= "  <li><a href=\"/2.0/docs/index.html\">User's Guide</a></li>\n";
-          $temp .= "  <li><a href=\"/2.0/changes.php\">Change History</a></li>\n";
-          $temp .= "  <li><a href=\"/2.0/docs/faq.htm\" title=\"Frequently asked questions\">FAQ</a></li>\n";
+          $temp .= "  <li><a href=\"/docs/\" title=\"Index\">Index</a></li>\n";
+          $temp .= "  <li><a href=\"/docs/manual/\" title=\"Manual\">Manual</a></li>\n";
+          $temp .= "  <li><a href=\"/docs/releasenotes.php\" title=\"Release Notes\">Release Notes</a> (<a href=\"/docs/releasenotes.php#issues\" title=\"Known Issues\">Known Issues</a>)</li>\n";
+          $temp .= "  <li><a href=\"/docs/changelog.php\" title=\"Change Log\">Change Log</a></li>\n";
+          $temp .= "  <li><a href=\"/Wiki/\" title=\"WinMerge Development Wiki\">Development Wiki</a></li>\n";
           $temp .= "</ul>\n";
           break;
-        case WINMERGE_2_2: //if WinMerge 2.2 ...
+        case TAB_DOWNLOADS: //if "Downloads" ...
           $temp .= "<ul id=\"subtabs\">\n";
-          $temp .= "  <li><a href=\"/2.2/manual/index.html\">Manual</a></li>\n";
-          $temp .= "  <li><a href=\"/2.2/screenshots.php\">Screenshots</a></li>\n";
-          $temp .= "  <li><a href=\"/2.2/changes.php\">Change History</a></li>\n";
-          $temp .= "  <li><a href=\"/2.2/manual/faq.html\" title=\"Frequently asked questions\">FAQ</a></li>\n";
-          $temp .= "</ul>\n";
-          break;
-        case WINMERGE_2_4: //if WinMerge 2.4 ...
-          $temp .= "<ul id=\"subtabs\">\n";
-          $temp .= "  <li><a href=\"/2.4/manual/index.html\">Manual</a></li>\n";
-          $temp .= "  <li><a href=\"/2.4/screenshots.php\">Screenshots</a></li>\n";
-          $temp .= "  <li><a href=\"/2.4/changes.php\">Change History</a></li>\n";
-          $temp .= "  <li><a href=\"/2.4/limitations.php\">Known Limitations</a></li>\n";
-          $temp .= "  <li><a href=\"/2.4/manual/faq.html\" title=\"Frequently asked questions\">FAQ</a></li>\n";
-          $temp .= "</ul>\n";
-          break;
-        case WINMERGE_2_6: //if WinMerge 2.6 ...
-          $temp .= "<ul id=\"subtabs\">\n";
-          $temp .= "  <li><a href=\"/2.6/manual/index.html\">Manual</a></li>\n";
-          $temp .= "  <li><a href=\"/2.6/screenshots.php\">Screenshots</a></li>\n";
-          $temp .= "  <li><a href=\"/2.6/changes.php\">Change History</a></li>\n";
-          $temp .= "  <li><a href=\"/2.6/limitations.php\">Known Limitations</a></li>\n";
-          $temp .= "  <li><a href=\"/2.6/manual/Faq.html\" title=\"Frequently asked questions\">FAQ</a></li>\n";
-          $temp .= "</ul>\n";
-          break;
-        case WINMERGE_2_8: //if WinMerge 2.8 ...
-          $temp .= "<ul id=\"subtabs\">\n";
-          $temp .= "  <li><a href=\"/2.8/manual/index.html\" title=\"Manual\">Manual</a></li>\n";
-          $temp .= "  <li><a href=\"/2.8/screenshots.php\" title=\"Screenshots\">Screenshots</a></li>\n";
-          $temp .= "  <li><a href=\"/2.8/releasenotes.php\" title=\"Release Notes\">Release Notes</a> (<a href=\"/2.8/releasenotes.php#issues\" title=\"Known Issues\">Known Issues</a>)</li>\n";
-          $temp .= "  <li><a href=\"/2.8/changelog.php\" title=\"Change Log\">Change Log</a></li>\n";
-          $temp .= "  <li><a href=\"/2.8/manual/Faq.html\" title=\"Frequently asked questions\">FAQ</a></li>\n";
+          $temp .= "  <li><a href=\"/downloads/\" title=\"Download WinMerge\">WinMerge</a></li>\n";
+          $temp .= "  <li><a href=\"/downloads/plugins.php\" title=\"Download Plugins\">Plugins</a></li>\n";
+          $temp .= "  <li><a href=\"/downloads/source-code.php\" title=\"Download Source Code\">Source Code</a></li>\n";
           $temp .= "</ul>\n";
           break;
         case TAB_SUPPORT: //if "Support" ...
           $temp .= "<ul id=\"subtabs\">\n";
           $temp .= "  <li><a href=\"/support/mailing-lists.php\" title=\"Mailing Lists\">Mailing&nbsp;Lists</a></li>\n";
-          $temp .= "  <li><a href=\"http://sourceforge.net/forum/?group_id=13216\" title=\"Discussion Forums\">Discussion&nbsp;Forums</a></li>\n";
+          $temp .= "  <li><a href=\"http://forums.winmerge.org\" title=\"Discussion Forums\">Discussion&nbsp;Forums</a></li>\n";
           $temp .= "  <li><a href=\"http://sourceforge.net/tracker/?group_id=13216&amp;atid=113216\" title=\"Submit a Bug Report\">Bug&nbsp;Reports</a></li>\n";
           $temp .= "  <li><a href=\"http://sourceforge.net/tracker/?group_id=13216&amp;atid=363216\" title=\"Submit a Feature Request\">Feature&nbsp;Requests</a></li>\n";
           $temp .= "  <li><a href=\"http://sourceforge.net/tracker/?group_id=13216&amp;atid=213216\" title=\"Submit a Support Request\">Support&nbsp;Requests</a></li>\n";
@@ -300,7 +279,7 @@
           break;
         case TAB_TRANSLATIONS: //if "Translations" ...
           $temp .= "<ul id=\"subtabs\">\n";
-          $temp .= "  <li><a href=\"/translations/index.php\" title=\"Index\">Index</a></li>\n";
+          $temp .= "  <li><a href=\"/translations/\" title=\"Index\">Index</a></li>\n";
           $temp .= "  <li><a href=\"/translations/instructions.php\" title=\"Translations instructions\">Instructions</a></li>\n";
           $temp .= "  <li><a href=\"/translations/status_branch.php\" title=\"Translations Status (Branch)\">Status (Branch)</a></li>\n";
           $temp .= "  <li><a href=\"/translations/status_trunk.php\" title=\"Translations Status (Trunk)\">Status (Trunk)</a></li>\n";
@@ -331,7 +310,26 @@
       $temp .= "<script type=\"text/javascript\"\n";
       $temp .= "  src=\"http://pagead2.googlesyndication.com/pagead/show_ads.js\">\n";
       $temp .= "</script>\n";
-      $temp .= "</div>\n";
+      $temp .= "</div> <!-- #ads -->\n";
+      return $temp;
+    }
+
+    /**
+     * get the Piwik java script code
+     */
+    function getPiwikCode() {
+      $temp = "<!-- Piwik -->\n";
+      $temp .= "<script type=\"text/javascript\">\n";
+      $temp .= "var pkBaseURL = ((\"https:\" == document.location.protocol) ? \"https://apps.sourceforge.net/piwik/winmerge/\" : \"http://apps.sourceforge.net/piwik/winmerge/\");\n";
+      $temp .= "document.write(unescape(\"%3Cscript src='\" + pkBaseURL + \"piwik.js' type='text/javascript'%3E%3C/script%3E\"));\n";
+      $temp .= "</script><script type=\"text/javascript\">\n";
+      $temp .= "piwik_action_name = '';\n";
+      $temp .= "piwik_idsite = 1;\n";
+      $temp .= "piwik_url = pkBaseURL + \"piwik.php\";\n";
+      $temp .= "piwik_log(piwik_action_name, piwik_idsite, piwik_url);\n";
+      $temp .= "</script>\n";
+      $temp .= "<object><noscript><p><img src=\"http://apps.sourceforge.net/piwik/winmerge/piwik.php?idsite=1\" alt=\"piwik\"/></p></noscript></object>\n";
+      $temp .= "<!-- End Piwik Tag -->\n";
       return $temp;
     }
 

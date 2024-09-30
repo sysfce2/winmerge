@@ -308,7 +308,6 @@ CustomInstallation=Persoonlijke Installatie
 
 ;Components
 AppCoreFiles=WinMerge Basisbestanden
-ApplicationRuntimes=Application Runtimes
 Filters=Filters
 Plugins=Plugins
 
@@ -346,17 +345,14 @@ UkrainianLanguage=Oekraïense menu’s en vensters
 ;Tasks
 ExplorerContextMenu=&Activeer integratie in contextmenu van Verkenner
 IntegrateTortoiseCVS=Integreren met &TortoiseCVS
-IntegrateTortoiseSVN=Integreren met T&ortoiseSVN
-IntegrateClearCase=Integreren met Rational &ClearCase
-IntegrateDelphi4=Borland® Delphi &4 Binary File Support
-UpdatingCommonControls=Updating the System's Common Controls
+IntegrateTortoiseSVN= Integreren met T&ortoiseSVN
+IntegrateClearCase= Integreren met Rational &ClearCase
+AddToPath=&Add WinMerge folder to your system path
 
 ;Icon Labels
 ReadMe=Lees Mij
 UsersGuide=Gebruikershandleiding
-UpdatingCommonControls=Updating the System's Common Controls
 ViewStartMenuFolder=Bekijk de WinMerge startmenu-map
-PluginsText=Plugins
 
 ;Code Dialogs
 DeletePreviousStartMenu=De installer heeft ontdekt dat u de locatie van uw startmenu veranderd heeft van "%s" naar "%s". Wilt u de vorige startmenu-map wissen?

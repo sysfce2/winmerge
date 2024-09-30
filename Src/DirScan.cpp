@@ -4,9 +4,9 @@
  *  @brief Implementation of DirScan (q.v.) and helper functions
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: DirScan.cpp 5646 2008-07-20 16:22:24Z jtuc $
+// $Id: DirScan.cpp 6358 2009-01-22 18:49:30Z kimmov $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "UnicodeString.h"
 #include "Merge.h"
 #include "LogFile.h"
@@ -32,8 +32,8 @@ static char THIS_FILE[] = __FILE__;
 void CompareDiffItem(DIFFITEM &di, CDiffContext * pCtxt);
 static void StoreDiffData(DIFFITEM &di, CDiffContext * pCtxt,
 		const FolderCmp * pCmpData);
-static void AddToList(const String &sLeftDir, const String &sRightDir, const DirItem * lent, const DirItem * rent,
-	UINT code, DiffFuncStruct *myStruct);
+static DIFFITEM *AddToList(const String &sLeftDir, const String &sRightDir, const DirItem * lent, const DirItem * rent,
+	UINT code, DiffFuncStruct *myStruct, DIFFITEM *parent);
 static void UpdateDiffItem(DIFFITEM & di, BOOL & bExists, CDiffContext *pCtxt);
 
 /**
@@ -50,7 +50,7 @@ static void UpdateDiffItem(DIFFITEM & di, BOOL & bExists, CDiffContext *pCtxt);
 #define OPTIMIZE_SHARE_CSTRINGDATA(X) X
 
 /**
- * @brief Collect file- and directory-names to list.
+ * @brief Collect file- and folder-names to list.
  * This function walks given folders and adds found subfolders and files into
  * lists. There are two modes, determined by the @p depth:
  * - in non-recursive mode we walk only given folders, and add files.
@@ -62,23 +62,41 @@ static void UpdateDiffItem(DIFFITEM & di, BOOL & bExists, CDiffContext *pCtxt);
  * 
  * @param [in] paths Root paths of compare
  * @param [in] leftsubdir Left side subdirectory under root path
+ * @param [in] bLeftUniq Is left-side folder unique folder?
  * @param [in] rightsubdir Right side subdirectory under root path
+ * @param [in] bRightUniq Is right-side folder unique folder?
+ * @param [in] myStruct Compare-related data, like context etc.
  * @param [in] casesensitive Is filename compare casesensitive?
  * @param [in] depth Levels of subdirectories to scan, -1 scans all
- * @param [in] pCtxt Compare context
+ * @param [in] parent Folder diff item to be scanned
+ * @param [in] bUniques If true, walk into unique folders.
  * @return 1 normally, -1 if compare was aborted
  */
 int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
-		const String &rightsubdir, DiffFuncStruct *myStruct,
-		bool casesensitive, int depth)
+		bool bLeftUniq, const String &rightsubdir, bool bRightUniq, DiffFuncStruct *myStruct,
+		bool casesensitive, int depth, DIFFITEM *parent,
+		bool bUniques)
 {
+	ASSERT(!bLeftUniq || !bRightUniq); // Both folders cannot be unique
 	static const TCHAR backslash[] = _T("\\");
 	CDiffContext *pCtxt = myStruct->context;
 	String sLeftDir(paths.GetLeft());
 	String sRightDir(paths.GetRight());
 	String leftsubprefix;
 	String rightsubprefix;
-	if (leftsubdir.length())
+
+	// Format paths for recursive compare (having basedir + subdir)
+	if (bLeftUniq)
+	{
+		sLeftDir = paths_ConcatPath(sLeftDir, leftsubdir);
+		leftsubprefix = leftsubdir + backslash;
+	}
+	else if (bRightUniq)
+	{
+		sRightDir = paths_ConcatPath(sRightDir, rightsubdir);
+		rightsubprefix = rightsubdir + backslash;
+	}
+	else if (!leftsubdir.empty())
 	{
 		sLeftDir = paths_ConcatPath(sLeftDir, leftsubdir);
 		sRightDir = paths_ConcatPath(sRightDir, rightsubdir);
@@ -91,8 +109,10 @@ int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
 	}
 
 	DirItemArray leftDirs, leftFiles, rightDirs, rightFiles;
-	LoadAndSortFiles(sLeftDir.c_str(), &leftDirs, &leftFiles, casesensitive);
-	LoadAndSortFiles(sRightDir.c_str(), &rightDirs, &rightFiles, casesensitive);
+	if (!bRightUniq)
+		LoadAndSortFiles(sLeftDir.c_str(), &leftDirs, &leftFiles, casesensitive);
+	if (!bLeftUniq)
+		LoadAndSortFiles(sRightDir.c_str(), &rightDirs, &rightFiles, casesensitive);
 
 	// Allow user to abort scanning
 	if (pCtxt->ShouldAbort())
@@ -111,7 +131,7 @@ int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
 		&& (rightFiles.size() == 0)
 		;
 
-	int i = 0, j = 0;
+    DirItemArray::size_type i = 0, j = 0; 
 	while (1)
 	{
 		if (pCtxt->ShouldAbort())
@@ -123,16 +143,60 @@ int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
 		{
 			if (i<leftDirs.size() && (j == rightDirs.size() || collstr(leftDirs[i].filename, rightDirs[j].filename, casesensitive)<0))
 			{
-				const UINT nDiffCode = DIFFCODE::LEFT | DIFFCODE::DIR;
-				AddToList(leftsubdir, rightsubdir, &leftDirs[i], 0, nDiffCode, myStruct);
+				UINT nDiffCode = DIFFCODE::LEFT | DIFFCODE::DIR;
+				if (depth && bUniques)
+				{
+					// Recurse into unique subfolder and get all items in it
+					String leftnewsub = leftsubprefix + leftDirs[i].filename;
+					if (!pCtxt->m_piFilterGlobal->includeDir(leftnewsub.c_str(), _T("")))
+					{
+						nDiffCode |= DIFFCODE::SKIPPED;
+						AddToList(leftsubdir, _T(""), &leftDirs[i], NULL, nDiffCode, myStruct, parent);
+					}
+					else
+					{
+						DIFFITEM *me = AddToList(leftsubdir, _T(""), &leftDirs[i], NULL, nDiffCode, myStruct, parent);
+						if (DirScan_GetItems(paths, leftnewsub, true, _T(""), false, myStruct, casesensitive,
+								depth - 1, me, bUniques) == -1)
+						{
+							return -1;
+						}
+					}
+				}
+				else
+				{
+					AddToList(leftsubdir, rightsubdir, &leftDirs[i], 0, nDiffCode, myStruct, parent);
+				}
 				// Advance left pointer over left-only entry, and then retest with new pointers
 				++i;
 				continue;
 			}
 			if (j<rightDirs.size() && (i == leftDirs.size() || collstr(leftDirs[i].filename, rightDirs[j].filename, casesensitive)>0))
 			{
-				const UINT nDiffCode = DIFFCODE::RIGHT | DIFFCODE::DIR;
-				AddToList(leftsubdir, rightsubdir, 0, &rightDirs[j], nDiffCode, myStruct);
+				UINT nDiffCode = DIFFCODE::RIGHT | DIFFCODE::DIR;
+				if (depth && bUniques)
+				{
+					// Recurse into unique subfolder and get all items in it
+					String rightnewsub = rightsubprefix + rightDirs[j].filename;
+					if (!pCtxt->m_piFilterGlobal->includeDir(_T(""), rightnewsub.c_str()))
+					{
+						nDiffCode |= DIFFCODE::SKIPPED;
+						AddToList(_T(""), rightsubdir, NULL, &rightDirs[j], nDiffCode, myStruct, parent);
+					}
+					else
+					{
+						DIFFITEM *me = AddToList(_T(""), rightsubdir, NULL, &rightDirs[j], nDiffCode, myStruct, parent);
+						if (DirScan_GetItems(paths, _T(""), false, rightnewsub, true, myStruct, casesensitive,
+								depth - 1, me, bUniques) == -1)
+						{
+							return -1;
+						}
+					}
+				}
+				else
+				{
+					AddToList(leftsubdir, rightsubdir, 0, &rightDirs[j], nDiffCode, myStruct, parent);
+				}
 				// Advance right pointer over right-only entry, and then retest with new pointers
 				++j;
 				continue;
@@ -147,7 +211,7 @@ int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
 				// We are only interested about list of subdirectories to show - user can open them
 				// TODO: scan one level deeper to see if directories are identical/different
 				const UINT nDiffCode = DIFFCODE::BOTH | DIFFCODE::DIR;
-				AddToList(leftsubdir, rightsubdir, &leftDirs[i], &rightDirs[j], nDiffCode, myStruct);
+				AddToList(leftsubdir, rightsubdir, &leftDirs[i], &rightDirs[j], nDiffCode, myStruct, parent);
 			}
 			else
 			{
@@ -164,13 +228,15 @@ int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
 				if (!pCtxt->m_piFilterGlobal->includeDir(leftnewsub.c_str(), rightnewsub.c_str()))
 				{
 					const UINT nDiffCode = DIFFCODE::BOTH | DIFFCODE::DIR | DIFFCODE::SKIPPED;
-					AddToList(leftsubdir, rightsubdir, &leftDirs[i], &rightDirs[j], nDiffCode, myStruct);
+					AddToList(leftsubdir, rightsubdir, &leftDirs[i], &rightDirs[j], nDiffCode, myStruct, parent);
 				}
 				else
 				{
+					const UINT nDiffCode = DIFFCODE::BOTH | DIFFCODE::DIR;
+					DIFFITEM *me = AddToList(leftsubdir, rightsubdir, &leftDirs[i], &rightDirs[j], nDiffCode, myStruct, parent);
 					// Scan recursively all subdirectories too, we are not adding folders
-					if (DirScan_GetItems(paths, leftnewsub, rightnewsub, myStruct, casesensitive,
-							depth - 1) == -1)
+					if (DirScan_GetItems(paths, leftnewsub, false, rightnewsub, false, myStruct, casesensitive,
+							depth - 1, me, bUniques) == -1)
 					{
 						return -1;
 					}
@@ -191,6 +257,21 @@ int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
 		if (pCtxt->ShouldAbort())
 			return -1;
 
+		if (i < leftFiles.size() && bLeftUniq)
+		{
+			const int nDiffCode = DIFFCODE::LEFT | DIFFCODE::FILE;
+			AddToList(leftsubdir, _T(""), &leftFiles[i], NULL, nDiffCode, myStruct, parent);
+			++i;
+			continue;
+		}
+
+		if (j < rightFiles.size() && bRightUniq)
+		{
+			const int nDiffCode = DIFFCODE::RIGHT | DIFFCODE::FILE;
+			AddToList(_T(""), rightsubdir, NULL, &rightFiles[j], nDiffCode, myStruct, parent);
+			++j;
+			continue;
+		}
 
 		// Comparing file leftFiles[i].name to rightFiles[j].name
 		
@@ -198,7 +279,7 @@ int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
 				collstr(leftFiles[i].filename, rightFiles[j].filename, casesensitive) < 0))
 		{
 			const UINT nDiffCode = DIFFCODE::LEFT | DIFFCODE::FILE;
-			AddToList(leftsubdir, rightsubdir, &leftFiles[i], 0, nDiffCode, myStruct);
+			AddToList(leftsubdir, rightsubdir, &leftFiles[i], 0, nDiffCode, myStruct, parent);
 			// Advance left pointer over left-only entry, and then retest with new pointers
 			++i;
 			continue;
@@ -207,7 +288,7 @@ int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
 				collstr(leftFiles[i].filename, rightFiles[j].filename, casesensitive) > 0))
 		{
 			const UINT nDiffCode = DIFFCODE::RIGHT | DIFFCODE::FILE;
-			AddToList(leftsubdir, rightsubdir, 0, &rightFiles[j], nDiffCode, myStruct);
+			AddToList(leftsubdir, rightsubdir, 0, &rightFiles[j], nDiffCode, myStruct, parent);
 			// Advance right pointer over right-only entry, and then retest with new pointers
 			++j;
 			continue;
@@ -216,7 +297,7 @@ int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
 		{
 			ASSERT(j<rightFiles.size());
 			const UINT nDiffCode = DIFFCODE::BOTH | DIFFCODE::FILE;
-			AddToList(leftsubdir, rightsubdir, &leftFiles[i], &rightFiles[j], nDiffCode, myStruct);
+			AddToList(leftsubdir, rightsubdir, &leftFiles[i], &rightFiles[j], nDiffCode, myStruct, parent);
 			++i;
 			++j;
 			continue;
@@ -229,16 +310,17 @@ int DirScan_GetItems(const PathContext &paths, const String &leftsubdir,
 /**
  * @brief Compare DiffItems in list and add results to compare context.
  *
- * @param list [in] List of items to compare
- * @param pCtxt [in,out] Compare context: contains list where results are added.
- * @return 1 if compare finished, -1 if compare was aborted
+ * @param myStruct [in] A structure containing compare-related data.
+ * @param parentdiffpos [in] Position of parent diff item 
+ * @return >= 0 number of diff items, -1 if compare was aborted
  */
-int DirScan_CompareItems(DiffFuncStruct *myStruct)
+int DirScan_CompareItems(DiffFuncStruct *myStruct, UINT_PTR parentdiffpos)
 {
 	CDiffContext *pCtxt = myStruct->context;
-	int res = 1;
-	WaitForSingleObject(myStruct->hSemaphore, INFINITE);
-	POSITION pos = pCtxt->GetFirstDiffPosition();
+	int res = 0;
+	if (!parentdiffpos)
+		WaitForSingleObject(myStruct->hSemaphore, INFINITE);
+	UINT_PTR pos = pCtxt->GetFirstChildDiffPosition(parentdiffpos);
 	while (pos)
 	{
 		if (pCtxt->ShouldAbort())
@@ -247,8 +329,33 @@ int DirScan_CompareItems(DiffFuncStruct *myStruct)
 			break;
 		}
 		WaitForSingleObject(myStruct->hSemaphore, INFINITE);
-		DIFFITEM &di = pCtxt->GetNextDiffRefPosition(pos);
-		CompareDiffItem(di, pCtxt);
+		UINT_PTR curpos = pos;
+		DIFFITEM &di = pCtxt->GetNextSiblingDiffRefPosition(pos);
+		if (di.diffcode.isDirectory() && myStruct->bRecursive)
+		{
+			di.diffcode.diffcode &= ~(DIFFCODE::DIFF | DIFFCODE::SAME);
+			int ndiff = DirScan_CompareItems(myStruct, curpos);
+			if (ndiff > 0)
+			{
+				if (di.diffcode.isSideBoth())
+					di.diffcode.diffcode |= DIFFCODE::DIFF;
+				res += ndiff;
+			}
+			else if (ndiff == 0)
+			{
+				if (di.diffcode.isSideBoth())
+					di.diffcode.diffcode |= DIFFCODE::SAME;
+			}
+		}
+		else
+		{
+			CompareDiffItem(di, pCtxt);
+			if (di.diffcode.isResultDiff() ||
+				(!di.diffcode.isSideBoth() && !di.diffcode.isResultFiltered()))
+				res++;
+		}
+		pos = curpos;
+		pCtxt->GetNextSiblingDiffRefPosition(pos);
 	}
 	return res;
 }
@@ -256,14 +363,15 @@ int DirScan_CompareItems(DiffFuncStruct *myStruct)
 /**
  * @brief Compare DiffItems in context marked for rescan.
  *
- * @param pCtxt [in,out] Compare context: contains list of items.
- * @return 1 if compare finished, -1 if compare was aborted
+ * @param myStruct [in,out] A structure containing compare-related data.
+ * @param parentdiffpos [in] Position of parent diff item 
+ * @return >= 0 number of diff items, -1 if compare was aborted
  */
-int DirScan_CompareRequestedItems(DiffFuncStruct *myStruct)
+int DirScan_CompareRequestedItems(DiffFuncStruct *myStruct, UINT_PTR parentdiffpos)
 {
 	CDiffContext *pCtxt = myStruct->context;
-	int res = 1;
-	POSITION pos = pCtxt->GetFirstDiffPosition();
+	int res = 0;
+	UINT_PTR pos = pCtxt->GetFirstChildDiffPosition(parentdiffpos);
 	
 	while (pos != NULL)
 	{
@@ -273,14 +381,38 @@ int DirScan_CompareRequestedItems(DiffFuncStruct *myStruct)
 			break;
 		}
 
-		POSITION oldPos = pos;
-		DIFFITEM &di = pCtxt->GetNextDiffRefPosition(pos);
-		if (di.diffcode.isScanNeeded())
+		UINT_PTR curpos = pos;
+		DIFFITEM &di = pCtxt->GetNextSiblingDiffRefPosition(pos);
+		if (di.diffcode.isDirectory() && myStruct->bRecursive)
 		{
-			BOOL bItemsExist = TRUE;
-			UpdateDiffItem(di, bItemsExist, pCtxt);
-			if (bItemsExist)
-				CompareDiffItem(di, pCtxt);
+			di.diffcode.diffcode &= ~(DIFFCODE::DIFF | DIFFCODE::SAME);
+			int ndiff = DirScan_CompareRequestedItems(myStruct, curpos);
+			if (ndiff > 0)
+			{
+				if (di.diffcode.isSideBoth())
+					di.diffcode.diffcode |= DIFFCODE::DIFF;
+				res += ndiff;
+			}
+			else if (ndiff == 0)
+			{
+				if (di.diffcode.isSideBoth())
+					di.diffcode.diffcode |= DIFFCODE::SAME;
+			}		
+		}
+		else
+		{
+			if (di.diffcode.isScanNeeded())
+			{
+				BOOL bItemsExist = TRUE;
+				UpdateDiffItem(di, bItemsExist, pCtxt);
+				if (bItemsExist)
+				{
+					CompareDiffItem(di, pCtxt);
+				}
+			}
+			if (di.diffcode.isResultDiff() ||
+				(!di.diffcode.isSideBoth() && !di.diffcode.isResultFiltered()))
+				res++;
 		}
 	}
 	return res;
@@ -445,19 +577,22 @@ static void StoreDiffData(DIFFITEM &di, CDiffContext * pCtxt,
  * @param [in] sRightDir Right subdirectory.
  * @param [in] lent Left item data to add.
  * @param [in] rent Right item data to add.
- * @param [in] pCtxt Compare context.
+ * @param [in] myStruct Structure containing compare-related data.
+ * @param [in] parent Parent of item to be added
  */
-static void AddToList(const String &sLeftDir, const String &sRightDir,
+static DIFFITEM *AddToList(const String &sLeftDir, const String &sRightDir,
 	const DirItem * lent, const DirItem * rent,
-	UINT code, DiffFuncStruct *myStruct)
+	UINT code, DiffFuncStruct *myStruct, DIFFITEM *parent)
 {
 	// We must store both paths - we cannot get paths later
 	// and we need unique item paths for example when items
 	// change to identical
-	DIFFITEM &di = myStruct->context->AddDiff();
+	DIFFITEM &di = myStruct->context->AddDiff(parent);
 
-	di.left.path = sLeftDir;
-	di.right.path = sRightDir;
+	if (!sLeftDir.empty())
+		di.left.path = sLeftDir;
+	if (!sRightDir.empty())
+		di.right.path = sRightDir;
 
 	if (lent)
 	{
@@ -499,6 +634,7 @@ static void AddToList(const String &sLeftDir, const String &sRightDir,
 	);
 	myStruct->context->m_pCompareStats->IncreaseTotalItems();
 	ReleaseSemaphore(myStruct->hSemaphore, 1, 0);
+	return &di;
 }
 
 void // static

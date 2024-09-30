@@ -64,10 +64,10 @@
  * @brief Implementation of the CCrystalEditView class
  */
 // ID line follows -- this is updated by SVN
-// $Id: ccrystaleditview.cpp 5484 2008-06-16 04:52:20Z kimmov $
+// $Id: ccrystaleditview.cpp 5910 2008-09-07 03:27:29Z marcelgosselin $
 
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "editcmd.h"
 #include "editreg.h"
 #include "ccrystaleditview.h"

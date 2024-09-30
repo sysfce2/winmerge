@@ -1,6 +1,6 @@
 //Microsoft Developer Studio generated resource script.
 //
-// $Id: Merge.rc 5769 2008-08-08 22:12:16Z gerundt $
+// $Id: Merge.rc 6474M 2009-06-09 11:24:12Z (local) $
 
 #include "resource.h"
 
@@ -220,6 +220,10 @@ BEGIN
         MENUITEM "S&how Binary Files",          ID_OPTIONS_SHOWBINARIES
         MENUITEM SEPARATOR
         MENUITEM "Show Hidd&en Items",          ID_VIEW_SHOWHIDDENITEMS
+        MENUITEM SEPARATOR
+        MENUITEM "Tree &Mode",                  ID_VIEW_TREEMODE
+        MENUITEM "E&xpand All Subfolders",      ID_VIEW_EXPAND_ALLSUBDIRS
+        MENUITEM "&Collapse All Subfolders",    ID_VIEW_COLLAPSE_ALLSUBDIRS
         MENUITEM SEPARATOR
         MENUITEM "Select &Font...",             ID_VIEW_SELECTFONT
         MENUITEM "Use Default F&ont",           ID_VIEW_USEDEFAULTFONT
@@ -498,7 +502,7 @@ BEGIN
         MENUITEM "Comp&are",                    ID_MERGE_COMPARE
         POPUP "Co&mpare Special"
         BEGIN
-            MENUITEM "&XML"							ID_MERGE_COMPARE_XML
+            MENUITEM "&XML",                        ID_MERGE_COMPARE_XML
         END
         MENUITEM SEPARATOR
         POPUP "&Copy"
@@ -767,18 +771,20 @@ BEGIN
     CONTROL         "&Preserve file time in file compare",
                     IDC_PRESERVE_FILETIME,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,7,67,220,10
-    LTEXT           "O&pen-dialog Auto-Completion:",IDC_STATIC,19,82,125,8
-    COMBOBOX        IDC_AUTO_COMPLETE_SOURCE,20,91,147,41,CBS_DROPDOWNLIST | 
+    CONTROL         "Show ""Select Files or Folders"" Dialog on Startup",IDC_STARTUP_FOLDER_SELECT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,77,220,13
+    LTEXT           "O&pen-dialog Auto-Completion:",IDC_STATIC,19,91,208,8
+    COMBOBOX        IDC_AUTO_COMPLETE_SOURCE,20,101,147,41,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "Enable multiple compare windows for",IDC_STATIC,7,110,
+    GROUPBOX        "Enable multiple compare windows for",IDC_STATIC,7,120,
                     221,37
     CONTROL         "&Folder compare",IDC_MULTIDOC_DIRCMP,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,121,206,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,132,206,10
     CONTROL         "Fil&e compare",IDC_MULTIDOC_FILECMP,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,131,206,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,141,206,10
     LTEXT           "WinMerge allows hiding some common messageboxes. Press the Reset button to make all messageboxes visible again.",
-                    IDC_STATIC,7,163,168,31
-    PUSHBUTTON      "Reset",IDC_RESET_ALL_MESSAGE_BOXES,178,169,50,14,NOT
+                    IDC_STATIC,7,173,168,31
+    PUSHBUTTON      "Reset",IDC_RESET_ALL_MESSAGE_BOXES,178,180,50,14,NOT
                     WS_TABSTOP
 END
 
@@ -986,26 +992,19 @@ FONT 8, "MS Shell Dlg", 0, 0, 0x1
 BEGIN
     CONTROL         "&Send deleted files to Recycle Bin",IDC_USE_RECYCLE_BIN,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,222,10
-    GROUPBOX        "Integration",IDC_STATIC,7,20,218,46
-    CONTROL         "&Add to explorer context menu",IDC_EXPLORER_CONTEXT,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,31,200,10
-    CONTROL         "E&nable advanced menu",IDC_EXPLORER_ADVANCED,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,27,41,190,10
-    CONTROL         "In&clude subfolders by default",IDC_EXPLORER_SUBFOLDERS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,27,51,190,10
-    LTEXT           "&External editor:",IDC_STATIC,7,73,222,8
-    EDITTEXT        IDC_EXT_EDITOR_PATH,7,83,167,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "&Browse...",IDC_EXT_EDITOR_BROWSE,179,83,50,14
-    LTEXT           "&Filter folder:",IDC_STATIC,7,101,166,8
-    EDITTEXT        IDC_FILTER_USER_PATH,7,111,167,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "B&rowse...",IDC_FILTER_USER_BROWSE,179,111,50,14
-    GROUPBOX        "Temporary files folder",IDC_STATIC,7,130,218,56
+    LTEXT           "&External editor:",IDC_STATIC,7,23,222,8
+    EDITTEXT        IDC_EXT_EDITOR_PATH,7,33,167,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Browse...",IDC_EXT_EDITOR_BROWSE,179,33,50,14
+    LTEXT           "&Filter folder:",IDC_STATIC,7,51,166,8
+    EDITTEXT        IDC_FILTER_USER_PATH,7,61,167,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "B&rowse...",IDC_FILTER_USER_BROWSE,179,61,50,14
+    GROUPBOX        "Temporary files folder",IDC_STATIC,7,80,218,56
     CONTROL         "S&ystem's temp folder",IDC_TMPFOLDER_SYSTEM,"Button",
-                    BS_AUTORADIOBUTTON | WS_GROUP,17,142,199,10
+                    BS_AUTORADIOBUTTON | WS_GROUP,17,92,199,10
     CONTROL         "C&ustom folder:",IDC_STATIC,"Button",BS_AUTORADIOBUTTON,
-                    17,152,199,10
-    EDITTEXT        IDC_TMPFOLDER_NAME,27,164,136,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "Br&owse...",IDC_TMPFOLDER_BROWSE,167,164,50,14
+                    17,102,199,10
+    EDITTEXT        IDC_TMPFOLDER_NAME,27,114,136,14,ES_AUTOHSCROLL | WS_GROUP
+    PUSHBUTTON      "Br&owse...",IDC_TMPFOLDER_BROWSE,167,114,50,14
 END
 
 IDD_GENERATE_PATCH DIALOGEX 0, 0, 340, 180
@@ -1044,7 +1043,7 @@ BEGIN
     CONTROL         "Ig&nore all",IDC_DIFF_WHITESPACE_IGNOREALL,"Button",
                     BS_AUTORADIOBUTTON | WS_TABSTOP,162,112,110,10
     CONTROL         "Ignor&e blank lines",IDC_DIFF_WHITESPACE_IGNOREBLANKS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,134,142,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP | WS_GROUP,7,134,142,10
     CONTROL         "Case sensi&tive",IDC_DIFF_CASESENSITIVE,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,145,142,10
     CONTROL         "Inclu&de command line",IDC_DIFF_INCLCMDLINE,"Button",
@@ -1203,7 +1202,7 @@ BEGIN
     CONTROL         "Insert &Spaces",IDC_PROP_INSERT_SPACES,"Button",
                     BS_AUTORADIOBUTTON,14,90,201,10
     GROUPBOX        "Line Difference Coloring",IDC_LINE_COLORING_GROUP,7,114,
-                    221,61
+                    221,61,WS_GROUP
     CONTROL         "View line differences",IDC_VIEW_LINE_DIFFERENCES,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,125,201,8
     CONTROL         "&Character level",IDC_EDITOR_CHARLEVEL,"Button",
@@ -1269,16 +1268,16 @@ BEGIN
     GROUPBOX        "Default Codepage",IDC_STATIC,7,7,221,91
     LTEXT           "Select the default codepage assumed when loading non-Unicode files:",
                     IDC_STATIC,14,20,208,19
-    CONTROL         "Detect codepage info for these files : .html, .rc, .xml \nneed to restart session",
+    CONTROL         "Detect codepage info for these files: .html, .rc, .xml \nneed to restart session",
                     IDC_DETECT_CODEPAGE,"Button",BS_AUTOCHECKBOX | BS_TOP |
                     BS_MULTILINE | WS_TABSTOP,13,104,210,29
     CONTROL         "System codepage",IDC_CP_SYSTEM,"Button",
                     BS_AUTORADIOBUTTON | WS_GROUP,13,42,210,10
     CONTROL         "According to WinMerge User Interface",IDC_CP_UI,"Button",
                     BS_AUTORADIOBUTTON,13,55,210,10
-    CONTROL         "Custom codepage :",IDC_CP_CUSTOM,"Button",
+    CONTROL         "Custom codepage:",IDC_CP_CUSTOM,"Button",
                     BS_AUTORADIOBUTTON,13,68,210,10
-    EDITTEXT        IDC_CUSTOM_CP_NUMBER,26,80,56,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_CUSTOM_CP_NUMBER,26,80,56,13,ES_AUTOHSCROLL | WS_GROUP
 END
 
 IDD_MERGE7ZMISMATCH DIALOGEX 0, 0, 300, 245
@@ -1462,7 +1461,7 @@ BEGIN
                     BS_AUTORADIOBUTTON,19,58,209,10
     CONTROL         "&Detect archive type from file signature",
                     IDC_ARCHIVE_DETECTTYPE,"Button",BS_AUTOCHECKBOX |
-                    WS_TABSTOP,7,70,221,10
+                    WS_TABSTOP | WS_GROUP,7,70,221,10
 END
 
 IDD_COMPARE_STATISTICS DIALOGEX 0, 0, 257, 161
@@ -1624,7 +1623,7 @@ BEGIN
                     BS_AUTORADIOBUTTON | WS_GROUP,17,50,212,10
     CONTROL         "&Global backup folder:",IDC_BACKUP_GLOBALFOLD,"Button",
                     BS_AUTORADIOBUTTON,17,59,212,10
-    EDITTEXT        IDC_BACKUP_FOLDER,29,70,145,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_BACKUP_FOLDER,29,70,145,14,ES_AUTOHSCROLL | WS_GROUP
     PUSHBUTTON      "Browse...",IDC_BACKUP_BROWSE,179,70,50,14
     LTEXT           "Backup filename:",IDC_STATIC,7,89,222,8
     CONTROL         "&Append .bak -extension",IDC_BACKUP_APPEND_BAK,"Button",
@@ -1667,6 +1666,24 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,313,190,50,14
 END
 
+IDD_PROPPAGE_SHELL DIALOGEX 0, 0, 236, 222
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+CAPTION "Shell Integration"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    GROUPBOX        "Explorer",IDC_STATIC,7,7,218,46
+    CONTROL         "E&nable advanced menu",IDC_EXPLORER_ADVANCED,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,27,28,190,10
+    CONTROL         "In&clude subfolders by default",IDC_EXPLORER_SUBFOLDERS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,27,38,190,10
+    CONTROL         "&Add to context menu",IDC_EXPLORER_CONTEXT,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,17,18,200,10
+    GROUPBOX        "Folder compare",IDC_STATIC,7,58,218,26
+    CONTROL         "Add &Shell menu to context menu",
+                    IDC_ENABLE_SHELL_CONTEXT_MENU,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,19,69,200,10
+END
+
 #ifndef _MAC
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1674,13 +1691,13 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,10,4,0
- PRODUCTVERSION 2,10,4,0
+ FILEVERSION 2,12,4,0
+ PRODUCTVERSION 2,12,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x9L
 #else
- FILEFLAGS 0x0L
+ FILEFLAGS 0x8L
 #endif
  FILEOS 0x4L
  FILETYPE 0x1L
@@ -1693,13 +1710,13 @@ BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "http://winmerge.org\0"
             VALUE "FileDescription", "WinMerge Application\0"
-            VALUE "FileVersion", "2.10.4"
+            VALUE "FileVersion", "2.12.4\0"
             VALUE "InternalName", "WinMerge\0"
-            VALUE "LegalCopyright", "(c) 1996-2008 Dean P. Grimm / Thingamahoochie Software\0"
+            VALUE "LegalCopyright", "(c) 1996-2009 Dean P. Grimm / Thingamahoochie Software\0"
             VALUE "OriginalFilename", "WinMerge.EXE\0"
             VALUE "PrivateBuild", ""
             VALUE "ProductName", "WinMerge\0"
-            VALUE "ProductVersion", "2.10.4"
+            VALUE "ProductVersion", "2.12.4\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1750,6 +1767,9 @@ END
 STRINGTABLE
 BEGIN
     ID_VIEW_SHOWHIDDENITEMS "Make all hidden items visible again"
+    ID_VIEW_TREEMODE        "Toggle tree mode"
+    ID_VIEW_EXPAND_ALLSUBDIRS   "Expand all subfolders"
+    ID_VIEW_COLLAPSE_ALLSUBDIRS "Collapse all subfolders"
 END
 
 // WinMerge Project Files
@@ -1929,6 +1949,7 @@ BEGIN
     IDS_OPTIONSPG_CODEPAGE  "Codepage"
     IDS_OPTIONSPG_ARCHIVE   "Archive Support"
     IDS_OPTIONSPG_BACKUPS   "Backup Files"
+    IDS_OPTIONSPG_SHELL     "Shell Integration"
 END
 
 // WINMERGE CUSTOM STRINGS
@@ -1947,6 +1968,7 @@ STRINGTABLE
 BEGIN
     IDS_VERSION_FMT         "Version %1"
     IDS_UNICODE             "Unicode"
+    IDS_WINX64              "X64"
 END
 
 // VARIOUS OPTIONS
@@ -2040,8 +2062,8 @@ END
 // VERSION CONTROL OPTIONS
 STRINGTABLE
 BEGIN
-    IDS_CC_CMD              "&Path to cleartool.exe :"
-    IDS_VSS_CMD             "&Path to SS.EXE :"
+    IDS_CC_CMD              "&Path to cleartool.exe:"
+    IDS_VSS_CMD             "&Path to SS.EXE:"
 END
 
 // WINDOWS TITLES
@@ -2130,9 +2152,10 @@ BEGIN
     IDS_FILEPACK_FAILED_RIGHT "Plugin '%2' cannot pack your changes to the right file back into '%1'.\n\nThe original file will not be changed.\n\nDo you want to save the unpacked version to another file?"
     IDS_FILECHANGED_ONDISK  "Another application has updated file\n%1\nsince WinMerge loaded it.\n\nOverwrite changed file?"
     IDS_SAVEREADONLY_MULTI  "%1\nis marked read-only. Would you like to override the read-only item?"
-    IDS_FILECHANGED_RESCAN  "Another application has updated file\n%1\nsince WinMerge scanned it last time.\n\nIf you want to refresh files close current file compare and load files again."
+    IDS_FILECHANGED_RESCAN  "Another application has updated file\n%1\nsince WinMerge scanned it last time.\n\nDo you want to reload the file?"
     IDS_SAVE_LEFT_AS        "Save Left File As"
     IDS_SAVE_RIGHT_AS       "Save Right File As"
+    IDS_FILE_DISAPPEARED    "The file\n%1\nhas disappeared. Please save a copy of the file to continue."
 END
 
 // Editing/Merging file
@@ -2238,6 +2261,13 @@ BEGIN
     ID_DIR_COPY_PATHNAMES_BOTH "Copy both sides pathnames to clipboard"
 END
 
+// DIRECTORY DIFFING : SHELL CONTEXT MENU
+STRINGTABLE
+BEGIN
+    IDS_SHELL_CONTEXT_MENU_LEFT "Left Shell menu"
+    IDS_SHELL_CONTEXT_MENU_RIGHT "Right Shell menu"
+END
+
 // DIRECTORY DIFFING : 7ZIP
 STRINGTABLE
 BEGIN
@@ -2305,10 +2335,17 @@ BEGIN
     IDS_IDENTICAL           "Identical"
     IDS_BIN_FILES_DIFF      "Binary files are different"
     IDS_FILES_ARE_DIFFERENT "Files are different"
+    IDS_FOLDERS_ARE_DIFFERENT "Folders are different"
     IDS_LEFTONLY            "Left Only"
     IDS_RIGHTONLY           "Right Only"
     IDS_DIFFERENT           "Different"
     IDS_CMPRES_ERROR        "Error"
+    IDS_TEXT_FILES_SAME     "Text files are identical"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_TEXT_FILES_DIFF     "Text files are different"
 END
 
 // DIRECTORY DIFFING : SUMMARY BAR
@@ -2816,6 +2853,7 @@ BEGIN
     IDS_COLORSCHEME_SQL             "SQL"
     IDS_COLORSCHEME_TCL             "TCL"
     IDS_COLORSCHEME_TEX             "TEX"
+    IDS_COLORSCHEME_VERILOG         "Verilog"
     IDS_COLORSCHEME_XML             "XML"
 END
 

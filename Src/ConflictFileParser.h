@@ -20,7 +20,7 @@
  * @brief Declaration ConflictFileParser.
  */
 // ID line follows -- this is updated by SVN
-// $Id: ConflictFileParser.h 5892 2008-09-05 06:43:12Z jtuc $
+// $Id: ConflictFileParser.h 5862 2008-08-29 20:38:41Z jtuc $
 
 // Conflict file parsing method modified from original code got from:
 // TortoiseCVS - a Windows shell extension for easy version control

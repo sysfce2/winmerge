@@ -300,7 +300,7 @@ StatusUninstalling=Deinstalacja %1...
 ;Inno Setup Built-in Custom Messages
 NameAndVersion=%1 wersja %2
 AdditionalIcons=Dodatkowe ikony:
-OptionalFeatures=Optional Features:
+OptionalFeatures=Funkcje opcjonalne:
 CreateDesktopIcon=Utwórz ikonê na &pulpicie
 CreateQuickLaunchIcon=Utwórz ikonê na pasku &szybkiego uruchamiania
 ProgramOnTheWeb=Strona WWW programu %1
@@ -320,58 +320,54 @@ CustomInstallation=Instalacja uzytkownika
 
 ;Components
 AppCoreFiles=WinMerge ? pliki zasadnicze
-ApplicationRuntimes=Moduly wykonywalne
 Filters=Filtry
 Plugins=Wtyczki
 
 ;Localization Components
-Languages=Jezyki
-BulgarianLanguage=Bulgarski interfejs
-CatalanLanguage=Katalonski interfejs
-ChineseSimplifiedLanguage=Chinski (uproszczony) interfejs
-ChineseTraditionalLanguage=Chinski (tradycyjny) interfejs
-CroatianLanguage=Croatian menus and dialogs
+Languages=Jêzyki
+BulgarianLanguage=Bu³garski interfejs
+CatalanLanguage=Kataloñski interfejs
+ChineseSimplifiedLanguage=Chiñski (uproszczony) interfejs
+ChineseTraditionalLanguage=Chiñski (tradycyjny) interfejs
+CroatianLanguage=Chorwacki interfejs
 CzechLanguage=Czeski interfejs
-DanishLanguage=Dunski interfejs
+DanishLanguage=Duñski interfejs
 DutchLanguage=Holenderski interfejs
 FrenchLanguage=Francuski interfejs
-GalicianLanguage=Galician menus and dialogs
+GalicianLanguage=Galisyjski interfejs
 GermanLanguage=Niemiecki interfejs
-GreekLanguage=Greek menus and dialogs
-HungarianLanguage=Wegierski interfejs
-ItalianLanguage=Wloski interfejs
-JapaneseLanguage=Japonski interfejs
-KoreanLanguage=Koreanski interfejs
+GreekLanguage=Grecki interfejs
+HungarianLanguage=Wêgierski interfejs
+ItalianLanguage=W³oski interfejs
+JapaneseLanguage=Japoñski interfejs
+KoreanLanguage=Koreañski interfejs
 NorwegianLanguage=Norweski interfejs
 PolishLanguage=Polski interfejs
 PortugueseBrazilLanguage=Portugalski (Brazylijski) interfejs
 PortugueseLanguage=Portugalski interfejs
-RomanianLanguage=Romanian menus and dialogs
+RomanianLanguage=Rumuñski interfejs
 RussianLanguage=Rosyjski interfejs
-SlovakLanguage=Slowacki interfejs
-SlovenianLanguage=Slovenian menus and dialogs
-SpanishLanguage=Hiszpanski interfejs
+SlovakLanguage=S³owacki interfejs
+SlovenianLanguage=S³oweñski interfejs
+SpanishLanguage=Hiszpañski interfejs
 SwedishLanguage=Szwedzki interfejs
-TurkishLanguage=turecki interfejs
-UkrainianLanguage=Ukrainian menus and dialogs
+TurkishLanguage=Turecki interfejs
+UkrainianLanguage=Ukraiñski interfejs
 
 ;Tasks
-ExplorerContextMenu=&Wlacz integracje z menu Eksploratora
+ExplorerContextMenu=&W³¹cz integracjê z menu Eksploratora
 IntegrateTortoiseCVS=Integracja z &TortoiseCVS
 IntegrateTortoiseSVN=Integracja z T&ortoiseSVN
 IntegrateClearCase=Integracja z Rational &ClearCase
-IntegrateDelphi4=Obsluga plików binarnych Borland® Delphi &4
-UpdatingCommonControls=Aktualizacja wspólnych kontrolek systemowych SCC
+AddToPath=&Dodaj folder WinMerge do sciezki systemowej
 
 ;Icon Labels
 ReadMe=Czytaj to
-UsersGuide=Przewodnik uzytkownika
-UpdatingCommonControls=Aktualizacja wspólnych kontrolek systemowych
-ViewStartMenuFolder=&Podglad katalogu menu Start programu WinMerge
-PluginsText=Plugins
+UsersGuide=Przewodnik u¿ytkownika
+ViewStartMenuFolder=&Podglad folderu menu Start programu WinMerge
 
 ;Code Dialogs
-DeletePreviousStartMenu=Instalator wykryl, ze zmieniles lokalizacje menu startowego z "%s" na "%s". Czy usunac poprzedni katalog menu startowego?
+DeletePreviousStartMenu=Instalator wykryl, ze zmieniles lokalizacje menu startowego z "%s" na "%s". Czy usunac poprzedni folder menu startowego?
 
 ; Project file description
-ProjectFileDesc=WinMerge Project file
+ProjectFileDesc=Plik projektu WinMerge

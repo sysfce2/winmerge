@@ -4,7 +4,7 @@
  *  @brief Implementation of DIFFITEM
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: DiffItem.cpp 5646 2008-07-20 16:22:24Z jtuc $
+// $Id: DiffItem.cpp 5654 2008-07-22 14:27:09Z sdottaka $
 
 #include "stdafx.h"
 #include "DiffItem.h"
@@ -17,6 +17,17 @@ static char THIS_FILE[]=__FILE__;
 #endif
 
 DIFFITEM DIFFITEM::emptyitem;
+
+/** @brief DIFFITEM's destructor */
+DIFFITEM::~DIFFITEM()
+{
+	while (children.IsSibling(children.Flink))
+	{
+		DIFFITEM *p = (DIFFITEM *)children.Flink;
+		p->RemoveSelf();
+		delete p;
+	}
+}
 
 /** @brief Return path to left file, including all but file name */
 String DIFFITEM::getLeftFilepath(const String &sLeftRoot) const
@@ -39,3 +50,35 @@ String DIFFITEM::getRightFilepath(const String &sRightRoot) const
 	}
 	return sPath;
 }
+
+/** @brief Return depth of path */
+int DIFFITEM::GetDepth() const
+{
+	const DIFFITEM *cur;
+	int depth;
+	for (depth = 0, cur = parent; cur; depth++, cur = cur->parent)
+		;
+	return depth;
+}
+
+/**
+ * @brief Return whether the specified item is an ancestor of the current item
+ */
+bool DIFFITEM::IsAncestor(const DIFFITEM *pdi) const
+{
+	const DIFFITEM *cur;
+	for (cur = this; cur; cur = cur->parent)
+	{
+		if (cur->parent == pdi)
+			return true;
+	}
+	return false;
+}
+
+/** @brief Return whether the current item has children */
+bool DIFFITEM::HasChildren() const
+{
+	DIFFITEM *p = (DIFFITEM *)children.IsSibling(children.Flink);
+	return p ? true : false;
+}
+

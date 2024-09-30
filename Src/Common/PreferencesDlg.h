@@ -8,7 +8,7 @@
  * WinMerge.
  */
 // ID line follows -- this is updated by SVN
-// $Id: PreferencesDlg.h 4099 2007-02-07 18:37:52Z kimmov $
+// $Id: PreferencesDlg.h 6359 2009-01-22 19:12:53Z kimmov $
 
 
 #if !defined(AFX_PREFERENCESDLG_H__C3FCC72A_6C69_49A6_930D_D5C94EC31298__INCLUDED_)
@@ -29,8 +29,9 @@
 #include "PropCodepage.h"
 #include "PropArchive.h"
 #include "PropBackups.h"
+#include "PropShell.h"
 
-#include "propertypagehost.h"
+#include "PropertyPageHost.h"
 
 class COptionsMgr;
 class SyntaxColors;
@@ -68,6 +69,7 @@ protected:
 	CPropSyntaxColors m_pageSyntaxColors;
 	CPropArchive m_pageArchive;
 	CPropBackups m_pageBackups;
+	PropShell m_pageShell;
 
 	SyntaxColors *m_pSyntaxColors;
 

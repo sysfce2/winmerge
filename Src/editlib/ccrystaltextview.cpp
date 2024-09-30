@@ -85,9 +85,9 @@
  * @brief Implementation of the CCrystalTextView class
  */
 // ID line follows -- this is updated by SVN
-// $Id: ccrystaltextview.cpp 6007 2008-10-09 15:01:03Z sdottaka $
+// $Id: ccrystaltextview.cpp 6093 2008-11-17 23:35:56Z gerundt $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include <malloc.h>
 #include <imm.h> /* IME */
 #include <mbctype.h>
@@ -302,6 +302,7 @@ CCrystalTextView::TextDefinition CCrystalTextView::m_SourceDefs[] =
     CCrystalTextView::SRC_SQL, _T ("SQL"), _T ("sql"), &CCrystalTextView::ParseLineSql, SRCOPT_AUTOINDENT, /*4,*/ _T ("/*"), _T ("*/"), _T ("//"), (DWORD)-1,
     CCrystalTextView::SRC_TCL, _T ("TCL"), _T ("tcl"), &CCrystalTextView::ParseLineTcl, SRCOPT_AUTOINDENT|SRCOPT_BRACEGNU|SRCOPT_EOLNUNIX, /*2,*/ _T (""), _T (""), _T ("#"), (DWORD)-1,
     CCrystalTextView::SRC_TEX, _T ("TEX"), _T ("tex,sty,clo,ltx,fd,dtx"), &CCrystalTextView::ParseLineTex, SRCOPT_AUTOINDENT, /*4,*/ _T (""), _T (""), _T ("%"), (DWORD)-1,
+    CCrystalTextView::SRC_VERILOG, _T ("Verilog"), _T ("v,vh"), &CCrystalTextView::ParseLineVerilog, SRCOPT_AUTOINDENT|SRCOPT_BRACEANSI, /*2,*/ _T ("/*"), _T ("*/"), _T ("//"), (DWORD)-1,
     CCrystalTextView::SRC_XML, _T ("XML"), _T ("xml"), &CCrystalTextView::ParseLineXml, SRCOPT_AUTOINDENT|SRCOPT_BRACEANSI, /*2,*/ _T ("<!--"), _T ("-->"), _T (""), (DWORD)-1
   };
 
@@ -2154,6 +2155,7 @@ OnDraw (CDC * pdc)
 void CCrystalTextView::
 ResetView ()
 {
+  ResetCharWidths();
   // m_bWordWrap = FALSE;
   m_nTopLine = 0;
   m_nTopSubLine = 0;
@@ -6034,17 +6036,14 @@ CString CCrystalTextView::GetTextBufferEol(int nLine) const
 #ifdef _UNICODE
 int CCrystalTextView::GetCharWidthUnicodeChar(wchar_t ch)
 {
-  static BOOL bCalculated[65536/256];
-  static int iDoubleWidthFlags[65536/32];
-
-  if (!bCalculated[ch/256])
+  if (!m_bChWidthsCalculated[ch/256])
     {
       if (ch >= 0x4e00 && ch < 0xe000)
         {
           // CJK Unified Ideograph + Hangul
-          memset(&iDoubleWidthFlags[0x4e00/32], 0xff, ((0xe000-0x4e00)/32)*4);
+          memset(&m_iChDoubleWidthFlags[0x4e00/32], 0xff, ((0xe000-0x4e00)/32)*4);
           for (int i = 0x4e00; i < 0xe000; i+=256) 
-            bCalculated[i / 256] = TRUE;
+            m_bChWidthsCalculated[i / 256] = TRUE;
         }
       else
         {
@@ -6059,17 +6058,26 @@ int CCrystalTextView::GetCharWidthUnicodeChar(wchar_t ch)
           for (int i = 0; i < 256; i++) 
             {
               if (nCharWidth * 15 < nWidthArray[i] * 10)
-                iDoubleWidthFlags[(nStart+i)/32] |= 1 << (i % 32);
+                m_iChDoubleWidthFlags[(nStart+i)/32] |= 1 << (i % 32);
             }
-          bCalculated[ch / 256] = TRUE;
+          m_bChWidthsCalculated[ch / 256] = TRUE;
         }
     }
-  if (iDoubleWidthFlags[ch / 32] & (1 << (ch % 32)))
+  if (m_iChDoubleWidthFlags[ch / 32] & (1 << (ch % 32)))
     return GetCharWidth() * 2;
   else
     return GetCharWidth();
 }
 #endif
+
+/** @brief Reset computed unicode character widths. */
+void CCrystalTextView::ResetCharWidths ()
+{
+#ifdef _UNICODE
+  ZeroMemory(m_bChWidthsCalculated, sizeof(m_bChWidthsCalculated));
+  ZeroMemory(m_iChDoubleWidthFlags, sizeof(m_iChDoubleWidthFlags));
+#endif
+}
 
 // This function assumes selection is in one line
 void CCrystalTextView::EnsureVisible (CPoint ptStart, CPoint ptEnd)

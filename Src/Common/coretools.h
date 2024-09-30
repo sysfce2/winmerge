@@ -4,7 +4,7 @@
  * @brief Declaration file for Coretools.cpp
  */
 // ID line follows -- this is updated by SVN
-// $Id: coretools.h 5348 2008-05-19 17:35:45Z kimmov $
+// $Id: coretools.h 5901 2008-09-06 02:48:07Z marcelgosselin $
 
 #ifndef CORETOOLS_H
 #define CORETOOLS_H
@@ -45,15 +45,6 @@
 
 
 /******** function protos ********/
-
-template <class T>
-void swap(T *a,T *b)
-{
- T tmp;
- tmp=*a;
- *a=*b;
- *b=tmp;
-}
 
 template <class T>
 void selection_sort(T *ary, UINT cnt)
@@ -97,7 +88,6 @@ DWORD FPRINTF(HANDLE hf, LPCTSTR fmt, ... );
 DWORD FPUTS(LPCTSTR s, HANDLE hf);
 HANDLE FOPEN(LPCTSTR path, DWORD mode = GENERIC_READ, DWORD access = OPEN_EXISTING);
 void GetLocalDrives(LPTSTR letters);
-//BOOL GetIP(LPTSTR straddr);
 void replace_char(LPTSTR s, int target, int repl);
 BOOL FileExtMatches(LPCTSTR filename, LPCTSTR ext);
 void SplitFilename(LPCTSTR s, String * path, String * name, String * ext);
@@ -108,18 +98,11 @@ int fcmp(float a,float b);
 BOOL FindAnyFile(LPTSTR filespec, LPTSTR name);
 long SwapEndian(long val);
 short int SwapEndian(short int val);
-//BOOL MkDirEx(LPCTSTR foldername);
 String GetModulePath(HMODULE hModule = NULL);
 String GetPathOnly(LPCTSTR fullpath);
 float RoundMeasure(float measure, float units);
 
 String LegalizeFileName(LPCTSTR szFileName);
-
-#ifdef _UNUSED_
-CString GetLocalizedNumberString(double dVal, int nPlaces =-1, BOOL bSeparate =FALSE, BOOL bTrailZeros =FALSE, LCID lcidNew =LOCALE_USER_DEFAULT);
-void DDX_Float( CDataExchange* pDX, int nIDC, float& value );
-void DDX_Double( CDataExchange* pDX, int nIDC, double& value );
-#endif
 
 int tcssubptr(LPCTSTR start, LPCTSTR end);
 

@@ -6,7 +6,7 @@ Option Explicit
 ' Released under the "GNU General Public License"
 '
 ' ID line follows -- this is updated by SVN
-' $Id: CreateMasterPotFile.vbs 4974 2008-01-29 23:10:28Z gerundt $
+' $Id: CreateMasterPotFile.vbs 6150 2008-12-05 00:02:43Z gerundt $
 
 Const ForReading = 1
 
@@ -251,7 +251,8 @@ Sub CreateMasterPotFile(ByVal sPotPath, ByVal oStrings, ByVal sCodePage)
   oPotFile.WriteLine """Content-Transfer-Encoding: 8bit\n"""
   oPotFile.WriteLine """X-Poedit-Language: English\n"""
   oPotFile.WriteLine """X-Poedit-SourceCharset: CP" & sCodePage & "\n"""
-  oPotFile.WriteLine """X-Generator: CreateMasterPotFile.vbs\n"""
+  oPotFile.WriteLine """X-Poedit-Basepath: ../\n"""
+  'oPotFile.WriteLine """X-Generator: CreateMasterPotFile.vbs\n"""
   oPotFile.WriteLine
   For Each sKey In oStrings.Keys 'For all strings...
     Set oString = oStrings(sKey)

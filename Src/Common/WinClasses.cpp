@@ -8,9 +8,9 @@
  * WinMerge.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: WinClasses.cpp 2219 2005-03-21 20:12:48Z kimmov $
+// $Id: WinClasses.cpp 5911 2008-09-07 03:30:21Z marcelgosselin $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "WinClasses.h"
 #include "wclassdefines.h"
 

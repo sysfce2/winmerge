@@ -4,7 +4,7 @@
  * @brief Declaration file for LineFiltersList class
  */
 // ID line follows -- this is updated by SVN
-// $Id: LineFiltersList.h 5653 2008-07-21 19:28:48Z kimmov $
+// $Id: LineFiltersList.h 5620 2008-07-15 17:34:10Z kimmov $
 
 #ifndef _LINEFILTERS_LIST_H_
 #define _LINEFILTERS_LIST_H_

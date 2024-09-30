@@ -20,7 +20,7 @@
  * @brief Implementation file for ClearCase dialog
  */
 // ID line follows -- this is updated by SVN
-// $Id: CCPrompt.cpp 5858 2008-08-24 20:31:56Z kimmov $
+// $Id: CCPrompt.cpp 5849 2008-08-22 17:57:48Z kimmov $
 
 #include "stdafx.h"
 #include "merge.h"

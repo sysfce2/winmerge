@@ -4,7 +4,7 @@
  * @brief Declaration file for CLanguageSelect dialog.
  */
 // ID line follows -- this is updated by SVN
-// $Id: LanguageSelect.h 5488 2008-06-16 17:40:20Z kimmov $
+// $Id: LanguageSelect.h 5894 2008-09-05 10:06:57Z jtuc $
 
 #if !defined(AFX_LANGUAGESELECT_H__4395A84F_E8DF_11D1_BBCB_00A024706EDC__INCLUDED_)
 #define AFX_LANGUAGESELECT_H__4395A84F_E8DF_11D1_BBCB_00A024706EDC__INCLUDED_
@@ -86,7 +86,6 @@ private:
 	//{{AFX_MSG(CLanguageSelect)
 	virtual void OnOK();
 	virtual BOOL OnInitDialog();
-	afx_msg void OnDblclkLanguageList();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

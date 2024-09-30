@@ -24,7 +24,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: MainFrm.h 5924 2008-09-07 22:25:05Z sdottaka $
+// $Id: MainFrm.h 6484 2009-02-23 09:10:43Z kimmov $
 
 #if !defined(AFX_MAINFRM_H__BBCD4F8C_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MAINFRM_H__BBCD4F8C_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -35,8 +35,6 @@
 #include "OptionsMgr.h"
 #include "VSSHelper.h"
 struct FileLocation;
-
-#define BACKUP_FILE_EXT   _T(".bak")
 
 /**
  * @brief Flags used when opening files
@@ -79,6 +77,7 @@ class CDiffView;
 class CDirView;
 class CDirDoc;
 class CMergeDoc;
+class CHexMergeDoc;
 class CMergeEditView;
 class CMergeDiffDetailView;
 class SyntaxColors;
@@ -89,6 +88,7 @@ class TempFile;
 // typed lists (homogenous pointer lists)
 typedef CTypedPtrList<CPtrList, CMergeDoc *> MergeDocList;
 typedef CTypedPtrList<CPtrList, CDirDoc *> DirDocList;
+typedef CTypedPtrList<CPtrList, CHexMergeDoc *> HexMergeDocList;
 
 class PackingInfo;
 class CLanguageSelect;
@@ -113,6 +113,7 @@ public:
 public:
 	HMENU NewDirViewMenu();
 	HMENU NewMergeViewMenu();
+	HMENU NewHexMergeViewMenu();
 	HMENU NewDefaultMenu(int ID = 0);
 	HMENU GetScriptsSubmenu(HMENU mainMenu);
 	HMENU GetPrediffersSubmenu(HMENU mainMenu);
@@ -124,6 +125,8 @@ public:
 	int ShowMergeDoc(CDirDoc * pDirDoc, const FileLocation & filelocLeft,
 		const FileLocation & filelocRight, DWORD dwLeftFlags = 0,
 		DWORD dwRightFlags = 0, PackingInfo * infoUnpacker = NULL);
+	void ShowHexMergeDoc(CDirDoc * pDirDoc,
+		LPCTSTR pathLeft, LPCTSTR pathRight, BOOL bLeftRO, BOOL bRightRO);
 	void UpdateResources();
 	BOOL CreateBackup(BOOL bFolder, LPCTSTR pszPath);
 	int HandleReadonlySave(CString& strSavePath, BOOL bMultiFile, BOOL &bApplyToAll);
@@ -236,6 +239,7 @@ protected:
 		MENU_DEFAULT,
 		MENU_MERGEVIEW,
 		MENU_DIRVIEW,
+		MENU_HEXMERGEVIEW,
 		MENU_COUNT, // Add new items before this item
 	};
 	/**
@@ -267,6 +271,7 @@ protected:
 
 // Generated message map functions
 protected:
+	virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 	void GetFontProperties();
 	//{{AFX_MSG(CMainFrame)
 	afx_msg void OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct);
@@ -318,7 +323,6 @@ protected:
 	afx_msg void OnResizePanes();
 	afx_msg void OnFileOpenproject();
 	afx_msg LRESULT OnCopyData(WPARAM wParam, LPARAM lParam);
-	afx_msg LRESULT OnUser(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnWindowCloseAll();
 	afx_msg void OnUpdateWindowCloseAll(CCmdUI* pCmdUI);
@@ -343,9 +347,11 @@ private:
 	void addToMru(LPCTSTR szItem, LPCTSTR szRegSubKey, UINT nMaxItems = 20);
 	const MergeDocList &GetAllMergeDocs();
 	const DirDocList &GetAllDirDocs();
+	const HexMergeDocList &GetAllHexMergeDocs();
 	BOOL IsComparing();
 	void RedisplayAllDirDocs();
 	CMergeDoc * GetMergeDocToShow(CDirDoc * pDirDoc, BOOL * pNew);
+	CHexMergeDoc * GetHexMergeDocToShow(CDirDoc * pDirDoc, BOOL * pNew);
 	CDirDoc * GetDirDocToShow(BOOL * pNew);
 	void ShowFontChangeMessage();
 	void OpenFileOrUrl(LPCTSTR szFile, LPCTSTR szUrl);

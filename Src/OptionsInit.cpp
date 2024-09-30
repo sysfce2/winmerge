@@ -4,7 +4,7 @@
  * @brief Options initialisation.
  */
 // ID line follows -- this is updated by SVN
-// $Id: OptionsInit.cpp 6035 2008-10-23 22:13:48Z sdottaka $
+// $Id: OptionsInit.cpp 6617 2009-03-30 20:02:20Z kimmov $
 
 #include "stdafx.h"
 #include <mlang.h>
@@ -74,6 +74,8 @@ void CMergeApp::OptionsInit()
 
 	m_pOptions->InitOption(OPT_DIRVIEW_SORT_COLUMN, (int)-1);
 	m_pOptions->InitOption(OPT_DIRVIEW_SORT_ASCENDING, true);
+	m_pOptions->InitOption(OPT_DIRVIEW_ENABLE_SHELL_CONTEXT_MENU, false);
+	m_pOptions->InitOption(OPT_SHOW_SELECT_FILES_AT_STARTUP, false);
 
 	m_pOptions->InitOption(OPT_AUTOMATIC_RESCAN, false);
 	m_pOptions->InitOption(OPT_ALLOW_MIXED_EOL, false);
@@ -93,6 +95,7 @@ void CMergeApp::OptionsInit()
 	m_pOptions->InitOption(OPT_IGNORE_SMALL_FILETIME, false);
 	m_pOptions->InitOption(OPT_ASK_MULTIWINDOW_CLOSE, false);
 	m_pOptions->InitOption(OPT_PRESERVE_FILETIMES, false);
+	m_pOptions->InitOption(OPT_TREE_MODE, false);
 
 	m_pOptions->InitOption(OPT_CMP_IGNORE_WHITESPACE, (int)0);
 	m_pOptions->InitOption(OPT_CMP_IGNORE_BLANKLINES, false);
@@ -131,13 +134,7 @@ void CMergeApp::OptionsInit()
 	m_pOptions->InitOption(OPT_CUSTOM_TEMP_PATH, _T(""));
 
 	m_pOptions->InitOption(OPT_MULTIDOC_DIRDOCS, false);
-	m_pOptions->InitOption(OPT_MULTIDOC_MERGEDOCS, false);
-
-	// Overwrite WinMerge 2.0 default colors with new colors
-	if (m_pOptions->GetInt(OPT_CLR_DIFF) == RGB(255,255,92))
-		m_pOptions->SaveOption(OPT_CLR_DIFF, (int)RGB(239,203,5));
-	if (m_pOptions->GetInt(OPT_CLR_SELECTED_DIFF) == RGB(255,0,92))
-		m_pOptions->SaveOption(OPT_CLR_SELECTED_DIFF, (int)RGB(239,119,116));
+	m_pOptions->InitOption(OPT_MULTIDOC_MERGEDOCS, true);
 
 	m_pOptions->InitOption(OPT_LINEFILTER_ENABLED, false);
 	m_pOptions->InitOption(OPT_FILEFILTER_CURRENT, _T("*.*"));

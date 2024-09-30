@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirTravel.cpp 4591 2007-10-05 13:48:17Z kimmov $
+// $Id: DirTravel.cpp 5761 2008-08-08 04:54:52Z marcelgosselin $
 
 #include <algorithm>
 #include <windows.h>
@@ -122,7 +122,7 @@ static int collate_ignore_case(const String &str1, const String &str2)
 {
 	String s1(str1);
 	String s2(str2);
-	int i = 0;
+    String::size_type i = 0;
 	for (i = 0; i < s1.length(); i++)
 		s1[i] = _totlower(s1[i]);
 	for (i = 0; i < s2.length(); i++)

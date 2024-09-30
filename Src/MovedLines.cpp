@@ -4,10 +4,14 @@
  * @brief Implementation of MovedLines class.
  */
 
+// Disable VC6's "identifier was truncated..." warning. It is meaningless.
+#if _MSC_VER == 1200
+	#pragma warning(disable: 4786)
+#endif
 #include <map>
 #include "MovedLines.h"
 
-using namespace std;
+using std::map;
 
 /**
  * @brief clear the lists of moved blocks.

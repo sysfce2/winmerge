@@ -8,10 +8,22 @@
  * @brief Project-wide includes and declarations
  */
 // ID line follows -- this is updated by SVN
-// $Id: StdAfx.h 5526 2008-06-26 12:50:32Z kimmov $
+// $Id: StdAfx.h 5852 2008-08-24 10:33:01Z sdottaka $
 
 #if !defined(AFX_STDAFX_H__BBCD4F8A_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_STDAFX_H__BBCD4F8A_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
+
+#if _MSC_VER >= 1500
+#if defined _M_IX86
+#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='x86' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#elif defined _M_IA64
+#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='ia64' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#elif defined _M_X64
+#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#else
+#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#endif
+#endif
 
 // Set WINVER for VC6, VS2005 and VS2008
 //On VS2003 default is set to 0x0501 (Windows XP and Windows .NET Server)
@@ -126,7 +138,7 @@ int NTAPI LangMessageBox(UINT, UINT nType = MB_OK, UINT nIDHelp = (UINT)-1);
 int ResMsgBox1(UINT msgid, LPCTSTR arg, UINT nType = MB_OK, UINT nIDHelp = 0);
 
 	/** @brief Retrieve error description from Windows; uses FormatMessage */
-CString GetSysError(int nerr);
+String GetSysError(int nerr);
 
 	/** @brief Send message to log file (in theory; actually doesn't yet) */
 void LogErrorString(LPCTSTR sz);

@@ -26,7 +26,7 @@
  * @date  Created: 2003-11-24
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: multiformatText.cpp 5507 2008-06-22 17:35:42Z kimmov $
+// $Id: multiformatText.cpp 6501 2009-02-25 13:37:09Z kimmov $
 
 #include "StdAfx.h"
 #include "unicoder.h"
@@ -79,7 +79,7 @@ void storageForPlugins::SetDataFileUnicode(LPCTSTR filename, BOOL bOverwrite /*=
 }
 void storageForPlugins::SetDataFileUnknown(LPCTSTR filename, BOOL bOverwrite /*= FALSE*/) 
 {
-	BOOL bIsUnicode = FALSE;
+	bool bIsUnicode = false;
 	UniMemFile ufile;
 	if (ufile.OpenReadOnly(filename))
 	{
@@ -193,8 +193,8 @@ LPCTSTR storageForPlugins::GetDataFileUnicode()
 
 	MAPPEDFILEDATA fileDataIn = {0};
 	UINT nchars;
-	CHAR * pchar;
-	WCHAR * pwchar;
+	CHAR * pchar = NULL;
+	WCHAR * pwchar = NULL;
 
 	// Get source data
 	if (m_bCurrentIsFile)
@@ -604,7 +604,7 @@ BOOL UnicodeFileToOlechar(LPCTSTR filepath, LPCTSTR filepathDst, int & nFileChan
 	if (!ufile.OpenReadOnly(filepath) || !ufile.IsUnicode())
 		return TRUE; // not unicode file, nothing to do
 
-	int codeOldBOM = ufile.GetUnicoding();
+	ucr::UNICODESET codeOldBOM = ufile.GetUnicoding();
 	if (codeOldBOM == ucr::UCS2LE)
 		return TRUE; // unicode UCS-2LE, nothing to do
 	bool bBom = ufile.HasBom();
@@ -625,8 +625,8 @@ BOOL UnicodeFileToOlechar(LPCTSTR filepath, LPCTSTR filepathDst, int & nFileChan
 	UINT nBufSize = fileDataIn.dwSize;
 
 	// first pass : get the size of the destination file
-	UINT nSizeOldBOM;
-	UINT nchars;
+	UINT nSizeOldBOM = 0;
+	UINT nchars = 0;
 	switch (codeOldBOM)
 	{
 	case ucr::UTF8:
@@ -701,7 +701,7 @@ BOOL OlecharToUTF8(LPCTSTR filepath, LPCTSTR filepathDst, int & nFileChanged, BO
 	UniMemFile ufile;
 	if (!ufile.OpenReadOnly(filepath) || !ufile.IsUnicode())
 		return TRUE; // not unicode file, nothing to do
-	int unicoding = ufile.GetUnicoding();
+	ucr::UNICODESET unicoding = ufile.GetUnicoding();
 	// Finished with examing file contents
 	ufile.Close();
 

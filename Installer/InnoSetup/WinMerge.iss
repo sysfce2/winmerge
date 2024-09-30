@@ -1,5 +1,5 @@
 ; ID line follows -- this is updated by SVN
-; $Id: WinMerge.iss 6158 2008-12-07 15:14:16Z kimmov $
+; $Id: WinMerge.iss 6494M 2009-06-09 11:24:12Z (local) $
 ;
 ;           Programmed by:  Christian Blackburn, Christian List, Kimmo Varis,
 ;                 Purpose:  The is the Inno Setup installation script for distributing our WinmMerge application.
@@ -45,12 +45,12 @@
 ; Not yet possible (Limited by Inno Setup):
 ; #  While uninstalling prompt the user as to whether or not they'd like to remove their WinMerge preferences too?
 
-#define AppVersion GetFileVersion(SourcePath + "\..\..\Build\MergeUnicodeRelease\WinMergeU.exe")
+#define AppVersion "2.12.4"
 #define FriendlyAppVersion Copy(GetFileVersion(SourcePath + "\..\..\Build\MergeUnicodeRelease\WinMergeU.exe"), 1, 5)
-
 
 [Setup]
 AppName=WinMerge
+AppVersion={#AppVersion}
 AppVerName=WinMerge {#AppVersion}
 AppPublisher=Thingamahoochie Software
 AppPublisherURL=http://WinMerge.org/
@@ -60,13 +60,10 @@ AppUpdatesURL=http://WinMerge.org/
 ; Installer executable's version resource info
 VersionInfoCompany=http://winmerge.org
 VersionInfoDescription=WinMerge Installer
-VersionInfoTextVersion={#AppVersion}
+VersionInfoVersion={#AppVersion}
 
 ;This is in case an older version of the installer happened to be
 DirExistsWarning=no
-
-;This requires IS Pack 4.18(full install).
-AppVersion={#AppVersion}
 
 ;Tells the installer to only display a select language dialog if the an exact match wasn't found
 ShowLanguageDialog=auto
@@ -84,9 +81,6 @@ OutputBaseFilename=WinMerge-{#AppVersion}-Setup
 PrivilegesRequired=admin
 
 UninstallDisplayIcon={app}\{code:ExeName}
-
-;File Version Info
-VersionInfoVersion={#AppVersion}
 
 ;Artwork References
 WizardImageFile=Art\Large Logo.bmp
@@ -106,6 +100,8 @@ SolidCompression=true
 
 ; Update file associations for shell (project files)
 ChangesAssociations=true
+; Updates PATH
+ChangesEnvironment=true
 OutputDir=..\..\Build
 AlwaysShowComponentsList=true
 
@@ -118,18 +114,18 @@ Name: English; MessagesFile: Languages\English.isl
 Name: Bulgarian; MessagesFile: Languages\Bulgarian.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Bulgarian.txt
 Name: Catalan; MessagesFile: Languages\Catalan.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Catalan.txt
 Name: Chinese_Simplified; MessagesFile: Languages\Chinese_Simplified.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-ChineseSimplified.txt
-Name: Chinese_Traditional; MessagesFile: Languages\Chinese_Traditional.isl
-Name: Croatian; MessagesFile: Languages\Croatian.isl
+Name: Chinese_Traditional; MessagesFile: Languages\Chinese_Traditional.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-ChineseTraditional.txt
+Name: Croatian; MessagesFile: Languages\Croatian.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Croatian.txt
 Name: Czech; MessagesFile: Languages\Czech.isl
 Name: Danish; MessagesFile: Languages\Danish.isl
-Name: Dutch; MessagesFile: Languages\Dutch.isl
+Name: Dutch; MessagesFile: Languages\Dutch.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Dutch.txt
 Name: French; MessagesFile: Languages\French.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-French.txt
-Name: Galician; MessagesFile: Languages\Galician.isl
+Name: Galician; MessagesFile: Languages\Galician.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Galician.txt
 Name: German; MessagesFile: Languages\German.isl
 Name: Greek; MessagesFile: Languages\Greek.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Greek.txt
 Name: Hungarian; MessagesFile: Languages\Hungarian.isl
 Name: Italian; MessagesFile: Languages\Italian.isl
-Name: Japanese; MessagesFile: Languages\Japanese.isl
+Name: Japanese; MessagesFile: Languages\Japanese.isl; InfoAfterFile: ..\..\Docs\Users\Languages\ReadMe-Japanese.txt
 Name: Korean; MessagesFile: Languages\Korean.isl
 Name: Norwegian; MessagesFile: Languages\Norwegian.isl
 Name: Polish; MessagesFile: Languages\Polish.isl
@@ -255,6 +251,7 @@ Name: Languages\Ukrainian; Description: {cm:UkrainianLanguage}; Flags: disableno
 
 [Tasks]
 Name: ShellExtension; Description: {cm:ExplorerContextMenu}; GroupDescription: {cm:OptionalFeatures}
+Name: modifypath; Description: {cm:AddToPath}; GroupDescription: {cm:OptionalFeatures}; Flags: unchecked
 Name: TortoiseCVS; Description: {cm:IntegrateTortoiseCVS}; GroupDescription: {cm:OptionalFeatures}; Check: TortoiseCVSInstalled
 Name: TortoiseSVN; Description: {cm:IntegrateTortoiseSVN}; GroupDescription: {cm:OptionalFeatures}; Check: TortoiseSVNInstalled; MinVersion: 0,5.0.2195sp3
 Name: ClearCase; Description: {cm:IntegrateClearCase}; GroupDescription: {cm:OptionalFeatures}; Check: ClearCaseInstalled
@@ -376,6 +373,10 @@ Source: ..\..\Build\pcre\pcre.dll; DestDir: {app}; Flags: promptifolder; Compone
 ; MergeLang.dll - translation helper dll
 Source: ..\..\Build\MergeUnicodeRelease\MergeLang.dll; DestDir: {app}; Flags: promptifolder; Components: Core
 
+; Binary file editor
+Source: ..\..\Build\heksedit\heksedit.dll; DestDir: {app}; Flags: promptifolder; OnlyBelowVersion: 0, 4; Components: Core
+Source: ..\..\Build\heksedit\hekseditU.dll; DestDir: {app}; Flags: promptifolder; MinVersion: 0, 4; Components: Core
+
 ; Language files
 Source: ..\..\Src\Languages\Brazilian.po; DestDir: {app}\Languages; Components: Languages\PortugueseBrazilian; Flags: ignoreversion comparetimestamp
 Source: ..\..\Docs\Users\Languages\ReadMe-Brazilian.txt; DestDir: {app}\Docs; Components: Languages\PortugueseBrazilian
@@ -386,19 +387,24 @@ Source: ..\..\Docs\Users\Languages\ReadMe-Catalan.txt; DestDir: {app}\Docs; Comp
 Source: ..\..\Src\Languages\ChineseSimplified.po; DestDir: {app}\Languages; Components: Languages\Chinese_Simplified; Flags: ignoreversion comparetimestamp
 Source: ..\..\Docs\Users\Languages\ReadMe-ChineseSimplified.txt; DestDir: {app}\Docs; Components: Languages\Chinese_Simplified
 Source: ..\..\Src\Languages\ChineseTraditional.po; DestDir: {app}\Languages; Components: Languages\Chinese_Traditional; Flags: ignoreversion comparetimestamp
+Source: ..\..\Docs\Users\Languages\ReadMe-ChineseTraditional.txt; DestDir: {app}\Docs; Components: Languages\Chinese_Traditional
 Source: ..\..\Src\Languages\Croatian.po; DestDir: {app}\Languages; Components: Languages\Croatian; Flags: ignoreversion comparetimestamp
+Source: ..\..\Docs\Users\Languages\ReadMe-Croatian.txt; DestDir: {app}\Docs; Components: Languages\Croatian
 Source: ..\..\Src\Languages\Czech.po; DestDir: {app}\Languages; Components: Languages\Czech; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Danish.po; DestDir: {app}\Languages; Components: Languages\Danish; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Dutch.po; DestDir: {app}\Languages; Components: Languages\Dutch; Flags: ignoreversion comparetimestamp
+Source: ..\..\Docs\Users\Languages\ReadMe-Dutch.txt; DestDir: {app}\Docs; Components: Languages\Dutch
 Source: ..\..\Src\Languages\French.po; DestDir: {app}\Languages; Components: Languages\French; Flags: ignoreversion comparetimestamp
 Source: ..\..\Docs\Users\Languages\ReadMe-French.txt; DestDir: {app}\Docs; Components: Languages\French
 Source: ..\..\Src\Languages\Galician.po; DestDir: {app}\Languages; Components: Languages\Galician; Flags: ignoreversion comparetimestamp
+Source: ..\..\Docs\Users\Languages\ReadMe-Galician.txt; DestDir: {app}\Docs; Components: Languages\Galician
 Source: ..\..\Src\Languages\German.po; DestDir: {app}\Languages; Components: Languages\German; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Greek.po; DestDir: {app}\Languages; Components: Languages\Greek; Flags: ignoreversion comparetimestamp
 Source: ..\..\Docs\Users\Languages\ReadMe-Greek.txt; DestDir: {app}\Docs; Components: Languages\Greek
 Source: ..\..\Src\Languages\Hungarian.po; DestDir: {app}\Languages; Components: Languages\Hungarian; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Italian.po; DestDir: {app}\Languages; Components: Languages\Italian; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Japanese.po; DestDir: {app}\Languages; Components: Languages\Japanese; Flags: ignoreversion comparetimestamp
+Source: ..\..\Docs\Users\Languages\ReadMe-Japanese.txt; DestDir: {app}\Docs; Components: Languages\Japanese
 Source: ..\..\Src\Languages\Korean.po; DestDir: {app}\Languages; Components: Languages\Korean; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Norwegian.po; DestDir: {app}\Languages; Components: Languages\Norwegian; Flags: ignoreversion comparetimestamp
 Source: ..\..\Src\Languages\Polish.po; DestDir: {app}\Languages; Components: Languages\Polish; Flags: ignoreversion comparetimestamp
@@ -446,8 +452,13 @@ Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Brazilian.txt; IconFileNa
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Bulgarian.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Bulgarian
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Catalan.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Catalan
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-ChineseSimplified.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Chinese_Simplified
+Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-ChineseTraditional.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Chinese_Traditional
+Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Croatian.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Croatian
+Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Dutch.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Dutch
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-French.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: French
+Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Galician.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Galician
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Greek.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Greek
+Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Japanese.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Japanese
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Romanian.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Romanian
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Spanish.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Spanish
 Name: {group}\{cm:ReadMe}; Filename: {app}\Docs\ReadMe-Swedish.txt; IconFileName: {win}\NOTEPAD.EXE; Languages: Swedish
@@ -1011,10 +1022,29 @@ Begin
 	end;
 End;
 
+// Add WinMerge to system path.
+// This requires certain order of things to work:
+// #1 ModPathDir function must be first (it gets called by others)
+// #2 include of modpath.iss so modpath code gets included
+// #3 CurStepChanged and CurUninstallStepChanged procedures as they call
+//    ModPath (in modpath.iss)
+function ModPathDir(): TArrayOfString;
+var
+    Dir:	TArrayOfString;
+begin
+    setArrayLength(Dir, 1)
+	Dir[0] := ExpandConstant('{app}');
+	Result := Dir;
+end;
+
+#include "modpath.iss"
+
 procedure CurStepChanged(CurStep: TSetupStep);
 Begin
     if CurStep = ssPostInstall then
     begin
+		if IsTaskSelected('modifypath') then
+			ModPath();
         if IsTaskSelected('ClearCase') then
         begin
             IntegrateClearCase('..\..\bin\cleardiffmrg.exe', WinMergeExeName());
@@ -1023,7 +1053,18 @@ Begin
 End;
 
 Procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+	appdir:			String;
+	selectedTasks:	String;
 Begin
+	appdir := ExpandConstant('{app}')
+	if CurUninstallStep = usUninstall then begin
+		if LoadStringFromFile(appdir + '\uninsTasks.txt', selectedTasks) then
+			if Pos('modifypath', selectedTasks) > 0 then
+				ModPath();
+		DeleteFile(appdir + '\uninsTasks.txt')
+	end;
+
     if CurUninstallStep = usPostUninstall then
     begin
       if ClearCaseInstalled() then

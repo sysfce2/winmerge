@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: LineFiltersDlg.h 5746 2008-08-06 17:48:26Z kimmov $
+// $Id: LineFiltersDlg.h 5710 2008-07-31 11:39:05Z kimmov $
 
 #if !defined(AFX_PROPFILTER_H__73E79E13_34DD_4C86_A3EC_A1044B721CCA__INCLUDED_)
 #define AFX_PROPFILTER_H__73E79E13_34DD_4C86_A3EC_A1044B721CCA__INCLUDED_

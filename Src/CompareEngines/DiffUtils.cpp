@@ -1,18 +1,17 @@
 /** 
  * @file  FolderCmp.cpp
  *
- * @brief Implementation file for FolderCmp
+ * @brief Implementation file for DiffUtils class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffUtils.cpp 5575 2008-07-07 12:52:18Z kimmov $
+// $Id: DiffUtils.cpp 5915 2008-09-07 12:23:26Z marcelgosselin $
 
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "CompareOptions.h"
 #include "FilterList.h"
 #include "DiffContext.h"
-#include "FileTransform.h"
-#include "diff.h"
+#include "DIFF.H"
 #include "DiffUtils.h"
 
 namespace CompareEngines
@@ -106,7 +105,7 @@ int DiffUtils::diffutils_compare_files()
 
 	// Do the actual comparison (generating a change script)
 	struct change *script = NULL;
-	BOOL success = Diff2Files(&script, 0, &bin_flag, FALSE, &bin_file);
+	bool success = Diff2Files(&script, 0, &bin_flag, false, &bin_file);
 	if (!success)
 	{
 		return DIFFCODE::FILE | DIFFCODE::TEXT | DIFFCODE::CMPERR;
@@ -141,18 +140,8 @@ int DiffUtils::diffutils_compare_files()
 				/* Determine range of line numbers involved in each file.  */
 				int first0=0, last0=0, first1=0, last1=0, deletes=0, inserts=0;
 				analyze_hunk (thisob, &first0, &last0, &first1, &last1, &deletes, &inserts);
-//				int op=0;
 				if (deletes || inserts || thisob->trivial)
 				{
-/*					if (deletes && inserts)
-						op = OP_DIFF;
-					else if (deletes)
-						op = OP_LEFTONLY;
-					else if (inserts)
-						op = OP_RIGHTONLY;
-					else
-						op = OP_TRIVIAL;
-*/					
 					/* Print the lines that the first file has.  */
 					int trans_a0=0, trans_b0=0, trans_a1=0, trans_b1=0;
 					translate_range(&m_inf[0], first0, last0, &trans_a0, &trans_b0);
@@ -170,7 +159,6 @@ int DiffUtils::diffutils_compare_files()
 					if (match1)
 						match2 = RegExpFilter(thisob->line1, thisob->line1 + QtyLinesRight, 1);
 					if (match1 && match2)
-						//op = OP_TRIVIAL;
 						thisob->trivial = 1;
 
 				}
@@ -287,19 +275,18 @@ bool DiffUtils::RegExpFilter(int StartPos, int EndPos, int FileNo)
     second file if first is binary).
  * @return TRUE when compare succeeds, FALSE if error happened during compare.
  */
-BOOL DiffUtils::Diff2Files(struct change ** diffs, int depth,
-	int * bin_status, BOOL bMovedBlocks, int * bin_file)
+bool DiffUtils::Diff2Files(struct change ** diffs, int depth,
+	int * bin_status, bool bMovedBlocks, int * bin_file)
 {
-	BOOL bRet = TRUE;
+	bool bRet = true;
 	__try
 	{
 		*diffs = diff_2_files (m_inf, depth, bin_status, bMovedBlocks, bin_file);
-//		CopyDiffutilTextStats(m_inf, &m_diffFileData);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 		*diffs = NULL;
-		bRet = FALSE;
+		bRet = false;
 	}
 	return bRet;
 }

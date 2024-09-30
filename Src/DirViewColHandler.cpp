@@ -6,10 +6,10 @@
  * @date  Created: 2003-08-19
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirViewColHandler.cpp 5547 2008-06-30 13:37:00Z marcelgosselin $
+// $Id: DirViewColHandler.cpp 6138 2008-12-01 17:24:02Z kimmov $
 
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "Merge.h"
 #include "DirView.h"
 #include "DirDoc.h"
@@ -75,8 +75,36 @@ int CDirView::ColSort(const CDiffContext *pCtxt, int col, const DIFFITEM & ldi,
 		return 0;
 	}
 	SIZE_T offset = pColInfo->offset;
-	const void * arg1 = reinterpret_cast<const char *>(&ldi) + offset;
-	const void * arg2 = reinterpret_cast<const char *>(&rdi) + offset;
+	const void * arg1;
+	const void * arg2;
+	if (m_bTreeMode)
+	{
+		int lLevel = ldi.GetDepth();
+		int rLevel = rdi.GetDepth();
+		const DIFFITEM *lcur = &ldi, *rcur = &rdi;
+		if (lLevel < rLevel)
+		{
+			for (; lLevel != rLevel; rLevel--)
+				rcur = rcur->parent;
+		}
+		else if (rLevel < lLevel)
+		{
+			for (; lLevel != rLevel; lLevel--)
+				lcur = lcur->parent;
+		}
+		while (lcur->parent != rcur->parent)
+		{
+			lcur = lcur->parent;
+			rcur = rcur->parent;
+		}
+		arg1 = reinterpret_cast<const char *>(lcur) + offset;
+		arg2 = reinterpret_cast<const char *>(rcur) + offset;
+	}
+	else
+	{
+		arg1 = reinterpret_cast<const char *>(&ldi) + offset;
+		arg2 = reinterpret_cast<const char *>(&rdi) + offset;
+	}
 	if (ColSortFncPtrType fnc = pColInfo->sortfnc)
 	{
 		return (*fnc)(pCtxt, arg1, arg2);
@@ -161,8 +189,8 @@ int CALLBACK CDirView::CompareState::CompareFunc(LPARAM lParam1, LPARAM lParam2,
 	if (lParam2 == -1)
 		return 1;
 
-	POSITION diffposl = pThis->pView->GetItemKeyFromData(lParam1);
-	POSITION diffposr = pThis->pView->GetItemKeyFromData(lParam2);
+	UINT_PTR diffposl = (UINT_PTR)lParam1;
+	UINT_PTR diffposr = (UINT_PTR)lParam2;
 	const DIFFITEM &ldi = pThis->pCtxt->GetDiffAt(diffposl);
 	const DIFFITEM &rdi = pThis->pCtxt->GetDiffAt(diffposr);
 	// compare 'left' and 'right' parameters as appropriate
@@ -172,11 +200,12 @@ int CALLBACK CDirView::CompareState::CompareFunc(LPARAM lParam1, LPARAM lParam2,
 }
 
 /// Add new item to list view
-int CDirView::AddNewItem(int i, POSITION diffpos, int iImage)
+int CDirView::AddNewItem(int i, UINT_PTR diffpos, int iImage, int iIndent)
 {
 	LV_ITEM lvItem;
-	lvItem.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE;
+	lvItem.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE | LVIF_INDENT;
 	lvItem.iItem = i;
+	lvItem.iIndent = iIndent;
 	lvItem.iSubItem = 0;
 	lvItem.pszText = LPSTR_TEXTCALLBACK;
 	lvItem.lParam = (LPARAM)diffpos;
@@ -219,7 +248,7 @@ void CDirView::ReflectGetdispinfo(NMLVDISPINFO *pParam)
 {
 	int nIdx = pParam->item.iItem;
 	int i = ColPhysToLog(pParam->item.iSubItem);
-	POSITION key = GetItemKey(nIdx);
+	UINT_PTR key = GetItemKey(nIdx);
 	if (key == SPECIAL_ITEM_POS)
 	{
 		if (IsColName(i))
@@ -244,13 +273,6 @@ void CDirView::ReflectGetdispinfo(NMLVDISPINFO *pParam)
 				s.insert(0, _T("* "));
 			}
 		}
-		// Don't show result for folderitems appearing both sides
-		if ((IsColStatus(i) || IsColStatusAbbr(i)) &&
-			di.diffcode.isDirectory() && !di.diffcode.isSideLeftOnly() &&
-			!di.diffcode.isSideRightOnly())
-		{
-			s.erase();
-		}
 		pParam->item.pszText = AllocDispinfoText(s);
 	}
 	if (pParam->item.mask & LVIF_IMAGE)
@@ -262,9 +284,9 @@ void CDirView::ReflectGetdispinfo(NMLVDISPINFO *pParam)
 /// store current column orders into registry
 void CDirView::SaveColumnOrders()
 {
-	ASSERT(m_colorder.GetSize() == m_numcols);
-	ASSERT(m_invcolorder.GetSize() == m_numcols);
-	for (int i=0; i < m_numcols; i++)
+	ASSERT(m_colorder.size() == m_numcols);
+	ASSERT(m_invcolorder.size() == m_numcols);
+    for (int i=0; i < m_numcols; i++)
 	{
 		CString RegName = GetColRegValueNameBase(i) + _T("_Order");
 		int ord = m_colorder[i];
@@ -376,8 +398,8 @@ void CDirView::ResetColumnOrdering()
  */
 void CDirView::ClearColumnOrders()
 {
-	m_colorder.SetSize(m_numcols);
-	m_invcolorder.SetSize(m_numcols);
+	m_colorder.resize(m_numcols);
+	m_invcolorder.resize(m_numcols);
 	for (int i=0; i<m_numcols; ++i)
 	{
 		m_colorder[i] = -1;

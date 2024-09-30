@@ -4,7 +4,7 @@
  * @brief Implementation of CRegKeyEx C++ wrapper class for reading Windows registry
  */
 // ID line follows -- this is updated by SVN
-// $Id: RegKey.cpp 5350 2008-05-21 13:30:03Z kimmov $
+// $Id: RegKey.cpp 6444 2009-02-12 13:57:02Z kimmov $
 
 #include <windows.h>
 #include <assert.h>
@@ -321,7 +321,7 @@ String CRegKeyEx::ReadString (LPCTSTR pszKey, LPCTSTR defval)
 		lReturn = RegQueryValueEx(m_hKey, (LPTSTR) pszKey, NULL,
 			&dwType, (LPBYTE) stringVal, &dwSize);
 		retString = stringVal;
-		delete stringVal;
+		delete [] stringVal;
 	}
 	if (lReturn == ERROR_SUCCESS)
 		return retString;

@@ -20,7 +20,7 @@
  * @brief Declaration file for PatchTool class
  */
 // ID line follows -- this is updated by SVN
-// $Id: PatchTool.h 5067 2008-02-22 15:48:03Z kimmov $
+// $Id: PatchTool.h 5786 2008-08-11 03:28:03Z marcelgosselin $
 
 #ifndef _PATCHTOOL_H_
 #define _PATCHTOOL_H_
@@ -67,7 +67,7 @@ protected:
 	BOOL ShowDialog();
 
 private:
-	CList<PATCHFILES, PATCHFILES&> m_fileList; /**< List of files to patch. */
+    std::vector<PATCHFILES> m_fileList; /**< List of files to patch. */
 	CDiffWrapper m_diffWrapper; /**< DiffWrapper instance we use to create patch. */
 	CPatchDlg *m_pDlgPatch; /**< Dialog for selecting files and options. */
 	String m_sPatchFile; /**< Patch file path and filename. */

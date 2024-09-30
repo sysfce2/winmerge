@@ -24,7 +24,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirDoc.h 5646 2008-07-20 16:22:24Z jtuc $
+// $Id: DirDoc.h 6136 2008-12-01 17:04:25Z kimmov $
 
 #if !defined(AFX_DIRDOC_H__0B17B4C1_356F_11D1_95CD_444553540000__INCLUDED_)
 #define AFX_DIRDOC_H__0B17B4C1_356F_11D1_95CD_444553540000__INCLUDED_
@@ -35,7 +35,9 @@
 
 class CDirView;
 class CMergeDoc;
+class CHexMergeDoc;
 typedef CTypedPtrList<CPtrList, CMergeDoc *> MergeDocPtrList;
+typedef CTypedPtrList<CPtrList, CHexMergeDoc *> HexMergeDocPtrList;
 class DirDocFilterGlobal;
 class DirDocFilterByExtension;
 class CustomStatusCursor;
@@ -66,6 +68,7 @@ public:
 	BOOL CloseMergeDocs();
 	CDirView * GetMainView();
 	CMergeDoc * GetMergeDocForDiff(BOOL * pNew);
+	CHexMergeDoc * GetHexMergeDocForDiff(BOOL * pNew);
 	BOOL ReusingDirDoc();
 	bool CanFrameClose();
 
@@ -84,7 +87,7 @@ public:
 public:
 	void InitCompare(const PathContext & paths, BOOL bRecursive, CTempPathContext *);
 	void Rescan();
-	BOOL GetRecursive() { return m_bRecursive; }
+	BOOL GetRecursive() const { return m_bRecursive; }
 	BOOL GetReadOnly(BOOL bLeft) const;
 	void SetReadOnly(BOOL bLeft, BOOL bReadOnly);
 	BOOL HasDirView() { return m_pDirView != NULL; }
@@ -92,22 +95,23 @@ public:
 	void CompareReady();
 	void UpdateChangedItem(PathContext & paths,
 		UINT nDiffs, UINT nTrivialDiffs, BOOL bIdentical);
-	POSITION FindItemFromPaths(LPCTSTR pathLeft, LPCTSTR pathRight);
+	UINT_PTR FindItemFromPaths(LPCTSTR pathLeft, LPCTSTR pathRight);
 	void SetDiffSide(UINT diffcode, int idx);
 	void SetDiffCompare(UINT diffcode, int idx);
 	void UpdateResources();
 	void InitStatusStrings();
-	void UpdateStatusFromDisk(POSITION diffPos, BOOL bLeft, BOOL bRight);
+	void UpdateStatusFromDisk(UINT_PTR diffPos, BOOL bLeft, BOOL bRight);
 	void ReloadItemStatus(UINT nIdx, BOOL bLeft, BOOL bRight);
 	void Redisplay();
 	virtual ~CDirDoc();
 	void SetDirView( CDirView *newView ); // TODO Perry
 	void AddMergeDoc(CMergeDoc * pMergeDoc);
-	void MergeDocClosing(CMergeDoc * pMergeDoc);
+	void AddHexMergeDoc(CHexMergeDoc * pHexMergeDoc);
+	void MergeDocClosing(CDocument * pMergeDoc);
 	CDiffThread m_diffThread;
 	void SetDiffStatus(UINT diffcode, UINT mask, int idx);
 	void SetDiffCounts(UINT diffs, UINT ignored, int idx);
-	void UpdateDiffAfterOperation(const FileActionItem & act, POSITION pos);
+	void UpdateDiffAfterOperation(const FileActionItem & act, UINT_PTR pos);
 	void UpdateHeaderPath(BOOL bLeft);
 	void AbortCurrentScan();
 	bool IsCurrentScanAbortable() const;
@@ -123,11 +127,11 @@ public:
 
 	BOOL HasDiffs() const { return m_pCtxt != NULL; }
 	const CDiffContext & GetDiffContext() const { return *m_pCtxt; }
-	const DIFFITEM & GetDiffByKey(POSITION key) const { return m_pCtxt->GetDiffAt(key); }
-	DIFFITEM & GetDiffRefByKey(POSITION key) { return m_pCtxt->GetDiffRefAt(key); }
+	const DIFFITEM & GetDiffByKey(UINT_PTR key) const { return m_pCtxt->GetDiffAt(key); }
+	DIFFITEM & GetDiffRefByKey(UINT_PTR key) { return m_pCtxt->GetDiffRefAt(key); }
 	String GetLeftBasePath() const { return m_pCtxt->GetNormalizedLeft(); }
 	String GetRightBasePath() const { return m_pCtxt->GetNormalizedRight(); }
-	void RemoveDiffByKey(POSITION key) { m_pCtxt->RemoveDiff(key); }
+	void RemoveDiffByKey(UINT_PTR key) { m_pCtxt->RemoveDiff(key); }
 	void SetMarkedRescan() {m_bMarkedRescan = TRUE; }
 	struct AllowUpwardDirectory
 	{
@@ -140,7 +144,7 @@ public:
 		};
 	};
 	AllowUpwardDirectory::ReturnCode AllowUpwardDirectory(String &leftParent, String &rightParent);
-	void SetItemViewFlag(POSITION key, UINT flag, UINT mask);
+	void SetItemViewFlag(UINT_PTR key, UINT flag, UINT mask);
 	void SetItemViewFlag(UINT flag, UINT mask);
 	const CompareStats * GetCompareStats() const { return m_pCompareStats; };
 	bool IsArchiveFolders();
@@ -160,6 +164,7 @@ private:
 	CDirView *m_pDirView; /**< Pointer to GUI */
 	CompareStats *m_pCompareStats; /**< Compare statistics */
 	MergeDocPtrList m_MergeDocs; /**< List of file compares opened from this compare */
+	HexMergeDocPtrList m_HexMergeDocs; /**< List of hex file compares opened from this compare */
 	BOOL m_bROLeft; /**< Is left side read-only */
 	BOOL m_bRORight; /**< Is right side read-only */
 	BOOL m_bRecursive; /**< Is current compare recursive? */

@@ -23,7 +23,7 @@
 //	stdafx.obj will contain the pre-compiled type information
 //
 // RCS ID line follows -- this is updated by CVS
-// $Id: StdAfx.cpp 4733 2007-11-11 12:19:08Z jtuc $
+// $Id: StdAfx.cpp 5626 2008-07-16 08:24:27Z kimmov $
 
 #include "stdafx.h"
 #include "LogFile.h"
@@ -150,10 +150,10 @@ int ResMsgBox1(UINT msgid, LPCTSTR arg, UINT nType, UINT nIDHelp)
 }
 
 // Get user language description of error, if available
-CString GetSysError(int nerr)
+String GetSysError(int nerr)
 {
 	LPVOID lpMsgBuf;
-	CString str = _T("?");
+	String str = _T("?");
 	if (FormatMessage( 
 		FORMAT_MESSAGE_ALLOCATE_BUFFER | 
 		FORMAT_MESSAGE_FROM_SYSTEM | 

@@ -20,7 +20,7 @@
  * @brief Declaration file for file routines
  */
 // ID line follows -- this is updated by SVN
-// $Id: files.h 5081 2008-02-25 15:58:32Z kimmov $
+// $Id: files.h 5702 2008-07-30 11:13:18Z kimmov $
 
 #ifndef _FILES_H_INCLUDED
 #define _FILES_H_INCLUDED
@@ -145,30 +145,6 @@ struct MAPPEDFILEDATA
 	HANDLE hFile;
 	HANDLE hMapping;
 	LPVOID pMapBase;
-};
-
-struct textline
-{
-	int start; // byte offset
-	int end; // byte offset
-	CString sline;
-	typedef enum { EOL_NONE, EOL_CR, EOL_LF, EOL_CRLF } EOLTYPE;
-	EOLTYPE eoltype;
-	textline() : start(-1), end(-1), eoltype(EOL_NONE) { }
-};
-struct ParsedTextFile
-{
-	int crs; /* not including crlfs */
-	int lfs; /* not including crlfs */
-	int crlfs;
-	int codeset;
-	int charsize;
-	bool lossy; /* was codeset conversion reversible ? */
-	CArray<textline, textline> lines;
-
-	ParsedTextFile()
-		: crs(0), lfs(0), crlfs(0), codeset(0), charsize(1), lossy(false)
-		{}
 };
 
 BOOL files_openFileMapped(MAPPEDFILEDATA *fileData);

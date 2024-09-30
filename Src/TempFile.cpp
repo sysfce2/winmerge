@@ -5,9 +5,9 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: TempFile.cpp 4982 2008-01-31 21:03:44Z jtuc $
+// $Id: TempFile.cpp 6488 2009-02-23 17:06:57Z kimmov $
 
-#include "Windows.h"
+#include <windows.h>
 #include "UnicodeString.h"
 #include "TempFile.h"
 #include "paths.h"

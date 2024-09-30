@@ -4,8 +4,12 @@
  * @brief Implementation for LineFiltersList class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: LineFiltersList.cpp 5653 2008-07-21 19:28:48Z kimmov $
+// $Id: LineFiltersList.cpp 5761 2008-08-08 04:54:52Z marcelgosselin $
 
+// Disable VC6's "identifier was truncated..." warning. It is meaningless.
+#if _MSC_VER == 1200
+	#pragma warning(disable: 4786)
+#endif
 #include <windows.h>
 #include <vector>
 #include <assert.h>
@@ -14,7 +18,7 @@
 #include "OptionsDef.h"
 #include "OptionsMgr.h"
 
-using namespace std;
+using std::vector;
 
 /** @brief Registry key for saving linefilters. */
 static const TCHAR FiltersRegPath[] =_T("LineFilters");
@@ -122,7 +126,7 @@ void LineFiltersList::CloneFrom(const LineFiltersList *list)
 
 	for (int i = 0; i < count; i++)
 	{
-		LineFilterItem item = list->GetAt(i);
+		const LineFilterItem &item = list->GetAt(i);
 		AddFilter(item.filterStr.c_str(), item.enabled);
 	}
 }
@@ -162,9 +166,9 @@ void LineFiltersList::Initialize(COptionsMgr *pOptionsMgr)
 
 	m_pOptionsMgr = pOptionsMgr;
 
-	int count = m_items.size();
+    unsigned int count = m_items.size();
 	valuename += _T("/Values");
-	m_pOptionsMgr->InitOption(valuename.c_str(), count);
+	m_pOptionsMgr->InitOption(valuename.c_str(), static_cast<int>(count));
 	count = m_pOptionsMgr->GetInt(valuename.c_str());
 
 	for (unsigned int i = 0; i < count; i++)
@@ -191,7 +195,7 @@ void LineFiltersList::SaveFilters()
 	assert(m_pOptionsMgr);
 	String valuename(FiltersRegPath);
 
-	int count = m_items.size();
+	unsigned int count = m_items.size();
 	valuename += _T("/Values");
 	m_pOptionsMgr->SetInt(valuename.c_str(), count);
 

@@ -20,10 +20,11 @@
  * @brief Implementation file for FileFilterHelper class
  */
 // ID line follows -- this is updated by SVN
-// $Id: FileFilterHelper.cpp 5868 2008-08-31 11:15:00Z kimmov $
+// $Id: FileFilterHelper.cpp 6080 2008-11-09 22:23:10Z kimmov $
 
 #include "stdafx.h"
 #include "Ucs2Utf8.h"
+#include "UnicodeString.h"
 #include "MainFrm.h"
 #include "FilterList.h"
 #include "DirItem.h"
@@ -60,7 +61,7 @@ FileFilterHelper::~FileFilterHelper()
 /** 
  * @brief Return filtermanager used.
  */
-FileFilterMgr * FileFilterHelper::GetManager()
+FileFilterMgr * FileFilterHelper::GetManager() const
 {
 	return m_fileFilterMgr;
 }
@@ -164,13 +165,11 @@ CString FileFilterHelper::GetFileFilterPath(LPCTSTR filterName) const
  * @brief Set User's filter folder.
  * @param [in] filterPath Location of User's filters.
  */
-void FileFilterHelper::SetUserFilterPath(const CString & filterPath)
+void FileFilterHelper::SetUserFilterPath(const String & filterPath)
 {
-	CString path(filterPath);
-
-	if (path[path.GetLength() - 1] != '\\')
-		path += _T("\\");
-	m_sUserSelFilterPath = path;
+	m_sUserSelFilterPath = filterPath;
+	if (filterPath[filterPath.length() - 1] != '\\')
+		m_sUserSelFilterPath += _T("\\");
 }
 
 /** 
@@ -323,9 +322,11 @@ void FileFilterHelper::LoadFileFilterDirPattern(FILEFILTER_FILEMAP & patternsLoa
 }
 
 /** 
- * @brief Parse user-given extension list to valid regexp for diffengine.
+ * @brief Convert user-given extension list to valid regular expression.
+ * @param [in] Extension list/mask to convert to regular expression.
+ * @return Regular expression that matches extension list.
  */
-CString FileFilterHelper::ParseExtensions(CString extensions)
+CString FileFilterHelper::ParseExtensions(CString extensions) const
 {
 	CString strParsed;
 	CString strPattern;
@@ -368,17 +369,18 @@ CString FileFilterHelper::ParseExtensions(CString extensions)
 }
 
 /** 
- * @brief Returns TRUE if active filter is mask.
+ * @brief Returns TRUE if active filter is a mask.
  */
-BOOL FileFilterHelper::IsUsingMask()
+BOOL FileFilterHelper::IsUsingMask() const
 {
 	return m_bUseMask;
 }
 
 /** 
  * @brief Returns active filter (or mask string)
+ * @return The active filter.
  */
-CString FileFilterHelper::GetFilterNameOrMask()
+CString FileFilterHelper::GetFilterNameOrMask() const
 {
 	CString sFilter;
 
@@ -401,10 +403,10 @@ CString FileFilterHelper::GetFilterNameOrMask()
  * @note If function returns FALSE, you should ask filter set with
  * GetFilterNameOrMask().
  */
-BOOL FileFilterHelper::SetFilter(CString filter)
+BOOL FileFilterHelper::SetFilter(const String &filter)
 {
 	// If filter is empty string set default filter
-	if (filter.IsEmpty())
+	if (filter.empty())
 	{
 		UseMask(TRUE);
 		SetMask(_T("*.*"));
@@ -413,19 +415,18 @@ BOOL FileFilterHelper::SetFilter(CString filter)
 	}
 
 	// Remove leading and trailing whitespace characters from the string.
-	filter.TrimLeft();
-	filter.TrimRight();
+	String flt = string_trim_ws(filter);
 
 	// Star means we have a file extension mask
-	if (filter[0] == '*')
+	if (flt[0] == '*')
 	{
 		UseMask(TRUE);
-		SetMask(filter);
+		SetMask(flt.c_str());
 		SetFileFilterPath(_T(""));
 	}
 	else
 	{
-		CString path = GetFileFilterPath(filter);
+		CString path = GetFileFilterPath(flt.c_str());
 		if (!path.IsEmpty())
 		{
 			UseMask(FALSE);

@@ -20,7 +20,7 @@
  * @brief Code for DiffThread class
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffThread.cpp 5646 2008-07-20 16:22:24Z jtuc $
+// $Id: DiffThread.cpp 6358 2009-01-22 18:49:30Z kimmov $
 
 #include "stdafx.h"
 #include "UnicodeString.h"
@@ -39,11 +39,22 @@
  * in a single thread. Either edit this line, or breakpoint & change it in
  * CompareDirectories() below.
  *
- * If you are going to debug compare procdure, you most probably need to set
+ * If you are going to debug compare procedure, you most probably need to set
  * this to true. As Visual Studio seems to have real problems with debugging
  * these threads otherwise.
  */
 static bool bSinglethreaded = false;
+
+/**
+ * @brief Walk into unique folders and add contents.
+ * This enables/disables walking into unique folders. If we don't walk into
+ * unique folders, they are shown as such in folder compare results. If we
+ * walk into unique folders, we'll show all files in the unique folder and
+ * in possible subfolders.
+ *
+ * This value is true by default.
+ */
+static bool bWalkUniques = true;
 
 /** @brief abort handler for CDiffThread -- just a gateway to CDiffThread */
 class DiffThreadAbortable : public IAbortable
@@ -189,7 +200,7 @@ UINT CDiffThread::GetThreadState() const
  *
  * This thread is responsible for finding and collecting all items to compare
  * to the item list.
- * @param [in] lParam Pointer to parameter structure.
+ * @param [in] lpParam Pointer to parameter structure.
  * @return Thread's return value.
  */
 UINT DiffThreadCollect(LPVOID lpParam)
@@ -221,7 +232,7 @@ UINT DiffThreadCollect(LPVOID lpParam)
 #endif
 
 	// Build results list (except delaying file comparisons until below)
-	DirScan_GetItems(paths, subdir, subdir, myStruct, casesensitive, depth);
+	DirScan_GetItems(paths, subdir, false, subdir, false, myStruct, casesensitive, depth, NULL, bWalkUniques);
 
 #ifdef _DEBUG
 	_CrtMemCheckpoint(&memStateAfter);
@@ -239,7 +250,7 @@ UINT DiffThreadCollect(LPVOID lpParam)
  *
  * Compares items in item list. After compare is ready
  * sends message to UI so UI can update itself.
- * @param [in] lParam Pointer to parameter structure.
+ * @param [in] lpParam Pointer to parameter structure.
  * @return Thread's return value.
  */
 UINT DiffThreadCompare(LPVOID lpParam)
@@ -257,9 +268,9 @@ UINT DiffThreadCompare(LPVOID lpParam)
 
 	// Now do all pending file comparisons
 	if (myStruct->bOnlyRequested)
-		DirScan_CompareRequestedItems(myStruct);
+		DirScan_CompareRequestedItems(myStruct, NULL);
 	else
-		DirScan_CompareItems(myStruct);
+		DirScan_CompareItems(myStruct, NULL);
 
 	myStruct->context->m_pCompareStats->SetCompareState(CompareStats::STATE_IDLE);
 

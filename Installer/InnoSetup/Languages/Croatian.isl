@@ -324,7 +324,6 @@ CustomInstallation=Izborna instalacija
 
 ;Components
 AppCoreFiles=WinMerge temeljne datoteke
-ApplicationRuntimes=Datoteke izvoðenja (Runtimes)
 Filters=Filtri
 Plugins=Dodaci
 
@@ -364,15 +363,12 @@ ExplorerContextMenu=&Integracija u Explorer kontekst izbornik
 IntegrateTortoiseCVS=Integracija s &TortoiseCVS
 IntegrateTortoiseSVN=Integracija s T&ortoiseSVN
 IntegrateClearCase=Integracija s Rational &ClearCase
-IntegrateDelphi4=Rad s Borland® Delphi &4 Binarnim datotekama
-UpdatingCommonControls=Obnova System's Common kontrola
+AddToPath=&Add WinMerge folder to your system path
 
 ;Icon Labels
 ReadMe=Proèitaj
 UsersGuide=Vodiæ za korisnika
-UpdatingCommonControls=Obnova System's Common kontrola
 ViewStartMenuFolder=&Pregled WinMerge poèetne mape
-PluginsText=Dodaci
 
 ;Code Dialogs
 DeletePreviousStartMenu=Instaler je otkrio promjenu lokacije Poèetnog izbornika od "%s" u "%s". Obrisati stari Poèetni izbornik?

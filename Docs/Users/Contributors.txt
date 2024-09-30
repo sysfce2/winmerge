@@ -3,19 +3,19 @@ People who have contributed to WinMerge
 ---------------------------------------
 
 Original developer, project admin:
-* Dean Grimm
+* Dean Grimm <grimmdp@yahoo.com>
 
 Project lead:
-* Christian List
+* Christian List <list1974@hotmail.com>
 
 Developers:
-* Tim Gerundt
-* Marcel Gosselin
-* Gal Hammer
-* Takashi Sawanaka
-* Alexander Skinner (Graphic Design)
-* Jochen Tucht
-* Kimmo Varis
+* Tim Gerundt <tim@gerundt.de>
+* Marcel Gosselin <marcelgosselin@users.sourceforge.net>
+* Gal Hammer <galh@users.sourceforge.net>
+* Takashi Sawanaka <sdottaka@users.sourceforge.net>
+* Alexander Skinner (Graphic Design) <neonapple@users.sourceforge.net>
+* Jochen Tucht <jtuc@users.sourceforge.net>
+* Kimmo Varis <kimmov@winmerge.org>
 
 Inactive/past developers:
 * Laurent Ganier
@@ -25,106 +25,109 @@ Inactive/past developers:
 * Christian "Seier" Blackburn (Installer)
 
 Localization:
-* Bulgarian:	
-  Sld
-  tigertron
+* Bulgarian:
+  Sld <sld|mail.bg>
+  tigertron <ivg_18@yahoo.com>
 
-* Catalan:	
-  Jordi Vilar
+* Catalan:
+  Jordi Vilar <jvilar@users.sourceforge.net>
 
 * Simplified Chinese:
-  Liaobin
+  Liaobin <liaobin@jite. net>
 
 * Traditional Chinese:
-  Koko
+  Koko <kokokoko@giga.net.tw>
 
 * Croatian:
-  Hasan Osmanagæ
+  Hasan Osmanagæ <hasan.osmanagic@public.carnet.hr>
 
 * Czech:
-  Jiri Tax
-  Jan Hryz
+  Jiri Tax <jt@taxoft.cz>
+  Jan Hryz <janhryz@users.sourceforge.net>
 
 * Danish:
-  Christian List
+  Rolf Egmose
+  Christian List <list1974@hotmail.com>
 
 * Dutch:
   Michel Coene
-  Thomas De Rocker
-  Ronald Schaap
+  Thomas De Rocker <thomasderocker@yahoo.com>
+  Ronald Schaap <ronald@schaap.demon.nl>
 
-* French:	
-  Jean-F Jolin
-  Gil Andre 
-  Laurent Ganier
+* French:
+  Jean-F Jolin <jean-f-j@users.sourceforge.net>
+  Gil Andre <gil_andre@compuserve.com>
+  Laurent Ganier <ccganier@club-internet.fr>
+  Dominique Saussereau <redguff@users.sourceforge.net>
   Matthieu Pupat
 
 * Galician:
   Medulio
 
-* German:	
-  Tim Gerundt
-  Winfried Peter
-  Joerg Schneider   
+* German:
+  Tim Gerundt <tim@gerundt.de>
+  Winfried Peter <winfried.peter@omicron.at>
+  Joerg Schneider <tonda@users.sourceforge.net>
 
 * Greek:
-  Polyvios J. Simopoulos
+  Polyvios J. Simopoulos <polyvios.j.simopoulos@gmail.com>
 
 * Hungarian:
-  Márton Balázs  
+  Márton Balázs <documan@users.sourceforge.net>
 
 * Italian:
-  Andrea Decorte
-  Antonio Angelo
-  Michele Merega
+  Andrea Decorte <deco1985@hotmail.com>
+  Antonio Angelo <antonio.angelo@gmail.com>
+  Michele Merega <michele.merega@ifminfomaster.com>
 
 * Korean:
-  Sukjoon
-  Lee Jae-Hong
-  Sushizang
-           
-* Norwegian:	
-  Hans Fredrik Nordhaug
-            
-* Polish:
-  Skiff
-  Pawel Wawrzysko
+  Sukjoon <bbcool@gmail.com>
+  Lee Jae-Hong <pyrasis@users.sourceforge.net>
+  Sushizang <sushizang@empal.com>
 
-* Portuguese (Brazilian):	
-  Wender Firmino
-  Felipe Periard Lopes
+* Norwegian:
+  Hans Fredrik Nordhaug <hansfn@users.sourceforge.net>
+
+* Polish:
+  M.T <mtrz@users.sourceforge.net>
+  Skiff <skiffatsf@users.sourceforge.net>
+  Pawel Wawrzysko <traduc@kki.pl>
+
+* Portuguese (Brazilian):
+  Wender Firmino <wender@pta.com.br>
+  Felipe Periard Lopes <felipefpl@ig.com.br>
 
 * Portuguese (Portugal):
   Nelson Simão
 
 * Romanian:
-  Cristian Arghiroiu
+  Cristian Arghiroiu <cristi.arghiroiu@gmail.com>
 
-* Russian:	
-  Dmitriy S. Aleshkowskiy
-              
-* Slovak:	
-  Majvan
-  Ivan Masár
+* Russian:
+  Dmitriy S. Aleshkowskiy <wwarlock@mail.ru>
+
+* Slovak:
+  Majvan <vancojur@decef.elf.stuba.sk>
+  Ivan Masár <helix84@centrum.sk>
 
 * Slovenian:
-  Iztok Osredkar
-             
+  Iztok Osredkar <iztok.osredkar@institut-oko.si>
+
 * Spanish:
-  Mario Angel
-  Jesús M. Delgado 'MacK'
-  Dean Grimm
-             
-* Swedish:	
-  Hans Eriksson
-  Göran Håkansson
+  Mario Angel <marioangel70@gmail.com>
+  Jesús M. Delgado 'MacK' <nncsoft@yahoo.com>
+  Dean Grimm <grimmdp@yahoo.com>
+
+* Swedish:
+  Hans Eriksson <hans.ericson@bredband.net>
+  Göran Håkansson <goran.x.hakansson@telia.com>
 
 * Turkish:
-  Ozkan UNVER
+  Ozkan UNVER <turquaz37915@users.sourceforge.net>
 
 * Ukranian
-  Vitaliy Stopchans'kyy
-  Warrior
+  Vitaliy Stopchans'kyy <stopcha@gmail.com>
+  Warrior <warr11r@rambler.ru>
 
 
 Other Contributors (code, ideas, testing..):
@@ -137,10 +140,12 @@ Other Contributors (code, ideas, testing..):
 * Jim Fougeron
 * Marvin Gouw
 * Robert Grange
+* black hero <black-hero@users.sourceforge.net>
 * Jan Hryz
 * jwdevel
 * Ed_K
 * Alberto Kalb
+* Joe Kidd <cassiusdrow@sourceforge.net>
 * Robert Knienider
 * Ferenc Kubatovics
 * René Leonhardt
@@ -148,13 +153,15 @@ Other Contributors (code, ideas, testing..):
 * David Maisonave
 * Dmitry Maslov
 * Denis Matiukha
+* Matthias Mayer
 * Harry Mckame
 * Oliver Mellet
 * Andreas Morsing
 * Ryan Mott
 * Tim Musschoot
 * Marco De Paoli
-* Chris Paulse
+* Paul <pavel_kv@users.sourceforge.net>
+* Chris Paulse <christo_p@users.sourceforge.net>
 * Dan Pidcock
 * Vincent Osele
 * Scott Rasmussen
@@ -167,6 +174,7 @@ Other Contributors (code, ideas, testing..):
 
 
 WinMerge includes code from:
+* Jared Breland <jbreland@legroom.net> (Installer's modpath script)
 * Brent Corkum (BCMenu)
 * Paul DiLascia (CStaticLink) 
 * Michael Dunn (CShellFileOp)

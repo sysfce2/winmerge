@@ -24,7 +24,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: MergeEditView.h 5647 2008-07-21 09:41:45Z kimmov $
+// $Id: MergeEditView.h 6588 2009-03-23 20:59:52Z kimmov $
 
 #if !defined(AFX_MERGEEDITVIEW_H__0CE31CFD_4BEE_4378_ADB4_B7C9F50A9F53__INCLUDED_)
 #define AFX_MERGEEDITVIEW_H__0CE31CFD_4BEE_4378_ADB4_B7C9F50A9F53__INCLUDED_
@@ -98,17 +98,26 @@ class CMergeEditView : public CGhostTextView
 protected:
 	CMergeEditView();           // protected constructor used by dynamic creation
 	DECLARE_DYNCREATE(CMergeEditView)
-    CCrystalParser m_xParser;
+	CCrystalParser m_xParser; /**< Syntax parser used for syntax highlighting. */
 
 // Attributes
 public:
+	/**
+	 * Index of pane this view is attached to.
+	 * This indicates the pane number the view is attached to. If we swap panes
+	 * then these indexes are changed.
+	 */
 	int m_nThisPane;
-	LONG m_nModifications;
 	IMergeEditStatus * m_piMergeEditStatus; /**< interface to status bar */
 
 protected:
-	/** Controls if rescan is done after edit events */
-	BOOL m_bAutomaticRescan;
+	/**
+	 * Are automatic rescans enabled?
+	 * If automatic rescans are enabled then we rescan files after edit
+	 * events, unless timer suppresses rescan. We suppress rescans within
+	 * certain time from previous rescan.
+	 */
+	bool m_bAutomaticRescan;
 
 private:
 	/** 
@@ -121,21 +130,20 @@ private:
 	/// active prediffer ID : helper to check the radio button
 	int m_CurrentPredifferID;
 
-	BOOL m_bCurrentLineIsDiff; /**< TRUE if current line is diff-line */
+	bool m_bCurrentLineIsDiff; /**< TRUE if cursor is in diff line */
 	CLocationView * m_pLocationView; /**< Pointer to locationview */
-	HWND m_hLocationview; /**< Handle to locationview */
 
 // Operations
 public:
 	void RefreshOptions();
-	BOOL EnableRescan(BOOL bEnable);
-	BOOL IsReadOnly(int pane);
-	void ShowDiff(BOOL bScroll, BOOL bSelectText);
+	bool EnableRescan(bool bEnable);
+	bool IsReadOnly(int pane);
+	void ShowDiff(bool bScroll, bool bSelectText);
 	virtual void OnEditOperation(int nAction, LPCTSTR pszText);
 	void UpdateLineLengths();
-	BOOL IsLineInCurrentDiff(int nLine);
+	bool IsLineInCurrentDiff(int nLine);
 	void SelectNone();
-	void SelectDiff(int nDiff, BOOL bScroll =TRUE, BOOL bSelectText =TRUE);
+	void SelectDiff(int nDiff, bool bScroll = true, bool bSelectText = true);
 	virtual CCrystalTextBuffer *LocateTextBuffer ();
 	void GetFullySelectedDiffs(int & firstDiff, int & lastDiff);
 	CString GetSelectedText();
@@ -143,7 +151,7 @@ public:
 	CMergeDoc* GetDocument();
 	void UpdateResources();
 	BOOL IsModified() { return (LocateTextBuffer()->IsModified()); }
-	BOOL PrimeListWithFile();
+	void PrimeListWithFile();
 	void SetStatusInterface(IMergeEditStatus * piMergeEditStatus);
 	void SelectArea(const CPoint & ptStart, const CPoint & ptEnd) { SetSelection(ptStart, ptEnd); } // make public
 	virtual void UpdateSiblingScrollPos (BOOL bHorz);
@@ -154,7 +162,7 @@ public:
 	virtual void GetLineColors2 (int nLineIndex, DWORD ignoreFlags
 		, COLORREF & crBkgnd, COLORREF & crText, BOOL & bDrawWhitespace);
 	void WMGoto() { OnWMGoto(); };
-	void GotoLine(UINT nLine, BOOL bRealLine, int pane);
+	void GotoLine(UINT nLine, bool bRealLine, int pane);
 	int GetTopLine() { return m_nTopLine; }
 	int GetScreenLines() { return CCrystalTextView::GetScreenLines(); }
 	int GetTopSubLine() { return m_nTopSubLine; }
@@ -170,20 +178,21 @@ public:
 	bool SetPredifferByName(const CString & prediffer);
 	void SetPredifferByMenu(UINT nID);
 	void DocumentsLoaded();
-	void SetLocationView(HWND hView, const CLocationView * pView = NULL);
+	void SetLocationView(const CLocationView * pView = NULL);
 	void UpdateLocationViewPosition(int nTopLine = -1, int nBottomLine = -1);
 	virtual void RecalcPageLayouts(CDC * pdc, CPrintInfo * pInfo);
 	virtual void GetPrintHeaderText(int nPageNum, CString & text);
 	virtual void PrintHeader(CDC * pdc, int nPageNum);
 	virtual void PrintFooter(CDC * pdc, int nPageNum);
+	void UpdateStatusbar();
 
 	// to customize the mergeview menu
 	static HMENU createScriptsSubmenu(HMENU hMenu);
 	HMENU createPrediffersSubmenu(HMENU hMenu);
 
 	bool IsInitialized() const;
-	BOOL IsCursorInDiff() const;
-	BOOL IsDiffVisible(int nDiff);
+	bool IsCursorInDiff() const;
+	bool IsDiffVisible(int nDiff);
 	void ZoomText(short amount);
 
 	// Overrides
@@ -205,9 +214,9 @@ protected:
 	virtual ~CMergeEditView();
 	virtual void OnUpdateSibling (CCrystalTextView * pUpdateSource, BOOL bHorz);
 	virtual void OnUpdateCaret();
-	BOOL MergeModeKeyDown(MSG* pMsg);
+	bool MergeModeKeyDown(MSG* pMsg);
 	int FindPrediffer(LPCTSTR prediffer) const;
-	BOOL IsDiffVisible(const DIFFRANGE& diff, int nLinesBelow = 0);
+	bool IsDiffVisible(const DIFFRANGE& diff, int nLinesBelow = 0);
 
 	// Generated message map functions
 protected:

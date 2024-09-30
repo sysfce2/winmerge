@@ -30,7 +30,7 @@
  */
 
 // ID line follows -- this is updated by SVN
-// $Id: MergeCmdLineInfo.h 6042 2008-10-26 10:31:07Z jtuc $
+// $Id: MergeCmdLineInfo.h 5862 2008-08-29 20:38:41Z jtuc $
 
 /** 
  * @brief WinMerge's command line handler.

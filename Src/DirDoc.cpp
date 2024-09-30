@@ -25,12 +25,13 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirDoc.cpp 5647 2008-07-21 09:41:45Z kimmov $
+// $Id: DirDoc.cpp 6564 2009-03-11 16:05:46Z kimmov $
 //
 
-#include "stdafx.h"
-#include <Shlwapi.h>		// PathFindFileName()
+#include "StdAfx.h"
+#include <shlwapi.h>		// PathFindFileName()
 #include "Merge.h"
+#include "HexMergeDoc.h"
 #include "UnicodeString.h"
 #include "CompareStats.h"
 #include "FilterList.h"
@@ -39,7 +40,7 @@
 #include "DirFrame.h"
 #include "MainFrm.h"
 #include "coretools.h"
-#include "logfile.h"
+#include "LogFile.h"
 #include "paths.h"
 #include "WaitStatusCursor.h"
 #include "7zCommon.h"
@@ -86,10 +87,17 @@ CDirDoc::~CDirDoc()
 	delete m_pCompareStats;
 
 	// Inform all of our merge docs that we're closing
-	for (POSITION pos = m_MergeDocs.GetHeadPosition(); pos; )
+	POSITION pos = m_MergeDocs.GetHeadPosition();
+	while (pos)
 	{
 		CMergeDoc * pMergeDoc = m_MergeDocs.GetNext(pos);
 		pMergeDoc->DirDocClosing(this);
+	}
+	pos = m_HexMergeDocs.GetHeadPosition();
+	while (pos)
+	{
+		CHexMergeDoc * pHexMergeDoc = m_HexMergeDocs.GetNext(pos);
+		pHexMergeDoc->DirDocClosing(this);
 	}
 	// Delete all temporary folders belonging to this document
 	while (m_pTempPathContext)
@@ -113,7 +121,7 @@ static bool DocClosableCallback(void * param)
  */
 bool CDirDoc::CanFrameClose()
 {
-	return !!m_MergeDocs.IsEmpty();
+	return m_MergeDocs.IsEmpty() && m_HexMergeDocs.IsEmpty();
 }
 
 /**
@@ -216,7 +224,7 @@ CDirDoc::AllowUpwardDirectory(String &leftParent, String &rightParent)
 	{
 		LPCTSTR lname = PathFindFileName(left.c_str());
 		LPCTSTR rname = PathFindFileName(right.c_str());
-		int cchLeftRoot = m_pTempPathContext->m_strLeftRoot.length();
+        String::size_type cchLeftRoot = m_pTempPathContext->m_strLeftRoot.length();
 
 		if (left.length() <= cchLeftRoot)
 		{
@@ -317,7 +325,7 @@ void CDirDoc::Rescan()
 	m_statusCursor = new CustomStatusCursor(0, IDC_APPSTARTING, IDS_STATUS_RESCANNING);
 
 	GetLog()->Write(CLogFile::LNOTICE, _T("Starting directory scan:\n\tLeft: %s\n\tRight: %s\n"),
-			m_pCtxt->GetLeftPath(), m_pCtxt->GetRightPath());
+			m_pCtxt->GetLeftPath().c_str(), m_pCtxt->GetRightPath().c_str());
 	m_pCompareStats->Reset();
 	m_pDirView->StartCompare(m_pCompareStats);
 
@@ -375,12 +383,21 @@ void CDirDoc::Rescan()
 
 /**
  * @brief Determines if the user wants to see given item.
+ * This function determines what items to show and what items to hide. There
+ * are lots of combinations, but basically we check if menuitem is enabled or
+ * disabled and show/hide matching items. For non-recursive compare we never
+ * hide folders as that would disable user browsing into them. And we even
+ * don't really know if folders are identical or different as we haven't
+ * compared them.
  * @param [in] di Item to check.
  * @return TRUE if item should be shown, FALSE if not.
  * @sa CDirDoc::Redisplay()
  */
 BOOL CDirDoc::IsShowable(const DIFFITEM & di)
 {
+	if (di.customFlags1 & ViewCustomFlags::HIDDEN)
+		return FALSE;
+
 	if (di.diffcode.isResultFiltered())
 	{
 		// Treat SKIPPED as a 'super'-flag. If item is skipped and user
@@ -388,40 +405,69 @@ BOOL CDirDoc::IsShowable(const DIFFITEM & di)
 		return GetOptionsMgr()->GetBool(OPT_SHOW_SKIPPED);
 	}
 
-	// Subfolders in non-recursive compare can only be skipped or unique
-	if (!m_bRecursive && di.diffcode.isDirectory())
+	if (di.diffcode.isDirectory())
 	{
-		// result filters
-		if (di.diffcode.isResultError() && !GetMainFrame()->m_bShowErrors)
-			return 0;
+		// Subfolders in non-recursive compare can only be skipped or unique
+		if (!m_bRecursive)
+		{
+			// left/right filters
+			if (di.diffcode.isSideLeftOnly() &&	!GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_LEFT))
+				return FALSE;
+			if (di.diffcode.isSideRightOnly() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_RIGHT))
+				return FALSE;
 
-		// left/right filters
-		if (di.diffcode.isSideLeftOnly() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_LEFT))
-			return 0;
-		if (di.diffcode.isSideRightOnly() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_RIGHT))
-			return 0;
+			// result filters
+			if (di.diffcode.isResultError() && !GetMainFrame()->m_bShowErrors)
+				return FALSE;
+		}
+		else // recursive mode (including tree-mode)
+		{
+			// left/right filters
+			if (di.diffcode.isSideLeftOnly() &&	!GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_LEFT))
+				return FALSE;
+			if (di.diffcode.isSideRightOnly() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_RIGHT))
+				return FALSE;
+
+			// ONLY filter folders by result (identical/different) for tree-view.
+			// In the tree-view we show subfolders with identical/different
+			// status. The flat view only shows files inside folders. So if we
+			// filter by status the files inside folder are filtered too and
+			// users see files appearing/disappearing without clear logic.		
+			if (GetOptionsMgr()->GetBool(OPT_TREE_MODE))
+			{
+			// result filters
+			if (di.diffcode.isResultError() && !GetMainFrame()->m_bShowErrors)
+				return FALSE;
+
+			// result filters
+			if (di.diffcode.isResultSame() && !GetOptionsMgr()->GetBool(OPT_SHOW_IDENTICAL))
+				return FALSE;
+			if (di.diffcode.isResultDiff() && !GetOptionsMgr()->GetBool(OPT_SHOW_DIFFERENT))
+				return FALSE;
+			}
+		}
 	}
 	else
 	{
+		// left/right filters
+		if (di.diffcode.isSideLeftOnly() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_LEFT))
+			return FALSE;
+		if (di.diffcode.isSideRightOnly() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_RIGHT))
+			return FALSE;
+
 		// file type filters
 		if (di.diffcode.isBin() && !GetOptionsMgr()->GetBool(OPT_SHOW_BINARIES))
-			return 0;
+			return FALSE;
 
 		// result filters
 		if (di.diffcode.isResultSame() && !GetOptionsMgr()->GetBool(OPT_SHOW_IDENTICAL))
-			return 0;
+			return FALSE;
 		if (di.diffcode.isResultError() && !GetMainFrame()->m_bShowErrors)
-			return 0;
+			return FALSE;
 		if (di.diffcode.isResultDiff() && !GetOptionsMgr()->GetBool(OPT_SHOW_DIFFERENT))
-			return 0;
-
-		// left/right filters
-		if (di.diffcode.isSideLeftOnly() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_LEFT))
-			return 0;
-		if (di.diffcode.isSideRightOnly() && !GetOptionsMgr()->GetBool(OPT_SHOW_UNIQUE_RIGHT))
-			return 0;
+			return FALSE;
 	}
-	return 1;
+	return TRUE;
 }
 
 /**
@@ -459,7 +505,7 @@ CDirView * CDirDoc::GetMainView()
  * @param [in] bLeft If TRUE left-side item is updated.
  * @param [in] bRight If TRUE right-side item is updated.
  */
-void CDirDoc::UpdateStatusFromDisk(POSITION diffPos, BOOL bLeft, BOOL bRight)
+void CDirDoc::UpdateStatusFromDisk(UINT_PTR diffPos, BOOL bLeft, BOOL bRight)
 {
 	m_pCtxt->UpdateStatusFromDisk(diffPos, bLeft, bRight);
 }
@@ -476,7 +522,7 @@ void CDirDoc::UpdateStatusFromDisk(POSITION diffPos, BOOL bLeft, BOOL bRight)
 void CDirDoc::ReloadItemStatus(UINT nIdx, BOOL bLeft, BOOL bRight)
 {
 	// Get position of item in DiffContext
-	POSITION diffpos = m_pDirView->GetItemKey(nIdx);
+	UINT_PTR diffpos = m_pDirView->GetItemKey(nIdx);
 
 	// in case just copied (into existence) or modified
 	UpdateStatusFromDisk(diffpos, bLeft, bRight);
@@ -508,7 +554,7 @@ void CDirDoc::UpdateResources()
  * @return POSITION to item, NULL if not found.
  * @note Filenames must be same, if they differ NULL is returned.
  */
-POSITION CDirDoc::FindItemFromPaths(LPCTSTR pathLeft, LPCTSTR pathRight)
+UINT_PTR CDirDoc::FindItemFromPaths(LPCTSTR pathLeft, LPCTSTR pathRight)
 {
 	LPCTSTR file1 = paths_FindFileName(pathLeft);
 	LPCTSTR file2 = paths_FindFileName(pathRight);
@@ -539,8 +585,8 @@ POSITION CDirDoc::FindItemFromPaths(LPCTSTR pathLeft, LPCTSTR pathRight)
 	if (String::size_type length = path2.length())
 		path2.resize(length - 1); // remove trailing backslash
 
-	POSITION pos = m_pCtxt->GetFirstDiffPosition();
-	while (POSITION currentPos = pos) // Save our current pos before getting next
+	UINT_PTR pos = m_pCtxt->GetFirstDiffPosition();
+	while (UINT_PTR currentPos = pos) // Save our current pos before getting next
 	{
 		const DIFFITEM &di = m_pCtxt->GetNextDiffPosition(pos);
 		if (di.left.path == path1 &&
@@ -551,7 +597,7 @@ POSITION CDirDoc::FindItemFromPaths(LPCTSTR pathLeft, LPCTSTR pathRight)
 			return currentPos;
 		}
 	}
-	return NULL;
+	return 0;
 }
 
 /**
@@ -576,22 +622,38 @@ void CDirDoc::AddMergeDoc(CMergeDoc * pMergeDoc)
 }
 
 /**
+ * @brief A new HexMergeDoc has been opened.
+ */
+void CDirDoc::AddHexMergeDoc(CHexMergeDoc * pHexMergeDoc)
+{
+	ASSERT(pHexMergeDoc);
+	m_HexMergeDocs.AddTail(pHexMergeDoc);
+}
+
+/**
  * @brief MergeDoc informs us it is closing.
  */
-void CDirDoc::MergeDocClosing(CMergeDoc * pMergeDoc)
+void CDirDoc::MergeDocClosing(CDocument * pMergeDoc)
 {
 	ASSERT(pMergeDoc);
-	POSITION pos = m_MergeDocs.Find(pMergeDoc);
-	ASSERT(pos);
-	m_MergeDocs.RemoveAt(pos);
+	if (POSITION pos = m_MergeDocs.CPtrList::Find(pMergeDoc))
+		m_MergeDocs.RemoveAt(pos);
+	else if (POSITION pos = m_HexMergeDocs.CPtrList::Find(pMergeDoc))
+		m_HexMergeDocs.RemoveAt(pos);
+	else
+		ASSERT(FALSE);
 
 	// If dir compare is empty (no compare results) and we are not closing
 	// because of reuse close also dir compare
-	if (m_pCtxt == NULL && !m_bReuseCloses && m_pDirView)
-		m_pDirView->PostMessage(WM_COMMAND, ID_FILE_CLOSE);
-
-	if (m_MergeDocs.GetCount() == 0 && !m_pDirView)
+	if (m_pDirView)
+	{
+		if (m_pCtxt == NULL && !m_bReuseCloses)
+			m_pDirView->PostMessage(WM_COMMAND, ID_FILE_CLOSE);
+	}
+	else if (m_MergeDocs.GetCount() == 0 && m_HexMergeDocs.GetCount() == 0)
+	{
 		delete this;
+	}
 }
 
 /**
@@ -603,10 +665,18 @@ void CDirDoc::MergeDocClosing(CMergeDoc * pMergeDoc)
  */
 BOOL CDirDoc::CloseMergeDocs()
 {
-	for (POSITION pos = m_MergeDocs.GetHeadPosition(); pos; )
+	POSITION pos = m_MergeDocs.GetHeadPosition();
+	while (pos)
 	{
 		CMergeDoc * pMergeDoc = m_MergeDocs.GetNext(pos);
 		if (!pMergeDoc->CloseNow())
+			return FALSE;
+	}
+	pos = m_HexMergeDocs.GetHeadPosition();
+	while (pos)
+	{
+		CHexMergeDoc * pHexMergeDoc = m_HexMergeDocs.GetNext(pos);
+		if (!pHexMergeDoc->CloseNow())
 			return FALSE;
 	}
 	return TRUE;
@@ -673,6 +743,36 @@ CMergeDoc * CDirDoc::GetMergeDocForDiff(BOOL * pNew)
 }
 
 /**
+ * @brief Obtain a hex merge doc to display a difference in files.
+ * @param [out] pNew Set to TRUE if a new doc is created,
+ * and FALSE if an existing one reused.
+ * @return Pointer to CHexMergeDoc to use (new or existing). 
+ */
+CHexMergeDoc * CDirDoc::GetHexMergeDocForDiff(BOOL * pNew)
+{
+	CHexMergeDoc * pHexMergeDoc = 0;
+	// policy -- use an existing merge doc if available
+	const BOOL bMultiDocs = GetOptionsMgr()->GetBool(OPT_MULTIDOC_MERGEDOCS);
+	if (!bMultiDocs && !m_HexMergeDocs.IsEmpty())
+	{
+		*pNew = FALSE;
+		pHexMergeDoc = m_HexMergeDocs.GetHead();
+	}
+	else
+	{
+		// Create a new merge doc
+		pHexMergeDoc = (CHexMergeDoc*)theApp.m_pHexMergeTemplate->OpenDocumentFile(NULL);
+		if (pHexMergeDoc)
+		{
+			AddHexMergeDoc(pHexMergeDoc);
+			pHexMergeDoc->SetDirDoc(this);
+		}
+		*pNew = TRUE;
+	}
+	return pHexMergeDoc;
+}
+
+/**
  * @brief Update changed item's compare status
  * @param [in] paths Paths for files we update
  * @param [in] nDiffs Total amount of differences
@@ -682,7 +782,7 @@ CMergeDoc * CDirDoc::GetMergeDocForDiff(BOOL * pNew)
 void CDirDoc::UpdateChangedItem(PathContext &paths,
 	UINT nDiffs, UINT nTrivialDiffs, BOOL bIdentical)
 {
-	POSITION pos = FindItemFromPaths(paths.GetLeft().c_str(), paths.GetRight().c_str());
+	UINT_PTR pos = FindItemFromPaths(paths.GetLeft().c_str(), paths.GetRight().c_str());
 	// If we failed files could have been swapped so lets try again
 	if (!pos)
 		pos = FindItemFromPaths(paths.GetRight().c_str(), paths.GetLeft().c_str());
@@ -786,7 +886,7 @@ void CDirDoc::SetDiffCompare(UINT diffcode, int idx)
 void CDirDoc::SetDiffStatus(UINT diffcode, UINT mask, int idx)
 {
 	// Get position of item in DiffContext 
-	POSITION diffpos = m_pDirView->GetItemKey(idx);
+	UINT_PTR diffpos = m_pDirView->GetItemKey(idx);
 
 	// TODO: Why is the update broken into these pieces ?
 	// Someone could figure out these pieces and probably simplify this.
@@ -940,7 +1040,7 @@ void CDirDoc::FetchPluginInfos(LPCTSTR filteredFilenames,
 void CDirDoc::SetDiffCounts(UINT diffs, UINT ignored, int idx)
 {
 	// Get position of item in DiffContext 
-	POSITION diffpos = m_pDirView->GetItemKey(idx);
+	UINT_PTR diffpos = m_pDirView->GetItemKey(idx);
 
 	// Update diff counts
 	m_pCtxt->SetDiffCounts(diffpos, diffs, ignored);
@@ -952,7 +1052,7 @@ void CDirDoc::SetDiffCounts(UINT diffs, UINT ignored, int idx)
  * @param [in] act Action that was done.
  * @param [in] pos List position for DIFFITEM affected.
  */
-void CDirDoc::UpdateDiffAfterOperation(const FileActionItem & act, POSITION pos)
+void CDirDoc::UpdateDiffAfterOperation(const FileActionItem & act, UINT_PTR pos)
 {
 	ASSERT(pos != NULL);
 	const DIFFITEM &di = GetDiffByKey(pos);
@@ -1044,7 +1144,7 @@ void CDirDoc::SetTitle(LPCTSTR lpszTitle)
  * @param [in] flag Flag value to set.
  * @param [in] mask Mask for possible flag values.
  */
-void CDirDoc::SetItemViewFlag(POSITION key, UINT flag, UINT mask)
+void CDirDoc::SetItemViewFlag(UINT_PTR key, UINT flag, UINT mask)
 {
 	UINT curFlags = m_pCtxt->GetCustomFlags1(key);
 	curFlags &= ~mask; // Zero bits masked
@@ -1059,7 +1159,7 @@ void CDirDoc::SetItemViewFlag(POSITION key, UINT flag, UINT mask)
  */
 void CDirDoc::SetItemViewFlag(UINT flag, UINT mask)
 {
-	POSITION pos = m_pCtxt->GetFirstDiffPosition();
+	UINT_PTR pos = m_pCtxt->GetFirstDiffPosition();
 
 	while (pos != NULL)
 	{

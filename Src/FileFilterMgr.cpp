@@ -21,9 +21,9 @@
  *  @brief Implementation of FileFilterMgr and supporting routines
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: FileFilterMgr.cpp 5493 2008-06-17 09:59:10Z kimmov $
+// $Id: FileFilterMgr.cpp 6722 2009-05-09 09:04:30Z sdottaka $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include <string.h>
 #include <vector>
 #include "UnicodeString.h"
@@ -39,7 +39,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-using namespace std;
+using std::vector;
 
 /**
  * @brief Deletes items from filter list.
@@ -191,7 +191,7 @@ static void AddFilterPattern(vector<FileFilterElement*> *filterList, CString & s
 
 	// Find possible comment-separator '<whitespace>##'
 	while (pos > 0 && !_istspace(str[pos - 1]))
-		pos = str.Find(commentLeader, pos);	
+		pos = str.Find(commentLeader, pos + 1);
 
 	// Remove comment and whitespaces before it
 	if (pos > 0)
@@ -261,11 +261,13 @@ FileFilter * FileFilterMgr::LoadFilterFile(LPCTSTR szFilepath, int & error)
 
 	CString sLine;
 	bool lossy = false;
-	BOOL bLinesLeft = TRUE;
+	bool bLinesLeft = true;
 	do
 	{
 		// Returns false when last line is read
-		bLinesLeft = file.ReadString(sLine, &lossy);
+		String tmpLine;
+		bLinesLeft = file.ReadString(tmpLine, &lossy);
+		sLine = tmpLine.c_str();
 		sLine.TrimLeft();
 		sLine.TrimRight();
 
@@ -307,7 +309,7 @@ FileFilter * FileFilterMgr::LoadFilterFile(LPCTSTR szFilepath, int & error)
 			CString str = sLine.Mid(2);
 			AddFilterPattern(&pfilter->dirfilters, str);
 		}
-	} while (bLinesLeft == TRUE);
+	} while (bLinesLeft);
 
 	return pfilter;
 }

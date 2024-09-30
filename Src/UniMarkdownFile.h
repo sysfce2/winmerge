@@ -4,7 +4,7 @@
  *  @brief Declaration of UniMarkdownFile class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: UniMarkdownFile.h 5406 2008-06-01 09:28:58Z kimmov $
+// $Id: UniMarkdownFile.h 6089 2008-11-16 15:27:10Z jtuc $
 
 #include "Common/UniFile.h"
 
@@ -17,9 +17,8 @@ class UniMarkdownFile : public UniMemFile
 {
 public:
 	UniMarkdownFile();
-	virtual BOOL ReadString(CString & line, CString & eol, bool * lossy);
+	virtual bool ReadString(String & line, String & eol, bool * lossy);
 	virtual void Close();
-	virtual bool ReadBom();
 
 protected:
 	virtual bool DoOpen(LPCTSTR filename, DWORD dwOpenAccess,
@@ -28,6 +27,7 @@ protected:
 
 private:
 	void Move();
+	String maketstring(LPCSTR lpd, UINT len);
 
 	int m_depth;
 	bool m_bMove;

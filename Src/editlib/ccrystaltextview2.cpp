@@ -42,9 +42,9 @@
  * @brief More functions for CCrystalTextView class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: ccrystaltextview2.cpp 5485 2008-06-16 08:05:58Z kimmov $
+// $Id: ccrystaltextview2.cpp 5910 2008-09-07 03:27:29Z marcelgosselin $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "editcmd.h"
 #include "ccrystaltextview.h"
 #include "ccrystaltextbuffer.h"

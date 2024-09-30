@@ -4,7 +4,7 @@
  * @brief Declaration of DiffUtils class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffUtils.h 5027 2008-02-11 21:17:11Z sdottaka $
+// $Id: DiffUtils.h 5909 2008-09-07 03:19:44Z marcelgosselin $
 
 
 #ifndef _DIFF_UTILS_H_
@@ -40,8 +40,8 @@ public:
 	bool RegExpFilter(int StartPos, int EndPos, int FileNo);
 	void GetDiffCounts(int & diffs, int & trivialDiffs);
 	void GetTextStats(int side, FileTextStats *stats);
-	BOOL Diff2Files(struct change ** diffs, int depth,
-		int * bin_status, BOOL bMovedBlocks, int * bin_file);
+	bool Diff2Files(struct change ** diffs, int depth,
+		int * bin_status, bool bMovedBlocks, int * bin_file);
 	void SetCodepage(int codepage) { m_codepage = codepage; }
 
 protected:

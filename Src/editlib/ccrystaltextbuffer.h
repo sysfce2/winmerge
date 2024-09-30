@@ -23,22 +23,29 @@
 //  ... it's being edited very rapidly so sorry for non-commented
 //        and maybe "ugly" code ...
 ////////////////////////////////////////////////////////////////////////////
+/**
+ * @file  ccrystaltextbuffer.h
+ *
+ * @brief Declaration file for CCrystalTextBuffer.
+ */
+// ID line follows -- this is updated by SVN
+// $Id: ccrystaltextbuffer.h 5762 2008-08-08 05:32:15Z kimmov $
+
 
 #if !defined(AFX_CCRYSTALTEXTBUFFER_H__AD7F2F49_6CB3_11D2_8C32_0080ADB86836__INCLUDED_)
 #define AFX_CCRYSTALTEXTBUFFER_H__AD7F2F49_6CB3_11D2_8C32_0080ADB86836__INCLUDED_
 
-#if _MSC_VER >= 1000
 #pragma once
-#endif // _MSC_VER >= 1000
 
+#include <vector>
+#include "LineInfo.h"
+#include "UndoRecord.h"
 #include "ccrystaltextview.h"
 
 #ifndef __AFXTEMPL_H__
 #pragma message("Include <afxtempl.h> in your stdafx.h to avoid this message")
 #include <afxtempl.h>
 #endif
-
-#define UNDO_DESCRIP_BUF        32
 
 enum LINEFLAGS
 {
@@ -123,114 +130,11 @@ protected :
     int FindLineWithFlag (DWORD dwFlag);
 
 protected :
-#pragma pack(push, 1)
-    //  Nested class declarations
-    struct SLineInfo
-      {
-        TCHAR *m_pcLine;
-        int m_nLength, m_nMax;
-        int m_nEolChars; // # of eolchars
-        DWORD m_dwFlags;
-        DWORD m_dwRevisionNumber;
-
-        int FullLength() const { return m_nLength+m_nEolChars; }
-        int Length() const { return m_nLength; }
-
-        SLineInfo ()
-        {
-          memset (this, 0, sizeof (SLineInfo));
-        };
-      };
-
     enum
     {
       UNDO_INSERT = 0x0001,
       UNDO_BEGINGROUP = 0x0100
     };
-
-    //  [JRT] Support For Descriptions On Undo/Redo Actions
-    struct SUndoRecord
-      {
-        DWORD m_dwFlags;
-        
-        CPoint m_ptStartPos, m_ptEndPos;  //  Block of text participating
-        int m_nAction;            //  For information only: action type
-        CDWordArray *m_paSavedRevisonNumbers;
-
-private :
-        //  TCHAR   *m_pcText;
-        //  Since in most cases we have 1 character here,
-        //  we should invent a better way. Note: 2 * sizeof(WORD) <= sizeof(TCHAR*)
-        //
-        //  Here we will use the following trick: on Win32 platforms high-order word
-        //  of any pointer will be != 0. So we can store 1 character strings without
-        //  allocating memory.
-        //
-        struct TextBuffer
-          {
-            int size;
-            TCHAR data[1];
-          };
-        union
-          {
-            TextBuffer *m_pszText;     //  For cases when we have > 1 character strings
-            TCHAR m_szText[2];    //  For single-character strings
-          };
-
-public :
-        SUndoRecord () // default constructor
-        {
-          memset (this, 0, sizeof (SUndoRecord));
-        }
-        SUndoRecord (const SUndoRecord & src) // copy constructor
-        {
-          memset (this, 0, sizeof (SUndoRecord));
-          (*this)=src;
-        }
-        SUndoRecord & operator=(const SUndoRecord & src) // copy assignment
-        {
-          m_dwFlags = src.m_dwFlags;
-          m_ptStartPos = src.m_ptStartPos;
-          m_ptEndPos = src.m_ptEndPos;
-          m_nAction = src.m_nAction;
-          SetText(src.GetText(), src.GetTextLength());
-          INT_PTR size = src.m_paSavedRevisonNumbers->GetSize();
-          if (!m_paSavedRevisonNumbers)
-            m_paSavedRevisonNumbers = new CDWordArray();
-          m_paSavedRevisonNumbers->SetSize(size);
-          INT_PTR i;
-          for (i = 0; i < size; i++)
-            (*m_paSavedRevisonNumbers)[i] = (*src.m_paSavedRevisonNumbers)[i];
-          return *this;
-        }
-        ~SUndoRecord () // destructor
-        {
-          FreeText();
-          if (m_paSavedRevisonNumbers)
-            delete m_paSavedRevisonNumbers;
-        }
-
-        void SetText (LPCTSTR pszText, int cchText);
-        void FreeText ();
-
-        LPCTSTR GetText () const
-        {
-          // See the m_szText/m_pszText definition
-          // Check if m_pszText is a pointer by removing bits having
-          // possible char value
-          if (((INT_PTR)m_pszText >> 16) != 0)
-            return m_pszText->data;
-          return m_szText;
-        }
-        int GetTextLength () const
-        {
-          if (((INT_PTR)m_pszText >> 16) != 0)
-            return m_pszText->size;
-          return 1;
-        }
-      };
-
-#pragma pack(pop)
 
 class EDITPADC_CLASS CInsertContext : public CUpdateContext
       {
@@ -247,10 +151,10 @@ public :
       };
 
     //  Lines of text
-    CArray < SLineInfo, SLineInfo & >m_aLines;
+    CArray < LineInfo, LineInfo & >m_aLines;
 
     //  Undo
-    CArray < SUndoRecord, SUndoRecord & >m_aUndoBuf;
+    std::vector<UndoRecord> m_aUndoBuf; /**< Undo records. */
     int m_nUndoPosition;
     int m_nSyncPosition;
     BOOL m_bUndoGroup, m_bUndoBeginGroup;
@@ -317,7 +221,7 @@ public :
     int GetFullLineLength (int nLine) const; // including EOLs
     LPCTSTR GetLineEol (int nLine) const;
     BOOL ChangeLineEol (int nLine, LPCTSTR lpEOL);
-    LPTSTR GetLineChars (int nLine) const;
+    LPCTSTR GetLineChars (int nLine) const;
     DWORD GetLineFlags (int nLine) const;
     DWORD GetLineRevisionNumber (int nLine) const;
     int GetLineWithFlag (DWORD dwFlag);

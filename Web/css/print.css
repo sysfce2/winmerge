@@ -42,10 +42,6 @@ a[name]:hover { color:black; text-decoration:none; }
 	padding: 0;
 }
 
-#rightcorner {
-	display: none;
-}
-
 #tabs {
 	display: none;
 }
@@ -63,8 +59,8 @@ a[name]:hover { color:black; text-decoration:none; }
 	padding: 5px;
 }
 
-#content h2, p {
-	margin-top: 0;
+#poweredby {
+	display: none;
 }
 
 /* Heading list */

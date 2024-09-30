@@ -50,7 +50,7 @@
 				OutputFile="..\Build\MergeUnicodeRelease\WinMergeU.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories="..\Build\expat,..\Build\pcre"
+				AdditionalLibraryDirectories="..\Build\expat,..\Build\pcre,..\Build\scew"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="FALSE"
 				ProgramDatabaseFile=""
@@ -113,7 +113,7 @@
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="TRUE"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 				CompileAs="0"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
@@ -185,7 +185,7 @@
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="TRUE"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 				CompileAs="0"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
@@ -195,7 +195,7 @@
 				OutputFile="..\Build\MergeDebug/WinMerge.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories="..\Build\expat,..\Build\pcre"
+				AdditionalLibraryDirectories="..\Build\expat,..\Build\pcre,..\Build\scew"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile=".\..\BuildTmp\MergeDebug/WinMerge.pdb"
 				SubSystem="2"
@@ -269,7 +269,7 @@
 				OutputFile="..\Build\MergeRelease/WinMerge.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories="..\Build\expat,..\Build\pcre"
+				AdditionalLibraryDirectories="..\Build\expat,..\Build\pcre,..\Build\scew"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="FALSE"
 				ProgramDatabaseFile=""
@@ -1265,7 +1265,8 @@
 						Name="VCCLCompilerTool"
 						Optimization="1"
 						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
+						PreprocessorDefinitions=""
+						UsePrecompiledHeader="0"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="UnicodeDebug|Win32">
@@ -1274,6 +1275,7 @@
 						Optimization="0"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						UsePrecompiledHeader="0"
 						BrowseInformation="1"/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -1283,6 +1285,7 @@
 						Optimization="0"
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""
+						UsePrecompiledHeader="0"
 						BrowseInformation="1"/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -1291,7 +1294,8 @@
 						Name="VCCLCompilerTool"
 						Optimization="1"
 						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
+						PreprocessorDefinitions=""
+						UsePrecompiledHeader="0"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -2709,6 +2713,15 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\HexMergeDoc.cpp">
+			</File>
+			<File
+				RelativePath=".\HexMergeFrm.cpp">
+			</File>
+			<File
+				RelativePath=".\HexMergeView.cpp">
+			</File>
+			<File
 				RelativePath="Common\LanguageSelect.cpp">
 				<FileConfiguration
 					Name="UnicodeRelease|Win32">
@@ -3951,6 +3964,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="Common\PidlContainer.cpp">
+			</File>
+			<File
 				RelativePath="PluginManager.cpp">
 				<FileConfiguration
 					Name="UnicodeRelease|Win32">
@@ -4506,6 +4522,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="PropShell.cpp">
+			</File>
+			<File
 				RelativePath="PropSyntaxColors.cpp">
 				<FileConfiguration
 					Name="UnicodeRelease|Win32">
@@ -4886,6 +4905,9 @@
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="Common\ShellContextMenu.cpp">
 			</File>
 			<File
 				RelativePath="Common\sizecbar.cpp">
@@ -6154,6 +6176,18 @@
 				RelativePath="GhostTextView.h">
 			</File>
 			<File
+				RelativePath=".\GhostUndorecord.h">
+			</File>
+			<File
+				RelativePath=".\HexMergeDoc.h">
+			</File>
+			<File
+				RelativePath=".\HexMergeFrm.h">
+			</File>
+			<File
+				RelativePath=".\HexMergeView.h">
+			</File>
+			<File
 				RelativePath="IAbortable.h">
 			</File>
 			<File
@@ -6259,6 +6293,9 @@
 				RelativePath="Common\Picture.h">
 			</File>
 			<File
+				RelativePath="Common\PidlContainer.h">
+			</File>
+			<File
 				RelativePath="PluginManager.h">
 			</File>
 			<File
@@ -6304,6 +6341,9 @@
 				RelativePath="PropRegistry.h">
 			</File>
 			<File
+				RelativePath="PropShell.h">
+			</File>
+			<File
 				RelativePath="PropSyntaxColors.h">
 			</File>
 			<File
@@ -6325,9 +6365,6 @@
 				RelativePath="SaveClosingDlg.h">
 			</File>
 			<File
-				RelativePath="Common\sbuffer.h">
-			</File>
-			<File
 				RelativePath="Common\scbarcf.h">
 			</File>
 			<File
@@ -6338,6 +6375,9 @@
 			</File>
 			<File
 				RelativePath="SharedFilterDlg.h">
+			</File>
+			<File
+				RelativePath="Common\ShellContextMenu.h">
 			</File>
 			<File
 				RelativePath="Common\sizecbar.h">
@@ -7587,6 +7627,46 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\editlib\LineInfo.cpp">
+				<FileConfiguration
+					Name="UnicodeRelease|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="1"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="UnicodeDebug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="0"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						BrowseInformation="1"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="0"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						BrowseInformation="1"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="1"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="editlib\LineInfo.h">
+			</File>
+			<File
 				RelativePath="editlib\lisp.cpp">
 				<FileConfiguration
 					Name="UnicodeRelease|Win32">
@@ -8337,6 +8417,49 @@
 						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="editlib\UndoRecord.cpp">
+				<FileConfiguration
+					Name="UnicodeRelease|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="1"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="UnicodeDebug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="0"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						BrowseInformation="1"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="0"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						BrowseInformation="1"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="1"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="editlib\UndoRecord.h">
+			</File>
+			<File
+				RelativePath="editlib\verilog.cpp">
 			</File>
 			<File
 				RelativePath="editlib\wispelld.h">
@@ -9113,6 +9236,31 @@
 			</File>
 			<File
 				RelativePath="CompareEngines\DiffUtils.h">
+			</File>
+		</Filter>
+		<Filter
+			Name="Batch files"
+			Filter="">
+			<File
+				RelativePath=".\Languages\BuildMergeLangDll.bat">
+			</File>
+			<File
+				RelativePath=".\Languages\CreateMasterPotFile.vbs">
+			</File>
+			<File
+				RelativePath=".\Languages\GetTranslationsStatus.vbs">
+			</File>
+			<File
+				RelativePath=".\PostBuild.bat">
+			</File>
+			<File
+				RelativePath=".\PreLink.bat">
+			</File>
+			<File
+				RelativePath=".\SetResourceVersions.bat">
+			</File>
+			<File
+				RelativePath=".\Languages\UpdatePoFilesFromPotFile.vbs">
 			</File>
 		</Filter>
 	</Files>

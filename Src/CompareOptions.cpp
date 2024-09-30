@@ -6,8 +6,8 @@
 // ID line follows -- this is updated by SVN
 // $Id: ByteComparator.h 3397 2006-07-27 10:41:24Z kimmov $
 
-#include "stdafx.h"
-#include "Diff.h"
+#include "StdAfx.h"
+#include "DIFF.H"
 #include "CompareOptions.h"
 
 // Global defined in diffutils code
@@ -56,16 +56,16 @@ void CompareOptions::SetFromDiffOptions(const DIFFOPTIONS &options)
 		_RPTF0(_CRT_ERROR, "Unknown whitespace ignore value!");
 		break;
 	}
-	m_bIgnoreBlankLines = !!options.bIgnoreBlankLines;
-	m_bIgnoreCase = !!options.bIgnoreCase;
-	m_bIgnoreEOLDifference = !!options.bIgnoreEol;
+	m_bIgnoreBlankLines = options.bIgnoreBlankLines;
+	m_bIgnoreCase = options.bIgnoreCase;
+	m_bIgnoreEOLDifference = options.bIgnoreEol;
 }
 
 /**
  * @brief Default constructor.
  */
 QuickCompareOptions::QuickCompareOptions()
-: m_bStopAfterFirstDiff(FALSE)
+: m_bStopAfterFirstDiff(false)
 {
 
 }
@@ -76,7 +76,7 @@ QuickCompareOptions::QuickCompareOptions()
 DiffutilsOptions::DiffutilsOptions()
 : m_outputStyle(DIFF_OUTPUT_NORMAL)
 , m_contextLines(0)
-, m_filterCommentsLines(0)
+, m_filterCommentsLines(false)
 {
 }
 
@@ -88,7 +88,7 @@ DiffutilsOptions::DiffutilsOptions(const CompareOptions& options)
 : CompareOptions(options)
 , m_outputStyle(DIFF_OUTPUT_NORMAL)
 , m_contextLines(0)
-, m_filterCommentsLines(0)
+, m_filterCommentsLines(false)
 {
 }
 
@@ -202,6 +202,6 @@ void DiffutilsOptions::GetAsDiffOptions(DIFFOPTIONS &options)
 
 QuickCompareOptions::QuickCompareOptions(const CompareOptions& options)
 : CompareOptions(options)
-, m_bStopAfterFirstDiff(FALSE)
+, m_bStopAfterFirstDiff(false)
 {
 }

@@ -24,7 +24,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: Merge.h 5892 2008-09-05 06:43:12Z jtuc $
+// $Id: Merge.h 5862 2008-08-29 20:38:41Z jtuc $
 
 #if !defined(AFX_MERGE_H__BBCD4F88_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
 #define AFX_MERGE_H__BBCD4F88_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
@@ -61,6 +61,7 @@ class CMergeApp : public CWinApp
 public:
 	BOOL m_bNeedIdleTimer;
 	CMultiDocTemplate* m_pDiffTemplate;
+	CMultiDocTemplate* m_pHexMergeTemplate;
 	CMultiDocTemplate* m_pDirTemplate;
 	CLanguageSelect * m_pLangDlg;
 	FileFilterHelper m_globalFileFilter;

@@ -30,9 +30,9 @@
  *  @brief Implementation of Replace-dialog.
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: ceditreplacedlg.cpp 4983 2008-01-31 21:08:06Z jtuc $
+// $Id: ceditreplacedlg.cpp 5910 2008-09-07 03:27:29Z marcelgosselin $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "resource.h"
 #include "ceditreplacedlg.h"
 #include "ccrystaleditview.h"

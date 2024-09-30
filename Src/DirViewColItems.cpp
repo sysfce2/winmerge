@@ -6,7 +6,7 @@
  * @date  Created: 2003-08-19
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirViewColItems.cpp 5422 2008-06-04 12:54:47Z kimmov $
+// $Id: DirViewColItems.cpp 6561 2009-03-10 20:26:23Z sdottaka $
 
 
 #include "stdafx.h"
@@ -189,12 +189,16 @@ static String ColFileNameGet(const CDiffContext *, const void *p) //sfilename
 
 /**
  * @brief Format Extension column data.
- * @param [in] p Pointer to String having extension string.
+ * @param [in] p Pointer to DIFFITEM.
  * @return String to show in the column.
  */
 static String ColExtGet(const CDiffContext *, const void *p) //sfilename
 {
-	const String &r = *static_cast<const String*>(p);
+	const DIFFITEM &di = *static_cast<const DIFFITEM*>(p);
+	// We don't show extension for folder names
+	if (di.diffcode.isDirectory())
+		return _T("");
+	const String &r = di.left.filename;
 	LPCTSTR s = PathFindExtension(r.c_str());
 	return s + _tcsspn(s, _T("."));
 }
@@ -209,19 +213,28 @@ static String ColPathGet(const CDiffContext *, const void *p)
 	const DIFFITEM &di = *static_cast<const DIFFITEM*>(p);
 	String s = di.right.path;
 	const String &t = di.left.path;
+
+	// If we have unique path, just print the existing path name
+	if (s.length() == 0 || t.length() == 0)
+	{
+		if (s.length() == 0)
+			return t;
+		else
+			return s;
+	}
+
 	int i = 0, j = 0;
 	do
 	{
 		int i_ahead = s.find('\\', i);
 		int j_ahead = t.find('\\', j);
-		int length_s = (i_ahead != -1 ? i_ahead : s.length()) - i;
-		int length_t = (j_ahead != -1 ? j_ahead : t.length()) - j;
+		int length_s = (i_ahead != std::string.npos ? i_ahead : s.length()) - i;
+		int length_t = (j_ahead != std::string.npos ? j_ahead : t.length()) - j;
 		if (length_s != length_t ||
 			!StrIsIntlEqual(FALSE, s.c_str() + i, t.c_str() + j, length_s))
 		{
 			String u(t.c_str() + j, length_t + 1);
 			u[length_t] = '|';
-			//u.SetAt(length_t, '|');
 			s.insert(i, u.c_str());
 			i_ahead += u.length();
 		}
@@ -273,15 +286,21 @@ static String ColStatusGet(const CDiffContext *pCtxt, const void *p)
 	}
 	else if (di.diffcode.isResultSame())
 	{
-		if (di.diffcode.isBin())
+		if (di.diffcode.isText())
+			s = theApp.LoadString(IDS_TEXT_FILES_SAME);
+		else if (di.diffcode.isBin())
 			s = theApp.LoadString(IDS_BIN_FILES_SAME);
 		else
 			s = theApp.LoadString(IDS_IDENTICAL);
 	}
-	else // diff
+	else if (di.diffcode.isResultDiff()) // diff
 	{
-		if (di.diffcode.isBin())
+		if (di.diffcode.isText())
+			s = theApp.LoadString(IDS_TEXT_FILES_DIFF);
+		else if (di.diffcode.isBin())
 			s = theApp.LoadString(IDS_BIN_FILES_DIFF);
+		else if (di.diffcode.isDirectory())
+			s = theApp.LoadString(IDS_FOLDERS_ARE_DIFFERENT);
 		else
 			s = theApp.LoadString(IDS_FILES_ARE_DIFFERENT);
 	}
@@ -439,7 +458,7 @@ static String ColRversionGet(const CDiffContext * pCtxt, const void *p)
 static String ColStatusAbbrGet(const CDiffContext *, const void *p)
 {
 	const DIFFITEM &di = *static_cast<const DIFFITEM *>(p);
-	int id;
+	int id = 0;
 
 	// Note that order of items does matter. We must check for
 	// skipped items before unique items, for example, so that
@@ -471,12 +490,12 @@ static String ColStatusAbbrGet(const CDiffContext *, const void *p)
 	{
 		id = IDS_IDENTICAL;
 	}
-	else // diff
+	else if (di.diffcode.isResultDiff())
 	{
 		id = IDS_DIFFERENT;
 	}
 
-	return theApp.LoadString(id);
+	return id ? theApp.LoadString(id) : _T("");
 }
 
 /**
@@ -628,10 +647,13 @@ static int ColFileNameSort(const CDiffContext *pCtxt, const void *p, const void 
  */
 static int ColExtSort(const CDiffContext *pCtxt, const void *p, const void *q)
 {
-	const String &r = *static_cast<const String*>(p);
-	const String &s = *static_cast<const String*>(q);
-	return lstrcmpi(PathFindExtension(r.c_str()), PathFindExtension(s.c_str()));
-	//return ColExtGet(pCtxt, p).CompareNoCase(ColExtGet(pCtxt, q));
+	const DIFFITEM &ldi = *static_cast<const DIFFITEM *>(p);
+	const DIFFITEM &rdi = *static_cast<const DIFFITEM *>(q);
+	if (ldi.diffcode.isDirectory() && !rdi.diffcode.isDirectory())
+		return -1;
+	if (!ldi.diffcode.isDirectory() && rdi.diffcode.isDirectory())
+		return 1;
+	return lstrcmpi(ColExtGet(pCtxt, p).c_str(), ColExtGet(pCtxt, q).c_str());
 }
 
 /**
@@ -648,7 +670,6 @@ static int ColPathSort(const CDiffContext *pCtxt, const void *p, const void *q)
 
 /**
  * @brief Compare compare results.
- * @param [in] pCtxt Pointer to compare context.
  * @param [in] p Pointer to DIFFITEM having first result to compare.
  * @param [in] q Pointer to DIFFITEM having second result to compare.
  * @return Compare result.
@@ -662,7 +683,6 @@ static int ColStatusSort(const CDiffContext *, const void *p, const void *q)
 
 /**
  * @brief Compare file times.
- * @param [in] pCtxt Pointer to compare context.
  * @param [in] p First time to compare.
  * @param [in] q Second time to compare.
  * @return Compare result.
@@ -676,7 +696,6 @@ static int ColTimeSort(const CDiffContext *, const void *p, const void *q)
 
 /**
  * @brief Compare file sizes.
- * @param [in] pCtxt Pointer to compare context.
  * @param [in] p First size to compare.
  * @param [in] q Second size to compare.
  * @return Compare result.
@@ -690,7 +709,6 @@ static int ColSizeSort(const CDiffContext *, const void *p, const void *q)
 
 /**
  * @brief Compare difference counts.
- * @param [in] pCtxt Pointer to compare context.
  * @param [in] p First count to compare.
  * @param [in] q Second count to compare.
  * @return Compare result.
@@ -741,7 +759,6 @@ static int ColRversionSort(const CDiffContext *pCtxt, const void *p, const void 
 /**
  * @brief Compare binary statuses.
  * This function returns a comparison of binary results.
- * @param [in] pCtxt Pointer to compare context.
  * @param [in] p Pointer to DIFFITEM having first status to compare.
  * @param [in] q Pointer to DIFFITEM having second status to compare.
  * @return Compare result:
@@ -768,7 +785,6 @@ static int ColBinSort(const CDiffContext *, const void *p, const void *q)
 
 /**
  * @brief Compare file flags.
- * @param [in] pCtxt Pointer to compare context.
  * @param [in] p Pointer to first flag structure to compare.
  * @param [in] q Pointer to second flag structure to compare.
  * @return Compare result.
@@ -782,7 +798,6 @@ static int ColAttrSort(const CDiffContext *, const void *p, const void *q)
 
 /**
  * @brief Compare file encodings.
- * @param [in] pCtxt Pointer to compare context.
  * @param [in] p Pointer to first structure to compare.
  * @param [in] q Pointer to second structure to compare.
  * @return Compare result.
@@ -819,7 +834,7 @@ static DirColInfo f_cols[] =
 	{ _T("Rmtime"), IDS_COLHDR_RTIMEM, IDS_COLDESC_RTIMEM, &ColTimeGet, &ColTimeSort, FIELD_OFFSET(DIFFITEM, right.mtime), 4, false, LVCFMT_LEFT },
 	{ _T("Lctime"), IDS_COLHDR_LTIMEC, IDS_COLDESC_LTIMEC, &ColTimeGet, &ColTimeSort, FIELD_OFFSET(DIFFITEM, left.ctime), -1, false, LVCFMT_LEFT },
 	{ _T("Rctime"), IDS_COLHDR_RTIMEC, IDS_COLDESC_RTIMEC, &ColTimeGet, &ColTimeSort, FIELD_OFFSET(DIFFITEM, right.ctime), -1, false, LVCFMT_LEFT },
-	{ _T("Ext"), IDS_COLHDR_EXTENSION, IDS_COLDESC_EXTENSION, &ColExtGet, &ColExtSort, FIELD_OFFSET(DIFFITEM, left.filename), 5, true, LVCFMT_LEFT },
+	{ _T("Ext"), IDS_COLHDR_EXTENSION, IDS_COLDESC_EXTENSION, &ColExtGet, &ColExtSort, 0, 5, true, LVCFMT_LEFT },
 	{ _T("Lsize"), IDS_COLHDR_LSIZE, IDS_COLDESC_LSIZE, &ColSizeGet, &ColSizeSort, FIELD_OFFSET(DIFFITEM, left.size), -1, false, LVCFMT_RIGHT },
 	{ _T("Rsize"), IDS_COLHDR_RSIZE, IDS_COLDESC_RSIZE, &ColSizeGet, &ColSizeSort, FIELD_OFFSET(DIFFITEM, right.size), -1, false, LVCFMT_RIGHT },
 	{ _T("LsizeShort"), IDS_COLHDR_LSIZE_SHORT, IDS_COLDESC_LSIZE_SHORT, &ColSizeShortGet, &ColSizeSort, FIELD_OFFSET(DIFFITEM, left.size), -1, false, LVCFMT_RIGHT },
@@ -872,7 +887,7 @@ CDirView::GetColDefaultOrder(int col) const
 const DirColInfo *
 CDirView::DirViewColItems_GetDirColInfo(int col) const
 {
-	if (col < 0 || col >= sizeof(f_cols)/sizeof(f_cols[0]))
+	if (col < 0 || col >= countof(f_cols))
 	{
 		ASSERT(0); // fix caller, should not ask for nonexistent columns
 		return 0;
@@ -886,7 +901,7 @@ CDirView::DirViewColItems_GetDirColInfo(int col) const
 static bool
 IsColById(int col, int id)
 {
-	if (col < 0 || col >= sizeof(f_cols)/sizeof(f_cols[0]))
+	if (col < 0 || col >= countof(f_cols))
 	{
 		ASSERT(0); // fix caller, should not ask for nonexistent columns
 		return false;

@@ -5,9 +5,9 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: MergeDocLineDiffs.cpp 5812 2008-08-15 06:46:14Z sdottaka $
+// $Id: MergeDocLineDiffs.cpp 6322 2009-01-13 22:34:41Z kimmov $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include <vector>
 #include "Merge.h"
 #include "MainFrm.h"
@@ -22,7 +22,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-using namespace std;
+using std::vector;
 
 /**
  * @brief Display the line/word difference highlight in edit view
@@ -264,7 +264,7 @@ void CMergeDoc::Computelinediff(CCrystalTextView * pView1, CCrystalTextView * pV
 	{
 		// Find starting locations for both sides
 		// Have to look for first valid starting location for each side
-		int i;
+        vector<wdiff*>::size_type i;
 		for (i=0; i<worddiffs.size(); ++i)
 		{
 			const wdiff * diff = worddiffs[i];
@@ -277,15 +277,18 @@ void CMergeDoc::Computelinediff(CCrystalTextView * pView1, CCrystalTextView * pV
 		}
 		// Find ending locations for both sides
 		// Have to look for last valid starting location for each side
-		for (i=worddiffs.size() - 1; i>=0; --i)
+		if (worddiffs.size() >1)
 		{
-			const wdiff * diff = worddiffs[i];
-			if (end1 == -1 && diff->end[0] != -1)
-				end1 = diff->end[0];
-			if (end2 == -1 && diff->end[1] != -1)
-				end2 = diff->end[1];
-			if (end1 != -1 && end2 != -1)
-				break; // found both
+			for (i=worddiffs.size() - 1; i>=0; --i)
+			{
+				const wdiff * diff = worddiffs[i];
+				if (end1 == -1 && diff->end[0] != -1)
+					end1 = diff->end[0];
+				if (end2 == -1 && diff->end[1] != -1)
+					end2 = diff->end[1];
+				if (end1 != -1 && end2 != -1)
+					break; // found both
+			}
 		}
 		SetLineHighlightRect(begin1, end1, line, width1, rc1);
 		SetLineHighlightRect(begin2, end2, line, width2, rc2);

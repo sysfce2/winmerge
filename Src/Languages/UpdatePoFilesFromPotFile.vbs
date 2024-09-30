@@ -6,7 +6,7 @@ Option Explicit
 ' Released under the "GNU General Public License"
 '
 ' ID line follows -- this is updated by SVN
-' $Id: UpdatePoFilesFromPotFile.vbs 6039 2008-10-24 21:52:24Z gerundt $
+' $Id: UpdatePoFilesFromPotFile.vbs 6037 2008-10-23 22:40:29Z gerundt $
 
 Const ForReading = 1
 

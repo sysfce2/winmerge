@@ -4,21 +4,18 @@
  * @brief Implementation file for ByteCompare
  */
 // ID line follows -- this is updated by SVN
-// $Id: ByteCompare.cpp 5416 2008-06-03 15:37:48Z kimmov $
+// $Id: ByteCompare.cpp 6084 2008-11-12 16:56:01Z kimmov $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include <io.h>
 #include "FileLocation.h"
 #include "UnicodeString.h"
 #include "IAbortable.h"
 #include "CompareOptions.h"
-#include "FilterList.h"
 #include "DiffContext.h"
-#include "FileTransform.h"
-#include "diff.h"
+#include "DIFF.H"
 #include "ByteComparator.h"
 #include "ByteCompare.h"
-#include "DiffFileData.h"
 
 namespace CompareEngines
 {
@@ -77,7 +74,7 @@ void ByteCompare::ClearCompareOptions()
  * @brief Set compare-type specific options.
  * @param [in] stopAfterFirstDiff Do we stop compare after first found diff.
  */
-void ByteCompare::SetAdditionalOptions(BOOL stopAfterFirstDiff)
+void ByteCompare::SetAdditionalOptions(bool stopAfterFirstDiff)
 {
 	m_pOptions->m_bStopAfterFirstDiff = stopAfterFirstDiff;
 }
@@ -119,6 +116,7 @@ int ByteCompare::CompareFiles(FileLocation *location)
 	// We could compare directly in UCS-2LE here, as an optimization, in that case
 	char buff[2][WMCMPBUFF]; // buffered access to files
 	int i;
+	int result;
 	UINT diffcode = 0;
 
 	// area of buffer currently holding data
@@ -152,7 +150,7 @@ int ByteCompare::CompareFiles(FileLocation *location)
 		{
 			if (!eof[i] && bfstart[i]==countof(buff[i]))
 			{
-				bfstart[i]=bfend[i] = 0;
+				bfstart[i] = bfend[i] = 0;
 			}
 			if (!eof[i] && bfend[i]<countof(buff[i])-1)
 			{
@@ -172,22 +170,24 @@ int ByteCompare::CompareFiles(FileLocation *location)
 			}
 		}
 		// where to start comparing right now
-		LPCSTR ptr0 = &buff[0][bfstart[0]];
-		LPCSTR ptr1 = &buff[1][bfstart[1]];
+		const char* ptr0 = &buff[0][bfstart[0]];
+		const char* ptr1 = &buff[1][bfstart[1]];
 
 		// remember where we started
-		LPCSTR orig0 = ptr0, orig1 = ptr1;
+		const char* orig0 = ptr0;
+		const char* orig1 = ptr1;
 
 		// how far can we go right now?
-		LPCSTR end0 = &buff[0][bfend[0]];
-		LPCSTR end1 = &buff[1][bfend[1]];
+		const char* end0 = &buff[0][bfend[0]];
+		const char* end1 = &buff[1][bfend[1]];
 
 		__int64 offset0 = (ptr0 - &buff[0][0]);
 		__int64 offset1 = (ptr1 - &buff[1][0]);
 
 		// are these two buffers the same?
-		if (!comparator.CompareBuffers(m_textStats[0], m_textStats[1], 
-			ptr0, ptr1, end0, end1, eof[0], eof[1], offset0, offset1))
+		result = comparator.CompareBuffers(m_textStats[0], m_textStats[1],
+			ptr0, ptr1, end0, end1, eof[0], eof[1], offset0, offset1);
+		if (result == ByteComparator::RESULT_DIFF)
 		{
 			if (m_pOptions->m_bStopAfterFirstDiff)
 			{
@@ -200,19 +200,70 @@ int ByteCompare::CompareFiles(FileLocation *location)
 				diffcode |= DIFFCODE::DIFF;
 				ptr0 = end0;
 				ptr1 = end1;
+				// move our current pointers over what we just compared
+				ASSERT(ptr0 >= orig0);
+				ASSERT(ptr1 >= orig1);
+				bfstart[0] += ptr0 - orig0;
+				bfstart[1] += ptr1 - orig1;
 			}
 		}
-		else
+		else if (result == ByteComparator::NEED_MORE_0)
 		{
-			ptr0 = end0;
-			ptr1 = end1;
+			const int m = ptr0 - &buff[0][0];
+			const int l = end0 - ptr0;
+			//move uncompared data to begin of buff0
+			memcpy( &buff[0][0], &buff[0][m], l );
+			bfstart[0] = 0;
+			bfstart[1] = ptr1 - orig1;
+			bfend[0] = l;
+		}
+		else if (result == ByteComparator::NEED_MORE_1)
+		{
+			const int m = ptr1 - &buff[1][0];
+			const int l = end1 - ptr1;
+			//move uncompared data to begin of buff1
+			memcpy( &buff[1][0], &buff[1][m], l );
+			bfstart[1]=0;
+			bfstart[0]=ptr0 - orig0;
+			bfend[1] = l;
+		}
+		else if (result == ByteComparator::NEED_MORE_BOTH)
+		{
+			if ((end0 == ptr0) && (end1 == ptr1))
+			{
+				bfstart[0] = ptr0 - orig0;
+				bfend[0] = 0;
+				bfstart[1] = ptr1 - orig1;
+				bfend[1] = 0;
+			}
+			else
+			{
+				if (ptr0 < end0)
+				{
+					const int m = ptr0 - orig0;
+					const int l = end0 - ptr0;
+					//move uncompared data to begin of buff0
+					memcpy( &buff[0][0], &buff[0][m], l );
+					bfstart[0] = 0;
+					bfend[0] = l;
+				}
+				if (ptr1 < end1)
+				{
+					const int m = ptr1 - orig1;
+					const int l = end1 - ptr1;
+					//move uncompared data to begin of buff1
+					memcpy( &buff[1][0], &buff[1][ m], l );
+					bfstart[1] = 0;
+					bfend[1] = l;
+				}
+			}
 		}
 
-
-		// did we finish both files?
+		// Did we finish both files?
+		// We set the text/binary status only for fully compared files. Only
+		// then the result is reliable.
 		if (eof[0] && eof[1])
 		{
-
 			BOOL bBin0 = (m_textStats[0].nzeros>0);
 			BOOL bBin1 = (m_textStats[1].nzeros>0);
 
@@ -222,22 +273,17 @@ int ByteCompare::CompareFiles(FileLocation *location)
 				diffcode |= DIFFCODE::BINSIDE1;
 			else if (bBin1)
 				diffcode |= DIFFCODE::BINSIDE2;
+			else
+				diffcode |= DIFFCODE::TEXT;
 
 			// If either unfinished, they differ
 			if (ptr0 != end0 || ptr1 != end1)
 				diffcode = (diffcode & DIFFCODE::DIFF);
-			
 			if (diffcode & DIFFCODE::DIFF)
 				return diffcode | DIFFCODE::DIFF;
 			else
 				return diffcode | DIFFCODE::SAME;
 		}
-
-		// move our current pointers over what we just compared
-		ASSERT(ptr0 >= orig0);
-		ASSERT(ptr1 >= orig1);
-		bfstart[0] += ptr0-orig0;
-		bfstart[1] += ptr1-orig1;
 	}
 	return diffcode;
 }

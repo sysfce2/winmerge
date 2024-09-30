@@ -20,7 +20,7 @@
  * @brief Implementation file for ConfirmFolderCopyDlg dialog
  */
 // ID line follows -- this is updated by SVN
-// $Id: ConfirmFolderCopyDlg.cpp 5711 2008-07-31 19:35:03Z kimmov $
+// $Id: ConfirmFolderCopyDlg.cpp 5670 2008-07-24 08:12:11Z kimmov $
 
 #include "stdafx.h"
 #include "Merge.h"

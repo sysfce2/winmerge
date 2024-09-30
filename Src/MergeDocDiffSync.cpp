@@ -5,9 +5,9 @@
  *
  */
 // RCS ID line follows -- this is updated by CVS
-// $Id: MergeDocDiffSync.cpp 5459 2008-06-10 16:49:30Z kimmov $
+// $Id: MergeDocDiffSync.cpp 5755 2008-08-08 02:24:18Z marcelgosselin $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include <vector>
 #include "MergeDoc.h"
 
@@ -21,7 +21,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-using namespace std;
+using std::vector;
 
 /**
  * @brief Divide diff blocks to match lines in diff blocks.

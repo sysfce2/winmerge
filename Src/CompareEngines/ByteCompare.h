@@ -4,17 +4,18 @@
  * @brief Declaration file for ByteCompare
  */
 // ID line follows -- this is updated by SVN
-// $Id: ByteCompare.h 5027 2008-02-11 21:17:11Z sdottaka $
+// $Id: ByteCompare.h 5907 2008-09-07 03:00:54Z marcelgosselin $
 
 #ifndef _BYTE_COMPARE_H_
 #define _BYTE_COMPARE_H_
 
-#include "UnicodeString.h"
 #include "FileTextStats.h"
 
+class CompareOptions;
 class QuickCompareOptions;
 class IAbortable;
 struct FileLocation;
+struct file_data;
 
 namespace CompareEngines
 {
@@ -27,7 +28,7 @@ public:
 
 	bool SetCompareOptions(const CompareOptions & options);
 	void ClearCompareOptions();
-	void SetAdditionalOptions(BOOL stopAfterFirstDiff);
+	void SetAdditionalOptions(bool stopAfterFirstDiff);
 	void SetAbortable(const IAbortable * piAbortable);
 	void SetFileData(int items, file_data *data);
 	int CompareFiles(FileLocation *location);

@@ -4,7 +4,7 @@
  * @brief Declaration file for ByteComparator class.
  */
 // ID line follows -- this is updated by SVN
-// $Id: ByteComparator.h 4455 2007-08-21 14:11:04Z kimmov $
+// $Id: ByteComparator.h 6054 2008-10-30 22:20:44Z kimmov $
 
 #ifndef ByteComparator_h_included
 #define ByteComparator_h_included
@@ -41,8 +41,12 @@ public:
 	} COMP_RESULT;
 
 	COMP_RESULT CompareBuffers(FileTextStats & stats0, FileTextStats & stats1,
-		LPCSTR &ptr0, LPCSTR &ptr1, LPCSTR end0, LPCSTR end1, bool eof0, bool eof1,
-		__int64 offset0, __int64 offset1);
+		const char* &ptr0, const char* &ptr1, const char* end0, const char* end1,
+		bool eof0, bool eof1, __int64 offset0, __int64 offset1);
+
+protected:
+	void HandleSide0Eol(char **ptr, const char *end, bool eof);
+	void HandleSide1Eol(char **ptr, const char *end, bool eof);
 
 private:
 	// settings

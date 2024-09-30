@@ -24,15 +24,13 @@
  *  @brief Declaration file for VBS Scriptlets, VB ActiveX DLL, VC++ COM DLL
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: Plugins.h 5492 2008-06-17 08:18:40Z kimmov $
+// $Id: Plugins.h 5636 2008-07-18 19:22:29Z kimmov $
 
 #ifndef __PLUGINS_H__
 #define __PLUGINS_H__
 
 #include <vector>
 #include "FileFilterMgr.h"
-
-class CRegExp;
 
 extern enum TRANSFORMATION_CATEGORY;
 
@@ -67,8 +65,8 @@ public:
 	String      m_filepath;
 	LPDISPATCH  m_lpDispatch;
 	String      m_name; // usually filename, except for special cases (like auto or no)
-	CString     m_filtersText;
-	CString     m_description;
+	String      m_filtersText;
+	String      m_description;
 	BOOL        m_bUnicodeMode;
 	BOOL        m_bAutomatic;
 	std::vector<FileFilterElement*> *m_filters;

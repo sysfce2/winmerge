@@ -6,7 +6,7 @@
  * @date  Created: 2003-08-22
  */
 // line follows -- this is updated by SVN
-// $Id: DiffFileData.cpp 5580 2008-07-09 09:17:38Z kimmov $
+// $Id: DiffFileData.cpp 5577 2008-07-08 23:10:58Z kimmov $
 
 #include "stdafx.h"
 #include "io.h"
@@ -237,7 +237,6 @@ bool DiffFileData::Filepath_Transform(FileLocation & fpenc, const String & filep
 	}
 	return true;
 }
-
 
 
 

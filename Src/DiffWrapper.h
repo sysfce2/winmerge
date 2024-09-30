@@ -22,7 +22,7 @@
  * @date  Created: 2003-08-22
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffWrapper.h 5647 2008-07-21 09:41:45Z kimmov $
+// $Id: DiffWrapper.h 5795 2008-08-13 04:12:20Z marcelgosselin $
 
 #ifndef _DIFFWRAPPER_H
 #define _DIFFWRAPPER_H
@@ -155,8 +155,8 @@ public:
 	void SetPrediffer(PrediffingInfo * prediffer =NULL);
 	void GetPrediffer(PrediffingInfo * prediffer);
 	void SetPatchOptions(const PATCHOPTIONS *options);
-	void SetDetectMovedBlocks(BOOL bDetectMovedBlocks);
-	BOOL GetDetectMovedBlocks() { return (m_pMovedLines != NULL); }
+	void SetDetectMovedBlocks(bool bDetectMovedBlocks);
+	bool GetDetectMovedBlocks() { return (m_pMovedLines != NULL); }
 	BOOL SetAppendFiles(BOOL bAppendFiles);
 	void SetPaths(const String &filepath1, const String &filepath2, BOOL tempPaths);
 	void SetAlternativePaths(const String &altPath1, const String &altPath2);

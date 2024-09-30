@@ -20,7 +20,7 @@
  * @brief Declaration file for CDiffThread
  */
 // ID line follows -- this is updated by SVN
-// $Id: DiffThread.h 5646 2008-07-20 16:22:24Z jtuc $
+// $Id: DiffThread.h 5576 2008-07-07 16:35:48Z jtuc $
 
 #ifndef _DIFFTHREAD_H
 #define _DIFFTHREAD_H

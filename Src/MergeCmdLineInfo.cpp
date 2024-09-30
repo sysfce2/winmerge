@@ -27,7 +27,7 @@
  */
 
 // ID line follows -- this is updated by SVN
-// $Id: MergeCmdLineInfo.cpp 6248 2008-12-27 09:55:14Z kimmov $
+// $Id: MergeCmdLineInfo.cpp 6247 2008-12-27 09:49:04Z kimmov $
 
 #include "StdAfx.h"
 

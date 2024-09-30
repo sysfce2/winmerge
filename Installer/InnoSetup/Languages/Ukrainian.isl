@@ -327,7 +327,6 @@
 
    ;Components
    AppCoreFiles=Файли ядра WinMerge
-   ApplicationRuntimes=Application Runtimes
    Filters=Фільтри
    Plugins=Плагіни
 
@@ -367,15 +366,12 @@
    IntegrateTortoiseCVS=Інтегруватися в &TortoiseCVS
    IntegrateTortoiseSVN=Інтегруватися в T&ortoiseSVN
    IntegrateClearCase=Інтегруватися в Rational &ClearCase
-   IntegrateDelphi4=Підтримка бінарних файлів Borland® Delphi &4
-   UpdatingCommonControls=Оновлення загального контролю за системою
+   AddToPath=&Add WinMerge folder to your system path
 
    ;Icon Labels
    ReadMe=Прочитати Read Me
    UsersGuide=Довідка користувача
-   UpdatingCommonControls=Оновити загальний контроль за системою
    ViewStartMenuFolder=&Відкрити папку WinMerge в стартовому меню
-   PluginsText=Плагіни
 
    ;Code Dialogs
    DeletePreviousStartMenu=Програма встановлення виявила, що ви змінили розташування вашого стартового меню з  "%s" до "%s". Ви хотіли б вилучити попередню папку стартового меню?

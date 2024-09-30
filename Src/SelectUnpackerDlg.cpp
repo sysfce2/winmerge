@@ -18,9 +18,13 @@
 //    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 //
 /////////////////////////////////////////////////////////////////////////////
-// SelectUnpackerDlg.cpp : implementation file
-//
-// $Id: SelectUnpackerDlg.cpp 5492 2008-06-17 08:18:40Z kimmov $
+/**
+ * @file  SelectUnpackerDlg.cpp
+ *
+ * @brief Unpacker plugin selection dialog implementation.
+ */
+// ID line follows -- this is updated by SVN
+// $Id: SelectUnpackerDlg.cpp 5636 2008-07-18 19:22:29Z kimmov $
 //
 
 #include "stdafx.h"
@@ -56,8 +60,8 @@ void CSelectUnpackerDlg::Initialize()
 	automaticPlugin = new PluginInfo;
 	automaticPlugin->m_lpDispatch = NULL;
 	automaticPlugin->m_filters = NULL;
-	automaticPlugin->m_name = theApp.LoadString(IDS_USERCHOICE_AUTOMATIC);
-	automaticPlugin->m_description = theApp.LoadString(ID_UNPACK_AUTO).c_str();
+	automaticPlugin->m_name = LoadResString(IDS_USERCHOICE_AUTOMATIC);
+	automaticPlugin->m_description = LoadResString(ID_UNPACK_AUTO);
 
 	m_pPlugin = noPlugin;
 
@@ -264,8 +268,8 @@ void CSelectUnpackerDlg::OnSelchangeUnpackerName()
 	}
 
 	m_strPluginName = m_pPlugin->m_name.c_str();
-	m_strDescription = m_pPlugin->m_description;
-	m_strExtensions = m_pPlugin->m_filtersText;
+	m_strDescription = m_pPlugin->m_description.c_str();
+	m_strExtensions = m_pPlugin->m_filtersText.c_str();
 
 	UpdateData (FALSE);
 }

@@ -4,7 +4,7 @@
  * @brief Declaration file for PluginsList dialog
  */
 // ID line follows -- this is updated by SVN
-// $Id: PluginsListDlg.h 5647 2008-07-21 09:41:45Z kimmov $
+// $Id: PluginsListDlg.h 5639 2008-07-19 11:07:44Z kimmov $
 
 #ifndef _PLUGINS_LIST_DIALOG_H_
 #define _PLUGINS_LIST_DIALOG_H_

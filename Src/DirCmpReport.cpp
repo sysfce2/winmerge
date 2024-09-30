@@ -5,7 +5,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirCmpReport.cpp 5815 2008-08-17 17:33:10Z sdottaka $
+// $Id: DirCmpReport.cpp 5652 2008-07-21 16:16:54Z jtuc $
 //
 
 #include "stdafx.h"
@@ -434,5 +434,4 @@ void DirCmpReport::GenerateXmlFooter()
 {
 	WriteString(_T("</WinMergeDiffReport>\n"));
 }
-
 

@@ -4,9 +4,9 @@
  * @brief Implementation of the MDITabBar class
  */
 // ID line follows -- this is updated by SVN
-// $Id: MDITabBar.cpp 4874 2008-01-08 17:41:18Z kimmov $
+// $Id: MDITabBar.cpp 5911 2008-09-07 03:30:21Z marcelgosselin $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "MDITabBar.h"
 
 #ifdef _DEBUG

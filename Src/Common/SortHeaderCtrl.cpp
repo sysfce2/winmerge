@@ -4,10 +4,10 @@
  *  @brief Implementation of CSortHeaderCtrl
  */ 
 // RCS ID line follows -- this is updated by CVS
-// $Id: SortHeaderCtrl.cpp 4279 2007-05-13 01:19:50Z sdottaka $
+// $Id: SortHeaderCtrl.cpp 5911 2008-09-07 03:30:21Z marcelgosselin $
 //////////////////////////////////////////////////////////////////////
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "SortHeaderCtrl.h"
 #include "dllver.h"
 

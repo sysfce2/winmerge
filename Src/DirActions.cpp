@@ -8,7 +8,7 @@
  *  @brief Implementation of methods of CDirView that copy/move/delete files
  */
 // ID line follows -- this is updated by SVN
-// $Id: DirActions.cpp 6122 2008-11-26 10:56:08Z kimmov $
+// $Id: DirActions.cpp 6535 2009-03-05 16:13:21Z kimmov $
 
 // It would be nice to make this independent of the UI (CDirView)
 // but it needs access to the list of selected items.
@@ -271,8 +271,23 @@ void CDirView::DoCopyRightToLeft()
 			}
 
 			FileActionItem act;
+			String sDest(slFile);
+
+			if (GetDocument()->GetRecursive())
+			{
+				// If destination sides's relative path is empty it means we
+				// are copying unique items and need to get the real relative
+				// path from original side.
+				if (di.left.path.empty())
+				{
+					sDest = GetDocument()->GetLeftBasePath();
+					sDest = paths_ConcatPath(sDest, di.right.path);
+					sDest = paths_ConcatPath(sDest, di.right.filename);
+				}
+			}
+
 			act.src = srFile;
-			act.dest = slFile;
+			act.dest = sDest;
 			act.context = sel;
 			act.dirflag = di.diffcode.isDirectory();
 			act.atype = actType;
@@ -317,8 +332,23 @@ void CDirView::DoCopyLeftToRight()
 			}
 
 			FileActionItem act;
+			String sDest(srFile);
+
+			if (GetDocument()->GetRecursive())
+			{
+				// If destination sides's relative path is empty it means we
+				// are copying unique items and need to get the real relative
+				// path from original side.
+				if (di.right.path.empty())
+				{
+					sDest = GetDocument()->GetRightBasePath();
+					sDest = paths_ConcatPath(sDest, di.left.path);
+					sDest = paths_ConcatPath(sDest, di.left.filename);
+				}
+			}
+
 			act.src = slFile;
-			act.dest = srFile;
+			act.dest = sDest;
 			act.dirflag = di.diffcode.isDirectory();
 			act.context = sel;
 			act.atype = actType;
@@ -557,11 +587,12 @@ void CDirView::DoDelAll()
 void CDirView::DoCopyLeftTo()
 {
 	CString destPath;
-	CString startPath;
+	CString startPath(m_lastCopyFolder.c_str());
 
 	if (!SelectFolder(destPath, startPath, IDS_SELECT_DEST_LEFT))
 		return;
 
+	m_lastCopyFolder = destPath;
 	WaitStatusCursor waitstatus(IDS_STATUS_COPYFILES);
 
 	FileActionScript actionScript;
@@ -628,11 +659,12 @@ void CDirView::DoCopyLeftTo()
 void CDirView::DoCopyRightTo()
 {
 	CString destPath;
-	CString startPath;
+	CString startPath(m_lastCopyFolder.c_str());
 
 	if (!SelectFolder(destPath, startPath, IDS_SELECT_DEST_RIGHT))
 		return;
 
+	m_lastCopyFolder = destPath;
 	WaitStatusCursor waitstatus(IDS_STATUS_COPYFILES);
 
 	FileActionScript actionScript;
@@ -699,11 +731,12 @@ void CDirView::DoCopyRightTo()
 void CDirView::DoMoveLeftTo()
 {
 	CString destPath;
-	CString startPath;
+	CString startPath(m_lastCopyFolder.c_str());
 
 	if (!SelectFolder(destPath, startPath, IDS_SELECT_DEST_LEFT))
 		return;
 
+	m_lastCopyFolder = destPath;
 	WaitStatusCursor waitstatus(IDS_STATUS_MOVEFILES);
 
 	FileActionScript actionScript;
@@ -768,11 +801,12 @@ void CDirView::DoMoveLeftTo()
 void CDirView::DoMoveRightTo()
 {
 	CString destPath;
-	CString startPath;
+	CString startPath(m_lastCopyFolder.c_str());
 
 	if (!SelectFolder(destPath, startPath, IDS_SELECT_DEST_RIGHT))
 		return;
 
+	m_lastCopyFolder = destPath;
 	WaitStatusCursor waitstatus(IDS_STATUS_MOVEFILES);
 
 	FileActionScript actionScript;
@@ -997,7 +1031,7 @@ void CDirView::UpdateAfterFileScript(FileActionScript & actionList)
 		// Start handling from tail of list, so removing items
 		// doesn't invalidate our item indexes.
 		FileActionItem act = actionList.RemoveTailActionItem();
-		POSITION diffpos = GetItemKey(act.context);
+		UINT_PTR diffpos = GetItemKey(act.context);
 		DIFFCODE diffcode = pDoc->GetDiffByKey(diffpos).diffcode;
 		BOOL bUpdateLeft = FALSE;
 		BOOL bUpdateRight = FALSE;
@@ -1157,10 +1191,21 @@ BOOL CDirView::IsItemDeletableOnBoth(const DIFFITEM & di) const
  */
 BOOL CDirView::IsItemOpenable(const DIFFITEM & di) const
 {
-	if (!di.diffcode.isDirectory() &&
-		(di.diffcode.isSideRightOnly() || di.diffcode.isSideLeftOnly()))
+	if (m_bTreeMode && GetDocument()->GetRecursive())
 	{
-		return FALSE;
+		if (di.diffcode.isDirectory() ||
+			(di.diffcode.isSideRightOnly() || di.diffcode.isSideLeftOnly()))
+		{
+			return FALSE;
+		}
+	}
+	else 
+	{
+		if (!di.diffcode.isDirectory() &&
+			(di.diffcode.isSideRightOnly() || di.diffcode.isSideLeftOnly()))
+		{
+			return FALSE;
+		}
 	}
 	return TRUE;
 }
@@ -1261,8 +1306,8 @@ String CDirView::GetSelectedFileName(SIDE_TYPE stype) const
  */
 void CDirView::GetItemFileNames(int sel, String& strLeft, String& strRight) const
 {
-	POSITION diffpos = GetItemKey(sel);
-	if (diffpos == (POSITION)SPECIAL_ITEM_POS)
+	UINT_PTR diffpos = GetItemKey(sel);
+	if (diffpos == (UINT_PTR)SPECIAL_ITEM_POS)
 	{
 		strLeft.empty();
 		strRight.empty();
@@ -1578,7 +1623,7 @@ BOOL CDirView::DoItemRename(LPCTSTR szNewItemName)
 		return FALSE;
 	}
 
-	POSITION key = GetItemKey(nSelItem);
+	UINT_PTR key = GetItemKey(nSelItem);
 	ASSERT(key != SPECIAL_ITEM_POS);
 	ASSERT(&di == &GetDocument()->GetDiffRefByKey(key));
 

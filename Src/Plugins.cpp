@@ -24,7 +24,7 @@
  *  @brief Support for VBS Scriptlets, VB ActiveX DLL, VC++ COM DLL
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: Plugins.cpp 5492 2008-06-17 08:18:40Z kimmov $
+// $Id: Plugins.cpp 5755 2008-08-08 02:24:18Z marcelgosselin $
 
 #include "StdAfx.h"
 #include <afxmt.h>
@@ -50,7 +50,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-using namespace std;
+using std::vector;
 
 static CStringArray theScriptletList;
 /// Need to lock the *.sct so the user can't delete them
@@ -269,7 +269,7 @@ void PluginInfo::LoadFilterString()
 {
 	m_filters = new vector<FileFilterElement*>;
 
-	CString sLine = m_filtersText;
+	CString sLine(m_filtersText.c_str());
 	CString sPiece;
 
 	while(1)
@@ -372,6 +372,8 @@ struct ScriptInfo
  */
 static int LoadPlugin(PluginInfo & plugin, const CString & scriptletFilepath, LPCWSTR transformationEvent)
 {
+	USES_CONVERSION;
+
 	// set up object in case we need to log info
 	ScriptInfo scinfo(scriptletFilepath, transformationEvent);
 
@@ -461,7 +463,7 @@ static int LoadPlugin(PluginInfo & plugin, const CString & scriptletFilepath, LP
 			scinfo.Log(_T("Plugin had PluginDescription property, but error getting its value"));
 			return -60; // error (Plugin had PluginDescription property, but error getting its value)
 		}
-		plugin.m_description = ret.bstrVal;
+		plugin.m_description = OLE2T(ret.bstrVal);
 	}
 	else
 	{
@@ -480,13 +482,13 @@ static int LoadPlugin(PluginInfo & plugin, const CString & scriptletFilepath, LP
 			scinfo.Log(_T("Plugin had PluginFileFilters property, but error getting its value"));
 			return -70; // error (Plugin had PluginFileFilters property, but error getting its value)
 		}
-		plugin.m_filtersText= ret.bstrVal;
+		plugin.m_filtersText = OLE2T(ret.bstrVal);
 		hasPluginFileFilters = true;
 	}
 	else
 	{
 		plugin.m_bAutomatic = FALSE;
-		plugin.m_filtersText = ".";
+		plugin.m_filtersText = _T(".");
 	}
 	VariantClear(&ret);
 

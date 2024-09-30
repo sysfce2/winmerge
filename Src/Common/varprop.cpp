@@ -4,10 +4,10 @@
  *  @brief Implementation of generic named property classes
  */ 
 // ID line follows -- this is updated by SVN
-// $Id: varprop.cpp 4979 2008-01-31 16:15:30Z kimmov $
+// $Id: varprop.cpp 5911 2008-09-07 03:30:21Z marcelgosselin $
 //////////////////////////////////////////////////////////////////////
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "varprop.h"
 
 #ifdef _DEBUG

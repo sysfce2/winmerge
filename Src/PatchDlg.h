@@ -20,7 +20,7 @@
  * @brief Declaration file for patch creation dialog
  */
 // ID line follows -- this is updated by SVN
-// $Id: PatchDlg.h 5067 2008-02-22 15:48:03Z kimmov $
+// $Id: PatchDlg.h 5786 2008-08-11 03:28:03Z marcelgosselin $
 
 #if !defined(AFX_PATCHDLG_H__AB3CE671_1328_11D7_B088_005004D9D386__INCLUDED_)
 #define AFX_PATCHDLG_H__AB3CE671_1328_11D7_B088_005004D9D386__INCLUDED_
@@ -45,11 +45,9 @@ public:
 	CPatchDlg(CWnd* pParent = NULL);   // standard constructor
 	
 	// Functions to add and get selected files (as PATCHFILEs)
-	void AddItem(PATCHFILES pf);
+	void AddItem(const PATCHFILES& pf);
 	int GetItemCount();
-	POSITION GetFirstItem();
-	PATCHFILES GetNextItem(POSITION &pos);
-	void SetItemAt(POSITION pos, PATCHFILES pf);
+    const PATCHFILES& GetItemAt(int position);
 	void ClearItems();
 
 // Dialog Data
@@ -84,7 +82,7 @@ public:
 // Implementation
 protected:
 
-	CList<PATCHFILES, PATCHFILES&> m_fileList; /**< Source files to create patch from */
+    std::vector<PATCHFILES> m_fileList; /**< Source files to create patch from */
 	
 	void ChangeFile(const CString &sFile, BOOL bLeft);
 	void UpdateSettings();

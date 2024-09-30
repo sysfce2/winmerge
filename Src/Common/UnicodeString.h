@@ -22,7 +22,7 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: UnicodeString.h 5057 2008-02-19 21:02:22Z kimmov $
+// $Id: UnicodeString.h 6063 2008-11-04 20:07:22Z kimmov $
 
 #ifndef _UNICODE_STRING_
 #define _UNICODE_STRING_
@@ -41,5 +41,8 @@ void string_replace(String &target, const String &find, const String &replace);
 
 // Comparing
 int string_compare_nocase(const String &str1, const String &str2);
+
+// Trimming
+String string_trim_ws(const String & str);
 
 #endif // _UNICODE_STRING_

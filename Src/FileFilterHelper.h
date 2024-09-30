@@ -19,8 +19,8 @@
  *
  * @brief Declaration file for FileFilterHelper
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: FileFilterHelper.h 4619 2007-10-14 08:50:20Z jtuc $
+// ID line follows -- this is updated by SVN
+// $Id: FileFilterHelper.h 6069 2008-11-04 23:04:18Z kimmov $
 
 #ifndef _FILEFILTERHELPER_H_
 #define _FILEFILTERHELPER_H_
@@ -102,13 +102,13 @@ public:
 	String GetGlobalFilterPathWithCreate() const;
 	String GetUserFilterPathWithCreate() const;
 
-	FileFilterMgr * GetManager();
+	FileFilterMgr * GetManager() const;
 	void SetFileFilterPath(LPCTSTR szFileFilterPath);
 	void EditFileFilter(LPCTSTR szFileFilterPath);
 	void GetFileFilters(FILEFILTER_INFOLIST * filters, CString & selected) const;
 	CString GetFileFilterName(LPCTSTR filterPath) const;
 	CString GetFileFilterPath(LPCTSTR filterName) const;
-	void SetUserFilterPath(const CString & filterPath);
+	void SetUserFilterPath(const String & filterPath);
 
 	void ReloadUpdatedFilters();
 	void LoadAllFileFilters();
@@ -119,17 +119,15 @@ public:
 	void UseMask(BOOL bUseMask);
 	void SetMask(LPCTSTR strMask);
 
-	BOOL IsUsingMask();
-	CString GetFilterNameOrMask();
-	BOOL SetFilter(CString filter);
+	BOOL IsUsingMask() const;
+	CString GetFilterNameOrMask() const;
+	BOOL SetFilter(const String &filter);
 
 	BOOL includeFile(LPCTSTR szFileName);
 	BOOL includeDir(LPCTSTR szDirName);
 
 protected:
-	CString ParseExtensions(CString extensions);
-	void TestCandidateFilterPath(const CString & sPath);
-
+	CString ParseExtensions(CString extensions) const;
 
 private:
 	FilterList * m_pMaskFilter;       /*< Filter for filemasks (*.cpp) */

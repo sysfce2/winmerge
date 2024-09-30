@@ -5,9 +5,9 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: stringdiffs.cpp 5459 2008-06-10 16:49:30Z kimmov $
+// $Id: stringdiffs.cpp 6358 2009-01-22 18:49:30Z kimmov $
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include <vector>
 #include <mbctype.h>
 #include "UnicodeString.h"
@@ -21,7 +21,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-using namespace std;
+using std::vector;
 
 static bool isSafeWhitespace(TCHAR ch);
 static bool isWordBreak(int breakType, TCHAR ch);
@@ -63,8 +63,8 @@ stringdiffs::stringdiffs(const String & str1, const String & str2,
 }
 
 /**
- * @bried Destructor.
- * The desctuctor frees all diffs added to the vectors.
+ * @brief Destructor.
+ * The destructor frees all diffs added to the vectors.
  */
 stringdiffs::~stringdiffs()
 {

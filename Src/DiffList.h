@@ -19,11 +19,13 @@
  *
  * @brief Declaration file for DiffList class
  */
-// RCS ID line follows -- this is updated by CVS
-// $Id: DiffList.h 3936 2006-12-10 14:26:56Z sdottaka $
+// ID line follows -- this is updated by SVN
+// $Id: DiffList.h 6369 2009-01-23 15:42:56Z kimmov $
 
 #ifndef _DIFFLIST_H_
 #define _DIFFLIST_H_
+
+#include <vector>
 
 /**
  * @brief One difference defined by linenumbers.
@@ -50,6 +52,7 @@ struct DIFFRANGE
 	int blank1;		/**< Number of blank lines in file2 */
 	BYTE op;		/**< Operation done with this diff */
 	DIFFRANGE() { memset(this, 0, sizeof(*this)); }
+	void swap_sides();
 };
 
 /**
@@ -133,15 +136,16 @@ public:
 	int GetSize() const;
 	int GetSignificantDiffs() const;
 	void AddDiff(const DIFFRANGE & di);
-	BOOL IsDiffSignificant(int nDiff) const;
-	BOOL GetDiff(int nDiff, DIFFRANGE & di) const;
-	BOOL SetDiff(int nDiff, const DIFFRANGE & di);
+	bool IsDiffSignificant(int nDiff) const;
+	int GetSignificantIndex(int nDiff) const;
+	bool GetDiff(int nDiff, DIFFRANGE & di) const;
+	bool SetDiff(int nDiff, const DIFFRANGE & di);
 	int LineRelDiff(UINT nLine, UINT nDiff) const;
-	BOOL LineInDiff(UINT nLine, UINT nDiff) const;
+	bool LineInDiff(UINT nLine, UINT nDiff) const;
 	int LineToDiff(UINT nLine) const;
-	BOOL GetPrevDiff(int nLine, int & nDiff) const;
-	BOOL GetNextDiff(int nLine, int & nDiff) const;
-	BOOL HasSignificantDiffs() const;
+	bool GetPrevDiff(int nLine, int & nDiff) const;
+	bool GetNextDiff(int nLine, int & nDiff) const;
+	bool HasSignificantDiffs() const;
 	int PrevSignificantDiffFromLine(UINT nLine) const;
 	int NextSignificantDiffFromLine(UINT nLine) const;
 	int FirstSignificantDiff() const;
@@ -158,7 +162,7 @@ public:
 	void GetExtraLinesCounts(int &nLeftLines, int &nRightLines);
 
 private:
-	CArray<DiffRangeInfo,DiffRangeInfo> m_diffs; /**< Difference list */
+	std::vector<DiffRangeInfo> m_diffs; /**< Difference list. */
 	int m_firstSignificant; /**< Index of first significant diff in m_diffs */
 	int m_lastSignificant; /**< Index of last significant diff in m_diffs */
 };

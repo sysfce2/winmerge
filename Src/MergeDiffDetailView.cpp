@@ -6,13 +6,13 @@
  *
  */
 // ID line follows -- this is updated by SVN
-// $Id: MergeDiffDetailView.cpp 5952 2008-09-14 12:47:59Z sdottaka $
+// $Id: MergeDiffDetailView.cpp 6750 2009-05-14 14:34:10Z kimmov $
 //
 //////////////////////////////////////////////////////////////////////
 
-#include "stdafx.h"
+#include "StdAfx.h"
 #include <vector>
-#include "merge.h"
+#include "Merge.h"
 #include "MergeDiffDetailView.h"
 #include "MergeDoc.h"
 #include "MainFrm.h"
@@ -30,7 +30,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-using namespace std;
+using std::vector;
 
 static const UINT NROWS_INIT = 4;
 
@@ -383,8 +383,8 @@ BOOL CMergeDiffDetailView::EnsureInDiff(CPoint & pt)
 		pt.x = 0;
 		return TRUE;
 	}
-	// not below diff
-	if (pt.y > m_lineEnd)
+	// diff is defined and not below diff
+	if (m_lineEnd > -1 && pt.y > m_lineEnd)
 	{
 		pt.y = m_lineEnd;
 		pt.x = GetLineLength(pt.y);
@@ -819,7 +819,7 @@ void CMergeDiffDetailView::DocumentsLoaded()
 	SetTabSize(GetOptionsMgr()->GetInt(OPT_TAB_SIZE));
 	SetViewTabs(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE));
 	BOOL bMixedEOL = GetOptionsMgr()->GetBool(OPT_ALLOW_MIXED_EOL) ||
-		GetDocument()->IsMixedEOL();
+		GetDocument()->IsMixedEOL(m_nThisPane);
 	SetViewEols(GetOptionsMgr()->GetBool(OPT_VIEW_WHITESPACE), bMixedEOL);
 	SetWordWrapping(FALSE);
 }

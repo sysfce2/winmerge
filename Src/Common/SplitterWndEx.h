@@ -5,7 +5,7 @@
  * @brief Declaration of CSplitterWndEx class
  */
 // ID line follows -- this is updated by SVN
-// $Id: SplitterWndEx.h 4605 2007-10-11 16:59:10Z kimmov $
+// $Id: SplitterWndEx.h 5772 2008-08-09 08:37:04Z jtuc $
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -30,6 +30,7 @@ public:
 	void EqualizeCols(); 
 
 	virtual void RecalcLayout();
+	CScrollBar* GetScrollBarCtrl(CWnd* pWnd, int nBar) const;
 
 private:
 	BOOL m_bBarLocked;

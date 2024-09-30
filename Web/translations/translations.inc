@@ -87,7 +87,7 @@
         $strings_untranslated = $strings['UNTRANSLATED'][0]['VALUE'];
         
         $temp .= "  <tr>\n";
-        $temp .= "    <td class=\"left\"><a href=\"" . $svnurl . $file_name . "\">" . $language_name . "</a></td>\n";
+        $temp .= "    <td class=\"left\"><a href=\"" . $svnurl . $file_name . "\" rel=\"nofollow\">" . $language_name . "</a></td>\n";
         $temp .= "    <td class=\"center\">" . get_status_graph($strings_count, $strings_translated, $strings_fuzzy, $strings_untranslated) . "</td>\n";
         $temp .= "    <td class=\"right translated\">" . $strings_translated . "</td>\n";
         $temp .= "    <td class=\"right fuzzy\">" . $strings_fuzzy . "</td>\n";
@@ -103,7 +103,7 @@
       }
     }
     $temp .= "  <tr>\n";
-    $temp .= "    <td class=\"left\"><a href=\"" . $svnurl . $english_file_name . "\">English (Template)</a></td>\n";
+    $temp .= "    <td class=\"left\"><a href=\"" . $svnurl . $english_file_name . "\" rel=\"nofollow\">English (Template)</a></td>\n";
     $temp .= "    <td class=\"center\"></td>\n";
     $temp .= "    <td colspan=\"3\" class=\"center\">Total: " . $english_strings_count . "</td>\n";
     $temp .= "    <td class=\"center\">" . $english_translation_update . "</td>\n";
@@ -188,20 +188,25 @@
       $translation = $translations[$i];
       $language_name = $translation['LANGUAGE'][0]['VALUE'];
       if ($language_name != 'English') { //If NOT English...
-        $translators = $translation['TRANSLATORS'][0]['TRANSLATOR'];
+        $translators = @$translation['TRANSLATORS'][0]['TRANSLATOR'];
         
         $temp .= "  <tr>\n";
         $temp .= "    <td class=\"left\">" . $language_name . "</td>\n";
         $temp .= "    <td class=\"left\">";
         for ($j = 0; $j < count($translators); $j++) { //For all translators...
           $translator = $translators[$j];
-          $translator_name = $translator['NAME'][0]['VALUE'];
-          $translator_mail = $translator['MAIL'][0]['VALUE'];
+          $translator_name = @$translator['NAME'][0]['VALUE'];
+          $translator_mail = @$translator['MAIL'][0]['VALUE'];
+          $maintainer = @$translator['ATTRIBUTES']['MAINTAINER'];
           
+          if ($maintainer == '1')
+            $temp .= "<strong title=\"Maintainer\">";
           if ($translator_mail != '')
             $temp .= "<a href=\"mailto:" . $translator_mail . "\" title=\"" . htmlentities($translator_name) . " &lt;" . $translator_mail . "&gt;\">" . htmlentities($translator_name) . "</a>";
           else
             $temp .= $translator_name;
+          if ($maintainer == '1')
+            $temp .= "</strong>";
           $temp .= "<br>";
         }
         $temp .= "</td>\n";
