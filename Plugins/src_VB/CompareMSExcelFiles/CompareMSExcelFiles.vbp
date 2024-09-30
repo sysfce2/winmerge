@@ -1,5 +1,5 @@
 Type=OleDll
-Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\SysWOW64\stdole2.tlb#OLE Automation
+Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\..\..\..\..\WINNT\system32\stdole2.tlb#OLE Automation
 Class=WinMergeScript; WinMergeScript.cls
 Startup="(None)"
 HelpFile=""
@@ -10,15 +10,12 @@ Command32=""
 Name="CompareMSExcelFiles"
 HelpContextID="0"
 CompatibleMode="1"
-CompatibleEXE32="..\..\dlls\CompareMSExcelFiles.dll"
+CompatibleEXE32="CompareMSExcelFiles.dll"
 MajorVer=1
 MinorVer=0
-RevisionVer=3
+RevisionVer=0
 AutoIncrementVer=0
 ServerSupportFiles=0
-VersionFileDescription="WinMerge Plugin for MS-Excel files"
-VersionLegalCopyright="WinMerge"
-VersionProductName="WinMerge CompareMSExcelFiles Plugin"
 CompilationType=0
 OptimizationType=0
 FavorPentiumPro(tm)=0
@@ -37,3 +34,4 @@ MaxNumberOfThreads=1
 
 [MS Transaction Server]
 AutoRefresh=1
+

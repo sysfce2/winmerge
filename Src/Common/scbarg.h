@@ -25,16 +25,13 @@
 // Send bug reports, bug fixes, enhancements, requests, flames, etc. to
 // cristi@datamekanix.com or post them at the message board at the site.
 /////////////////////////////////////////////////////////////////////////
-#pragma once
 
-// MFC 8/VS.NET 2005 has breaking change in OnNcHitTest return value
-#ifndef NCHITTEST_RESULT
-#if _MFC_VER >= 0x0800
-#define NCHITTEST_RESULT LRESULT
-#else
-#define NCHITTEST_RESULT UINT
-#endif
-#endif
+#if !defined(__SCBARG_H__)
+#define __SCBARG_H__
+
+#if _MSC_VER >= 1000
+#pragma once
+#endif // _MSC_VER >= 1000
 
 /////////////////////////////////////////////////////////////////////////
 // CSCBButton (button info) helper class
@@ -45,11 +42,13 @@ public:
     CSCBButton();
 
     void Move(CPoint ptTo) {ptOrg = ptTo; };
+    CRect GetRect() { return CRect(ptOrg, CSize(11, 11)); };
     void Paint(CDC* pDC);
 
-    bool    bPushed;
-    bool    bRaised;
-    const double  dblBoxSize = 8.25;
+    BOOL    bPushed;
+    BOOL    bRaised;
+
+protected:
     CPoint  ptOrg;
 };
 
@@ -70,13 +69,13 @@ public:
 
 // Attributes
 public:
-    virtual bool HasGripper() const;
+    virtual BOOL HasGripper() const;
 
 // Operations
 public:
 
 // Overridables
-    virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler) override;
+    virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);
 
 // Overrides
 public:
@@ -90,20 +89,23 @@ public:
     
 protected:
     // implementation helpers
-    virtual void NcPaintGripper(CDC* pDC, const CRect& rcClient) override;
-    virtual void NcCalcClient(LPRECT pRc, UINT nDockBarID) override;
+    virtual void NcPaintGripper(CDC* pDC, CRect rcClient);
+    virtual void NcCalcClient(LPRECT pRc, UINT nDockBarID);
 
 protected:
-    const double m_dblGripper = 9.0;
+    int     m_cyGripper;
 
     CSCBButton m_biHide;
 
 // Generated message map functions
 protected:
     //{{AFX_MSG(CSizingControlBarG)
-    afx_msg NCHITTEST_RESULT OnNcHitTest(CPoint point);
+    afx_msg UINT OnNcHitTest(CPoint point);
     afx_msg void OnNcLButtonUp(UINT nHitTest, CPoint point);
     //}}AFX_MSG
 
     DECLARE_MESSAGE_MAP()
 };
+
+#endif // !defined(__SCBARG_H__)
+

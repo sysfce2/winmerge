@@ -1,7 +1,21 @@
 /////////////////////////////////////////////////////////////////////////////
 //    WinMerge:  an interactive diff/merge utility
 //    Copyright (C) 1997  Dean P. Grimm
-//    SPDX-License-Identifier: GPL-2.0-or-later
+//
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+//
 /////////////////////////////////////////////////////////////////////////////
 /** 
  * @file  MainFrm.h
@@ -9,215 +23,115 @@
  * @brief Declaration file for CMainFrame
  *
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: MainFrm.h,v 1.105.2.1 2006/02/15 20:20:48 kimmov Exp $
 
-#include <vector>
-#include <memory>
-#include <optional>
-#include "MDITabBar.h"
-#include "PathContext.h"
-#include "OptionsDef.h"
+#if !defined(AFX_MAINFRM_H__BBCD4F8C_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
+#define AFX_MAINFRM_H__BBCD4F8C_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
+
+#include "ToolBarXPThemes.h"
 #include "OptionsMgr.h"
+#include "VSSHelper.h"
+
+#define BACKUP_FILE_EXT   _T(".bak")
+
+/**
+ * @brief Flags used when opening files
+ */
+enum
+{
+	FFILEOPEN_NONE		= 0x0000,
+	FFILEOPEN_NOMRU		= 0x0001, /**< Do not add this path to MRU list */
+	FFILEOPEN_READONLY	= 0x0002, /**< Open this path as read-only */
+	FFILEOPEN_CMDLINE	= 0x0010, /**< Path is read from commandline */
+	FFILEOPEN_PROJECT	= 0x0020, /**< Path is read from project-file */
+};
+
+/**
+ * @brief Supported versioncontrol systems.
+ */
+enum
+{
+	VCS_NONE = 0,
+	VCS_VSS4,
+	VCS_VSS5,
+	VCS_CLEARCASE,
+};
+
+enum { WM_NONINTERACTIVE = 888 }; // timer value
 
 class BCMenu;
+class CDiffView;
 class CDirView;
-class COpenDoc;
 class CDirDoc;
 class CMergeDoc;
-class CHexMergeDoc;
 class CMergeEditView;
+class CMergeDiffDetailView;
 class SyntaxColors;
-class LineFiltersList;
-class TempFile;
-struct FileLocation;
-class DropHandler;
-class CMainFrame;
-class CImgMergeFrame;
-class CWebPageDiffFrame;
-class DirWatcher;
 
-typedef std::shared_ptr<TempFile> TempFilePtr;
 
 // typed lists (homogenous pointer lists)
-typedef CTypedPtrList<CPtrList, COpenDoc *> OpenDocList;
+typedef CTypedPtrList<CPtrList, CMergeEditView *> MergeEditViewList;
+typedef CTypedPtrList<CPtrList, CMergeDiffDetailView *> MergeDetailViewList;
+typedef CTypedPtrList<CPtrList, CDirView *> DirViewList;
 typedef CTypedPtrList<CPtrList, CMergeDoc *> MergeDocList;
 typedef CTypedPtrList<CPtrList, CDirDoc *> DirDocList;
-typedef CTypedPtrList<CPtrList, CHexMergeDoc *> HexMergeDocList;
 
+class CRegOptions;
 class PackingInfo;
-class PrediffingInfo;
-class CLanguageSelect;
-struct IMergeDoc;
-
-CMainFrame * GetMainFrame(); // access to the singleton main frame object
 
 /**
  * @brief Frame class containing save-routines etc
  */
 class CMainFrame : public CMDIFrameWnd
 {
-	friend CLanguageSelect;
 	DECLARE_DYNAMIC(CMainFrame)
 public:
-	/**
-	 * @brief Frame/View/Document types.
-	 */
-	enum FRAMETYPE
-	{
-		FRAME_FOLDER, /**< Folder compare frame. */
-		FRAME_FILE, /**< File compare frame. */
-		FRAME_HEXFILE, /**< Hex file compare frame. */
-		FRAME_IMGFILE, /**< Image file compare frame. */
-		FRAME_WEBPAGE, /**< Web page compare frame. */
-		FRAME_OTHER, /**< No frame? */
-	};
-
-	struct OpenFileParams
-	{
-		virtual ~OpenFileParams() {}
-	};
-
-	struct OpenTextFileParams : public OpenFileParams
-	{
-		virtual ~OpenTextFileParams() {}
-		int m_line = -1;
-		int m_char = -1;
-		String m_fileExt;
-	};
-
-	struct OpenTableFileParams : public OpenTextFileParams
-	{
-		virtual ~OpenTableFileParams() {}
-		std::optional<TCHAR> m_tableDelimiter;
-		std::optional<TCHAR> m_tableQuote;
-		std::optional<bool> m_tableAllowNewlinesInQuotes;
-	};
-
-	struct OpenBinaryFileParams : public OpenFileParams
-	{
-		virtual ~OpenBinaryFileParams() {}
-		int m_address = -1;
-	};
-
-	struct OpenImageFileParams : public OpenFileParams
-	{
-		virtual ~OpenImageFileParams() {}
-		int m_x = -1;
-		int m_y = -1;
-	};
-
-	struct OpenWebPageParams : public OpenFileParams
-	{
-		virtual ~OpenWebPageParams() {}
-	};
-
-	struct OpenAutoFileParams : public OpenTableFileParams, public OpenBinaryFileParams, public OpenImageFileParams
-	{
-		virtual ~OpenAutoFileParams() {}
-	};
-
-	struct OpenFolderParams : public OpenFileParams
-	{
-		virtual ~OpenFolderParams() {}
-		std::vector<String> m_hiddenItems;
-	};
-
 	CMainFrame();
 
 // Attributes
 public:	
-	bool m_bShowErrors; /**< Show folder compare error items? */
+	BOOL m_bShowErrors;
 	LOGFONT m_lfDiff; /**< MergeView user-selected font */
 	LOGFONT m_lfDir; /**< DirView user-selected font */
-	static const TCHAR szClassName[];
 
 // Operations
 public:
 	HMENU NewDirViewMenu();
 	HMENU NewMergeViewMenu();
-	HMENU NewHexMergeViewMenu();
-	HMENU NewImgMergeViewMenu();
-	HMENU NewWebPageDiffViewMenu();
-	HMENU NewOpenViewMenu();
 	HMENU NewDefaultMenu(int ID = 0);
+	HMENU GetScriptsSubmenu(HMENU mainMenu);
 	HMENU GetPrediffersSubmenu(HMENU mainMenu);
 	void UpdatePrediffersMenu();
 
-	bool DoFileOrFolderOpen(const PathContext *pFiles = nullptr,
-		const DWORD dwFlags[] = nullptr, const String strDesc[] = nullptr,
-		const String& sReportFile = _T(""), bool bRecurse = false, CDirDoc *pDirDoc = nullptr,
-		const PackingInfo * infoUnpacker = nullptr, const PrediffingInfo * infoPrediffer = nullptr,
-		UINT nID = 0, const OpenFileParams *pOpenParams = nullptr);
-	bool DoFileOpen(UINT nID, const PathContext* pFiles,
-		const DWORD dwFlags[] = nullptr, const String strDesc[] = nullptr,
-		const String& sReportFile = _T(""),
-		const PackingInfo* infoUnpacker = nullptr, const PrediffingInfo * infoPrediffer = nullptr,
-		const OpenFileParams *pOpenParams = nullptr);
-	bool DoFileNew(UINT nID, int nPanes, const String strDesc[] = nullptr,
-		const PrediffingInfo * infoPrediffer = nullptr,
-		const OpenFileParams *pOpenParams = nullptr);
-	bool DoOpenConflict(const String& conflictFile, const String strDesc[] = nullptr, bool checked = false);
-	bool DoOpenClipboard(UINT nID = 0, int nBuffers = 2, const DWORD dwFlags[] = nullptr, const String strDesc[] = nullptr,
-		const PackingInfo* infoUnpacker = nullptr, const PrediffingInfo * infoPrediffer = nullptr,
-		const OpenFileParams* pOpenParams = nullptr);
-	bool DoSelfCompare(UINT nID, const String& file, const String strDesc[] = nullptr,
-		const PackingInfo* infoUnpacker = nullptr, const PrediffingInfo * infoPrediffer = nullptr,
-		const OpenFileParams* pOpenParams = nullptr);
-	bool ShowAutoMergeDoc(UINT nID, CDirDoc * pDirDoc, int nFiles, const FileLocation fileloc[],
-		const DWORD dwFlags[], const String strDesc[], const String& sReportFile = _T(""),
-		const PackingInfo * infoUnpacker = nullptr, const OpenFileParams *pOpenParams = nullptr);
-	bool ShowMergeDoc(UINT nID, CDirDoc * pDirDoc, int nFiles, const FileLocation fileloc[],
-		const DWORD dwFlags[], const String strDesc[], const String& sReportFile = _T(""),
-		const PackingInfo * infoUnpacker = nullptr, const OpenFileParams *pOpenParams = nullptr);
-	bool ShowTextOrTableMergeDoc(std::optional<bool> table, CDirDoc * pDirDoc, int nFiles, const FileLocation fileloc[],
-		const DWORD dwFlags[], const String strDesc[], const String& sReportFile = _T(""),
-		const PackingInfo * infoUnpacker = nullptr, const OpenTextFileParams *pOpenParams = nullptr);
-	bool ShowTextMergeDoc(CDirDoc * pDirDoc, int nFiles, const FileLocation fileloc[],
-		const DWORD dwFlags[], const String strDesc[], const String& sReportFile = _T(""),
-		const PackingInfo * infoUnpacker = nullptr, const OpenTextFileParams *pOpenParams = nullptr);
-	bool ShowTextMergeDoc(CDirDoc* pDirDoc, int nBuffers, const String text[],
-		const String strDesc[], const String& strFileExt, const OpenTextFileParams *pOpenParams = nullptr);
-	bool ShowTableMergeDoc(CDirDoc * pDirDoc, int nFiles, const FileLocation fileloc[],
-		const DWORD dwFlags[], const String strDesc[], const String& sReportFile = _T(""),
-		const PackingInfo * infoUnpacker = nullptr, const OpenTextFileParams *pOpenParams = nullptr);
-	bool ShowHexMergeDoc(CDirDoc * pDirDoc, int nFiles, const FileLocation fileloc[],
-		const DWORD dwFlags[], const String strDesc[], const String& sReportFile = _T(""),
-		const PackingInfo * infoUnpacker = nullptr, const OpenBinaryFileParams *pOpenParams = nullptr);
-	bool ShowImgMergeDoc(CDirDoc * pDirDoc, int nFiles, const FileLocation fileloc[],
-		const DWORD dwFlags[], const String strDesc[], const String& sReportFile = _T(""),
-		const PackingInfo * infoUnpacker = nullptr, const OpenImageFileParams *pOpenParams = nullptr);
-	bool ShowWebDiffDoc(CDirDoc * pDirDoc, int nFiles, const FileLocation fileloc[],
-		const DWORD dwFlags[], const String strDesc[], const String& sReportFile = _T(""),
-		const PackingInfo * infoUnpacker = nullptr, const OpenWebPageParams *pOpenParams = nullptr);
-
+	BOOL SyncFileToVCS(LPCTSTR pszSrc, LPCTSTR pszDest,	BOOL &bApplyToAll,
+		CString *psError);
+	BOOL DoFileOpen(LPCTSTR pszLeft = NULL, LPCTSTR pszRight = NULL,
+		DWORD dwLeftFlags = 0, DWORD dwRightFlags = 0, BOOL bRecurse = FALSE, CDirDoc *pDirDoc = NULL);
+	int ShowMergeDoc(CDirDoc * pDirDoc, LPCTSTR szLeft, LPCTSTR szRight, BOOL bROLeft, BOOL bRORight, int cpleft =-1, int cpright =-1, PackingInfo * infoUnpacker = NULL);
 	void UpdateResources();
-	void ApplyDiffOptions();
+	BOOL CreateBackup(LPCTSTR pszPath);
+	int HandleReadonlySave(CString& strSavePath, BOOL bMultiFile, BOOL &bApplyToAll);
+	BOOL SaveToVersionControl(CString& strSavePath);
+	CString SetStatus(LPCTSTR status);
+	void ApplyViewWhitespace();
+	BOOL OpenFileToExternalEditor(CString file);
+	CString GetDefaultEditor();
+	void SetEOLMixed(BOOL bAllow);
 	void SelectFilter();
-	void StartFlashing();
-	bool AskCloseConfirmation();
-	static FRAMETYPE GetFrameType(const CFrameWnd * pFrame);
-	static void UpdateDocTitle();
-	static void ReloadMenu();
-	static void AppendPluginMenus(CMenu* pMenu, const String& filteredFilenames,
-		const std::vector<std::wstring>& events, bool addAllMenu, unsigned baseId);
-	static String GetPluginPipelineByMenuId(unsigned idSearch, const std::vector<std::wstring>& events, unsigned baseId);
-	DropHandler *GetDropHandler() const { return m_pDropHandler; }
-	const CTypedPtrArray<CPtrArray, CMDIChildWnd*>* GetChildArray() const { return &m_arrChild; }
-	IMergeDoc* GetActiveIMergeDoc();
-	DirWatcher* GetDirWatcher() { return m_pDirWatcher.get(); }
-	void WatchDocuments(IMergeDoc* pMergeDoc);
-	void UnwatchDocuments(IMergeDoc* pMergeDoc);
-	CToolBar* GetToolbar() { return &m_wndToolBar; }
+	void ShowVSSError(CException *e, CString strItem);
+	void ShowHelp();
+	void UpdateCodepageModule();
+	void GetDirViews(DirViewList * pDirViews);
+	void GetMergeEditViews(MergeEditViewList * pMergeViews);
 
 // Overrides
-	virtual void GetMessageString(UINT nID, CString& rMessage) const;
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CMainFrame)
-public:
+	public:
+	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual void ActivateFrame(int nCmdShow = -1);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
-	virtual void OnUpdateFrameTitle(BOOL bAddToTitle);
-	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	//}}AFX_VIRTUAL
 
 // Implementation methods
@@ -226,200 +140,136 @@ protected:
 
 // Public implementation data
 public:
-	bool m_bFirstTime; /**< If first time frame activated, get  pos from reg */
+	CRegOptions m_options; /**< Options manager */
+	BOOL m_bFirstTime; /**< If first time frame activated, get  pos from reg */
+	CString m_strSaveAsPath; /**< "3rd path" where output saved if given */
+	BOOL m_bEscShutdown; /**< If commandline switch -e given ESC closes appliction */
+	VSSHelper m_vssHelper;
+	SyntaxColors *m_pSyntaxColors; /**< Syntax color container */
+	BOOL m_bClearCaseTool; /**< WinMerge is executed as an external Rational ClearCase compare/merge tool. */
+
+	/**
+	 * @name Version Control System (VCS) integration.
+	 */
+	/*@{*/ 
+	CString m_strVssUser; /**< Visual Source Safe User ID */
+	CString m_strVssPassword; /**< Visual Source Safe Password */
+	CString m_strVssDatabase;
+	BOOL m_CheckOutMulti; /**< Suppresses VSS int. code asking checkout for every file */
+	BOOL m_bVCProjSync; /**< VC project opened from VSS sync? */
+	BOOL m_bVssSuppressPathCheck; /**< Suppresses VSS int code asking about different path */
+	/*@}*/
+
+	/**
+	 * @name Textual labels/descriptors
+	 * These descriptors overwrite dir/filename usually shown in headerbar
+	 * and can be given from command-line. For example version control
+	 * system can set these to "WinMerge v2.1.2.0" and "WinMerge 2.1.4.0"
+	 * which is more pleasant and informative than temporary paths.
+	 */
+	/*@{*/ 
+	/** Left descriptor */
+	CString m_strLeftDesc;
+	/** Right descriptor */
+	CString m_strRightDesc;
+	/*@}*/
 
 // Implementation data
-protected:
-	// control bar embedded members
-	CStatusBar  m_wndStatusBar;
-	CReBar m_wndReBar;
-	CToolBar m_wndToolBar;
-	CMDITabBar m_wndTabBar;
-	CTypedPtrArray<CPtrArray, CMDIChildWnd*> m_arrChild;
 
-	// Tweak MDI client window behavior
-	class CMDIClient : public CWnd
-	{
-		static UINT_PTR const m_nRedrawTimer = 1612;
-		virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
-		{
-			switch (message)
-			{
-			case WM_MDICREATE:
-			case WM_MDIACTIVATE:
-			{
-				// To reduce flicker in maximized state, disable drawing while messing with MDI child frames
-				BOOL bMaximized;
-				HWND hwndActive = reinterpret_cast<HWND>(SendMessage(WM_MDIGETACTIVE, 0, reinterpret_cast<LPARAM>(&bMaximized)));
-				if ((bMaximized || (message == WM_MDICREATE && !hwndActive)) &&
-					SetTimer(m_nRedrawTimer, USER_TIMER_MINIMUM, nullptr))
-				{
-					SetRedraw(FALSE);
-				}
-				break;
-			}
-			case WM_TIMER:
-				if (wParam == m_nRedrawTimer)
-				{
-					KillTimer(m_nRedrawTimer);
-					SetRedraw(TRUE);
-					RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE);
-				}
-				break;
-			}
-			return CWnd::WindowProc(message, wParam, lParam);
-		}
-	} m_wndMDIClient;
+protected:  // control bar embedded members
+	CStatusBar  m_wndStatusBar;
+	ToolBarXPThemes m_wndToolBar;
 
 	enum
 	{
 		MENU_DEFAULT,
 		MENU_MERGEVIEW,
 		MENU_DIRVIEW,
-		MENU_HEXMERGEVIEW,
-		MENU_IMGMERGEVIEW,
-		MENU_WEBPAGEDIFFVIEW,
-		MENU_OPENVIEW,
 		MENU_COUNT, // Add new items before this item
 	};
-	/**
-	 * Menu frames - for which frame(s) the menu is.
-	 */
-	enum
-	{
-		MENU_MAINFRM = 0x000001,
-		MENU_FILECMP = 0x000002,
-		MENU_FOLDERCMP = 0x000004,
-		MENU_ALL = MENU_MAINFRM | MENU_FILECMP | MENU_FOLDERCMP
-	};
-	enum
-	{
-		AUTO_RELOAD_MODIFIED_FILES_DISABLED,
-		AUTO_RELOAD_MODIFIED_FILES_ONWINDOWACTIVATED,
-		AUTO_RELOAD_MODIFIED_FILES_IMMEDIATELY
-	};
-
-	/**
-	 * A structure attaching a menu item, icon and menu types to apply to.
-	 */
-	struct MENUITEM_ICON
-	{
-		int menuitemID;   /**< Menu item's ID. */
-		int iconResID;    /**< Icon's resource ID. */
-		int menusToApply; /**< For which menus to apply. */
-	};
-
-	static const MENUITEM_ICON m_MenuIcons[];
-
-	std::unique_ptr<BCMenu> m_pMenus[MENU_COUNT]; /**< Menus for different views */
-	std::unique_ptr<BCMenu> m_pImageMenu;
-	std::unique_ptr<BCMenu> m_pWebPageMenu;
-	std::vector<TempFilePtr> m_tempFiles; /**< List of possibly needed temp files. */
-	DropHandler *m_pDropHandler;
-	std::unique_ptr<DirWatcher> m_pDirWatcher;
+	BCMenu * m_pMenus[MENU_COUNT];
 
 // Generated message map functions
 protected:
+	void GetFontProperties();
 	//{{AFX_MSG(CMainFrame)
 	afx_msg void OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct);
 	afx_msg LRESULT OnMenuChar(UINT nChar, UINT nFlags, CMenu* pMenu) ;
 	afx_msg void OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu);
+	afx_msg void OnOptionsShowDifferent();
+	afx_msg void OnOptionsShowIdentical();
+	afx_msg void OnOptionsShowUniqueLeft();
+	afx_msg void OnOptionsShowUniqueRight();
+	afx_msg void OnOptionsShowBinaries();
+	afx_msg void OnOptionsShowSkipped();
+	afx_msg void OnUpdateOptionsShowdifferent(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateOptionsShowidentical(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateOptionsShowuniqueleft(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateOptionsShowuniqueright(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateOptionsShowBinaries(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateOptionsShowSkipped(CCmdUI* pCmdUI);
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnFileOpen();
 	afx_msg void OnHelpGnulicense();
 	afx_msg void OnOptions();
 	afx_msg void OnViewSelectfont();
+	afx_msg void OnUpdateViewSelectfont(CCmdUI* pCmdUI);
 	afx_msg void OnViewUsedefaultfont();
+	afx_msg void OnUpdateViewUsedefaultfont(CCmdUI* pCmdUI);
 	afx_msg void OnHelpContents();
+	afx_msg void OnUpdateHelpContents(CCmdUI* pCmdUI);
 	afx_msg void OnClose();
+	afx_msg void OnViewWhitespace();
+	afx_msg void OnUpdateViewWhitespace(CCmdUI* pCmdUI);
 	afx_msg void OnToolsGeneratePatch();
-	afx_msg void OnDropFiles(const std::vector<String>& files);
+	afx_msg void OnDropFiles(HDROP dropInfo);
+	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnUpdatePluginUnpackMode(CCmdUI* pCmdUI);
 	afx_msg void OnPluginUnpackMode(UINT nID);
-	afx_msg void OnUpdatePluginPrediffMode(CCmdUI* pCmdUI);
-	afx_msg void OnPluginPrediffMode(UINT nID);
-	afx_msg void OnUpdatePluginRelatedMenu(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateReloadPlugins(CCmdUI* pCmdUI);
 	afx_msg void OnReloadPlugins();
 	afx_msg void OnSaveConfigData();
-	template <int nFiles, unsigned nID>
-	afx_msg void OnFileNew() { DoFileNew(nID, nFiles); }
+	afx_msg void OnFileNew();
 	afx_msg void OnToolsFilters();
+	afx_msg void OnToolsLoadConfig();
+	afx_msg void OnHelpMerge7zmismatch();
+	afx_msg void OnUpdateHelpMerge7zmismatch(CCmdUI* pCmdUI);
 	afx_msg void OnViewStatusBar();
-	afx_msg void OnUpdateViewTabBar(CCmdUI* pCmdUI);
-	afx_msg void OnViewTabBar();
-	afx_msg void OnUpdateResizePanes(CCmdUI* pCmdUI);
-	afx_msg void OnResizePanes();
-	afx_msg void OnFileOpenProject();
+	afx_msg void OnViewToolbar();
+	afx_msg void OnFileOpenproject();
 	afx_msg LRESULT OnCopyData(WPARAM wParam, LPARAM lParam);
-	afx_msg LRESULT OnUser1(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnUser(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg void OnWindowCloseAll();
 	afx_msg void OnUpdateWindowCloseAll(CCmdUI* pCmdUI);
-	afx_msg void OnSaveProject();
-#if _MFC_VER > 0x0600
-	afx_msg void OnActivateApp(BOOL bActive, DWORD dwThreadID);
-#else
-	afx_msg void OnActivateApp(BOOL bActive, HTASK hTask);
-#endif
-	afx_msg void OnToolbarSize(UINT id);
-	afx_msg void OnUpdateToolbarSize(CCmdUI* pCmdUI);
-	afx_msg BOOL OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnHelpReleasenotes();
-	afx_msg void OnHelpTranslations();
-	afx_msg void OnFileOpenConflict();
-	afx_msg void OnFileOpenClipboard();
-	afx_msg void OnPluginsList();
-	afx_msg void OnUpdatePluginName(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateStatusNum(CCmdUI* pCmdUI);
-	afx_msg void OnToolbarButtonDropDown(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnDiffWhitespace(UINT nID);
-	afx_msg void OnUpdateDiffWhitespace(CCmdUI* pCmdUI);
-	afx_msg void OnDiffIgnoreBlankLines();
-	afx_msg void OnUpdateDiffIgnoreBlankLines(CCmdUI* pCmdUI);
-	afx_msg void OnDiffIgnoreCase();
-	afx_msg void OnUpdateDiffIgnoreCase(CCmdUI* pCmdUI);
-	afx_msg void OnDiffIgnoreNumbers();
-	afx_msg void OnUpdateDiffIgnoreNumbers(CCmdUI* pCmdUI);
-	afx_msg void OnDiffIgnoreEOL();
-	afx_msg void OnUpdateDiffIgnoreEOL(CCmdUI* pCmdUI);
-	afx_msg void OnDiffIgnoreCP();
-	afx_msg void OnUpdateDiffIgnoreCP(CCmdUI* pCmdUI);
-	afx_msg void OnDiffIgnoreComments();
-	afx_msg void OnUpdateDiffIgnoreComments(CCmdUI* pCmdUI);
-	afx_msg void OnIncludeSubfolders();
-	afx_msg void OnUpdateIncludeSubfolders(CCmdUI* pCmdUI);
-	afx_msg void OnCompareMethod(UINT nID);
-	afx_msg void OnUpdateCompareMethod(CCmdUI* pCmdUI);
-	afx_msg void OnMRUs(UINT nID);
-	afx_msg void OnUpdateNoMRUs(CCmdUI* pCmdUI);
-	afx_msg void OnFirstFile();
-	afx_msg void OnUpdateFirstFile(CCmdUI* pCmdUI);
-	afx_msg void OnPrevFile();
-	afx_msg void OnUpdatePrevFile(CCmdUI* pCmdUI);
-	afx_msg void OnNextFile();
-	afx_msg void OnUpdateNextFile(CCmdUI* pCmdUI);
-	afx_msg void OnLastFile();
-	afx_msg void OnUpdateLastFile(CCmdUI* pCmdUI);
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
-	afx_msg void OnDestroy();
-	afx_msg void OnAccelQuit();
-	afx_msg LRESULT OnChildFrameAdded(WPARAM wParam, LPARAM lParam);
-	afx_msg LRESULT OnChildFrameRemoved(WPARAM wParam, LPARAM lParam);
-	afx_msg LRESULT OnChildFrameActivate(WPARAM wParam, LPARAM lParam);
-	afx_msg LRESULT OnChildFrameActivated(WPARAM wParam, LPARAM lParam);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
 private:
 	void addToMru(LPCTSTR szItem, LPCTSTR szRegSubKey, UINT nMaxItems = 20);
-	OpenDocList &GetAllOpenDocs();
-	MergeDocList &GetAllMergeDocs();
-	DirDocList &GetAllDirDocs();
-	HexMergeDocList &GetAllHexMergeDocs();
-	std::vector<CImgMergeFrame *> GetAllImgMergeFrames();
-	std::vector<CWebPageDiffFrame *> GetAllWebPageDiffFrames();
-	void UpdateFont(FRAMETYPE frame);
-	BOOL CreateToolbar();
-	CMergeEditView * GetActiveMergeEditView();
-	void LoadToolbarImages();
-	HMENU NewMenu( int view, int ID );
+	// builds the regular expression list if the
+	// user choose to ignore Ignore changes affecting only lines 
+	// that match the specified regexp. 
+	void RebuildRegExpList(BOOL bShowError);
+	// destroy the regular expression list and free up the memory
+	void FreeRegExpList();
+	void GetAllViews(MergeEditViewList * pEditViews, MergeDetailViewList * pDetailViews, DirViewList * pDirViews);
+	void GetAllMergeDocs(MergeDocList * pMergeDocs);
+	void GetAllDirDocs(DirDocList * pDirDocs);
+	BOOL IsComparing();
+	void RedisplayAllDirDocs();
+	CMergeDoc * GetMergeDocToShow(CDirDoc * pDirDoc, BOOL * pNew);
+	CDirDoc * GetDirDocToShow(BOOL * pNew);
+	void ShowFontChangeMessage();
+	void OptionsInit();
 };
+
+extern CMainFrame *mf;
+
+/////////////////////////////////////////////////////////////////////////////
+
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Developer Studio will insert additional declarations immediately before the previous line.
+
+#endif // !defined(AFX_MAINFRM_H__BBCD4F8C_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
+

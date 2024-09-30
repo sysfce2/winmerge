@@ -1,16 +1,77 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+//    License (GPLv2+):
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful, but
+//    WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/////////////////////////////////////////////////////////////////////////////
 /** 
  * @file  ConfigLog.h
  *
  * @brief Declaration file ConfigLog class
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: ConfigLog.h,v 1.12 2005/05/20 22:29:35 elsapo Exp $
 
+#ifndef _CONFIGLOG_H_
+#define _CONFIGLOG_H_
 
-#include "UnicodeString.h"
-#include <memory>
+class CfgSettings;
 
-class UniStdioFile;
+/** 
+ * @brief View settings for directory compare
+ */
+struct VIEWSETTINGS
+{
+	BOOL bShowIdent;
+	BOOL bShowDiff;
+	BOOL bShowUniqueLeft;
+	BOOL bShowUniqueRight;
+	BOOL bShowBinaries;
+	BOOL bShowSkipped;
+};
+
+/** 
+ * @brief Misc WinMerge settings
+ */
+struct MISCSETTINGS
+{
+	BOOL bAutomaticRescan;
+	BOOL bAllowMixedEol;
+	BOOL bScrollToFirst;
+	BOOL bBackup;
+	BOOL bViewWhitespace;
+	BOOL bMovedBlocks;
+	BOOL bDetectCodepage;
+};
+
+/** 
+ * @brief Codepage WinMerge settings
+ */
+struct CPSETTINGS
+{
+	int nDefaultMode;
+	int nDefaultCustomValue;
+	BOOL bDetectCodepage;
+};
+
+/** 
+ * @brief Major Font WinMerge settings
+ */
+struct FONTSETTINGS
+{
+	BYTE nCharset;
+	CString sFacename;
+};
 
 /** 
  * @brief Class for saving configuration log file
@@ -21,37 +82,38 @@ public:
 	CConfigLog();
 	~CConfigLog();
 
-	String GetFileName() const;
-	bool WriteLogFile(String &sError);
+	DIFFOPTIONS m_diffOptions;
+	VIEWSETTINGS m_viewSettings;
+	MISCSETTINGS m_miscSettings;
+	CPSETTINGS m_cpSettings;
+	FONTSETTINGS m_fontSettings;
+
+	CString GetFileName() const;
+	BOOL WriteLogFile(CString &sError);
+	void ReadLogFile(const CString & Filepath);
+
 
 	// Implementation methods
-protected:
-	void WriteItem(int indent, const String& key, const TCHAR *value = nullptr);
-	void WriteItem(int indent, const String& key, const String &str);
-	void WriteItem(int indent, const String& key, long value);
-	void WriteVersionOf1(int indent, const String& path);
-	void WriteLocaleSettings(unsigned locid, const String& title);
-	void WriteWinMergeConfig(void);
-
 private:
-	bool DoFile(String &sError);
-	void WritePluginsInLogFile(const wchar_t *transformationEvent);
-	static String GetWindowsVer();
-	static String GetProcessorInfo();
-	static String GetBuildFlags();
-	void FileWriteString(const String& lpsz);
+	BOOL DoFile(bool writing, CString &sError);
+	void WritePluginsInLogFile(LPCWSTR transformationEvent, CStdioFile & file);
+	CString GetWindowsVer();
+	CString GetBuildFlags();
+	void FileWriteString(LPCTSTR lpsz);
 	void CloseFile();
+	void WriteItemYesNo(int indent, LPCTSTR key, BOOL *pvalue);
+	void WriteItemYesNoInverted(int indent, LPCTSTR key, BOOL *pvalue);
+	void WriteItemWhitespace(int indent, LPCTSTR key, int *pvalue);
+	bool ParseSettings(const CString & Filepath);
+	CString GetValueFromConfig(const CString & key);
+
 
 	// Implementation data
 private:
-	String m_sFileName;
-	std::unique_ptr<UniStdioFile> m_pfile;
+	CString m_sFileName;
+	CStdioFile m_file;
+	bool m_writing;
+	CfgSettings * m_pCfgSettings;
 };
 
-/**
- * @brief Return logfile name and path
- */
-inline String CConfigLog::GetFileName() const
-{
-	return m_sFileName;
-}
+#endif /* _CONFIGLOG_H_ */

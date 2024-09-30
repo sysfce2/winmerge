@@ -5,130 +5,36 @@
  *
  * @date  Created: 2003-08-19
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: DirViewColItems.h,v 1.4 2005/06/29 13:59:13 kimmov Exp $
 
-#include "UnicodeString.h"
-#include <vector>
-#include <sstream>
+#ifndef DirViewColItems_h
+#define DirViewColItems_h
 
-class DIFFITEM;
 class CDiffContext;
 
-// DirViewColItems typedefs
-typedef String (*ColGetFncPtrType)(const CDiffContext *, const void *, int);
-typedef int (*ColSortFncPtrType)(const CDiffContext *, const void *, const void *, int);
-
+typedef CString (*ColGetFnc)(const CDiffContext *, const void *);
+typedef int (*ColSortFnc)(const CDiffContext *, const void *, const void *);
 
 /**
  * @brief Information about one column of dirview list info
  */
 struct DirColInfo
 {
-	enum ColAlign
-	{
-		ALIGN_LEFT = 0,   // LVCFMT_LEFT
-		ALIGN_RIGHT = 1,  // LVCFMT_RIGHT
-		ALIGN_CENTER = 2  // LVCFMT_CENTER
-	};
-	const TCHAR *regName; /**< Internal name used for registry entries etc */
+	LPCTSTR regName; /**< Internal name used for registry entries etc */
 	// localized string resources
-	const char *idNameContext; 
-	const char *idName; /**< Displayed name, ID of string resource */
-	const char *idDesc; /**< Description, ID of string resource */
-	ColGetFncPtrType getfnc; /**< Handler giving display string */
-	ColSortFncPtrType sortfnc; /**< Handler for sorting this column */
-	size_t offset;	/**< Offset into DIFFITEM::diffFileInfo[] */
+	int idName; /**< Displayed name, ID of string resource */
+	int idDesc; /**< Description, ID of string resource */
+	ColGetFnc getfnc; /**< Handler giving display string */
+	ColSortFnc sortfnc; /**< Handler for sorting this column */
+	SIZE_T offset;
 	int physicalIndex; /**< Current physical index, -1 if not displayed */
 	bool defSortUp; /**< Does column start with ascending sort (most do) */
 	int alignment; /**< Column alignment */
-	int opt;
-	String GetDisplayName() const;
-	String GetDescription() const;
 };
 
-extern const int g_ncols;
-extern const int g_ncols3;
-
-class DirViewColItems
-{
-public:
-	explicit DirViewColItems(int nDirs, const std::vector<String>& additionalPropertyNames);
-	String GetColRegValueNameBase(int col) const;
-	int GetColDefaultOrder(int col) const;
-	const DirColInfo * GetDirColInfo(int col) const;
-	bool IsColById(int col, const char *idname) const;
-	bool IsColName(int col) const;
-	bool IsColLmTime(int col) const;
-	bool IsColMmTime(int col) const;
-	bool IsColRmTime(int col) const;
-	bool IsColStatus(int col) const;
-	bool IsColStatusAbbr(int col) const;
-	bool IsDefaultSortAscending(int col) const;
-	String GetColDisplayName(int col) const;
-	String GetColDescription(int col) const;
-	int	GetColCount() const { return m_numcols; };
-	int GetDispColCount() const { return m_dispcols; }
-	String ColGetTextToDisplay(const CDiffContext *pCtxt, int col, const DIFFITEM &di) const;
-	int ColSort(const CDiffContext *pCtxt, int col, const DIFFITEM &ldi, const DIFFITEM &rdi, bool bTreeMode) const;
-
-	int ColPhysToLog(int i) const { return m_invcolorder[i]; }
-	int ColLogToPhys(int i) const { return m_colorder[i]; } /**< -1 if not displayed */
-	void ClearColumnOrders();
-	void MoveColumn(int psrc, int pdest);
-	void ResetColumnOrdering();
-	void SetColumnOrdering(const int colorder[]);
-	String ResetColumnWidths(int defcolwidth);
-	void LoadColumnOrders(const String& colOrders);
-	String SaveColumnOrders();
-	const std::vector<String>& GetAdditionalPropertyNames() const { return m_additionalPropertyNames; }
-	void SetAdditionalPropertyNames(const std::vector<String>& propertyNames);
-
-	/// Update all column widths (from registry to screen)
-	// Necessary when user reorders columns
-	template<class SetColumnWidthFunc>
-	void LoadColumnWidths(String colwidths, SetColumnWidthFunc setcolwidth, int defcolwidth)
-	{
-		std::basic_istringstream<TCHAR> ss(colwidths);
-		for (int i = 0; i < m_numcols; ++i)
-		{
-			int phy = ColLogToPhys(i);
-			if (phy >= 0)
-			{
-				int w = defcolwidth;
-				ss >> w;
-				setcolwidth(phy, max(w, 10));
-			}
-		}
-	}
-
-	/** @brief store current column widths into registry */
-	template<class GetColumnWidthFunc>
-	String SaveColumnWidths(GetColumnWidthFunc getcolwidth)
-	{
-		String result;
-		for (int i = 0; i < m_numcols; i++)
-		{
-			int phy = ColLogToPhys(i);
-			if (phy >= 0)
-			{
-				if (!result.empty()) result += ' ';
-				result += strutils::to_str(getcolwidth(phy));
-			}
-		}
-		return result;
-	}
+extern DirColInfo g_cols[];
+extern int g_ncols;
 
 
-private:
-	void AddAdditionalPropertyName(const String& propertyName);
-	void RemoveAdditionalPropertyName(const String& propertyName);
-
-	int m_nDirs;
-	int m_numcols;
-	int m_dispcols;
-	std::vector<int> m_colorder; /**< colorder[logical#]=physical# */
-	std::vector<int> m_invcolorder; /**< invcolorder[physical]=logical# */
-	std::vector<DirColInfo> m_cols;
-	std::vector<String> m_additionalPropertyNames;
-	std::list<String> m_strpool;
-};
+#endif // DirViewColItems_h

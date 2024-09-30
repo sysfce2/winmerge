@@ -2,33 +2,49 @@
 //    WinMerge:  an interactive diff/merge utility
 //    Copyright (C) 1997-2000  Thingamahoochie Software
 //    Author: Dean Grimm
-//    SPDX-License-Identifier: GPL-2.0-or-later
+//
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+//
 /////////////////////////////////////////////////////////////////////////////
 /**
  *  @file Plugins.h
  *
  *  @brief Declaration file for VBS Scriptlets, VB ActiveX DLL, VC++ COM DLL
  */ 
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: Plugins.h,v 1.13 2005/02/13 00:17:43 kimmov Exp $
 
-#include <Poco/Foundation.h>
-#include <string>
-#include <vector>
-#include <optional>
-#include <windows.h>
-#include <oleauto.h>
-#include <memory>
-#include "UnicodeString.h"
+#ifndef __PLUGINS_H__
+#define __PLUGINS_H__
 
-struct FileFilterElement;
-typedef std::shared_ptr<FileFilterElement> FileFilterElementPtr;
+#ifndef _FileFilterMgr_included_
+#define _FileFilterMgr_included_
+#include "FileFilterMgr.h"
+#endif
+
+class CRegExp;
+
+extern enum TRANSFORMATION_CATEGORY;
+
+const int NMAXTHREADS = 10;
 
 /**
- * @brief List of transformation categories (events)
- *
- * @note If you add some event, you have to complete this array in FileTransform.cpp
+ * @brief Constant : Unicode/ANSI supported mode 
  */
-extern const wchar_t *TransformationCategories[];
+#define SCRIPT_A		1
+#define SCRIPT_W		2
 
 /** 
  * @brief Information structure for a plugin
@@ -37,26 +53,10 @@ class PluginInfo
 {
 public:
 	PluginInfo()
-		: m_lpDispatch(nullptr)
-		, m_filters(NULL)
-		, m_bAutomatic(false)
-		, m_nFreeFunctions(0)
-		, m_disabled(false)
-		, m_hasArgumentsProperty(false)
-		, m_hasVariablesProperty(false)
-		, m_bAutomaticDefault(false)
 	{	
-	}
-
-	~PluginInfo()
-	{
-		if (m_lpDispatch!=nullptr)
-			m_lpDispatch->Release();
-	}
-
-	int LoadPlugin(const String & scriptletFilepath);
-	int MakeInfo(const String & scriptletFilepath, IDispatch *pDispatch);
-
+		lpDispatch = NULL; 
+		filters = NULL; 
+	};
 	/// Parse the filter string (only for files), and create the filters
 	void LoadFilterString();
 	/**
@@ -64,40 +64,23 @@ public:
 	 *
 	 * @param szTest String of filenames, delimited with '|'
 	 */
-	bool TestAgainstRegList(const String& szTest) const;
-
-	std::optional<StringView> GetExtendedPropertyValue(const String& name) const;
+	BOOL TestAgainstRegList(LPCTSTR szTest);
 
 public:
-	String      m_filepath;
-	LPDISPATCH  m_lpDispatch;
-	String      m_name; // usually filename, except for special cases (like auto or no)
-	String      m_ext;
-	String      m_extendedProperties;
-	String      m_arguments;
-	String      m_argumentsDefault;
-	String      m_filtersText;
-	String      m_filtersTextDefault;
-	String      m_description;
-	String      m_event;
-	bool        m_bAutomatic;
-	bool        m_bAutomaticDefault;
-	bool        m_disabled;
-	bool        m_hasArgumentsProperty;
-	bool        m_hasVariablesProperty;
-	std::vector<FileFilterElementPtr> m_filters;
+	LPDISPATCH  lpDispatch;
+	CString     name;
+	CString     filtersText;
+	CString     description;
+	BOOL        bUnicodeMode;
+	BOOL        bAutomatic;
+	FileFilterList  *filters;
 	/// only for plugins with free function names (EDITOR_SCRIPT)
-	int         m_nFreeFunctions;
-
-private:
-	PluginInfo( const PluginInfo& other ); // non construction-copyable
-	PluginInfo& operator=( const PluginInfo& ); // non copyable
+	int         nFreeFunctions;
 };
 
-typedef std::shared_ptr<PluginInfo> PluginInfoPtr;
 
-typedef std::vector<PluginInfoPtr> PluginArray;
-typedef std::shared_ptr<PluginArray> PluginArrayPtr;
+
+typedef CArray<PluginInfo, PluginInfo&>PluginArray;
 
 /**
  * @brief Cache for the scriptlets' interfaces during the life of a thread. 
@@ -111,30 +94,28 @@ class CScriptsOfThread
 friend class CAssureScriptsForThread;
 friend class CAllThreadsScripts;
 public:
-	PluginArray * GetAvailableScripts(const wchar_t *transformationEvent);
-	PluginInfo * GetAutomaticPluginByFilter(const wchar_t *transformationEvent, const String& filteredText);
-	PluginInfo * GetPluginByName(const wchar_t *transformationEvent, const String& name);
+	PluginArray * GetAvailableScripts(LPCWSTR transformationEvent);
+	PluginInfo * GetPluginByName(LPCWSTR transformationEvent, LPCTSTR name);
 	PluginInfo * GetPluginInfo(LPDISPATCH piScript);
-	void SaveSettings();
 
 	void FreeAllScripts();
-	void ReloadAllScripts();
+	void FreeScriptsForEvent(LPCWSTR transformationEvent);
 
 protected:
 	CScriptsOfThread();
 	~CScriptsOfThread();
 	void Lock()	  { m_nLocks ++; };
-	bool Unlock()	{ m_nLocks --; return (m_nLocks == 0); };
+	BOOL Unlock()	{ m_nLocks --; return (m_nLocks == 0); };
 	/// Tell if this scripts is the one for main thread (by convention, the first in the repository)
-	bool bInMainThread();
+	BOOL bInMainThread();
 
 private:
-	unsigned m_nLocks;
+	unsigned int m_nLocks;
 	unsigned long m_nThreadId;
 	/// Result of CoInitialize
 	HRESULT hrInitialize;
 	int nTransformationEvents;
-	std::map<String, PluginArrayPtr> m_aPluginsByEvent;
+	PluginArray ** m_aPluginsByEvent;
 };
 
 
@@ -152,16 +133,10 @@ public:
 	/// main public function : get the plugins array for the current thread
 	static CScriptsOfThread * GetActiveSet();
 	/// by convention, the scripts for main thread must be created before all others
-	static bool bInMainThread(CScriptsOfThread * scripts);
-	using InternalPluginLoaderFuncPtr = bool (*)(std::map<String, PluginArrayPtr>& aPluginsByEvent, String& errmsg);
-	static InternalPluginLoaderFuncPtr GetInternalPluginsLoader() { return m_funcInternalPluginsLoader; }
-	static void RegisterInternalPluginsLoader(InternalPluginLoaderFuncPtr func) { m_funcInternalPluginsLoader = func; }
-	static void ReloadCustomSettings();
-	static void ReloadAllScripts();
+	static BOOL bInMainThread(CScriptsOfThread * scripts);
 private:
 	// fixed size array, advantage : no mutex to allocate/free
-	static std::vector<CScriptsOfThread *> m_aAvailableThreads;
-	static inline InternalPluginLoaderFuncPtr m_funcInternalPluginsLoader = nullptr;
+	static CScriptsOfThread * m_aAvailableThreads[NMAXTHREADS];
 };
 
 /**
@@ -177,24 +152,36 @@ public:
 	~CAssureScriptsForThread();
 };
 
-namespace plugin
-{
+
 
 /**
  * @brief Check for the presence of Windows Script
  *
  * .sct plugins require this optional component
  */
-bool IsWindowsScriptThere();
+BOOL IsWindowsScriptThere();
 /**
  * @brief Get a list of the function IDs and names in a script or activeX/COM DLL
  *
  * @return Returns the number of functions
  *
+ * @note The arrays must be free with delete []
  */
-int GetMethodsFromScript(LPDISPATCH piDispatch, std::vector<String>& namesArray, std::vector<int>& IdArray);
+int GetMethodsFromScript(LPDISPATCH piDispatch, BSTR *& namesArray, int *& IdArray);
+/**
+ * @brief Is a function available in this scriptlet or activeX/COM DLL ?
+ *
+ * @param functionName name of the function in WCHAR
+ */
+BOOL SearchScriptForFunctionName(LPDISPATCH piDispatch, WCHAR * functionName);
+
 
 /**
+ * @brief Get the number of methods in the script
+ * @note For free function scripts (EDITOR_SCRIPT)
+ */
+int CountMethodsInScript(LPDISPATCH piDispatch);
+
 /**
  * @brief Get the ID of the a free function
  * @param methodOrdinal : index of the free function (0,1,2...)
@@ -210,12 +197,12 @@ int GetMethodIDInScript(LPDISPATCH piDispatch, int methodIndex);
  *
  * @param bstrBuf Overwrite/realloc this buffer
  */
-bool InvokePrediffBuffer(BSTR & bstrBuf, int & nChanged, LPDISPATCH piScript);
+BOOL InvokePrediffBuffer(BSTR & bstrBuf, int & nChanged, LPDISPATCH piScript);
 
 /** 
  * @brief Call custom plugin functions : text transformation
  */
-bool InvokeTransformText(String & text, int & changed, LPDISPATCH piScript, int fncId);
+BOOL InvokeTransformText(CString & text, int & changed, LPDISPATCH piScript, int fncId);
 
 /**
  * @brief Call the plugin "UnpackBufferA" method, event BUFFER_PACK_UNPACK
@@ -223,50 +210,26 @@ bool InvokeTransformText(String & text, int & changed, LPDISPATCH piScript, int 
  * @param pszBuf has unknown format, so a simple char*
  * never owervrites this source buffer
  */
-bool InvokeUnpackBuffer(VARIANT & array, int & nChanged, LPDISPATCH piScript, int & subcode);
+BOOL InvokeUnpackBuffer(COleSafeArray & array, int & nChanged, LPDISPATCH piScript, int & subcode);
 /**
  * @brief Call the plugin "PackBufferA" method, event BUFFER_PACK_UNPACK
  *
  * @param pszBuf has unknown format, so a simple char*
  * never owervrites this source buffer
  */
-bool InvokePackBuffer(VARIANT & array, int & nChanged, LPDISPATCH piScript, int subcode);
+BOOL InvokePackBuffer(COleSafeArray & array, int & nChanged, LPDISPATCH piScript, int subcode);
 /**
  * @brief Call the plugin "UnpackFile" method, event FILE_PACK_UNPACK
  */
-bool InvokeUnpackFile(const String& fileSource, const String& fileDest, int & nChanged, LPDISPATCH piScript, int & subCode);
+BOOL InvokeUnpackFile(LPCTSTR fileSource, LPCTSTR fileDest, int & nChanged, LPDISPATCH piScript, int & subCode);
 /**
  * @brief Call the plugin "PackFile" method, event FILE_PACK_UNPACK
  */
-bool InvokePackFile(const String& fileSource, const String& fileDest, int & nChanged, LPDISPATCH piScript, int subCode);
-/**
- * @brief Call the plugin "IsFolder" method, event FILE_FOLDER_PACK_UNPACK or URL_PACK_UNPACK
- */
-bool InvokeIsFolder(const String& file, IDispatch *piScript);
-/**
- * @brief Call the plugin "UnpackFolder" method, event FILE_FOLDER_PACK_UNPACK or URL_PACK_UNPACK
- */
-bool InvokeUnpackFolder(const String& fileSource, const String& folderDest, int & nChanged, IDispatch *piScript, int & subCode);
-/**
- * @brief Call the plugin "PackFolder" method, event FILE_FOLDER_PACK_UNPACK or URL_PACK_UNPACK
- */
-bool InvokePackFolder(const String& folderSource, const String& fileDest, int & nChanged, IDispatch *piScript, int subCode);
+BOOL InvokePackFile(LPCTSTR fileSource, LPCTSTR fileDest, int & nChanged, LPDISPATCH piScript, int subCode);
 /**
  * @brief Call the plugin "PrediffFile" method, event FILE_PREDIFF
  */
-bool InvokePrediffFile(const String& fileSource, const String& fileDest, int & nChanged, LPDISPATCH piScript);
-/**
- * @brief Call the plugin "ShowSettingsDialog" method
- */
-bool InvokeShowSettingsDialog(LPDISPATCH piScript);
+BOOL InvokePrediffFile(LPCTSTR fileSource, LPCTSTR fileDest, int & nChanged, LPDISPATCH piScript);
 
-/**
- * @brief Set value to the plugin "PluginArguments" property 
- */
-bool InvokePutPluginArguments(const String& args, LPDISPATCH piScript);
 
-/**
- * @brief Set value to the plugin "PluginVariables" property 
- */
-bool InvokePutPluginVariables(const String& args, LPDISPATCH piScript);
-}
+#endif //__PLUGINS_H__

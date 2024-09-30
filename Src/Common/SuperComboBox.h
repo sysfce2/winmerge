@@ -1,53 +1,33 @@
+#if !defined(AFX_SuperComboBox_H__8027D162_6B2C_11D1_BAEE_00A024706EDC__INCLUDED_)
+#define AFX_SuperComboBox_H__8027D162_6B2C_11D1_BAEE_00A024706EDC__INCLUDED_
+
+#if _MSC_VER >= 1000
 #pragma once
-
-// SuperComboBox.h : header file
+#endif // _MSC_VER >= 1000
+// ComboBoxEx.h : header file
 //
-
-#include <vector>
-#include "UnicodeString.h"
-
-class DropHandler;
+#include <shlobj.h>
 
 /////////////////////////////////////////////////////////////////////////////
 // CSuperComboBox window
 
-class CSuperComboBox : public CComboBoxEx
+class CSuperComboBox : public CComboBox
 {
 // Construction
 public:
-	CSuperComboBox();
+	CSuperComboBox(BOOL bAdd = TRUE, UINT idstrAddText = 0);
 	virtual ~CSuperComboBox();
 
 // Attributes
 protected:
-	bool m_bInEditchange;
-	bool m_bAutoComplete;
-	bool m_bDoComplete;
-	bool m_bHasImageList;
-
-	int m_nMaxItems;
-	bool m_bComboBoxEx;
-	bool m_bExtendedFileNames;
-	bool m_bCanBeEmpty;
-
-	bool m_bMustUninitOLE;
-	static HIMAGELIST m_himlSystem;
-
-	DropHandler *m_pDropHandler;
-
-	std::vector<CString> m_sFullStateText;
+	BOOL m_bEditChanged;
+	BOOL m_bAutoComplete;
+	BOOL m_bDoComplete;
 
 public:
 
-	enum
-	{
-		AUTO_COMPLETE_DISABLED		= 0,
-		AUTO_COMPLETE_FILE_SYSTEM,
-		AUTO_COMPLETE_RECENTLY_USED
-	};
-
 // Operations
-	void SetAutoComplete(INT nSource);
+	void SetAutoComplete( BOOL bAutoComplete ) { m_bAutoComplete = bAutoComplete; }
 
 public:
 
@@ -60,32 +40,31 @@ public:
 
 // Implementation
 public:
-	void SetFileControlStates(bool bCanBeEmpty = false, int nMaxItems = -1);
-	void SaveState(LPCTSTR szRegSubKey);
-	void LoadState(LPCTSTR szRegSubKey);
-	bool AttachSystemImageList();
-	int AddString(LPCTSTR lpszItem);
-	int InsertString(int nIndex, LPCTSTR lpszItem);
-	int DeleteString(int nIndex);
-	int FindString(int nStartAfter, LPCTSTR lpszString) const;
-	int GetLBTextLen(int nIndex) const;
-	void GetLBText(int nIndex, CString &rString) const;
+	void ResetContent();
+	void SetAutoAdd(BOOL bAdd = TRUE, UINT idstrAddText = 0);
+	void SaveState(LPCTSTR szRegSubKey, UINT nMaxItems = 20);
+	void LoadState(LPCTSTR szRegSubKey, UINT nMaxItems = 20);
 
 	// Generated message map functions
 protected:
-	void ResetContent();
-
-	virtual void PreSubclassWindow();
-
+	CString m_strCurSel;
+	CString ExpandShortcut(CString &inFile);
+	virtual BOOL OnAddTemplate();
+	CString m_strAutoAdd;
+	BOOL m_bMustUninitOLE;
 	//{{AFX_MSG(CSuperComboBox)
 	afx_msg BOOL OnEditchange();
-	afx_msg BOOL OnSetfocus();
+	afx_msg BOOL OnSelchange();
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-	afx_msg void OnDropFiles(const std::vector<String>& files);
-	afx_msg void OnGetDispInfo(NMHDR *pNotifyStruct, LRESULT *pResult);
-	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
-	afx_msg void OnDestroy();
+	afx_msg void OnDropFiles(HDROP dropInfo);
 	//}}AFX_MSG
 
 	DECLARE_MESSAGE_MAP()
 };
+
+/////////////////////////////////////////////////////////////////////////////
+
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Developer Studio will insert additional declarations immediately before the previous line.
+
+#endif // !defined(AFX_SuperComboBox_H__8027D162_6B2C_11D1_BAEE_00A024706EDC__INCLUDED_)

@@ -1,16 +1,25 @@
+//////////////////////////////////////////////////////////////////////
 /** 
  * @file  DiffViewBar.h
  *
  * @brief Declaration of CDiffViewBar class
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: DiffViewBar.h,v 1.2.4.1 2006/01/07 12:03:21 kimmov Exp $
+//
+//////////////////////////////////////////////////////////////////////
 
-#include "scbarcf.h"
+#ifndef DIFFVIEWBAR_H
+#define DIFFVIEWBAR_H
 
-class CSplitterWndEx;
+
+#include "sizecbar.h"
+#include "scbarg.h"
+#include "SplitterWndEx.h"
 
 // You must #define this for viewbar to compile properly
-#define TViewBarBase CSizingControlBarCF
+#define TViewBarBase CSizingControlBarG
+//#define TViewBarBase CSizingControlBar
 
 class CDiffViewBar : public TViewBarBase
 {
@@ -20,12 +29,19 @@ public:
 	virtual ~CDiffViewBar();
 	virtual BOOL Create(
 		CWnd* pParentWnd,			// mandatory
-		LPCTSTR lpszWindowName = nullptr,
+		LPCTSTR lpszWindowName = NULL,
 		DWORD dwStyle = WS_CHILD | WS_VISIBLE | CBRS_TOP,
 		UINT nID = AFX_IDW_PANE_FIRST);
 
-	void SetFrameHwnd(HWND hwndFrame);
-	void UpdateResources();
+	void setSplitter (CSplitterWndEx * pwndDetailSplitter)
+		{	m_pwndDetailSplitter = pwndDetailSplitter; }
+
+	int  GetPanelHeight();
+	void UpdateBarHeight(int DiffPanelHeight);
+
+protected:
+	CSplitterWndEx * m_pwndDetailSplitter;
+
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -36,12 +52,11 @@ public:
 
 	//{{AFX_MSG(CDiffViewBar)
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
-	afx_msg void OnWindowPosChanged(WINDOWPOS* lpwndpos);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-
-private:
-	HWND m_hwndFrame; //*< Frame window handle */
-
 };
+
+
+#endif // DIFFVIEWBAR_H

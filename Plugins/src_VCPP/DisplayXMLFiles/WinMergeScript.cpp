@@ -20,13 +20,14 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
+// RCS ID line follows -- this is updated by CVS
+// $Id: WinMergeScript.cpp,v 1.2.2.2 2006/08/10 15:12:33 kimmov Exp $
+
 #include "stdafx.h"
 #include <stdio.h>
 #include "DisplayXMLFiles.h"
 #include "WinMergeScript.h"
 #include "expat.h"
-#include "expat_maps.h"
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CWinMergeScript
@@ -46,13 +47,7 @@ STDMETHODIMP CWinMergeScript::get_PluginDescription(BSTR *pVal)
 
 STDMETHODIMP CWinMergeScript::get_PluginFileFilters(BSTR *pVal)
 {
-	// xml - XML files
-	// xsd - XML schema files
-	// xsl - XML style sheet, xslt-fo, whatever
-	// xslt - XML style sheet
-	// svg - Scalable Vector graphics
-	// wsf - Windows Scripting Host files
-	*pVal = SysAllocString(L"\\.xml;\\.xsd;\\.xsl;\\.xslt;\\.svg;\\.wsf$");
+	*pVal = SysAllocString(L"\\.xml$");
 	return S_OK;
 }
 
@@ -95,17 +90,17 @@ static void XMLCALL StartElementHandler(void *userData, const char *name, const 
 	// End the previous element, if needed
 	if (pData->bNeedsEnding)
 	{
-		fprintf(pData->pOutput,">");
+		fprintf(pData->pOutput,">\n");
 	}
-	
-	// Indent
-	if (pData->iDepth > 0)
+	else if (pData->bInElement)
 	{
 		fprintf(pData->pOutput,"\n");
-		for (i = 0; i < pData->iDepth; i++)
-		{
-			fprintf(pData->pOutput,"\t");
-		}
+	}
+
+	// Indent
+	for (i = 0; i < pData->iDepth; i++)
+	{
+		fprintf(pData->pOutput,"\t");
 	}
 
 	// Start new element
@@ -120,14 +115,11 @@ static void XMLCALL StartElementHandler(void *userData, const char *name, const 
 		{
 			iLen = 0;
 			iCount = 0;
+			fprintf(pData->pOutput,"\n");
 			// Indent
-			if (pData->iDepth > 0)
+			for (int j = 0; j < pData->iDepth + 1; j++)
 			{
-				fprintf(pData->pOutput,"\n");
-				for (int j = 0; j < pData->iDepth + 1; j++)
-				{
-					fprintf(pData->pOutput,"\t");
-				}
+				fprintf(pData->pOutput,"\t");
 			}
 		}
 
@@ -155,20 +147,19 @@ static void XMLCALL EndElementHandler(void *userData, const char *name)
 	// End this element, depending on what was before this
 	if (pData->bNeedsEnding)
 	{
-		fprintf(pData->pOutput,"/>");
+		fprintf(pData->pOutput,"/>\n");
 	}
 	else
 	{
 		if (!pData->bInElement)
 		{
 			// Indent
-			fprintf(pData->pOutput,"\n");
 			for (i = 0; i < pData->iDepth; i++)
 			{
 				fprintf(pData->pOutput,"\t");
 			}
 		}
-		fprintf(pData->pOutput,"</%s>",name);
+		fprintf(pData->pOutput,"</%s>\n",name);
 	}
 
 	// Element is ended
@@ -186,29 +177,41 @@ static void XMLCALL DefaultHandler(void *userData, const char *s, int len)
 	bool bIsAllWhiteSpace = true;
 	for (i = 0; i < len; i++)
 	{
-		if (!isspace((unsigned char)s[i]))
+		if (!isspace(s[i]))
 			bIsAllWhiteSpace = false;
 	}
 
 	// Only output something if it's not all whitespace
 	if (!bIsAllWhiteSpace)
 	{
-		// End the previous element if needed
-		if (pData->bNeedsEnding)
+		// Only output stuff inside elements
+		if (pData->bInElement)
 		{
-			fprintf(pData->pOutput,">");
-			pData->bNeedsEnding = false;
+			// End the previous element if needed
+			if (pData->bNeedsEnding)
+			{
+				fprintf(pData->pOutput,">");
+				pData->bNeedsEnding = false;
+
+			}
+
+			// Just output verbatim, this is most likely the text content of a an element
+			fwrite( s, sizeof( char ), len, pData->pOutput );
 
 		}
-
-		// Just output verbatim, this is most likely the text content of a an element
-		fwrite( s, sizeof( char ), len, pData->pOutput );
 	}
 
 }
 
 static void XMLCALL ProcessingInstructionHandler(void *userData, const char *target, const char *data)
 {
+	CXMLData *pData = (CXMLData*)userData;
+	// Not yet implemented
+}
+
+static void XMLCALL CommentHandler(void *userData, const char *data)
+{
+	int i;
 	CXMLData *pData = (CXMLData*)userData;
 
 	// End the previous element if needed
@@ -219,34 +222,9 @@ static void XMLCALL ProcessingInstructionHandler(void *userData, const char *tar
 	}
 
 	// Indent
-	for (int i = 0; i < pData->iDepth; i++)
+	for (i = 0; i < pData->iDepth; i++)
 	{
 		fprintf(pData->pOutput,"\t");
-	}
-
-	// Output processing instruction
-	fprintf(pData->pOutput, "<?%s %s?>\n", target, data);
-}
-
-static void XMLCALL CommentHandler(void *userData, const char *data)
-{
-	CXMLData *pData = (CXMLData*)userData;
-
-	// End the previous element if needed
-	if (pData->bNeedsEnding)
-	{
-		fprintf(pData->pOutput,">");
-		pData->bNeedsEnding = false;
-	}
-
-	// Indent
-	if (pData->iDepth > 0)
-	{
-		fprintf(pData->pOutput,"\n");
-		for (int i = 0; i < pData->iDepth; i++)
-		{
-			fprintf(pData->pOutput,"\t");
-		}
 	}
 
 	// Output comment
@@ -270,15 +248,6 @@ static void XMLCALL XmlDeclHandler(void *userData, const char *version, const ch
 	fprintf(pData->pOutput," ?>\n");
 }
 
-static int
-WinMerge_Plug_UnknownEncodingHandler(void *encodingHandlerData,
-	const XML_Char *name,
-	XML_Encoding *info)
-{
-	return expat_maps_getMap(name, info);
-}
-
-
 STDMETHODIMP CWinMergeScript::UnpackFile(BSTR fileSrc, BSTR fileDst, VARIANT_BOOL *pbChanged, INT *pSubcode, VARIANT_BOOL *pbSuccess)
 {
 	USES_CONVERSION;
@@ -290,45 +259,42 @@ STDMETHODIMP CWinMergeScript::UnpackFile(BSTR fileSrc, BSTR fileDst, VARIANT_BOO
 	oData.iDepth = 0;
 	oData.bInElement = false;
 	oData.bNeedsEnding = false;
-	// Get file size
-	fseek(pInput, 0L, SEEK_END);
-	size_t size = ftell(pInput);
-	fseek(pInput, 0L, SEEK_SET);
 	// Open output file for write binary
 	oData.pOutput = _wfopen(fileDst, L"wb");
 
 	// Set all handlers
-	char *buf = new char[size];
+	char buf[BUFSIZ];
 	XML_Parser parser = XML_ParserCreate(NULL);
 	XML_SetUserData(parser, &oData);
 	XML_SetElementHandler(parser, StartElementHandler, EndElementHandler);
 	XML_SetDefaultHandler(parser, DefaultHandler);
-	XML_SetProcessingInstructionHandler(parser, ProcessingInstructionHandler);
+	//XML_SetProcessingInstructionHandler(parser, ProcessingInstructionHandler);
 	XML_SetCommentHandler(parser, CommentHandler);
 	XML_SetXmlDeclHandler(parser, XmlDeclHandler);
-	XML_SetUnknownEncodingHandler(parser, WinMerge_Plug_UnknownEncodingHandler, this);
-	size_t len = fread(buf, 1, size, pInput);
-	// Parse
-	if (XML_Parse(parser, buf, len, true) == XML_STATUS_ERROR)
+	int done;
+	do
 	{
-		// There was an error
-		// Give a warning and return without converting anything
-		char sError[1024];
-		sprintf(sError, "%s at line %d\n",
-			XML_ErrorString(XML_GetErrorCode(parser)),
-			XML_GetCurrentLineNumber(parser));
-		
-		::MessageBoxA(NULL, sError, "The xml has an error", MB_OK | MB_ICONWARNING | MB_SETFOREGROUND | MB_TOPMOST);
-		XML_ParserFree(parser);
-		delete [] buf;
-		fclose(pInput);
-		fclose(oData.pOutput);
-		*pbChanged = VARIANT_FALSE;
-		*pbSuccess = VARIANT_FALSE;
-		return S_FALSE;
+		size_t len = fread(buf, 1, sizeof(buf), pInput);
+		done = len < sizeof(buf);
+		// Parse
+		if (XML_Parse(parser, buf, len, done) == XML_STATUS_ERROR)
+		{
+			// There was an error
+			// Give a warning and return without converting anything
+			char sError[1024];
+			sprintf(sError, "%s at line %d\n",
+				XML_ErrorString(XML_GetErrorCode(parser)),
+				XML_GetCurrentLineNumber(parser));
+			
+			::MessageBox(NULL, sError, "The xml has an error", MB_OK | MB_ICONWARNING | MB_SETFOREGROUND | MB_TOPMOST);
+			
+			*pbChanged = VARIANT_FALSE;
+			*pbSuccess = VARIANT_FALSE;
+			return S_FALSE;
+		}
 	}
+	while (!done);
 	XML_ParserFree(parser);
-	delete [] buf;
 
 	// Close all files
 	fclose(pInput);
@@ -345,10 +311,4 @@ STDMETHODIMP CWinMergeScript::PackFile(BSTR fileSrc, BSTR fileDst, VARIANT_BOOL 
 	*pbChanged = VARIANT_FALSE;
 	*pbSuccess = VARIANT_FALSE;
 	return S_OK;
-}
-
-STDMETHODIMP CWinMergeScript::ShowSettingsDialog(VARIANT_BOOL *pbHandled)
-{
-	*pbHandled = VARIANT_FALSE;
-	return E_NOTIMPL;
 }

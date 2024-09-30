@@ -1,13 +1,16 @@
-#pragma once
+#ifndef PluginManager_h_included
+#define PluginManager_h_included
 
-#define POCO_NO_UNWINDOWS 1
-#include <Poco/Mutex.h>
-#include <memory>
-#include <map>
+
+#if !defined(AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_)
 // defines IPluginInfos
 #include "DiffContext.h"
+#endif
+
+#ifndef FileTransform_h
 // defines PackingInfo and PrediffingInfo
 #include "FileTransform.h"
+#endif
 
 /**
  * @brief Cached plugin info for one particular file info
@@ -18,27 +21,23 @@ struct PluginFileInfo
 	PrediffingInfo m_infoPrediffer;
 };
 
-typedef std::shared_ptr<PluginFileInfo> PluginFileInfoPtr;
-
 /**
  * @brief Cache of known plugin infos
  */
 class PluginManager : public IPluginInfos
 {
 public:
-	typedef std::map<String, PluginFileInfoPtr> PluginFileInfoMap;
-
 	~PluginManager();
-	void Clear() { m_pluginSettings.clear(); };
-	void SetUnpackerSettingAll(bool automatic);
-	void SetPrediffSettingAll(bool automatic);
-	void SetPrediffer(const String& filteredFilenames, const String& predifferPipeline);
+	void SetPrediffSetting(const CString & filteredFilenames, int newsetting);
+
+private:
 	// Implement IPluginInfos
-	virtual void FetchPluginInfos(const String& filteredFilenames, 
+	virtual void FetchPluginInfos(const CString& filteredFilenames, 
                                       PackingInfo ** infoUnpacker, 
-                                      PrediffingInfo ** infoPrediffer) override;
+                                      PrediffingInfo ** infoPrediffer);
 private:
 	// Data
-	PluginFileInfoMap m_pluginSettings;
-	Poco::FastMutex m_mutex;
+	CTypedPtrMap<CMapStringToPtr, CString, PluginFileInfo*> m_pluginSettings;
 };
+
+#endif // PluginManager_h_included

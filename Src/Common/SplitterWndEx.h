@@ -1,11 +1,17 @@
+//////////////////////////////////////////////////////////////////////
 /** 
  * @file  SplitterWndEx.h
  *
  * @brief Declaration of CSplitterWndEx class
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: SplitterWndEx.h,v 1.4 2004/01/23 02:16:42 puddle Exp $
+//
+//////////////////////////////////////////////////////////////////////
 
-#include <vector>
+#if !defined(AFX_SPLITTERWNDEX_H__68D1F449_015D_4575_9094_FA5D8C98BE63__INCLUDED_)
+#define AFX_SPLITTERWNDEX_H__68D1F449_015D_4575_9094_FA5D8C98BE63__INCLUDED_
+
 
 class CSplitterWndEx : public CSplitterWnd  
 {
@@ -14,40 +20,23 @@ class CSplitterWndEx : public CSplitterWnd
 public:
 	CSplitterWndEx();
 	virtual ~CSplitterWndEx();
-	void LockBar(bool bState=true){m_bBarLocked=bState;};
-	void ResizablePanes(bool bState=true){m_bResizePanes=bState;};
-	void AutoResizePanes(bool bState=true){m_bAutoResizePanes=bState;};
-	void HideBorders(bool bHide)
-	{
-		m_cxBorder = m_cyBorder = bHide ? 0 : 2;
-		m_bHideBorders = bHide;
-	}
-	void FlipSplit();
+	void LockBar(BOOL bState=TRUE){m_bBarLocked=bState;};
+	void ResizablePanes(BOOL bState=TRUE){m_bResizePanes=bState;};
 
 	int HitTest(CPoint pt) const;
 
 	void EqualizeRows(); 
 	void EqualizeCols(); 
 
-	virtual void RecalcLayout() override;
-	virtual void TrackRowSize(int y, int row) override;
-	virtual void TrackColumnSize(int x, int col) override;
-	virtual CWnd* GetActivePane(int* pRow = NULL, int* pCol = NULL) override;
-
-	CScrollBar* GetScrollBarCtrl(CWnd* pWnd, int nBar) const;
-
 private:
-	bool m_bBarLocked;
-	bool m_bResizePanes;
-	bool m_bAutoResizePanes;
-	bool m_bHideBorders;
-	std::vector<int> m_rowRatios;
-	std::vector<int> m_colRatios;
+	BOOL m_bBarLocked;
+	BOOL m_bResizePanes;
 
 protected:
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
-	virtual void OnDrawSplitter(CDC* pDC, ESplitType nType, const CRect& rect);
 	DECLARE_MESSAGE_MAP()
 };
+
+#endif // !defined(AFX_SPLITTERWNDEX_H__68D1F449_015D_4575_9094_FA5D8C98BE63__INCLUDED_)

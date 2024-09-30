@@ -7,34 +7,28 @@
  * (http://www.abstractspoon.com/) but is modified to use in
  * WinMerge.
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: PreferencesDlg.h,v 1.4 2005/08/29 16:27:34 kimmov Exp $
 
-#include "TrDialogs.h"
+
+#if !defined(AFX_PREFERENCESDLG_H__C3FCC72A_6C69_49A6_930D_D5C94EC31298__INCLUDED_)
+#define AFX_PREFERENCESDLG_H__C3FCC72A_6C69_49A6_930D_D5C94EC31298__INCLUDED_
+
+#if _MSC_VER > 1000
+#pragma once
+#endif // _MSC_VER > 1000
+
 #include "PropGeneral.h"
 #include "PropCompare.h"
-#include "PropMessageBoxes.h"
 #include "PropEditor.h"
-#include "PropEditorSyntax.h"
+#include "PropVss.h"
 #include "PropRegistry.h"
-#include "PropColorSchemes.h"
-#include "PropMergeColors.h"
-#include "PropTextColors.h"
-#include "PropSyntaxColors.h"
-#include "PropMarkerColors.h"
-#include "PropDirColors.h"
+#include "PropColors.h"
 #include "PropCodepage.h"
+#include "PropSyntaxColors.h"
 #include "PropArchive.h"
-#include "PropProject.h"
-#include "PropBackups.h"
-#include "PropShell.h"
-#include "PropCompareFolder.h"
-#include "PropCompareTable.h"
-#include "PropCompareBinary.h"
-#include "PropCompareImage.h"
-#include "PropCompareWebPage.h"
 
-#include "PropertyPageHost.h"
-#include "CMoveConstraint.h"
+#include "propertypagehost.h"
 
 class COptionsMgr;
 class SyntaxColors;
@@ -42,14 +36,17 @@ class SyntaxColors;
 /////////////////////////////////////////////////////////////////////////////
 // CPreferencesDlg dialog
 
-class CPreferencesDlg : public CTrDialog
+class CPreferencesDlg : public CDialog
 {
 // Construction
 public:
-	//CPreferencesDlg(UINT nMenuID = 0, CWnd* pParent = nullptr);   // standard constructor
+	//CPreferencesDlg(UINT nMenuID = 0, CWnd* pParent = NULL);   // standard constructor
 	CPreferencesDlg(COptionsMgr *optionsMgr, SyntaxColors *colors,
-		UINT nMenuID = 0, CWnd* pParent = nullptr);   // standard constructor
+		UINT nMenuID = 0, CWnd* pParent = NULL);   // standard constructor
 	virtual ~CPreferencesDlg();
+
+	void SetDefaultEditor(LPCTSTR szDefaultEditor);
+	void SetSyntaxColors(SyntaxColors *pColors);
 
 protected:
 // Dialog Data
@@ -59,28 +56,17 @@ protected:
 
 	CPropertyPageHost m_pphost;
 	
-	PropGeneral m_pageGeneral;
-	PropCompare m_pageCompare;
-	PropMessageBoxes m_pageMessageBoxes;
-	PropEditor m_pageEditor;
-	PropEditorSyntax m_pageEditorSyntax;
-	PropRegistry m_pageSystem;
-	PropCodepage m_pageCodepage;
-	PropColorSchemes m_pageColorSchemes;
-	PropMergeColors m_pageMergeColors;
-	PropTextColors m_pageTextColors;
-	PropSyntaxColors m_pageSyntaxColors;
-	PropMarkerColors m_pageMarkerColors;
-	PropDirColors m_pageDirColors;
-	PropArchive m_pageArchive;
-	PropProject m_pageProject;
-	PropBackups m_pageBackups;
-	PropShell m_pageShell;
-	PropCompareFolder m_pageCompareFolder;
-	PropCompareTable m_pageCompareTable;
-	PropCompareBinary m_pageCompareBinary;
-	PropCompareImage m_pageCompareImage;
-	PropCompareWebPage m_pageCompareWebPage;
+	CPropGeneral m_pageGeneral;
+	CPropCompare m_pageCompare;
+	CPropEditor m_pageEditor;
+	CPropVss m_pageVss;	
+	CPropRegistry m_pageSystem;
+	CPropColors m_pageColors;
+	CPropCodepage m_pageCodepage;
+	CPropSyntaxColors m_pageSyntaxColors;
+	CPropArchive m_pageArchive;
+
+	SyntaxColors *m_pSyntaxColors;
 
 	CMapPtrToPtr m_mapPP2HTI;
 
@@ -96,12 +82,9 @@ protected:
 protected:
 	// Generated message map functions
 	//{{AFX_MSG(CPreferencesDlg)
-	virtual BOOL OnInitDialog() override;
-	afx_msg void OnSize(UINT nType, int cx, int cy);
+	virtual BOOL OnInitDialog();
+	afx_msg void OnDestroy();
 	afx_msg void OnHelpButton();
-	afx_msg void OnImportButton();
-	afx_msg void OnExportButton();
-	afx_msg LRESULT OnColorSchemeChanged(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnSelchangedPages(NMHDR* pNMHDR, LRESULT* pResult);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
@@ -109,15 +92,18 @@ protected:
 protected:
 	void AddPage(CPropertyPage* pPage, UINT nResourceID);
 	void AddPage(CPropertyPage* pPage, LPCTSTR szPath);
-	void AddPage(CPropertyPage* pPage, UINT nTopHeading, UINT nSubHeading);
 	void SetActivePage(int nPage);
 	CString GetItemPath(HTREEITEM hti);
-	void ReadOptions(bool bUpdate = false);
+	void ReadOptions();
 	void SaveOptions();
-	void SafeUpdatePage(CPropertyPage* pPage, bool bSaveAndValidate);
 
 private:
 	COptionsMgr *m_pOptionsMgr;
-	SyntaxColors *m_pSyntaxColors;
-	prdlg::CMoveConstraint m_constraint; /**< Resizes dialog controls when dialog resized */
+	CString m_sDefaultEditor;
+
 };
+
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
+
+#endif // !defined(AFX_PREFERENCESDLG_H__C3FCC72A_6C69_49A6_930D_D5C94EC31298__INCLUDED_)

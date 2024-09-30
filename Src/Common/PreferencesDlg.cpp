@@ -7,24 +7,24 @@
  * (http://www.abstractspoon.com/) but is modified to use in
  * WinMerge.
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: PreferencesDlg.cpp,v 1.9 2005/08/29 16:27:34 kimmov Exp $
 
-#include "StdAfx.h"
-#include "PreferencesDlg.h"
+#include "stdafx.h"
 #include "resource.h"
-#include "UnicodeString.h"
 #include "OptionsDef.h"
 #include "OptionsMgr.h"
 #include "SyntaxColors.h"
-#include "Merge.h"
-#include "paths.h"
-#include "FileOrFolderSelect.h"
-#include "OptionsSyntaxColors.h"
-#include "LineFiltersList.h"
-#include "SubstitutionFiltersList.h"
-#include "Constants.h"
+#include "PreferencesDlg.h"
+#include "MainFrm.h"
+
+#include "winclasses.h"
+#include "wclassdefines.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
@@ -33,32 +33,9 @@
 const TCHAR PATHDELIM = '>';
 
 CPreferencesDlg::CPreferencesDlg(COptionsMgr *regOptions, SyntaxColors *colors,
-		UINT nMenuID /*= 0*/, CWnd* pParent /*= nullptr*/)   // standard constructor
-: CTrDialog(IDD_PREFERENCES, pParent)
-, m_pOptionsMgr(regOptions)
-, m_pSyntaxColors(colors)
-, m_pageGeneral(regOptions)
-, m_pageCompare(regOptions)
-, m_pageMessageBoxes(regOptions)
-, m_pageColorSchemes(regOptions)
-, m_pageMergeColors(regOptions)
-, m_pageTextColors(regOptions, colors)
-, m_pageSyntaxColors(regOptions, colors)
-, m_pageMarkerColors(regOptions, colors)
-, m_pageDirColors(regOptions)
-, m_pageArchive(regOptions)
-, m_pageCodepage(regOptions)
-, m_pageEditor(regOptions)
-, m_pageEditorSyntax(regOptions)
-, m_pageProject(regOptions)
-, m_pageSystem(regOptions)
-, m_pageBackups(regOptions)
-, m_pageShell(regOptions)
-, m_pageCompareFolder(regOptions)
-, m_pageCompareTable(regOptions)
-, m_pageCompareBinary(regOptions)
-, m_pageCompareImage(regOptions)
-, m_pageCompareWebPage(regOptions)
+		UINT nMenuID, CWnd* pParent)   // standard constructor
+	: CDialog(IDD_PREFERENCES, pParent), m_pOptionsMgr(regOptions), m_pageCompare(regOptions),
+	m_pageColors(regOptions), m_pSyntaxColors(colors), m_pageSyntaxColors(colors)
 {
 	UNREFERENCED_PARAMETER(nMenuID);
 }
@@ -75,15 +52,11 @@ void CPreferencesDlg::DoDataExchange(CDataExchange* pDX)
 	//}}AFX_DATA_MAP
 }
 
-BEGIN_MESSAGE_MAP(CPreferencesDlg, CTrDialog)
+BEGIN_MESSAGE_MAP(CPreferencesDlg, CDialog)
 	//{{AFX_MSG_MAP(CPreferencesDlg)
-	ON_WM_SIZE()
-	ON_COMMAND(ID_HELP, OnHelpButton)
+	ON_WM_DESTROY()
 	ON_BN_CLICKED(IDC_TREEOPT_HELP, OnHelpButton)
 	ON_NOTIFY(TVN_SELCHANGED, IDC_TREEOPT_PAGES, OnSelchangedPages)
-	ON_BN_CLICKED(IDC_TREEOPT_IMPORT, OnImportButton)
-	ON_BN_CLICKED(IDC_TREEOPT_EXPORT, OnExportButton)
-	ON_MESSAGE(WM_APP + IDC_COLOR_SCHEMES, OnColorSchemeChanged)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -92,7 +65,7 @@ END_MESSAGE_MAP()
 
 BOOL CPreferencesDlg::OnInitDialog() 
 {
-	CTrDialog::OnInitDialog();
+	CDialog::OnInitDialog();
 
 	m_tcPages.SetIndent(0);
 
@@ -101,27 +74,14 @@ BOOL CPreferencesDlg::OnInitDialog()
 	// For example "General" creates top-level "General" page
 	// and "General>Colors" creates "Colors" sub-page for "General"
 	AddPage(&m_pageGeneral, IDS_OPTIONSPG_GENERAL);
-	AddPage(&m_pageCompare, IDS_OPTIONSPG_COMPARE, IDS_OPTIONSPG_GENCOMPARE);
-	AddPage(&m_pageCompareFolder, IDS_OPTIONSPG_COMPARE, IDS_OPTIONSPG_FOLDERCOMPARE);
-	AddPage(&m_pageCompareTable, IDS_OPTIONSPG_COMPARE, IDS_OPTIONSPG_TABLECOMPARE);
-	AddPage(&m_pageCompareBinary, IDS_OPTIONSPG_COMPARE, IDS_OPTIONSPG_BINARYCOMPARE);
-	AddPage(&m_pageCompareImage, IDS_OPTIONSPG_COMPARE, IDS_OPTIONSPG_IMAGECOMPARE);
-	AddPage(&m_pageCompareWebPage, IDS_OPTIONSPG_COMPARE, IDS_OPTIONSPG_WEBPAGECOMPARE);
-	AddPage(&m_pageMessageBoxes, IDS_OPTIONSPG_MESSAGEBOXES);
-	AddPage(&m_pageEditor, IDS_OPTIONSPG_EDITOR, IDS_OPTIONSPG_GENEDITOR);
-	AddPage(&m_pageEditorSyntax, IDS_OPTIONSPG_EDITOR, IDS_OPTIONSPG_EDITOR_SYNTAX);
-	AddPage(&m_pageColorSchemes, IDS_OPTIONSPG_COLORS, IDS_OPTIONSPG_COLOR_SCHEMES);
-	AddPage(&m_pageMergeColors, IDS_OPTIONSPG_COLORS, IDS_OPTIONSPG_MERGECOLORS);
-	AddPage(&m_pageSyntaxColors, IDS_OPTIONSPG_COLORS, IDS_OPTIONSPG_SYNTAXCOLORS);
-	AddPage(&m_pageTextColors, IDS_OPTIONSPG_COLORS, IDS_OPTIONSPG_TEXTCOLORS);
-	AddPage(&m_pageMarkerColors, IDS_OPTIONSPG_COLORS, IDS_OPTIONSPG_MARKERCOLORS);
-	AddPage(&m_pageDirColors, IDS_OPTIONSPG_COLORS, IDS_OPTIONSPG_DIRCOLORS);
+	AddPage(&m_pageCompare, IDS_OPTIONSPG_COMPARE);
+	AddPage(&m_pageEditor, IDS_OPTIONSPG_EDITOR);
+	AddPage(&m_pageColors, IDS_OPTIONSPG_COLORS);
+	AddPage(&m_pageSyntaxColors, IDS_OPTIONSPG_SYNTAXCOLORS);
 	AddPage(&m_pageArchive, IDS_OPTIONSPG_ARCHIVE);
-	AddPage(&m_pageProject, IDS_OPTIONSPG_PROJECT);
 	AddPage(&m_pageSystem, IDS_OPTIONSPG_SYSTEM);
-	AddPage(&m_pageBackups, IDS_OPTIONSPG_BACKUPS);
+	AddPage(&m_pageVss, IDS_OPTIONSPG_VERSIONCONTROL);
 	AddPage(&m_pageCodepage, IDS_OPTIONSPG_CODEPAGE);
-	AddPage(&m_pageShell, IDS_OPTIONSPG_SHELL);
 
 	ReadOptions();
 	
@@ -131,11 +91,7 @@ BOOL CPreferencesDlg::OnInitDialog()
 
 	if (m_pphost.Create(rPPHost, this))
 		SetActivePage(AfxGetApp()->GetProfileInt(_T("Settings"), _T("OptStartPage"), 0));
- 
-	// setup handler for resizing this dialog	
-	m_constraint.InitializeCurrentSize(this);
-	m_constraint.SubclassWnd(); // install subclassing
-	m_constraint.LoadPosition(_T("ResizeableDialogs"), _T("OptionsDlg"), false); // persist size via registry
+
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
 }
@@ -146,47 +102,34 @@ void CPreferencesDlg::OnOK()
 	m_pphost.OnOK();
 
 	SaveOptions();
+}
 
+void CPreferencesDlg::OnDestroy() 
+{
+	CDialog::OnDestroy();
+	
 	AfxGetApp()->WriteProfileInt(_T("Settings"), _T("OptStartPage"), m_pphost.GetActiveIndex());
 }
 
-void CPreferencesDlg::OnSize(UINT nType, int cx, int cy)
-{
-	CWnd::OnSize(nType, cx, cy);
-
-	if (CWnd *pPPHostWnd = GetDlgItem(IDC_TREEOPT_HOSTFRAME))
-	{
-		CRect rPPHost;
-		pPPHostWnd->GetWindowRect(rPPHost);
-		ScreenToClient(rPPHost);
-		m_pphost.MoveWindow(&rPPHost);
-	}
-}
-	
 void CPreferencesDlg::OnHelpButton() 
 {
-	theApp.ShowHelp(OptionsHelpLocation);
+	CMainFrame *pMf = dynamic_cast<CMainFrame*>(AfxGetMainWnd());
+	pMf->ShowHelp();
 }
 
 void CPreferencesDlg::AddPage(CPropertyPage* pPage, UINT nResourceID)
 {
-	String sPath = theApp.LoadString(nResourceID);
-	AddPage(pPage, sPath.c_str());
-}
-
-void CPreferencesDlg::AddPage(CPropertyPage* pPage, UINT nTopHeading, UINT nSubHeading)
-{
-	String sPath = theApp.LoadString(nTopHeading);
-	sPath += _T(">");
-	sPath += theApp.LoadString(nSubHeading);
-	AddPage(pPage, sPath.c_str());
+	CString sPath;
+	VERIFY(sPath.LoadString(nResourceID));
+	AddPage(pPage, sPath);
 }
 
 void CPreferencesDlg::AddPage(CPropertyPage* pPage, LPCTSTR szPath)
 {
+	CString sPath(szPath);
+
 	if (m_pphost.AddPage(pPage))
 	{
-		CString sPath(szPath);
 		HTREEITEM htiParent = TVI_ROOT; // default
 		int nFind = sPath.Find(PATHDELIM);
 
@@ -199,7 +142,7 @@ void CPreferencesDlg::AddPage(CPropertyPage* pPage, LPCTSTR szPath)
 			HTREEITEM htiParentParent = htiParent;
 			htiParent = m_tcPages.GetChildItem(htiParentParent);
 
-			while (htiParent != nullptr)
+			while (htiParent)
 			{
 				if (sParent.CompareNoCase(m_tcPages.GetItemText(htiParent)) == 0)
 					break;
@@ -207,7 +150,7 @@ void CPreferencesDlg::AddPage(CPropertyPage* pPage, LPCTSTR szPath)
 				htiParent = m_tcPages.GetNextItem(htiParent, TVGN_NEXT);
 			}
 
-			if (htiParent == nullptr)
+			if (!htiParent)
 				htiParent = m_tcPages.InsertItem(sParent, htiParentParent);
 
 			nFind = sPath.Find(PATHDELIM);
@@ -217,7 +160,7 @@ void CPreferencesDlg::AddPage(CPropertyPage* pPage, LPCTSTR szPath)
 		m_tcPages.EnsureVisible(hti);
 
 		// map both ways
-		m_tcPages.SetItemData(hti, static_cast<DWORD_PTR>(reinterpret_cast<uintptr_t>(pPage)));
+		m_tcPages.SetItemData(hti, (DWORD)pPage);
 		m_mapPP2HTI[(void*)pPage] = (void*)hti;
 	}
 }
@@ -231,15 +174,16 @@ void CPreferencesDlg::OnSelchangedPages(NMHDR* pNMHDR, LRESULT* pResult)
 		htiSel = m_tcPages.GetChildItem(htiSel);
 
 	CPropertyPage* pPage = (CPropertyPage*)m_tcPages.GetItemData(htiSel);
-	ASSERT (pPage != nullptr);
+	ASSERT (pPage);
 
-	if (pPage != nullptr)
+	if (pPage)
 	{
-		m_pphost.SetActivePage(pPage, false);
+		m_pphost.SetActivePage(pPage, FALSE);
 
 		// update caption
-		String sCaption = strutils::format_string1(_("Options (%1)"), (LPCTSTR)GetItemPath(htiSel));
-		SetWindowText(sCaption.c_str());
+		CString sCaption;
+		AfxFormatString1(sCaption, IDS_OPTIONS_TITLE, GetItemPath(htiSel));
+		SetWindowText(sCaption);
 	}
 
 	m_tcPages.SetFocus();
@@ -249,13 +193,13 @@ void CPreferencesDlg::OnSelchangedPages(NMHDR* pNMHDR, LRESULT* pResult)
 
 void CPreferencesDlg::SetActivePage(int nPage)
 {
-	m_pphost.SetActivePage(nPage, false);
+	m_pphost.SetActivePage(nPage, FALSE);
 
 	// synchronize tree
 	CPropertyPage* pPage = m_pphost.GetActivePage();
-	HTREEITEM hti = nullptr;
+	HTREEITEM hti = NULL;
 
-	if (m_mapPP2HTI.Lookup(pPage, (void*&)hti) && hti != nullptr)
+	if (m_mapPP2HTI.Lookup(pPage, (void*&)hti) && hti)
 		m_tcPages.SelectItem(hti);
 }
 
@@ -263,164 +207,147 @@ CString CPreferencesDlg::GetItemPath(HTREEITEM hti)
 {
 	CString sPath = m_tcPages.GetItemText(hti);
 
-	hti = m_tcPages.GetParentItem(hti);
-	while (hti != nullptr)
-	{
+	while (hti = m_tcPages.GetParentItem(hti))
 		sPath = m_tcPages.GetItemText(hti) + _T(" > ") + sPath;
-		hti = m_tcPages.GetParentItem(hti);
-	}
 
 	return sPath;
 }
 
-/**
- * @brief Read options from storage to UI controls.
- * @param [in] bUpdate If `true` UpdateData() is called
- */
-void CPreferencesDlg::ReadOptions(bool bUpdate)
+void CPreferencesDlg::SetDefaultEditor(LPCTSTR szDefaultEditor)
 {
-	m_pageGeneral.ReadOptions();
-	m_pageColorSchemes.ReadOptions();
-	m_pageMergeColors.ReadOptions();
-	m_pageTextColors.ReadOptions();
-	m_pageSyntaxColors.ReadOptions();
-	m_pageMarkerColors.ReadOptions();
-	m_pageDirColors.ReadOptions();
-	m_pageSystem.ReadOptions();
-	m_pageCompare.ReadOptions();
-	m_pageCompareFolder.ReadOptions();
-	m_pageCompareTable.ReadOptions();
-	m_pageCompareBinary.ReadOptions();
-	m_pageCompareImage.ReadOptions();
-	m_pageCompareWebPage.ReadOptions();
-	m_pageMessageBoxes.ReadOptions();
-	m_pageEditor.ReadOptions();
-	m_pageEditorSyntax.ReadOptions();
-	m_pageCodepage.ReadOptions();
-	m_pageArchive.ReadOptions();
-	m_pageProject.ReadOptions();
-	m_pageBackups.ReadOptions();
-	m_pageShell.ReadOptions();
-
-	if (bUpdate)
-	{
-		SafeUpdatePage(&m_pageGeneral, false);
-		SafeUpdatePage(&m_pageColorSchemes, false);
-		SafeUpdatePage(&m_pageMergeColors, false);
-		SafeUpdatePage(&m_pageTextColors, false);
-		SafeUpdatePage(&m_pageSyntaxColors, false);
-		SafeUpdatePage(&m_pageMarkerColors, false);
-		SafeUpdatePage(&m_pageDirColors, false);
-		SafeUpdatePage(&m_pageSystem, false);
-		SafeUpdatePage(&m_pageCompare, false);
-		SafeUpdatePage(&m_pageCompareFolder, false);
-		SafeUpdatePage(&m_pageCompareTable, false);
-		SafeUpdatePage(&m_pageCompareBinary, false);
-		SafeUpdatePage(&m_pageCompareImage, false);
-		SafeUpdatePage(&m_pageMessageBoxes, false);
-		SafeUpdatePage(&m_pageEditor, false);
-		SafeUpdatePage(&m_pageEditorSyntax, false);
-		SafeUpdatePage(&m_pageCodepage, false);
-		SafeUpdatePage(&m_pageArchive, false);
-		SafeUpdatePage(&m_pageProject, false);
-		SafeUpdatePage(&m_pageBackups, false);
-		SafeUpdatePage(&m_pageShell, false);
-	}
+	m_sDefaultEditor = szDefaultEditor;
 }
 
-/**
- * @brief Write options from UI to storage.
- */
+void CPreferencesDlg::ReadOptions()
+{
+	m_pageGeneral.m_bBackup = m_pOptionsMgr->GetBool(OPT_CREATE_BACKUPS);
+	m_pageGeneral.m_bScroll = m_pOptionsMgr->GetBool(OPT_SCROLL_TO_FIRST);
+	m_pageGeneral.m_bDisableSplash = m_pOptionsMgr->GetBool(OPT_DISABLE_SPLASH);
+	m_pageGeneral.m_bAutoCloseCmpPane = m_pOptionsMgr->GetBool(OPT_AUTOCLOSE_CMPPANE);
+	m_pageGeneral.m_bSingleInstance = m_pOptionsMgr->GetBool(OPT_SINGLE_INSTANCE);
+	m_pageGeneral.m_bVerifyPaths = m_pOptionsMgr->GetBool(OPT_VERIFY_OPEN_PATHS);
+	m_pageGeneral.m_bCloseWindowWithEsc = m_pOptionsMgr->GetBool(OPT_CLOSE_WITH_ESC);
+	m_pageGeneral.m_bMultipleFileCmp = m_pOptionsMgr->GetBool(OPT_MULTIDOC_MERGEDOCS);
+	m_pageGeneral.m_bMultipleDirCmp = m_pOptionsMgr->GetBool(OPT_MULTIDOC_DIRDOCS);
+
+	m_pageSystem.m_strEditorPath = m_pOptionsMgr->GetString(OPT_EXT_EDITOR_CMD);
+	m_pageSystem.GetContextRegValues();
+	m_pageSystem.m_bUseRecycleBin = m_pOptionsMgr->GetBool(OPT_USE_RECYCLE_BIN);
+	m_pageSystem.m_bIgnoreSmallTimeDiff = m_pOptionsMgr->GetBool(OPT_IGNORE_SMALL_FILETIME);
+
+	m_pageCompare.m_nIgnoreWhite = m_pOptionsMgr->GetInt(OPT_CMP_IGNORE_WHITESPACE);
+	m_pageCompare.m_bIgnoreBlankLines = m_pOptionsMgr->GetBool(OPT_CMP_IGNORE_BLANKLINES);
+	m_pageCompare.m_bIgnoreCase = m_pOptionsMgr->GetBool(OPT_CMP_IGNORE_CASE);
+	m_pageCompare.m_bEolSensitive = m_pOptionsMgr->GetBool(OPT_CMP_EOL_SENSITIVE) ? false : true; // Reverse
+	m_pageCompare.m_bMovedBlocks = m_pOptionsMgr->GetBool(OPT_CMP_MOVED_BLOCKS);
+	m_pageCompare.m_compareMethod = m_pOptionsMgr->GetInt(OPT_CMP_METHOD);
+	m_pageCompare.m_bStopAfterFirst = m_pOptionsMgr->GetBool(OPT_CMP_STOP_AFTER_FIRST);
+
+	m_pageEditor.m_nTabSize = m_pOptionsMgr->GetInt(OPT_TAB_SIZE);
+	m_pageEditor.m_nTabType = m_pOptionsMgr->GetInt(OPT_TAB_TYPE);
+	m_pageEditor.m_bAutomaticRescan = m_pOptionsMgr->GetBool(OPT_AUTOMATIC_RESCAN);
+	m_pageEditor.m_bHiliteSyntax = m_pOptionsMgr->GetBool(OPT_SYNTAX_HIGHLIGHT);
+	m_pageEditor.m_bAllowMixedEol = m_pOptionsMgr->GetBool(OPT_ALLOW_MIXED_EOL);
+	m_pageEditor.m_bApplySyntax = m_pOptionsMgr->GetBool(OPT_UNREC_APPLYSYNTAX);
+	m_pageEditor.m_bViewLineDifferences = m_pOptionsMgr->GetBool(OPT_WORDDIFF_HIGHLIGHT);
+	m_pageEditor.m_bBreakOnWords = m_pOptionsMgr->GetBool(OPT_BREAK_ON_WORDS);
+	m_pageEditor.m_nBreakType = m_pOptionsMgr->GetInt(OPT_BREAK_TYPE);
+
+	m_pageCodepage.m_nCodepageSystem = m_pOptionsMgr->GetInt(OPT_CP_DEFAULT_MODE);
+	m_pageCodepage.m_nCustomCodepageValue = m_pOptionsMgr->GetInt(OPT_CP_DEFAULT_CUSTOM);
+	m_pageCodepage.m_bDetectCodepage = m_pOptionsMgr->GetBool(OPT_CP_DETECT);
+
+	m_pageVss.m_nVerSys = m_pOptionsMgr->GetInt(OPT_VCS_SYSTEM);
+	m_pageVss.m_strPath = m_pOptionsMgr->GetString(OPT_VSS_PATH);
+
+	int enable = m_pOptionsMgr->GetInt(OPT_ARCHIVE_ENABLE);
+	m_pageArchive.m_bEnableSupport = enable > 0;
+	m_pageArchive.m_nInstallType = enable > 1 ? enable - 1 : 0;
+	m_pageArchive.m_bProbeType = m_pOptionsMgr->GetBool(OPT_ARCHIVE_PROBETYPE);
+}
+
 void CPreferencesDlg::SaveOptions()
 {
-	m_pageGeneral.WriteOptions();
-	m_pageSystem.WriteOptions();
-	m_pageCompare.WriteOptions();
-	m_pageCompareFolder.WriteOptions();
-	m_pageCompareTable.WriteOptions();
-	m_pageCompareBinary.WriteOptions();
-	m_pageCompareImage.WriteOptions();
-	m_pageCompareWebPage.WriteOptions();
-	m_pageMessageBoxes.WriteOptions();
-	m_pageEditor.WriteOptions();
-	m_pageEditorSyntax.WriteOptions();
-	m_pageColorSchemes.WriteOptions();
-	m_pageMergeColors.WriteOptions();
-	m_pageTextColors.WriteOptions();
-	m_pageSyntaxColors.WriteOptions();
-	m_pageMarkerColors.WriteOptions();
-	m_pageDirColors.WriteOptions();
-	m_pageCodepage.WriteOptions();
-	m_pageArchive.WriteOptions();
-	m_pageProject.WriteOptions();
-	m_pageBackups.WriteOptions();
-	m_pageShell.WriteOptions();
+	CString sExtEditor;
+
+	m_pOptionsMgr->SaveOption(OPT_CREATE_BACKUPS, m_pageGeneral.m_bBackup == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_SCROLL_TO_FIRST, m_pageGeneral.m_bScroll == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_DISABLE_SPLASH, m_pageGeneral.m_bDisableSplash == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_AUTOCLOSE_CMPPANE, m_pageGeneral.m_bAutoCloseCmpPane == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_SINGLE_INSTANCE, m_pageGeneral.m_bSingleInstance == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_VERIFY_OPEN_PATHS, m_pageGeneral.m_bVerifyPaths == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_CLOSE_WITH_ESC, m_pageGeneral.m_bCloseWindowWithEsc == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_MULTIDOC_MERGEDOCS, m_pageGeneral.m_bMultipleFileCmp == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_MULTIDOC_DIRDOCS, m_pageGeneral.m_bMultipleDirCmp == TRUE);
+
+	m_pOptionsMgr->SaveOption(OPT_USE_RECYCLE_BIN, m_pageSystem.m_bUseRecycleBin == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_IGNORE_SMALL_FILETIME, m_pageSystem.m_bIgnoreSmallTimeDiff == TRUE);
+
+
+	m_pageSystem.SaveMergePath();
+	sExtEditor = m_pageSystem.m_strEditorPath;
+	sExtEditor.TrimLeft();
+	sExtEditor.TrimRight();
+	if (sExtEditor.IsEmpty())
+		sExtEditor = m_sDefaultEditor;
+	m_pOptionsMgr->SaveOption(OPT_EXT_EDITOR_CMD, sExtEditor);
+
+	m_pOptionsMgr->SaveOption(OPT_CMP_IGNORE_WHITESPACE, m_pageCompare.m_nIgnoreWhite);
+	m_pOptionsMgr->SaveOption(OPT_CMP_IGNORE_BLANKLINES, m_pageCompare.m_bIgnoreBlankLines == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_CMP_EOL_SENSITIVE, m_pageCompare.m_bEolSensitive == FALSE); // Reverse
+	m_pOptionsMgr->SaveOption(OPT_CMP_IGNORE_CASE, m_pageCompare.m_bIgnoreCase == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_CMP_METHOD, m_pageCompare.m_compareMethod);
+	m_pOptionsMgr->SaveOption(OPT_CMP_MOVED_BLOCKS, m_pageCompare.m_bMovedBlocks == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_CMP_STOP_AFTER_FIRST, m_pageCompare.m_bStopAfterFirst == TRUE);
+	
+	m_pOptionsMgr->SaveOption(OPT_TAB_SIZE, (int)m_pageEditor.m_nTabSize);
+	m_pOptionsMgr->SaveOption(OPT_TAB_TYPE, (int)m_pageEditor.m_nTabType);
+	m_pOptionsMgr->SaveOption(OPT_AUTOMATIC_RESCAN, m_pageEditor.m_bAutomaticRescan == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_ALLOW_MIXED_EOL, m_pageEditor.m_bAllowMixedEol == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_SYNTAX_HIGHLIGHT, m_pageEditor.m_bHiliteSyntax == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_UNREC_APPLYSYNTAX, m_pageEditor.m_bApplySyntax == TRUE);
+	m_pOptionsMgr->SaveOption(OPT_WORDDIFF_HIGHLIGHT, !!m_pageEditor.m_bViewLineDifferences);
+	m_pOptionsMgr->SaveOption(OPT_BREAK_ON_WORDS, !!m_pageEditor.m_bBreakOnWords);
+	m_pOptionsMgr->SaveOption(OPT_BREAK_TYPE, m_pageEditor.m_nBreakType);
+
+	m_pOptionsMgr->SaveOption(OPT_CLR_DIFF, m_pageColors.m_clrDiff);
+	m_pOptionsMgr->SaveOption(OPT_CLR_SELECTED_DIFF, m_pageColors.m_clrSelDiff);
+	m_pOptionsMgr->SaveOption(OPT_CLR_DIFF_DELETED, m_pageColors.m_clrDiffDeleted);
+	m_pOptionsMgr->SaveOption(OPT_CLR_SELECTED_DIFF_DELETED, m_pageColors.m_clrSelDiffDeleted);
+	m_pOptionsMgr->SaveOption(OPT_CLR_DIFF_TEXT, m_pageColors.m_clrDiffText);
+	m_pOptionsMgr->SaveOption(OPT_CLR_SELECTED_DIFF_TEXT, m_pageColors.m_clrSelDiffText);
+	m_pOptionsMgr->SaveOption(OPT_CLR_TRIVIAL_DIFF, m_pageColors.m_clrTrivial);
+	m_pOptionsMgr->SaveOption(OPT_CLR_TRIVIAL_DIFF_DELETED, m_pageColors.m_clrTrivialDeleted);
+	m_pOptionsMgr->SaveOption(OPT_CLR_TRIVIAL_DIFF_TEXT, m_pageColors.m_clrTrivialText);
+	m_pOptionsMgr->SaveOption(OPT_CLR_MOVEDBLOCK, m_pageColors.m_clrMoved);
+	m_pOptionsMgr->SaveOption(OPT_CLR_MOVEDBLOCK_DELETED, m_pageColors.m_clrMovedDeleted);
+	m_pOptionsMgr->SaveOption(OPT_CLR_MOVEDBLOCK_TEXT, m_pageColors.m_clrMovedText);
+	m_pOptionsMgr->SaveOption(OPT_CLR_SELECTED_MOVEDBLOCK, m_pageColors.m_clrSelMoved);
+	m_pOptionsMgr->SaveOption(OPT_CLR_SELECTED_MOVEDBLOCK_DELETED, m_pageColors.m_clrSelMovedDeleted);
+	m_pOptionsMgr->SaveOption(OPT_CLR_SELECTED_MOVEDBLOCK_TEXT, m_pageColors.m_clrSelMovedText);
+	m_pOptionsMgr->SaveOption(OPT_CLR_WORDDIFF, m_pageColors.m_clrWordDiff);
+	m_pOptionsMgr->SaveOption(OPT_CLR_SELECTED_WORDDIFF, m_pageColors.m_clrSelWordDiff);
+	m_pOptionsMgr->SaveOption(OPT_CLR_WORDDIFF_TEXT, m_pageColors.m_clrWordDiffText);
+	m_pOptionsMgr->SaveOption(OPT_CLR_SELECTED_WORDDIFF_TEXT, m_pageColors.m_clrSelWordDiffText);
+
+	m_pOptionsMgr->SaveOption(OPT_CP_DEFAULT_MODE, m_pageCodepage.m_nCodepageSystem);
+	m_pOptionsMgr->SaveOption(OPT_CP_DEFAULT_CUSTOM, m_pageCodepage.m_nCustomCodepageValue);
+	m_pOptionsMgr->SaveOption(OPT_CP_DETECT, m_pageCodepage.m_bDetectCodepage == TRUE);
+
+	m_pOptionsMgr->SaveOption(OPT_VCS_SYSTEM, (int)m_pageVss.m_nVerSys);
+	m_pOptionsMgr->SaveOption(OPT_VSS_PATH, m_pageVss.m_strPath);
+
+	m_pSyntaxColors->Clone(m_pageSyntaxColors.m_pTempColors);
+	m_pSyntaxColors->SaveToRegistry();
+
+	if (m_pageArchive.m_bEnableSupport)
+		m_pOptionsMgr->SaveOption(OPT_ARCHIVE_ENABLE, m_pageArchive.m_nInstallType + 1);
+	else
+		m_pOptionsMgr->SaveOption(OPT_ARCHIVE_ENABLE, (int)0);
+	m_pOptionsMgr->SaveOption(OPT_ARCHIVE_PROBETYPE, m_pageArchive.m_bProbeType == TRUE);
 }
 
-/**
- * @brief Imports options from file.
- */
-void CPreferencesDlg::OnImportButton()
+void CPreferencesDlg::SetSyntaxColors(SyntaxColors *pColors)
 {
-	String s;
-	if (SelectFile(GetSafeHwnd(), s, true, nullptr, _("Select file for import"), _("Options files (*.ini)|*.ini|All Files (*.*)|*.*||")))
-	{
-		if (m_pOptionsMgr->ImportOptions(s) == COption::OPT_OK)
-		{
-			Options::SyntaxColors::Load(m_pOptionsMgr, m_pSyntaxColors);
-			theApp.m_pLineFilters->Initialize(GetOptionsMgr());
-			theApp.m_pSubstitutionFiltersList->Initialize(GetOptionsMgr());
-
-			ReadOptions(true);
-			LangMessageBox(IDS_OPT_IMPORT_DONE, MB_ICONINFORMATION);
-		}
-		else
-			LangMessageBox(IDS_OPT_IMPORT_ERR, MB_ICONWARNING);
-	}
-}
-
-/**
- * @brief Exports options to file.
- */
-void CPreferencesDlg::OnExportButton()
-{
-	String settingsFile;
-	if (SelectFile(GetSafeHwnd(), settingsFile, false, nullptr, _("Select file for export"),
-		_("Options files (*.ini)|*.ini|All Files (*.*)|*.*||")))
-	{
-		// Add settings file extension if it is missing
-		// So we allow 'filename.otherext' but add extension for 'filename'
-		if (paths::FindExtension(settingsFile).empty())
-			settingsFile += _T(".ini");
-
-		// Save all new settings before exporting
-		m_pphost.UpdatePagesData();
-		SaveOptions();
-
-		if (m_pOptionsMgr->ExportOptions(settingsFile, true) == COption::OPT_OK)
-			LangMessageBox(IDS_OPT_EXPORT_DONE, MB_ICONINFORMATION);
-		else
-			LangMessageBox(IDS_OPT_EXPORT_ERR, MB_ICONWARNING);
-	}
-}
-
-LRESULT CPreferencesDlg::OnColorSchemeChanged(WPARAM wParams, LPARAM lParam)
-{
-	Options::SyntaxColors::Load(m_pOptionsMgr, m_pSyntaxColors);
-	ReadOptions(true);
-	return 0;
-}
-
-/**
- * @brief Do a safe UpdateData call for propertypage.
- * This function does safe UpdateData call for given propertypage. As it is,
- * all propertypages may not have been yet initialized properly, so we must
- * have some care when calling updateData for them.
- * @param [in] pPage Propertypage to update.
- * @param bSaveAndValidate UpdateData direction parameter.
- */
-void CPreferencesDlg::SafeUpdatePage(CPropertyPage* pPage, bool bSaveAndValidate)
-{
-	if (pPage->GetSafeHwnd() != nullptr)
-		pPage->UpdateData(bSaveAndValidate);
+	m_pSyntaxColors = pColors;
 }

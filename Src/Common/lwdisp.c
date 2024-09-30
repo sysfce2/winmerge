@@ -35,9 +35,10 @@ DATE:		BY:					DESCRIPTION:
 2003/11/06	NOBODY@ALL			incredible number of changes for unknown reasons
 2003/11/18	Laoran				CreateDispatchBySource : avoid crash if loading dll fails
 2003/11/18	Laoran				CreateDispatchBySource, cosmetic : move dll load&object creation after the CLSID search (= less indentations)
-2004/01/08  Perry               Updated function comment preceding ReportError
-2008/01/22  Kimmo               Changed map argument name to disp_map to not confuse VC6
+2004/01/08      Perry                           Updated function comment preceding ReportError 
 */
+// RCS ID line follows -- this is updated by CVS
+// $Id: lwdisp.c,v 1.10 2004/01/08 18:21:42 puddle Exp $
 
 //#define _WIN32_IE		0x0300
 //#define _WIN32_WINNT	0x0400	
@@ -48,15 +49,11 @@ DATE:		BY:					DESCRIPTION:
 struct IShellView;			// avoid MSC warning C4115
 struct _RPC_ASYNC_STATE;	// avoid MSC warning C4115
 
-#pragma warning (push)			// prevent "warning C4091: 'typedef ': ignored on left of 'tagGPFIDL_FLAGS' when no variable is declared"
-#pragma warning (disable:4091)	// VC bug when using XP enabled toolsets.
 #include <shlobj.h>
-#pragma warning (pop)
 #include <shlwapi.h>
 #include <tchar.h>
-#include <stdarg.h>
-#include <strsafe.h>
 #include "lwdisp.h"
+#include "dllproxy.h"
 
 /**
 * @brief Display or return error message string (from
@@ -72,7 +69,7 @@ msgbox
 */
 static LPTSTR NTAPI ReportError(HRESULT sc, UINT style)
 {
-	LPTCH pc = NULL;
+	LPTCH pc = 0;
 	FormatMessage
 	(
 		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
@@ -80,13 +77,13 @@ static LPTSTR NTAPI ReportError(HRESULT sc, UINT style)
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_SYS_DEFAULT),
 		(LPTCH)&pc, 0, NULL
 	);
-	if (pc == NULL)
+	if (pc == 0)
 	{
 		FormatMessage
 		(
 			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_STRING |
 			FORMAT_MESSAGE_ARGUMENT_ARRAY,
-			_T("Error 0x%1!lX!"), 0,
+			"Error 0x%1!lX!", 0,
 			MAKELANGID(LANG_NEUTRAL, SUBLANG_SYS_DEFAULT),
 			(LPTCH)&pc, 0, (va_list *)&sc
 		);
@@ -95,7 +92,7 @@ static LPTSTR NTAPI ReportError(HRESULT sc, UINT style)
 	{
 		MessageBox(0, pc, 0, style);
 		LocalFree(pc);
-		pc = NULL;
+		pc = 0;
 	}
 	return pc;
 }
@@ -105,117 +102,58 @@ static LPTSTR NTAPI ReportError(HRESULT sc, UINT style)
  */
 static LPTSTR FormatMessageFromString(LPCTSTR format, ...)
 {
-	LPTCH pc = NULL;
-	va_list list;
-	va_start(list, format);
+	LPTCH pc = 0;
 	FormatMessage
 	(
-		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_STRING,
+		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_STRING |
+		FORMAT_MESSAGE_ARGUMENT_ARRAY,
 		format, 0,
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_SYS_DEFAULT),
-		(LPTCH)&pc, 0, &list
+		(LPTCH)&pc, 0, (va_list *)(&format + 1)
 	);
-	va_end(list);
 	return pc;
 }
 
-static void mycpyt2w(LPCTSTR tsz, wchar_t * wdest, size_t limit)
+static void mycpyt2w(LPCTSTR tsz, wchar_t * wdest, int limit)
 {
 #ifdef _UNICODE
-	StringCchCopyW(wdest, limit, tsz);
+	wcsncpy(wdest, tsz, limit);
 #else
-	MultiByteToWideChar(CP_ACP, 0, tsz, -1, wdest, (int)limit);
+	MultiByteToWideChar(CP_ACP, 0, tsz, -1, wdest, limit);
+#endif
 	// always terminate the string
 	wdest[limit-1] = 0;
-#endif
 }
 
-#ifdef _WIN64
-LPDISPATCH CreatDispatchBy32BitProxy(LPCTSTR source, LPCWSTR progid)
+static void mycpyt2a(LPCTSTR tsz, char * adest, int limit)
 {
-	CLSID clsid;
-	VARIANT v[2], ret;
-	void *pv = NULL;
-	SCODE sc;
-	wchar_t wpath[512];
-
-	sc = CLSIDFromProgID(L"WinMerge32BitPluginProxy.Loader", &clsid);
-	if (SUCCEEDED(sc))
-		sc = CoCreateInstance(&clsid, 0, CLSCTX_LOCAL_SERVER|CLSCTX_ACTIVATE_32_BIT_SERVER, &IID_IDispatch, &pv);
-	if (FAILED(sc))
-	{
-		LPTSTR errorText = ReportError(sc, 0);
-		LPTSTR tmp;
-		tmp = FormatMessageFromString(_T("Failed to load 32bit plugin(%1):%2\n")
-			_T("WinMerge32BitPluginProxy.exe may not be registered.\n")
-			_T("Try running the following in an elevated command prompt.\n\n")
-			_T("\"{WinMerge installation path}\\WinMerge32BitPluginProxy.exe\" /RegServer"), source, errorText);
-		LocalFree(errorText);
-		errorText = tmp;
-		MessageBox(NULL, errorText, NULL, MB_ICONSTOP|MB_TASKMODAL);
-		LocalFree(errorText);
-		return NULL;
-	}
-	VariantInit(&v[0]);
-	VariantInit(&v[1]);
-	VariantInit(&ret);
-	V_VT(&v[1]) = VT_BSTR;
-	mycpyt2w(source, wpath, DIMOF(wpath));
-	V_BSTR(&v[1]) = SysAllocString(wpath);
-	V_VT(&v[0]) = VT_BSTR;
-	V_BSTR(&v[0]) = SysAllocString(progid);
-	sc = invokeW(pv, &ret, L"Load", opFxn[2], v);
-	if (SUCCEEDED(sc))
-		pv = V_DISPATCH(&ret);
-	VariantClear(&v[0]);
-	VariantClear(&v[1]);
-	return pv;
-}
+#ifdef _UNICODE
+	WideCharToMultiByte(CP_ACP, 0, tsz, -1, adest, limit, 0, 0);
+#else
+	strncpy(adest, tsz, limit);
 #endif
-
-LPDISPATCH CreateDispatchBySourceAndCLSID(LPCTSTR source, CLSID *pObjectCLSID)
-{
-	LPDISPATCH pv = NULL;
-	HMODULE hLibrary = LoadLibrary(source);
-	if (hLibrary)
-	{
-		HRESULT (NTAPI*DllGetClassObject)(REFCLSID,REFIID,IClassFactory**)
-			= (HRESULT(NTAPI*)(REFCLSID, REFIID, IClassFactory**))GetProcAddress(hLibrary, "DllGetClassObject");
-		if (DllGetClassObject)
-		{
-			SCODE sc;
-			IClassFactory *piClassFactory;
-			if (SUCCEEDED(sc = DllGetClassObject(pObjectCLSID, &IID_IClassFactory, &piClassFactory)))
-			{
-				sc = piClassFactory->lpVtbl->CreateInstance(piClassFactory, 0, &IID_IDispatch, &pv);
-				piClassFactory->lpVtbl->Release(piClassFactory);
-			}
-		}
-		if (pv == NULL)
-			FreeLibrary(hLibrary);
-	}
-	return pv;
+	// always terminate the string
+	adest[limit-1] = 0;
 }
-
 
 /**
  * 
  * @Note We can use this code with unregistered COM DLL
  * For VC++ DLL, we need a custom CComTypeInfoHolder as the default one search the registry
- * For VB DLL, instance can not be shared across thread, one must be created for each thread
+ * For VB DLL, instance can not be shared accross thread, one must be created for each thread
  *
  * Don't catch unknown errors in this function, because we want to catch
  * both C++ and C errors, and this is a C file.
  */
 LPDISPATCH NTAPI CreateDispatchBySource(LPCTSTR source, LPCWSTR progid)
 {
-	void *pv = NULL;
+	void *pv = 0;
 	SCODE sc;
 	WCHAR wc[320];
-	if (source == NULL)
+	if (source == 0)
 	{
 		CLSID clsid;
-		if (SUCCEEDED(sc=CLSIDFromProgID(progid, &clsid)))
+		if SUCCEEDED(sc=CLSIDFromProgID(progid, &clsid))
 		{
 			sc=CoCreateInstance(&clsid, 0, CLSCTX_ALL, &IID_IDispatch, &pv);
 		}
@@ -228,19 +166,19 @@ LPDISPATCH NTAPI CreateDispatchBySource(LPCTSTR source, LPCWSTR progid)
 		// search in the interface of the dll for the CLSID of progid
 		ITypeLib *piTypeLib;
 		mycpyt2w(source, wc, DIMOF(wc));
-		if (SUCCEEDED(sc=LoadTypeLib(wc, &piTypeLib)))
+		if SUCCEEDED(sc=LoadTypeLib(wc, &piTypeLib))
 		{
 			UINT count = piTypeLib->lpVtbl->GetTypeInfoCount(piTypeLib);
 			while (SUCCEEDED(sc) && !bGUIDFound && count--)
 			{
 				ITypeInfo *piTypeInfo;
-				if (SUCCEEDED(sc=piTypeLib->lpVtbl->GetTypeInfo(piTypeLib, count, &piTypeInfo)))
+				if SUCCEEDED(sc=piTypeLib->lpVtbl->GetTypeInfo(piTypeLib, count, &piTypeInfo))
 				{
 					TYPEATTR *pTypeAttr;
-					if (SUCCEEDED(sc=piTypeInfo->lpVtbl->GetTypeAttr(piTypeInfo, &pTypeAttr)))
+					if SUCCEEDED(sc=piTypeInfo->lpVtbl->GetTypeAttr(piTypeInfo, &pTypeAttr))
 					{
 						BSTR bstrName = 0;
-						if (SUCCEEDED(sc=piTypeInfo->lpVtbl->GetDocumentation(piTypeInfo, MEMBERID_NIL, &bstrName, 0, 0, 0)))
+						if SUCCEEDED(sc=piTypeInfo->lpVtbl->GetDocumentation(piTypeInfo, MEMBERID_NIL, &bstrName, 0, 0, 0))
 						{
 							if (pTypeAttr->typekind == TKIND_COCLASS && StrCmpIW(bstrName, progid) == 0)
 							{
@@ -261,23 +199,18 @@ LPDISPATCH NTAPI CreateDispatchBySource(LPCTSTR source, LPCWSTR progid)
 		{
 			// we have found the CLSID, so this is really a COM dll for WinMerge
 			// now try to load the dll and to create an instance of the object
-#ifdef _WIN64
-			{
-			HMODULE hLibrary = LoadLibrary(source);
-			if (hLibrary == NULL)
-			{
-				// assume 32bit DLL if failed to load DLL
-				pv = CreatDispatchBy32BitProxy(source, progid);
-			}
-			else
-			{
-				pv = CreateDispatchBySourceAndCLSID(source, &objectGUID);
-				FreeLibrary(hLibrary);
-			}
-			}
-#else
-			pv = CreateDispatchBySourceAndCLSID(source, &objectGUID);
-#endif
+			IClassFactory *piClassFactory;
+			EXPORT_DLLPROXY
+			(
+				Dll, "",
+				HRESULT(NTAPI*DllGetClassObject)(REFCLSID,REFIID,IClassFactory**);
+			);
+			mycpyt2a(source, Dll.SIG+strlen(Dll.SIG), sizeof(Dll.SIG)-strlen(Dll.SIG));
+			if ((FARPROC)DLLPROXY(Dll)->DllGetClassObject != DllProxy_ModuleState.Unresolved)
+				if SUCCEEDED(sc=DLLPROXY(Dll)->DllGetClassObject(&objectGUID, &IID_IClassFactory, &piClassFactory))
+				{
+					sc=piClassFactory->lpVtbl->CreateInstance(piClassFactory, 0, &IID_IDispatch, &pv);
+				}
 		}
 		// don't display an error message if no interface (normal dll)
 		if (PathMatchSpec(source, _T("*.dll")) && sc == TYPE_E_CANTLOADLIBRARY)
@@ -295,14 +228,11 @@ LPDISPATCH NTAPI CreateDispatchBySource(LPCTSTR source, LPCWSTR progid)
 		bind_opts.grfMode = STGM_READWRITE;
 		bind_opts.dwTickCountDeadline = 0;
 		// prepend appropriate moniker:
-		if (PathIsContentType(source, _T("text/scriptlet")) 
-			|| PathMatchSpec(source, _T("*.sct")) 
-			|| PathMatchSpec(source, _T("*.wsc")))
+		if (PathIsContentType(source, _T("text/scriptlet")))
 			mycpyt2w(_T("script:"), wc, DIMOF(wc));
 		else
 			mycpyt2w(_T(""), wc, DIMOF(wc));
-		size_t len = wcslen(wc);
-		mycpyt2w(source, wc + len, DIMOF(wc) - len);
+		mycpyt2w(source, wc+wcslen(wc), DIMOF(wc)-wcslen(wc));
 
 		// I observed that CoGetObject() may internally provoke an access
 		// violation and succeed anyway. No idea how to avoid this.
@@ -312,12 +242,12 @@ LPDISPATCH NTAPI CreateDispatchBySource(LPCTSTR source, LPCWSTR progid)
 			// give it a second try after opening within associated application:
 			SHELLEXECUTEINFO sein;
 			sein.cbSize = sizeof sein;
-			sein.hwnd = NULL;
+			sein.hwnd = 0;
 			// SEE_MASK_FLAG_DDEWAIT: wait until application is ready to listen
 			sein.fMask = SEE_MASK_FLAG_DDEWAIT;
 			sein.lpVerb = _T("open");
 			sein.lpFile = source;
-			sein.lpParameters = NULL;
+			sein.lpParameters = 0;
 			sein.lpDirectory = _T(".");
 			sein.nShow = SW_SHOWNORMAL;
 			if (ShellExecuteEx(&sein))
@@ -329,7 +259,7 @@ LPDISPATCH NTAPI CreateDispatchBySource(LPCTSTR source, LPCWSTR progid)
 		if (sc == MK_E_INTERMEDIATEINTERFACENOTSUPPORTED || sc == E_UNEXPECTED)
 			sc = 0;
 	}
-	if (FAILED(sc))
+	if FAILED(sc)
 	{
 		// get the error description
 		LPTSTR errorText = ReportError(sc, 0);
@@ -345,7 +275,7 @@ LPDISPATCH NTAPI CreateDispatchBySource(LPCTSTR source, LPCWSTR progid)
 		MessageBox(0, errorText, 0, MB_ICONSTOP|MB_TASKMODAL);
 		LocalFree(errorText);
 		// no valid dispatch
-		pv = NULL;
+		pv = 0;
 	}
 	return (LPDISPATCH)pv;
 }
@@ -360,78 +290,17 @@ STDAPI invokeV(LPDISPATCH pi, VARIANT *ret, DISPID id, LPCCH op, VARIANT *argv)
 	EXCEPINFO excepInfo = {0};
 	dispparams.cArgs = LOBYTE((UINT_PTR)op);
 	dispparams.cNamedArgs = 0;
-	dispparams.rgvarg = argv;
 	if (wFlags & (DISPATCH_PROPERTYPUT|DISPATCH_PROPERTYPUTREF))
 	{
 		dispparams.cNamedArgs = 1;
 		dispparams.rgdispidNamedArgs = &idNamed;
 	}
-	if (pi != NULL)
+	dispparams.rgvarg = argv;
+	if (pi)
 	{
-		BOOL bParamByRef = FALSE;
-		BOOL bNeedToConv = FALSE;
-		VARIANT varParams[12] = { 0 };
-		VARIANT varData[12] = { 0 };
-		int i;
-
-		for (i = 0; i < (int)dispparams.cArgs; i++)
-		{
-			if (V_ISBYREF(&argv[i]))
-			{
-				bParamByRef = TRUE;
-				break;
-			}
-		}
-		if (bParamByRef)
-		{
-			ITypeInfo *pTypeInfo;
-			HRESULT hr;
-
-			hr = pi->lpVtbl->GetTypeInfo(pi, 0, 0, &pTypeInfo);
-			if (SUCCEEDED(hr))
-			{
-				FUNCDESC* pFuncDesc = NULL;
-				ITypeInfo2 *pTypeInfo2 = NULL;
-				pTypeInfo->lpVtbl->QueryInterface(pTypeInfo, &IID_ITypeInfo2, &pTypeInfo2);
-				if (pTypeInfo2 != NULL)
-				{
-					UINT nIndex;
-					hr = pTypeInfo2->lpVtbl->GetFuncIndexOfMemId(pTypeInfo2, id, INVOKE_FUNC, &nIndex);
-					if (SUCCEEDED(hr))
-					{
-						hr = pTypeInfo->lpVtbl->GetFuncDesc(pTypeInfo, nIndex, &pFuncDesc);
-						if (SUCCEEDED(hr))
-						{
-							if (pFuncDesc->oVft == 0)
-								bNeedToConv = TRUE;
-							pTypeInfo->lpVtbl->ReleaseFuncDesc(pTypeInfo, pFuncDesc);
-						}
-					}
-					pTypeInfo2->lpVtbl->Release(pTypeInfo2);
-				}
-				pTypeInfo->lpVtbl->Release(pTypeInfo);
-			}
-		}
-
-		if (bNeedToConv)
-		{
-			for (i = 0; i < (int)dispparams.cArgs; i++)
-			{
-				VariantInit(&varData[i]);
-				VariantCopyInd(&varData[i], &argv[i]);
-				V_VARIANTREF(&varParams[i]) = &varData[i];
-				V_VT(&varParams[i]) = VT_VARIANT | VT_BYREF;
-			}
-			dispparams.rgvarg = varParams;
-		}
-		else
-		{
-			dispparams.rgvarg = argv;
-		}
-
 		sc = pi->lpVtbl->Invoke(pi, id, &IID_NULL, 0, wFlags, &dispparams,
 			ret, &excepInfo, &nArgErr);
-		if (FAILED(sc))
+		if FAILED(sc)
 		{
 			if (excepInfo.pfnDeferredFillIn)
 			{
@@ -443,39 +312,11 @@ STDAPI invokeV(LPDISPATCH pi, VARIANT *ret, DISPID id, LPCCH op, VARIANT *argv)
 			}
 			else
 			{
-				ReportError(excepInfo.scode == 0 ? sc : excepInfo.scode, MB_ICONSTOP|MB_TASKMODAL);
+				ReportError(sc, MB_ICONSTOP|MB_TASKMODAL);
 			}
 			SysFreeString(excepInfo.bstrDescription);
 			SysFreeString(excepInfo.bstrSource);
 			SysFreeString(excepInfo.bstrHelpFile);
-		}
-		else
-		{
-			if (bNeedToConv)
-			{
-				for (i = 0; i < (int)dispparams.cArgs; i++)
-				{
-					if (V_ISBYREF(&argv[i]))
-					{
-						VARIANT varTemp;
-						VariantInit(&varTemp);
-						VariantChangeType(&varTemp, &varData[i], 0, (unsigned short)(V_VT(&argv[i]) & ~VT_BYREF));
-						switch(V_VT(&varTemp)) {
-						case VT_BOOL: *V_BOOLREF(&argv[i]) = V_BOOL(&varTemp); break;
-						case VT_I1: *V_I2REF(&argv[i]) = V_I1(&varTemp); break;
-						case VT_I2: *V_I2REF(&argv[i]) = V_I2(&varTemp); break;
-						case VT_I4: *V_I4REF(&argv[i]) = V_I4(&varTemp); break;
-						case VT_R4: *V_R4REF(&argv[i]) = V_R4(&varTemp); break;
-						case VT_R8: *V_R8REF(&argv[i]) = V_R8(&varTemp); break;
-						case VT_BSTR: 
-							SysFreeString(*V_BSTRREF(&argv[i]));
-							*V_BSTRREF(&argv[i]) = V_BSTR(&varTemp);
-							break;
-						}
-					}
-					VariantClear(&varParams[i]);
-				}
-			}
 		}
 	}
 	while (dispparams.cArgs--)
@@ -489,20 +330,20 @@ HRESULT invokeA(LPDISPATCH pi, VARIANT *ret, DISPID id, LPCCH op, VARIANT *argv)
 {
 	return invokeV(pi, ret, id, op, argv);
 }
-HRESULT invokeW(LPDISPATCH pi, VARIANT *ret, LPCOLESTR silent, LPCCH op, VARIANT *argv)
+HRESULT invokeW(LPDISPATCH pi, VARIANT *ret, BSTR silent, LPCCH op, VARIANT *argv)
 {
 	DISPID id = DISPID_UNKNOWN;
-	LPOLESTR  name = (LPOLESTR )((UINT_PTR)silent & ~1);
-	if (pi != NULL)
+	BSTR name = (BSTR)((UINT_PTR)silent & ~1);
+	if (pi)
 	{
 		HRESULT sc = pi->lpVtbl->GetIDsOfNames(pi, &IID_NULL, &name, 1, 0, &id);
-		if (FAILED(sc))
+		if FAILED(sc)
 		{
 			if (!((UINT_PTR)silent & 1))
 			{
 				ReportError(sc, MB_ICONSTOP);
 			}
-			pi = NULL;
+			pi = 0;
 		}
 	}
 	return invokeV(pi, ret, id, op, argv);
@@ -529,7 +370,7 @@ STDAPI ValidateArgs(VARIANT *argv, UINT argc, LPCCH pvt)
 			if (V_VT(argv) != vt)
 			{
 				HRESULT sc = VariantChangeType(argv, argv, 0, vt);
-				if (FAILED(sc))
+				if FAILED(sc)
 					return sc;
 			}
 			else if (vt == VT_BSTR)
@@ -543,7 +384,6 @@ STDAPI ValidateArgs(VARIANT *argv, UINT argc, LPCCH pvt)
 				// A const string longer than 260 OLECHARs (520 bytes) will
 				// provoke an access violation in B2A().
 				char buffer[520];
-				buffer[0] = '\0';
 				UINT length =  SysStringByteLen V_BSTR(argv);
 				if (length <= sizeof buffer)
 				{
@@ -688,7 +528,7 @@ static STDMETHODIMP Invoke(struct LWDispatch *This,
 	VARIANT varEmpty;
 	HRESULT sc = dispIdMember < 0 ? dispIdMember : (HRESULT)wFlags;
 	if (pDispParams->cNamedArgs >
-		((wFlags & (DISPATCH_PROPERTYPUT|DISPATCH_PROPERTYPUTREF)) ? 1U : 0U))
+		(wFlags & (DISPATCH_PROPERTYPUT|DISPATCH_PROPERTYPUTREF) ? 1U : 0U))
 		return DISP_E_NONAMEDARGS;
 	VariantInit(&varEmpty);
 	sc =
@@ -724,20 +564,17 @@ const struct LWDispVtbl *NTAPI LWDispSubclass(struct LWDispVtbl *lpVtbl)
 	return &vtbl;
 }
 
-IDispatch *NTAPI LWDispatch(void *target, const void *disp_map,
+IDispatch *NTAPI LWDispatch(void *target, const void *map,
 	const struct LWDispVtbl *lpVtbl, struct LWDispatch *This)
 {
-	if (lpVtbl == NULL)
+	if (lpVtbl == 0)
 		lpVtbl = &vtbl;
-	if (This == NULL)
+	if (This == 0)
 		This = (struct LWDispatch *)malloc(sizeof(*This));
-	if (This)
-	{
-		This->lpVtbl = lpVtbl;
-		This->target = target;
-		This->map = (const struct LWDispMap *)disp_map;
-		This->refc = 0;
-	}
+	This->lpVtbl = lpVtbl;
+	This->target = target;
+	This->map = (const struct LWDispMap *)map;
+	This->refc = 0;
 	return (IDispatch *)This;
 }
 
@@ -762,7 +599,7 @@ VARIANT NTAPI LWArgA(LPCSTR cVal)
 	UINT len = lstrlenA(cVal);
 	VARIANT v;
 	VariantInit(&v);
-	V_VAR(&v,BSTR) = SysAllocStringLen(NULL, len);
+	V_VAR(&v,BSTR) = SysAllocStringLen(0, len);
 	MultiByteToWideChar(CP_ACP, 0, cVal, -1, V_BSTR(&v), len);
 	return v;
 }
@@ -770,11 +607,8 @@ VARIANT NTAPI LWArgA(LPCSTR cVal)
 VARIANT NTAPI LWArgV(UINT vt, ...)
 {
 	VARIANT v;
-	va_list list;
 	VariantInit(&v);
-	va_start(list, vt);
 	V_VT(&v) = (VARTYPE)(vt & 0xF0FF);
-	CopyMemory(&V_NONE(&v), va_arg(list, void *), (vt & 0x0F00) >> 8);
-	va_end(list);
+	CopyMemory(&V_NONE(&v), &vt + 1, (vt & 0x0F00) >> 8);
 	return v;
 }

@@ -2,7 +2,7 @@
   \file    CMoveConstraint.h
   \author  Perry Rapp, Creator, 1998-2004
   \date    Created: 1998
-  \date    Edited:  2006-09-23 (Kimmo Varis)
+  \date    Edited:  2005-07-26 (Perry Rapp)
 
   \brief   Declaration of CMoveConstraint
 
@@ -13,13 +13,19 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-#pragma once
 
+#ifndef CMoveConstraint_h
+#define CMoveConstraint_h
+
+#ifndef __AFXTEMPL_H__
 #include <afxtempl.h>
+#endif
 
 class CFormView;
 
 namespace prdlg {
+
+class ConstraintData;
 
 /*!
   \class CMoveConstraint
@@ -71,9 +77,7 @@ namespace prdlg {
 
 class CMoveConstraint
 {
-public:
 	enum EGRIP { SG_NONE, SG_NORMAL, SG_PARENTSTATE };
-private:
 	static EGRIP c_defGrip; // class-wide default sizing grip setting
 
 public:
@@ -85,7 +89,7 @@ public:
 	CMoveConstraint();
 	~CMoveConstraint();
 
-	bool IsInitalized() { return m_hwndDlg!=nullptr; }
+	bool IsInitalized() { return m_hwndDlg!=0; }
 
 	// THIS IS THE USUAL ONE
 	// call from InitDialog (dialogs) or InitialUpdate (views) or OnCreate (frames)
@@ -149,7 +153,6 @@ public:
 	// always loads size, may also set position
 	void LoadPosition(LPCTSTR szKeyName, LPCTSTR szValueName, bool position);
 	void LoadPosition(LPCTSTR szValueName, bool position);
-	void Persist(bool saving, bool position);
 
 	// for use when children hadn't been created yet at initialization time
 	// so their constraints had to be buffered to be initialized later
@@ -159,6 +162,10 @@ public:
 
 	// see usage section above
 	bool WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT * plresult);
+	// obsolete now 2000/10/06
+	// (use SetIsPropertyPage etc, and WindowProc above, or just Subclass)
+	bool WindowProcPropertyPage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT * plresult);
+	bool WindowProcPropertySheet(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT * plresult);
 
 // ToolTips
 	void SetTip(int id, LPCTSTR szTip);
@@ -170,6 +177,8 @@ protected:
 	void GrabCurrentDimensionsAsOriginal(HWND hwndParent);
 	bool DoConstrain(CWnd * pWnd, HWND hwndChild, double fLeftX, double fExpandX, double fAboveY, double fExpandY);
 	void InitializeChildConstraintData(HWND hwndParent, Constraint & constraint);
+	void Persist(bool saving, bool position);
+	BOOL CheckConstraint(HWND hwndChild);
 	// handle WM_SIZE
 	void Resize(HWND hWnd, UINT nType);
 	// handle WM_GETMINMAXINFO
@@ -178,8 +187,11 @@ protected:
 	bool OnNcHitTest(UINT message, WPARAM wParam, LPARAM lParam, LRESULT * plresult);
 	// handle WM_NOTIFY/TTN_NEEDTEXT combination
 	bool OnTtnNeedText(TOOLTIPTEXT * pTTT, LRESULT * plresult);
+	// forwarder
+	UINT CallOriginalProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	bool PaintGrip();
 	void ClearMostData();
+	void DeleteAllConstraints();
 	// handle WM_DESTROY
 	void OnDestroy();
 
@@ -223,7 +235,6 @@ private:
 	int m_nMaxY;
 	int m_nDelayed; // CWnds without HWND
 	bool m_bSubclassed;
-	WNDPROC m_oldWndProc;
 // formview stuff
 	CFormView * m_pFormView;
 	// formview original scrollbars
@@ -242,7 +253,10 @@ private:
 	CString m_sRegistrySubkey; // defaults to _T("LastWindowPos")
 	CString m_sRegistryValueName; // should be name of window
 // tooltips
-	CMap<UINT_PTR, UINT_PTR, tip, tip&> m_tips;
+	CMap<UINT, UINT, tip, tip&> m_tips;
 };
 
 } // namespace
+
+#endif // CMoveConstraint_h
+

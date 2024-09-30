@@ -1,14 +1,24 @@
+//////////////////////////////////////////////////////////////////////
 /** 
  * @file  LocationBar.cpp
  *
  * @brief Implementation file for CLocationBar
  *
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: LocationBar.cpp,v 1.1.4.1 2006/01/07 12:03:21 kimmov Exp $
+//
+//////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
+#include "Merge.h"
+
+#include "ChildFrm.h"
 #include "LocationBar.h"
 
 #ifdef _DEBUG
+#undef THIS_FILE
+static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
@@ -19,7 +29,6 @@ IMPLEMENT_DYNAMIC(CLocationBar, TViewBarBase);
 //////////////////////////////////////////////////////////////////////
 
 CLocationBar::CLocationBar()
-: m_hwndFrame(nullptr)
 {
 }
 
@@ -34,7 +43,6 @@ BEGIN_MESSAGE_MAP(CLocationBar, TViewBarBase)
 	ON_WM_CREATE()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_SIZE()
-	ON_WM_WINDOWPOSCHANGED()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -44,7 +52,7 @@ END_MESSAGE_MAP()
 /**
 * @brief Just create ourself
 *
-* @note The control are created in the parent frame CMergeEditFrame
+* @note The control are created in the parent frame CChildFrame
 *
 */
 BOOL CLocationBar::Create(
@@ -79,9 +87,9 @@ int CLocationBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 void CLocationBar::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	TViewBarBase::OnLButtonDown(nFlags, point);
-	if (m_pDockBar != nullptr)
+	if (m_pDockBar != NULL)
 	{
-		if (!IsVertDocked())
+		if (IsVertDocked() == FALSE)
 			m_pDockContext->ToggleDocking();
 	}
 }
@@ -89,37 +97,4 @@ void CLocationBar::OnLButtonDown(UINT nFlags, CPoint point)
 void CLocationBar::OnSize(UINT nType, int cx, int cy) 
 {
 	TViewBarBase::OnSize(nType, cx, cy);
-}
-
-/** 
- * @brief Informs parent frame (CMergeEditFrame) when bar is closed.
- *
- * After bar is closed parent frame saves bar states.
- */
-void CLocationBar::OnWindowPosChanged(WINDOWPOS* lpwndpos)
-{
-	TViewBarBase::OnWindowPosChanged(lpwndpos);
-
-	if (m_hwndFrame != nullptr)
-	{
-		// If WINDOWPOS.flags has SWP_HIDEWINDOW flag set
-		if ((lpwndpos->flags & SWP_HIDEWINDOW) != 0)
-			::PostMessage(m_hwndFrame, MSG_STORE_PANESIZES, 0, 0);
-	}
-}
-
-/** 
- * @brief Stores HWND of frame window (CMergeEditFrame).
- */
-void CLocationBar::SetFrameHwnd(HWND hwndFrame)
-{
-	m_hwndFrame = hwndFrame;
-}
-/**
- * @brief Update any resources necessary after a GUI language change
- */
-void CLocationBar::UpdateResources()
-{
-	String sCaption = _("Location Pane");
-	SetWindowText(sCaption.c_str());
 }

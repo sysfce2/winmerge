@@ -7,7 +7,15 @@
  * (http://www.abstractspoon.com/) but is modified to use in
  * WinMerge.
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: PropertyPageHost.h,v 1.1 2005/03/21 20:08:39 kimmov Exp $
+
+#if !defined(AFX_PROPERTYPAGEHOST_H__43CF5AE7_C70B_443D_BC8B_7DA1D0E082DD__INCLUDED_)
+#define AFX_PROPERTYPAGEHOST_H__43CF5AE7_C70B_443D_BC8B_7DA1D0E082DD__INCLUDED_
+
+#if _MSC_VER > 1000
 #pragma once
+#endif // _MSC_VER > 1000
 
 #include <afxtempl.h>
 
@@ -16,7 +24,7 @@
 
 struct PAGEITEM
 {
-	PAGEITEM(CPropertyPage* _pPage = nullptr, LPCTSTR szTitle = nullptr, DWORD dwData = 0) : 
+	PAGEITEM(CPropertyPage* _pPage = NULL, LPCTSTR szTitle = NULL, DWORD dwData = 0) : 
 			pPage(_pPage), sTitle(szTitle), dwItemData(dwData) {}
 
 	CPropertyPage* pPage;
@@ -33,14 +41,13 @@ public:
 	BOOL Create(LPRECT lpRect, CWnd* pParent, UINT uCtrlID = AFX_IDW_PANE_FIRST);
 	BOOL Create(UINT nRefCtrlID, CWnd* pParent, UINT uCtrlID = AFX_IDW_PANE_FIRST);
 	void OnOK();
-	void UpdatePagesData();
 	
 	int GetActiveIndex();
 	CPropertyPage* GetActivePage();
-	bool AddPage(CPropertyPage* pPage, LPCTSTR szTitle = nullptr, DWORD dwItemData = 0);
-	bool SetActivePage(int nIndex, bool bAndFocus = true);
-	bool SetActivePage(CPropertyPage* pPage, bool bAndFocus = true);
-	int GetPageCount() { return (int) m_aPages.GetSize(); }
+	BOOL AddPage(CPropertyPage* pPage, LPCTSTR szTitle = NULL, DWORD dwItemData = 0);
+	BOOL SetActivePage(int nIndex, BOOL bAndFocus = TRUE);
+	BOOL SetActivePage(CPropertyPage* pPage, BOOL bAndFocus = TRUE);
+	int GetPageCount() { return m_aPages.GetSize(); }
 	CString GetPageTitle(int nIndex);
 	DWORD GetPageItemData(int nIndex);
 	CPropertyPage* GetPage(int nIndex);
@@ -75,3 +82,10 @@ protected:
 	int FindPage(CPropertyPage* pPage);
 
 };
+
+/////////////////////////////////////////////////////////////////////////////
+
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
+
+#endif // !defined(AFX_PROPERTYPAGEHOST_H__43CF5AE7_C70B_443D_BC8B_7DA1D0E082DD__INCLUDED_)

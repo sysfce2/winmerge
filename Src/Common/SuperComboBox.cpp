@@ -1,53 +1,74 @@
-// CSuperComboBox.cpp : implementation file
+// ComboBoxEx.cpp : implementation file
 //
 
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "SuperComboBox.h"
-#include <vector>
-#include "DropHandler.h"
-
-// Wrap placement new to avoid the need to temporarily #undef new
-template<typename T>
-T &placement_cast(void *p)
-{
-	return *new(p) T;
-}
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
 
-#define DEF_MAXSIZE		20	// default maximum items to retain in each SuperComboBox
+#define DEF_AUTOADD_STRING   _T(" <<new template>>")
+
+//	To use this in an app, you'll need to :
+//
+//	1) Place a normal edit control on your dialog. 
+//	2) Check the "Accept Files" property.
+//
+//	3) In your dialog class, declare a member variable of type CDropEdit
+//	(be sure to #include "CDropEdit.h")
+//		ex. CDropEdit m_dropEdit;
+//
+//	4) In your dialog's OnInitDialog, call
+//		m_dropEdit.SubclassDlgItem(IDC_YOUR_EDIT_ID, this);
+//
+//	5) if you want the edit control to handle directories, call
+//		m_dropEdit.SetUseDir(TRUE);
+//
+//	6) if you want the edit control to handle files, call
+//		m_dropEdit.SetUseDir(FALSE);
+//
+//      7) In the dialog resource template, any groupboxes must be after any comboboxes which accept files
+//
+//	that's it!
+//
+//	This will behave exactly like a normal edit-control but with the 
+//	ability to accept drag-n-dropped files (or directories).
+//
+//
 
 
 /////////////////////////////////////////////////////////////////////////////
 // CSuperComboBox
 
-HIMAGELIST CSuperComboBox::m_himlSystem = nullptr;
-
-CSuperComboBox::CSuperComboBox()
-	: m_pDropHandler(nullptr)
-	, m_bInEditchange(false)
-	, m_bDoComplete(false)
-	, m_bAutoComplete(false)
-	, m_bHasImageList(false)
-	, m_bComboBoxEx(false)
-	, m_bExtendedFileNames(false)
-	, m_bCanBeEmpty(false)
-	, m_nMaxItems(DEF_MAXSIZE)
+CSuperComboBox::CSuperComboBox(BOOL bAdd /*= TRUE*/, UINT idstrAddText /*= 0*/)
 {
-
+	m_bEditChanged=FALSE;
+	m_bDoComplete = FALSE;
+	m_bAutoComplete = FALSE;
+	m_strCurSel = _T("");
+	if (bAdd)
+	{
+		if (idstrAddText > 0)
+			VERIFY(m_strAutoAdd.LoadString(idstrAddText));
+		else
+			m_strAutoAdd = DEF_AUTOADD_STRING;
+	}
+	else
+		m_strAutoAdd = _T("");
 
 	// Initialize OLE libraries if not yet initialized
-	m_bMustUninitOLE = false;
+	m_bMustUninitOLE = FALSE;
 	_AFX_THREAD_STATE* pState = AfxGetThreadState();
 	if (!pState->m_bNeedTerm)
 	{
-		SCODE sc = ::OleInitialize(nullptr);
+		SCODE sc = ::OleInitialize(NULL);
 		if (FAILED(sc))
 			AfxMessageBox(_T("OLE initialization failed. Make sure that the OLE libraries are the correct version"));
 		else
-			m_bMustUninitOLE = true;
+			m_bMustUninitOLE = TRUE;
 	}
 }
 
@@ -58,298 +79,80 @@ CSuperComboBox::~CSuperComboBox()
 		::OleUninitialize();
 }
 
-BEGIN_MESSAGE_MAP(CSuperComboBox, CComboBoxEx)
+BEGIN_MESSAGE_MAP(CSuperComboBox, CComboBox)
 	//{{AFX_MSG_MAP(CSuperComboBox)
 	ON_CONTROL_REFLECT_EX(CBN_EDITCHANGE, OnEditchange)
-	ON_CONTROL_REFLECT_EX(CBN_SETFOCUS, OnSetfocus)
+	ON_CONTROL_REFLECT_EX(CBN_SELCHANGE, OnSelchange)
 	ON_WM_CREATE()
-	ON_WM_DESTROY()
-	ON_WM_DRAWITEM()
-	ON_NOTIFY_REFLECT(CBEN_GETDISPINFO, OnGetDispInfo)
+	ON_WM_DROPFILES()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CSuperComboBox message handlers
 
-void CSuperComboBox::PreSubclassWindow()
+void CSuperComboBox::LoadState(LPCTSTR szRegSubKey, UINT nMaxItems)
 {
-	__super::PreSubclassWindow();
-	m_pDropHandler = new DropHandler(std::bind(&CSuperComboBox::OnDropFiles, this, std::placeholders::_1));
-	RegisterDragDrop(m_hWnd, m_pDropHandler);
-	
-	TCHAR szClassName[256];
-	GetClassName(m_hWnd, szClassName, sizeof(szClassName)/sizeof(szClassName[0]));
-	if (lstrcmpi(_T("ComboBoxEx32"), szClassName) == 0)
-		m_bComboBoxEx = true;
-}
-
-/**
- * @brief Sets additional state for handling Extended Length file names.
- */
-void CSuperComboBox::SetFileControlStates(bool bCanBeEmpty /*= false*/, int nMaxItems /*= -1*/)
-{
-	ASSERT(m_bComboBoxEx);
-
-	m_bExtendedFileNames = true;
-	m_bCanBeEmpty = bCanBeEmpty;
-	if (nMaxItems > 0)
-		m_nMaxItems = nMaxItems;
-}
-
-/**
- * @brief Adds a string to the list box of a combo box
- * @param lpszItem Pointer to the null-terminated string that is to be added. 
- */
-int CSuperComboBox::AddString(LPCTSTR lpszItem)
-{
-	return InsertString(GetCount(), lpszItem);
-}
-
-/**
- * @brief Inserts a string into the list box of a combo box.
- * @param nIndex The zero-based index to the position in the list box that receives the string.
- * @param lpszItem Pointer to the null-terminated string that is to be added. 
- */
-int CSuperComboBox::InsertString(int nIndex, LPCTSTR lpszItem)
-{
-	if (m_bComboBoxEx)
+	CString s,s2;
+	UINT cnt = AfxGetApp()->GetProfileInt(szRegSubKey, _T("Count"), 0);
+	for (UINT i=0; i < cnt && i < nMaxItems; i++)
 	{
-		CString sShortName;		// scoped to remain valid for calling __super::InsertItem()
-		if (m_bExtendedFileNames)
-		{
-			if (nIndex >= static_cast<int>(m_sFullStateText.size()))
-				m_sFullStateText.resize(nIndex + 10);
-			sShortName = m_sFullStateText[nIndex] = lpszItem;
-
-			const int nPartLen = 72;
-			if (sShortName.GetLength() > (nPartLen*2+8)) 
-			{
-				if (sShortName.Left(4) == _T("\\\\?\\"))
-					sShortName.Delete(0, 4);
-				else
-				if (sShortName.Left(8) == _T("\\\\?\\UNC\\"))
-					sShortName.Delete(1, 6);
-				CString sL = sShortName.Left(nPartLen);
-				int nL = sL.ReverseFind(_T('\\'));
-				if (nL > 0) sL = sL.Left(nL+1);
-
-				CString sR = sShortName.Right(nPartLen);
-				int nR = sR.Find(_T('\\'));
-				if (nR > 0) sR = sR.Right(sR.GetLength() - nR);
-
-				sShortName = sL + _T(" ... ") + sR;
-				lpszItem = (LPCTSTR)sShortName;
-			}
-		}
-		COMBOBOXEXITEM cbitem = {0};
-		cbitem.mask = CBEIF_TEXT |
-			(m_bHasImageList ? CBEIF_IMAGE|CBEIF_SELECTEDIMAGE : 0);
-		cbitem.pszText = (LPTSTR)lpszItem;
-		cbitem.cchTextMax = (int)_tcslen(lpszItem);
-		cbitem.iItem = nIndex;
-		cbitem.iImage = I_IMAGECALLBACK;
-		cbitem.iSelectedImage = I_IMAGECALLBACK;
-		return __super::InsertItem(&cbitem);
-	}
-	else
-	{
-		return CComboBox::InsertString(nIndex, lpszItem);
-	}
-}
-
-int CSuperComboBox::DeleteString(int nIndex)
-{
-	if (m_bComboBoxEx && m_bExtendedFileNames &&
-	    nIndex >= 0 && nIndex < static_cast<int>(m_sFullStateText.size()))
-	{
-		m_sFullStateText.erase(m_sFullStateText.begin() + nIndex);
-	}
-	return __super::DeleteString(nIndex);
-}
-
-int CSuperComboBox::FindString(int nStartAfter, LPCTSTR lpszString) const
-{
-	
-	if (m_bComboBoxEx)
-	{
-		ASSERT(m_bExtendedFileNames);
-		CString sSearchString = lpszString;
-		int nSearchStringLen = sSearchString.GetLength();
-		if (nSearchStringLen <= 0)
-			return CB_ERR;
-		int nLimit = static_cast<int>(m_sFullStateText.size());
-		for (int i = nStartAfter+1; i < nLimit; i++)
-		{
-			CString sListString = m_sFullStateText[i];
-			int nListStringLen = sListString.GetLength();
-			if (nSearchStringLen <= nListStringLen && sSearchString.CompareNoCase(sListString.Left(nSearchStringLen))==0)
-				return i;
-		}
-		return CB_ERR;
-	}
-	else
-	{
-		return CComboBox::FindString(nStartAfter, lpszString);
-	}
-}
-
-/**
- * @brief Gets the system image list and attaches the image list to a combo box control.
- */
-bool CSuperComboBox::AttachSystemImageList()
-{
-	ASSERT(m_bComboBoxEx);
-	if (m_himlSystem==nullptr)
-	{
-		SHFILEINFO sfi = {0};
-		m_himlSystem = (HIMAGELIST)SHGetFileInfo(_T(""), 0, 
-			&sfi, sizeof(sfi), SHGFI_SMALLICON | SHGFI_SYSICONINDEX);
-		if (m_himlSystem==nullptr)
-			return false;
-	}
-	SetImageList(CImageList::FromHandle(m_himlSystem));
-	m_bHasImageList = true;
-	return true;
-}
-
-void CSuperComboBox::LoadState(LPCTSTR szRegSubKey)
-{
-	ResetContent();
-
-	int cnt = AfxGetApp()->GetProfileInt(szRegSubKey, _T("Count"), 0);
-	int idx = 0;
-	for (int i=0; i < cnt && idx < m_nMaxItems; i++)
-	{
-		CString s,s2;
 		s2.Format(_T("Item_%d"), i);
 		s = AfxGetApp()->GetProfileString(szRegSubKey, s2);
-		if (FindStringExact(-1, s) == CB_ERR && !s.IsEmpty())
-		{
+		if (i==0)
+			SetWindowText(s);
+		if (FindStringExact(-1, s) == -1
+			&& !s.IsEmpty())
 			AddString(s);
-			idx++;
-		}
-	}
-	if (idx > 0)
-	{
-		bool bIsEmpty = (m_bCanBeEmpty ? (AfxGetApp()->GetProfileInt(szRegSubKey, _T("Empty"), FALSE) == TRUE) : false);
-		if (bIsEmpty)
-		{
-			SetCurSel(-1);
-		}
-		else
-		{
-			SetCurSel(0);
-			if (m_bExtendedFileNames)
-				GetEditCtrl()->SetWindowText(m_sFullStateText[0]);
-		}
 	}
 }
 
-void CSuperComboBox::GetLBText(int nIndex, CString &rString) const
+void CSuperComboBox::SaveState(LPCTSTR szRegSubKey, UINT nMaxItems)
 {
-	ASSERT(::IsWindow(m_hWnd));
+	CString strItem,s,s2;
+	int i,idx,cnt = GetCount();
 
-	if (m_bExtendedFileNames)
-	{
-		rString = m_sFullStateText[nIndex];
-	}
-	else
-	{
-		__super::GetLBText(nIndex, rString.GetBufferSetLength(GetLBTextLen(nIndex)));
-		rString.ReleaseBuffer();
-	}
-}
-
-int CSuperComboBox::GetLBTextLen(int nIndex) const
-{
-	if (m_bExtendedFileNames)
-	{
-		return m_sFullStateText[nIndex].GetLength();
-	}
-	else
-	{
-		return __super::GetLBTextLen(nIndex);
-	}
-}
-
-/** 
- * @brief Saves strings in combobox.
- * This function saves strings in combobox, in editbox and in dropdown.
- * Whitespace characters are stripped from begin and end of the strings
- * before saving. Empty strings are not saved. So strings which have only
- * whitespace characters aren't save either.
- * @param [in] szRegSubKey Registry subkey where to save strings.
- * @param [in] bCanBeEmpty
- * @param [in] nMaxItems Max number of strings to save.
- */
-void CSuperComboBox::SaveState(LPCTSTR szRegSubKey)
-{
-	CString strItem;
-	if (m_bComboBoxEx)
-		GetEditCtrl()->GetWindowText(strItem);
-	else
-		GetWindowText(strItem);
-	strItem.TrimLeft();
-	strItem.TrimRight();
-
-	int idx = 0;
+	GetWindowText(strItem);
 	if (!strItem.IsEmpty())
 	{
 		AfxGetApp()->WriteProfileString(szRegSubKey, _T("Item_0"), strItem);
 		idx=1;
 	}
-
-	int cnt = GetCount();
-	for (int i=0; i < cnt && idx < m_nMaxItems; i++)
-	{		
-		CString s;
+	else
+		idx=0;
+	for (i=0; i < cnt && idx < (int)nMaxItems; i++)
+	{
 		GetLBText(i, s);
-		s.TrimLeft();
-		s.TrimRight();
-		if (s != strItem && !s.IsEmpty())
+		if (s != strItem
+			&& !s.IsEmpty())
 		{
-			CString s2;
 			s2.Format(_T("Item_%d"), idx);
 			AfxGetApp()->WriteProfileString(szRegSubKey, s2, s);
 			idx++;
 		}
 	}
 	AfxGetApp()->WriteProfileInt(szRegSubKey, _T("Count"), idx);
-	
-	if (m_bCanBeEmpty)
-		AfxGetApp()->WriteProfileInt(szRegSubKey, _T("Empty"), strItem.IsEmpty());
 }
 
-BOOL CSuperComboBox::OnEditchange()
-{
-	if (m_bHasImageList)
-	{
-		// Trigger a WM_WINDOWPOSCHANGING to help the client area receive an update trough WM_DRAWITEM
-		SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW | SWP_NOACTIVATE);
-	}
 
-	// bail if not auto completing 
-	if (!m_bDoComplete) 
-		return FALSE;
+BOOL CSuperComboBox::OnEditchange() 
+{
+	m_bEditChanged=TRUE;
 	
 	int length = GetWindowTextLength();
 
-	// bail if no text
-	if (length <= 0) 
+	// bail if not auto completing or no text
+	if (!m_bDoComplete
+		|| length <= 0) 
 		return FALSE;
 	
-	if (m_bInEditchange)
-		return FALSE;
-	m_bInEditchange = true;
-
 	// Get the text in the edit box
 	CString s;
 	GetWindowText(s);
 	
 	// get the current selection
 	DWORD sel = GetEditSel();
-	int start = (short)LOWORD(sel), end = (short)HIWORD(sel);
+	WORD start=LOWORD(sel), end=HIWORD(sel);
 	
 	// look for the string that is prefixed by the typed text
 	int idx = FindString(-1, s);
@@ -358,32 +161,59 @@ BOOL CSuperComboBox::OnEditchange()
 		// set the new string
 		CString strNew;
 		GetLBText(idx, strNew);
-		SetWindowText(strNew);
+		SetWindowText(strNew);         
+		
+		// get the caret back in the right spot
+		if (sel != CB_ERR)
+			SetEditSel(start, end);  
 	}
 	
 	// select the text after our typing
-	if (sel == CB_ERR || end >= length)
-	{
-		start = length;
-		end = -1;
-	}
-
-	// get the caret back in the right spot
-	if (m_bComboBoxEx)
-		GetEditCtrl()->SetSel(start, end);
+	if (sel == CB_ERR
+		|| end >= length)
+		SetEditSel(length, -1);
+	// restore the selection
 	else
-		CComboBox::SetEditSel(start, end);  
-
-	m_bInEditchange = false;
+		SetEditSel(start, end);
 
 	return FALSE;
 }
 
-BOOL CSuperComboBox::OnSetfocus()
+BOOL CSuperComboBox::OnSelchange() 
 {
-	if (m_bHasImageList)
-		GetEditCtrl()->SetModify(FALSE);
+	m_bEditChanged=FALSE;
 
+	CString strCurSel;
+	GetWindowText(strCurSel);
+	if (m_strAutoAdd.IsEmpty()
+		|| strCurSel != m_strAutoAdd)
+		m_strCurSel = strCurSel;
+	
+	if (!m_strAutoAdd.IsEmpty())
+	{
+		int sel = GetCurSel();
+		if (sel != CB_ERR)
+		{
+			CString s;
+			GetLBText(sel, s);
+			if (s == m_strAutoAdd)
+			{
+				if (OnAddTemplate())
+				{
+				}
+				else if (!m_strCurSel.IsEmpty()
+					&& m_strCurSel != m_strAutoAdd)
+				{
+					if (SelectString(0, m_strCurSel) != CB_ERR)
+						return TRUE;
+				}
+				else
+				{
+					SetCurSel(1);
+				}
+			}
+		}
+	}
 	return FALSE;
 }
 
@@ -400,87 +230,63 @@ BOOL CSuperComboBox::PreTranslateMessage(MSG* pMsg)
 			{
 				int cursel = GetCurSel();
 				if (cursel != CB_ERR)
-				{
 					DeleteString(cursel);
-					if (cursel >= GetCount())
-						cursel = GetCount() - 1;
-					if (cursel >= 0)
-						SetCurSel(cursel);
-				}
 				return FALSE; // No need to further handle this message
 			}
 		}
 		if (m_bAutoComplete)
 		{
-			m_bDoComplete = true;
+			m_bDoComplete = TRUE;
 
 			if (nVirtKey == VK_DELETE || nVirtKey == VK_BACK)
-					m_bDoComplete = false;
+					m_bDoComplete = FALSE;
 		}
     }
 
-    return __super::PreTranslateMessage(pMsg);
+    return CComboBox::PreTranslateMessage(pMsg);
 }
 
-void CSuperComboBox::SetAutoComplete(INT nSource)
+void CSuperComboBox::SetAutoAdd(BOOL bAdd, UINT idstrAddText)
 {
-	switch (nSource)
+	if (bAdd)
 	{
-		case AUTO_COMPLETE_DISABLED:
-			m_bAutoComplete = false;
-			break;
+		if (idstrAddText > 0)
+			VERIFY(m_strAutoAdd.LoadString(idstrAddText));
+		else if (m_strAutoAdd.IsEmpty())
+			m_strAutoAdd = DEF_AUTOADD_STRING;
 
-		case AUTO_COMPLETE_FILE_SYSTEM:
-		{
-			// Disable the build-in auto-completion and use the Windows
-			// shell functionality.
-			m_bAutoComplete = false;
-
-			// ComboBox's edit control is always 1001.
-			CWnd *pWnd = m_bComboBoxEx ? this->GetEditCtrl() : GetDlgItem(1001);
-			ASSERT(pWnd != nullptr);
-			SHAutoComplete(pWnd->m_hWnd, SHACF_FILESYSTEM);
-			break;
-		}
-
-		case AUTO_COMPLETE_RECENTLY_USED:
-			m_bAutoComplete = true;
-			break;
-
-		default:
-			ASSERT(!"Unknown AutoComplete source.");
-			m_bAutoComplete = false;
+		InsertString(0, m_strAutoAdd);
 	}
+	else
+		m_strAutoAdd = _T("");
+}
+
+BOOL CSuperComboBox::OnAddTemplate()
+{
+	// do nothing, this should get overridden
+	// return TRUE if template is added
+	return FALSE;
 }
 
 void CSuperComboBox::ResetContent()
 {
-	if (m_bExtendedFileNames)
+	CComboBox::ResetContent();
+	if (!m_strAutoAdd.IsEmpty())
 	{
-		m_sFullStateText.resize(m_nMaxItems);
-		for (int i = 0; i < m_nMaxItems; i++)
-		{
-			m_sFullStateText[i].Empty();
-		}
+		InsertString(0, m_strAutoAdd);
 	}
-	__super::ResetContent();
 }
 
 int CSuperComboBox::OnCreate(LPCREATESTRUCT lpCreateStruct) 
 {
-	if (__super::OnCreate(lpCreateStruct) == -1)
+	if (CComboBox::OnCreate(lpCreateStruct) == -1)
 		return -1;
 	
-	m_pDropHandler = new DropHandler(std::bind(&CSuperComboBox::OnDropFiles, this, std::placeholders::_1));
-	RegisterDragDrop(m_hWnd, m_pDropHandler);
+	SetAutoAdd(!m_strAutoAdd.IsEmpty());
+	DragAcceptFiles(TRUE);
 	return 0;
 }
 
-void CSuperComboBox::OnDestroy(void)
-{
-	if (m_pDropHandler != nullptr)
-		RevokeDragDrop(m_hWnd);
-}
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -490,111 +296,112 @@ void CSuperComboBox::OnDestroy(void)
 //	shortcut expansion code modified from :
 //	CShortcut, 1996 Rob Warner
 //
-void CSuperComboBox::OnDropFiles(const std::vector<String>& files)
+void CSuperComboBox::OnDropFiles(HDROP dropInfo)
 {
+	// Get the number of pathnames that have been dropped
+	UINT wNumFilesDropped = DragQueryFile(dropInfo, 0xFFFFFFFF, NULL, 0);
+
+	CString firstFile;
+
+	// get all file names. but we'll only need the first one.
+	for (WORD x = 0 ; x < wNumFilesDropped; x++) {
+
+		// Get the number of characters required by the file's full pathname
+		UINT wPathnameSize = DragQueryFile(dropInfo, x, NULL, 0);
+
+		// Allocate memory to contain full pathname & zero byte
+		wPathnameSize += 1;
+		LPTSTR npszFile = (TCHAR *) new TCHAR[wPathnameSize];
+
+		// If not enough memory, skip this one
+		if (npszFile == NULL)
+			continue;
+
+		// Copy the pathname into the buffer
+		DragQueryFile(dropInfo, x, npszFile, wPathnameSize);
+
+		// we only care about the first
+		if (firstFile==_T(""))
+			firstFile=npszFile;
+
+		// clean up
+		delete[] npszFile;
+	}
+
+	// Free the memory block containing the dropped-file information
+	DragFinish(dropInfo);
+
+	// if this was a shortcut, we need to expand it to the target path
+	CString expandedFile = ExpandShortcut(firstFile);
+
+	// if that worked, we should have a real file name
+	if (expandedFile!=_T("")) 
+		firstFile=expandedFile;
+
 	GetParent()->SendMessage(WM_COMMAND, GetDlgCtrlID() +
 		(CBN_EDITUPDATE << 16), (LPARAM)m_hWnd);
-	SetWindowText(files[0].c_str());
+	SetWindowText(firstFile);
 	GetParent()->SendMessage(WM_COMMAND, GetDlgCtrlID() +
 		(CBN_EDITCHANGE << 16), (LPARAM)m_hWnd);
 }
 
-static DWORD WINAPI SHGetFileInfoThread(LPVOID pParam)
+//////////////////////////////////////////////////////////////////
+//	use IShellLink to expand the shortcut
+//	returns the expanded file, or "" on error
+//
+//	original code was part of CShortcut 
+//	1996 by Rob Warner
+//	rhwarner@southeast.net
+//	http://users.southeast.net/~rhwarner
+
+CString CSuperComboBox::ExpandShortcut(CString &inFile)
 {
-	CString &sPath = reinterpret_cast<CString &>(pParam);
-	SHFILEINFO sfi = {0};
-	// If SHGetFileInfo() fails, intentionally leave sfi.iIcon as 0 (indicating
-	// a file of inspecific type) so as to not obstruct CBEIF_DI_SETITEM logic.
-	if (!sPath.IsEmpty())
-	{
-		if (SUCCEEDED(CoInitialize(nullptr)))
-		{
-			SHGetFileInfo(sPath, 0, &sfi, sizeof(sfi), SHGFI_SYSICONINDEX);
-			CoUninitialize();
-		}
-	}
-	sPath.~CString();
-	return sfi.iIcon;
-}
+	CString outFile = "";
 
-static int GetFileTypeIconIndex(LPVOID pParam)
-{
-	CString &sText = reinterpret_cast<CString &>(pParam);
-	DWORD dwIconIndex = 0;
-	bool isNetworkDrive = false;
-	if (sText.GetLength() >= 2 && (sText[1] == L'\\'))
-	{
-		if (sText.GetLength() > 4 && sText.Left(4) == L"\\\\?\\")
-			if (sText.GetLength() > 8 && sText.Left(8) == L"\\\\?\\UNC\\")
-				isNetworkDrive = true;
-			else
-				isNetworkDrive = false;	// Just a Long File Name indicator
-		else
-			isNetworkDrive = true;
-	}
-	else
-	if (sText.GetLength() >= 3 && GetDriveType(sText.Left(3)) == DRIVE_REMOTE)
-		isNetworkDrive = true;	// Drive letter, but mapped to Remote UNC device.
+    // Make sure we have a path
+    ASSERT(inFile != _T(""));
 
-	// Unless execution drops into the final else block,
-	// SHGetFileInfoThread() takes ownership of, and will eventually trash sText
-	if (!isNetworkDrive)
-	{
-		dwIconIndex = SHGetFileInfoThread(pParam);
-	}
-	else
-	if (HANDLE hThread = CreateThread(nullptr, 0, SHGetFileInfoThread, pParam, 0, nullptr))
-	{
-		// The path is a network path. 
-		// Try to get the index of a system image list icon, with 1-sec timeout.
+    IShellLink* psl;
+    HRESULT hres;
+    LPTSTR lpsz = inFile.GetBuffer(MAX_PATH);
 
-		DWORD dwResult = WaitForSingleObject(hThread, 1000);
-		if (dwResult == WAIT_OBJECT_0)
-		{
-			GetExitCodeThread(hThread, &dwIconIndex);
-		}
-		CloseHandle(hThread);
-	}
-	else
-	{
-		// Ownership of sText was retained, so trash it here
-		sText.~CString();
-	}
-	return static_cast<int>(dwIconIndex);
-}
+    // Create instance for shell link
+    hres = ::CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER,
+        IID_IShellLink, (LPVOID*) &psl);
+    if (SUCCEEDED(hres))
+    {
+        // Get a pointer to the persist file interface
+        IPersistFile* ppf;
+        hres = psl->QueryInterface(IID_IPersistFile, (LPVOID*) &ppf);
+        if (SUCCEEDED(hres))
+        {
+            // Make sure it's ANSI
+            WORD wsz[MAX_PATH];
+#ifdef _UNICODE
+	     wcsncpy(wsz, lpsz, sizeof(wsz)/sizeof(WCHAR));
+#else
+            ::MultiByteToWideChar(CP_ACP, 0, lpsz, -1, wsz, MAX_PATH);
+#endif
 
-void CSuperComboBox::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
-{
-	if ((lpDrawItemStruct->itemState & ODS_COMBOBOXEDIT) != 0 && m_bHasImageList)
-	{
-		LPVOID pvText;
-		CString &sText = placement_cast<CString>(&pvText);
-		CEdit *const pEdit = GetEditCtrl();
-		if (!pEdit->GetModify() || GetFocus() != pEdit)
-			GetWindowText(sText);
-		int iIcon = GetFileTypeIconIndex(pvText);
-		ImageList_DrawEx(m_himlSystem, iIcon, lpDrawItemStruct->hDC,
-			lpDrawItemStruct->rcItem.left, lpDrawItemStruct->rcItem.top,
-			0, 0, GetSysColor(COLOR_WINDOW), CLR_NONE, ILD_NORMAL);
-		return;
-	}
-	__super::OnDrawItem(nIDCtl, lpDrawItemStruct);
-}
+            // Load shortcut
+            hres = ppf->Load(wsz, STGM_READ);
+            if (SUCCEEDED(hres)) {
+				WIN32_FIND_DATA wfd;
+				// find the path from that
+				HRESULT hres = psl->GetPath(outFile.GetBuffer(MAX_PATH), 
+								MAX_PATH,
+								&wfd, 
+								SLGP_UNCPRIORITY);
 
-/**
- * @brief A message handler for CBEN_GETDISPINFO message
- */
-void CSuperComboBox::OnGetDispInfo(NMHDR *pNotifyStruct, LRESULT *pResult)
-{
-	NMCOMBOBOXEX *pDispInfo = (NMCOMBOBOXEX *)pNotifyStruct;
-	if (pDispInfo && pDispInfo->ceItem.pszText && m_bHasImageList)
-	{
-		pDispInfo->ceItem.mask |= CBEIF_DI_SETITEM;
-		LPVOID pvText;
-		GetLBText(static_cast<int>(pDispInfo->ceItem.iItem), placement_cast<CString>(&pvText));
-		int iIcon = GetFileTypeIconIndex(pvText);
-		pDispInfo->ceItem.iImage = iIcon;
-		pDispInfo->ceItem.iSelectedImage = iIcon;
-	}
-	*pResult = 0;
+				outFile.ReleaseBuffer();
+            }
+            ppf->Release();
+        }
+        psl->Release();
+    }
+
+	inFile.ReleaseBuffer();
+
+	// if this fails, outFile == ""
+    return outFile;
 }

@@ -1,24 +1,41 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+//    License (GPLv2+):
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful, but
+//    WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/////////////////////////////////////////////////////////////////////////////
 /** 
  * @file  FileFilterHelper.h
  *
  * @brief Declaration file for FileFilterHelper
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: FileFilterHelper.h,v 1.14 2005/07/26 06:11:23 elsapo Exp $
 
-#include <vector>
-#include <memory>
-#include "UnicodeString.h"
-#include "DirItem.h"
+#ifndef _FILEFILTERHELPER_H_
+#define _FILEFILTERHELPER_H_
 
 class FileFilterMgr;
-class FilterList;
 struct FileFilter;
+
+#ifndef REGEXP_H
+#include "RegExp.h"
+#endif
 
 /**
  * @brief File extension of file filter files.
  */
-inline const TCHAR FileFilterExt[] = _T(".flt");
+const TCHAR FileFilterExt[] = _T(".flt");
 
 /**
  * @brief Helper structure for UI and management of filters.
@@ -30,57 +47,36 @@ inline const TCHAR FileFilterExt[] = _T(".flt");
  */
 struct FileFilterInfo
 {
-	String name; 			/**< Name of filter */
-	String description; 	/**< Description of filter (shown in UI) */
-	String fullpath;		/**< Full path to filter file */
-	DirItem fileinfo;		/**< For tracking if file has been modified */
+	CString name; 			/**< Name of filter */
+	CString description; 	/**< Description of filter (shown in UI) */
+	CString fullpath;		/**< Full path to filter file */
+	FileInfo fileinfo;		/**< For tracking if file has been modified */
 };
+
+typedef CArray<FileFilterInfo, FileFilterInfo&> FILEFILTER_INFOLIST;
+typedef CMap<CString, LPCTSTR, int, int> FILEFILTER_FILEMAP;
 
 /// Interface for testing files & directories for exclusion, as diff traverses file tree
 class IDiffFilter
 {
 public:
-	virtual bool includeFile(const String& szFileName) const = 0;
-	virtual bool includeDir(const String& szDirName) const = 0;
-	bool includeFile(const String& szFileName1, const String& szFileName2) const
+	virtual BOOL includeFile(LPCTSTR szFileName) = 0;
+	virtual BOOL includeDir(LPCTSTR szDirName) = 0;
+	BOOL includeFile(LPCTSTR szFileName1, LPCTSTR szFileName2)
 	{
-		if (!szFileName1.empty())
-			return includeFile(szFileName1);
-		else if (!szFileName2.empty())
-			return includeFile(szFileName2);
-		else
-			return false;
+		return
+		(
+			(szFileName1[0] == '\0' || includeFile(szFileName1))
+		&&	(szFileName2[0] == '\0' || includeFile(szFileName2))
+		);
 	}
-	bool includeFile(const String& szFileName1, const String& szFileName2, const String& szFileName3) const
+	BOOL includeDir(LPCTSTR szDirName1, LPCTSTR szDirName2)
 	{
-		if (!szFileName1.empty())
-			return includeFile(szFileName1);
-		else if (!szFileName2.empty())
-			return includeFile(szFileName2);
-		else if (!szFileName3.empty())
-			return includeFile(szFileName3);
-		else
-			return false;
-	}
-	bool includeDir(const String& szDirName1, const String& szDirName2) const
-	{
-		if (!szDirName1.empty())
-			return includeDir(szDirName1);
-		else if (!szDirName2.empty())
-			return includeDir(szDirName2);
-		else
-			return false;
-	}
-	bool includeDir(const String& szDirName1, const String& szDirName2, const String& szDirName3) const
-	{
-		if (!szDirName1.empty())
-			return includeDir(szDirName1);
-		else if (!szDirName2.empty())
-			return includeDir(szDirName2);
-		else if (!szDirName3.empty())
-			return includeDir(szDirName3);
-		else
-			return false;
+		return
+		(
+			(szDirName1[0] == '\0' || includeDir(szDirName1))
+		&&	(szDirName2[0] == '\0' || includeDir(szDirName2))
+		);
 	}
 };
 
@@ -106,61 +102,47 @@ public:
 	FileFilterHelper();
 	~FileFilterHelper();
 
-	String GetGlobalFilterPathWithCreate() const;
-	String GetUserFilterPathWithCreate() const;
+	CString GetGlobalFilterPathWithCreate() const;
+	CString GetUserFilterPathWithCreate() const;
 
-	FileFilterMgr * GetManager() const;
-	void SetFileFilterPath(const String& szFileFilterPath);
-	std::vector<FileFilterInfo> GetFileFilters(String & selected) const;
-	String GetFileFilterName(const String& filterPath) const;
-	String GetFileFilterPath(const String& filterName) const;
-	void SetUserFilterPath(const String & filterPath);
+	FileFilterMgr * GetManager();
+	void SetFileFilterPath(LPCTSTR szFileFilterPath);
+	void EditFileFilter(LPCTSTR szFileFilterPath);
+	void GetFileFilters(FILEFILTER_INFOLIST * filters, CString & selected) const;
+	CString GetFileFilterName(CString filterPath) const;
+	CString GetFileFilterPath(CString filterName) const;
 
 	void ReloadUpdatedFilters();
 	void LoadAllFileFilters();
 
-	void LoadFileFilterDirPattern(const String& dir, const String& szPattern);
+	void LoadFileFilterDirPattern(FILEFILTER_FILEMAP & patternsLoaded,
+		const CString & sPattern);
 
-	void UseMask(bool bUseMask);
-	void SetMask(const String& strMask);
+	void UseMask(BOOL bUseMask);
+	void SetMask(LPCTSTR strMask);
 
-	bool IsUsingMask() const;
-	String GetFilterNameOrMask() const;
-	bool SetFilter(const String &filter);
+	BOOL IsUsingMask();
+	CString GetFilterNameOrMask();
+	BOOL SetFilter(CString filter);
 
-	bool includeFile(const String& szFileName) const override;
-	bool includeDir(const String& szDirName) const override;
-
-	void CloneFrom(const FileFilterHelper* pHelper);
+	BOOL includeFile(LPCTSTR szFileName);
+	BOOL includeDir(LPCTSTR szDirName);
 
 protected:
-	std::tuple<String, String, String, String> ParseExtensions(const String &extensions) const;
+	CString ParseExtensions(CString extensions);
+	void TestCandidateFilterPath(const CString & sPath);
+
 
 private:
-	std::unique_ptr<FilterList> m_pMaskFileFilter; /*< Filter for filemasks (*.cpp) */
-	std::unique_ptr<FilterList> m_pMaskDirFilter;  /*< Filter for dirmasks */
 	FileFilter * m_currentFilter;     /*< Currently selected filefilter */
-	std::unique_ptr<FileFilterMgr> m_fileFilterMgr;  /*< Associated FileFilterMgr */
-	String m_sFileFilterPath;        /*< Path to current filter */
-	String m_sMask;   /*< File mask (if defined) "*.cpp *.h" etc */
-	bool m_bUseMask;   /*< If `true` file mask is used, filter otherwise */
-	String m_sGlobalFilterPath;    /*< Path for shared filters */
-	String m_sUserSelFilterPath;     /*< Path for user's private filters */
+	FileFilterMgr * m_fileFilterMgr;  /*< Associated FileFilterMgr */
+	CString m_sFileFilterPath;        /*< Path to current filter */
+	CString m_sMask;   /*< File mask (if defined) "*.cpp *.h" etc */
+	BOOL m_bUseMask;   /*< If TRUE file mask is used, filter otherwise */
+	CString m_sGlobalFilterPath;    /*< Path for shared filters */
+	CString m_sUserFilterPath;     /*< Path for user's private filters */
+
+	CRegExp m_rgx;     /*< Compiled file mask regular expression */
 };
 
-/**
- * @brief Return filtermanager used.
- */
-inline FileFilterMgr * FileFilterHelper::GetManager() const
-{
-	return m_fileFilterMgr.get();
-}
-
-/**
- * @brief Returns true if active filter is a mask.
- */
-inline bool FileFilterHelper::IsUsingMask() const
-{
-	return m_bUseMask;
-}
-
+#endif // _FILEFILTERHELPER_H_

@@ -1,38 +1,65 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+//    License (GPLv2+):
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or (at
+//    your option) any later version.
+//    
+//    This program is distributed in the hope that it will be useful, but
+//    WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/////////////////////////////////////////////////////////////////////////////
 /** 
  * @file  FileFilterHelper.cpp
  *
  * @brief Implementation file for FileFilterHelper class
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: FileFilterHelper.cpp,v 1.22 2005/07/26 06:11:22 elsapo Exp $
 
-#include "pch.h"
-#include "FileFilterHelper.h"
-#include "UnicodeString.h"
-#include "FilterList.h"
-#include "DirItem.h"
+#include "stdafx.h"
+#include "FileInfo.h"
 #include "FileFilterMgr.h"
+#include "FileFilterHelper.h"
+#include "RegExp.h"
+#include "Coretools.h"
 #include "paths.h"
-#include "Environment.h"
-#include "unicoder.h"
 
-using std::vector;
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
+#endif
 
 /** 
  * @brief Constructor, creates new filtermanager.
  */
 FileFilterHelper::FileFilterHelper()
-: m_pMaskFileFilter(nullptr)
-, m_pMaskDirFilter(nullptr)
-, m_bUseMask(true)
-, m_fileFilterMgr(new FileFilterMgr)
-, m_currentFilter(nullptr)
 {
+	m_fileFilterMgr = new FileFilterMgr;
+	m_bUseMask = TRUE;
 }
 
 /** 
  * @brief Destructor, deletes filtermanager.
  */
-FileFilterHelper::~FileFilterHelper() = default;
+FileFilterHelper::~FileFilterHelper()
+{
+	delete m_fileFilterMgr;
+}
+
+/** 
+ * @brief Return filtermanager used.
+ */
+FileFilterMgr * FileFilterHelper::GetManager()
+{
+	return m_fileFilterMgr;
+}
 
 /**
  * @brief Store current filter path.
@@ -41,19 +68,19 @@ FileFilterHelper::~FileFilterHelper() = default;
  * is found select it. Otherwise set path to empty (default).
  * @param [in] szFileFilterPath Full path to filter to select.
  */
-void FileFilterHelper::SetFileFilterPath(const String& szFileFilterPath)
+void FileFilterHelper::SetFileFilterPath(LPCTSTR szFileFilterPath)
 {
 	// Use none as default path
-	m_sFileFilterPath.clear();
+	m_sFileFilterPath.Empty();
 
-	if (m_fileFilterMgr == nullptr)
+	if (!m_fileFilterMgr)
 		return;
 
 	// Don't bother to lookup empty path
-	if (!szFileFilterPath.empty())
+	if (_tcslen(szFileFilterPath) > 0)
 	{
 		m_currentFilter = m_fileFilterMgr->GetFilterByPath(szFileFilterPath);
-		if (m_currentFilter != nullptr)
+		if (m_currentFilter)
 			m_sFileFilterPath = szFileFilterPath;
 	}
 }
@@ -61,27 +88,25 @@ void FileFilterHelper::SetFileFilterPath(const String& szFileFilterPath)
 /**
  * @brief Get list of filters currently available.
  *
+ * @param [out] filters Filter list to receive found filters.
  * @param [out] selected Filepath of currently selected filter.
- * @return Filter list to receive found filters.
  */
-std::vector<FileFilterInfo> FileFilterHelper::GetFileFilters(String & selected) const
+void FileFilterHelper::GetFileFilters(FILEFILTER_INFOLIST * filters, CString & selected) const
 {
-	std::vector<FileFilterInfo> filters;
-	if (m_fileFilterMgr != nullptr)
+	if (m_fileFilterMgr)
 	{
-		const int count = m_fileFilterMgr->GetFilterCount();
-		filters.reserve(count);
-		for (int i = 0; i < count; ++i)
+		int count = m_fileFilterMgr->GetFilterCount();
+		filters->SetSize(count);
+		for (int i=0; i<count; ++i)
 		{
 			FileFilterInfo filter;
 			filter.fullpath = m_fileFilterMgr->GetFilterPath(i);
 			filter.name = m_fileFilterMgr->GetFilterName(i);
 			filter.description = m_fileFilterMgr->GetFilterDesc(i);
-			filters.push_back(filter);
+			filters->SetAt(i, filter);
 		}
 	}
 	selected = m_sFileFilterPath;
-	return filters;
 }
 
 /**
@@ -90,20 +115,20 @@ std::vector<FileFilterInfo> FileFilterHelper::GetFileFilters(String & selected) 
  * @param [in] filterPath Path to filterfile.
  * @sa FileFilterHelper::GetFileFilterPath()
  */
-String FileFilterHelper::GetFileFilterName(const String& filterPath) const
+CString FileFilterHelper::GetFileFilterName(CString filterPath) const
 {
-	String selected;
-	String name;
-	vector<FileFilterInfo> filters = GetFileFilters(selected);
-	vector<FileFilterInfo>::const_iterator iter = filters.begin();
-	while (iter != filters.end())
+	FILEFILTER_INFOLIST filters;
+	CString selected;
+	CString name;
+
+	GetFileFilters(&filters, selected);
+	for (int i = 0; i < filters.GetSize(); i++)
 	{
-		if ((*iter).fullpath == filterPath)
+		if (filters.GetAt(i).fullpath == filterPath)
 		{
-			name = (*iter).name;
+			name = filters.GetAt(i).name;
 			break;
 		}
-		++iter;
 	}
 	return name;
 }
@@ -113,116 +138,66 @@ String FileFilterHelper::GetFileFilterName(const String& filterPath) const
  * @param [in] filterName Name of filter.
  * @sa FileFilterHelper::GetFileFilterName()
  */
-String FileFilterHelper::GetFileFilterPath(const String& filterName) const
+CString FileFilterHelper::GetFileFilterPath(CString filterName) const
 {
-	String selected;
-	String path;
-	vector<FileFilterInfo> filters = GetFileFilters(selected);
-	vector<FileFilterInfo>::const_iterator iter = filters.begin();
-	while (iter != filters.end())
+	FILEFILTER_INFOLIST filters;
+	CString selected;
+	CString path;
+
+	GetFileFilters(&filters, selected);
+	for (int i = 0; i < filters.GetSize(); i++)
 	{
-		if ((*iter).name == filterName)
+		if (filters.GetAt(i).name == filterName)
 		{
-			path = (*iter).fullpath;
+			path = filters.GetAt(i).fullpath;
 			break;
 		}
-		++iter;
 	}
 	return path;
 }
 
 /** 
- * @brief Set User's filter folder.
- * @param [in] filterPath Location of User's filters.
- */
-void FileFilterHelper::SetUserFilterPath(const String & filterPath)
-{
-	m_sUserSelFilterPath = filterPath;
-	paths::normalize(m_sUserSelFilterPath);
-}
-
-/** 
  * @brief Select between mask and filterfile.
- * @param [in] bUseMask If true we use mask instead of filter files.
  */
-void FileFilterHelper::UseMask(bool bUseMask)
+void FileFilterHelper::UseMask(BOOL bUseMask)
 {
 	m_bUseMask = bUseMask;
-	if (m_bUseMask)
-	{
-		if (m_pMaskFileFilter == nullptr)
-		{
-			m_pMaskFileFilter.reset(new FilterList);
-		}
-		if (m_pMaskDirFilter == nullptr)
-		{
-			m_pMaskDirFilter.reset(new FilterList);
-		}
-	}
-	else
-	{
-		m_pMaskFileFilter.reset();
-		m_pMaskDirFilter.reset();
-	}
 }
 
 /** 
- * @brief Set filemask for filtering.
- * @param [in] strMask Mask to set (e.g. *.cpp;*.h).
+ * @brief Set filemask ("*.h *.cpp")
  */
-void FileFilterHelper::SetMask(const String& strMask)
+void FileFilterHelper::SetMask(LPCTSTR strMask)
 {
-	if (!m_bUseMask)
-	{
-		throw "Filter mask tried to set when masks disabled!";
-	}
 	m_sMask = strMask;
-	auto [regExpFile, regExpFileExclude, regExpDir, regExpDirExclude] = ParseExtensions(strMask);
-
-	std::string regexp_str_file = ucr::toUTF8(regExpFile);
-	std::string regexp_str_file_excluded = ucr::toUTF8(regExpFileExclude);
-	std::string regexp_str_dir = ucr::toUTF8(regExpDir);
-	std::string regexp_str_dir_excluded = ucr::toUTF8(regExpDirExclude);
-
-	m_pMaskFileFilter->RemoveAllFilters();
-	m_pMaskFileFilter->AddRegExp(regexp_str_file, false);
-	if (!regexp_str_file_excluded.empty())
-		m_pMaskFileFilter->AddRegExp(regexp_str_file_excluded, true);
-	m_pMaskDirFilter->RemoveAllFilters();
-	m_pMaskDirFilter->AddRegExp(regexp_str_dir, false);
-	if (!regexp_str_dir_excluded.empty())
-		m_pMaskDirFilter->AddRegExp(regexp_str_dir_excluded, true);
+	CString regExp = ParseExtensions(strMask);
+	m_rgx.RegComp(regExp);
 }
 
 /**
  * @brief Check if any of filefilter rules match to filename.
  *
  * @param [in] szFileName Filename to test.
- * @return true unless we're suppressing this file by filter
+ * @return TRUE unless we're suppressing this file by filter
  */
-bool FileFilterHelper::includeFile(const String& szFileName) const
+BOOL FileFilterHelper::includeFile(LPCTSTR szFileName)
 {
 	if (m_bUseMask)
 	{
-		if (m_pMaskFileFilter == nullptr)
-		{
-			throw "Use mask set, but no filter rules for mask!";
-		}
-
 		// preprend a backslash if there is none
-		String strFileName = strutils::makelower(szFileName);
-		if (strFileName.empty() || strFileName[0] != '\\')
-			strFileName = _T("\\") + strFileName;
+		CString strFileName = szFileName;
+		strFileName.MakeLower();
+		if (strFileName[0] != _T('\\'))
+			strFileName = _T('\\') + strFileName;
 		// append a point if there is no extension
-		if (strFileName.find('.') == String::npos)
-			strFileName = strFileName + _T(".");
-
-		return m_pMaskFileFilter->Match(ucr::toUTF8(strFileName));
+		if (strFileName.Find(_T('.')) == -1)
+			strFileName = strFileName + _T('.');
+		return (! m_rgx.RegFind(strFileName));
 	}
 	else
 	{
-		if (m_fileFilterMgr == nullptr || m_currentFilter ==nullptr)
-			return true;
+		if (!m_fileFilterMgr || !m_currentFilter)
+			return TRUE;
 		return m_fileFilterMgr->TestFileNameAgainstFilter(m_currentFilter, szFileName);
 	}
 }
@@ -231,34 +206,22 @@ bool FileFilterHelper::includeFile(const String& szFileName) const
  * @brief Check if any of filefilter rules match to directoryname.
  *
  * @param [in] szFileName Directoryname to test.
- * @return true unless we're suppressing this directory by filter
+ * @return TRUE unless we're suppressing this directory by filter
  */
-bool FileFilterHelper::includeDir(const String& szDirName) const
+BOOL FileFilterHelper::includeDir(LPCTSTR szDirName)
 {
 	if (m_bUseMask)
 	{
-		if (m_pMaskDirFilter == nullptr)
-		{
-			throw "Use mask set, but no filter rules for mask!";
-		}
-
-		// preprend a backslash if there is none
-		String strDirName = strutils::makelower(szDirName);
-		if (strDirName.empty() || strDirName[0] != '\\')
-			strDirName = _T("\\") + strDirName;
-		// append a point if there is no extension
-		if (strDirName.find('.') == String::npos)
-			strDirName = strDirName + _T(".");
-
-		return m_pMaskDirFilter->Match(ucr::toUTF8(strDirName));
+		// directories have no extension
+		return TRUE; 
 	}
 	else
 	{
-		if (m_fileFilterMgr == nullptr || m_currentFilter == nullptr)
-			return true;
+		if (!m_fileFilterMgr || !m_currentFilter)
+			return TRUE;
 
 		// Add a backslash
-		String strDirName(_T("\\"));
+		CString strDirName(_T("\\"));
 		strDirName += szDirName;
 
 		return m_fileFilterMgr->TestDirNameAgainstFilter(m_currentFilter, strDirName);
@@ -266,116 +229,102 @@ bool FileFilterHelper::includeDir(const String& szDirName) const
 }
 
 /**
- * @brief Load in all filters in a folder.
- * @param [in] dir Folder from where to load filters.
- * @param [in] sPattern Wildcard defining files to add to map as filter files.
- *   It is filemask, for example, "*.flt"
+ * @brief Open filter file to editor (notepad) for modifying.
+ *
+ * @param [in] szFileFilterterPath Path of filter file to edit.
+ * @todo Use external editor defined in options?
  */
-void FileFilterHelper::LoadFileFilterDirPattern(const String& dir, const String& szPattern)
+void FileFilterHelper::EditFileFilter(LPCTSTR szFileFilterPath)
 {
-	m_fileFilterMgr->LoadFromDirectory(dir, szPattern, FileFilterExt);
+	CString cmdLine = (CString)_T("notepad ") + szFileFilterPath;
+	STARTUPINFO stInfo = {0};
+	PROCESS_INFORMATION prInfo;
+	BOOL processSuccess = FALSE;
+	stInfo.cb = sizeof(STARTUPINFO);
+	processSuccess = CreateProcess(NULL, (LPTSTR)(LPCTSTR)cmdLine, NULL,
+		NULL, FALSE, 0, NULL, NULL, &stInfo, &prInfo);
 }
 
-static String ConvertWildcardPatternToRegexp(const String& pattern)
+/**
+ * @brief Load in all filter patterns in a directory (unless already in map).
+ * @param [in,out] patternsLoaded Map where found filterfiles are added.
+ * @param [in] sPattern Directory wildcard defining files to add to map as filter files.
+ * It is directoryname + filemask, for example, for a filter for all users:
+ * "C:\Program Files\WinMerge\Filters\*.flt"
+ * Examples of user-specific filters:
+ * "C:\\Documents And Settings\\username\\Local Settings\\Application Data\\WinMerge\\Filters\\*.flt"
+ * "C:\\Documents And Settings\\username\\Application Data\\WinMerge\\Filters\\*.flt"
+ */
+void FileFilterHelper::LoadFileFilterDirPattern(FILEFILTER_FILEMAP & patternsLoaded,
+		const CString & sPattern)
 {
-	String strRegex;
-	for (const TCHAR *p = pattern.c_str(); *p; ++p)
+	int n=0;
+	if (!patternsLoaded.Lookup(sPattern, n))
 	{
-		switch (*p)
-		{
-		case '\\': strRegex += _T("\\\\");     break;
-		case '.':  strRegex += _T("\\.");      break;
-		case '[':  strRegex += _T("\\[");      break;
-		case ']':  strRegex += _T("\\]");      break;
-		case '(':  strRegex += _T("\\(");      break;
-		case ')':  strRegex += _T("\\)");      break;
-		case '$':  strRegex += _T("\\$");      break;
-		case '^':  strRegex += _T("\\^");      break;
-		case '+':  strRegex += _T("\\+");      break;
-		case '?':  strRegex += _T("[^\\\\]");  break;
-		case '*':  strRegex += _T("[^\\\\]*"); break;
-		default:   strRegex += *p;             break;
-		}
+		m_fileFilterMgr->LoadFromDirectory(sPattern, FileFilterExt);
 	}
-	strRegex += _T("$");
-	return _T("(^|\\\\)") + strRegex;
+	patternsLoaded[sPattern] = ++n;
 }
 
 /** 
- * @brief Convert user-given extension list to valid regular expression.
- * @param [in] Extension list/mask to convert to regular expression.
- * @return Regular expression that matches extension list.
+ * @brief Parse user-given extension list to valid regexp for diffengine.
  */
-std::tuple<String, String, String, String> FileFilterHelper::ParseExtensions(const String &extensions) const
+CString FileFilterHelper::ParseExtensions(CString extensions)
 {
-	String strFileParsed;
-	String strDirParsed;
-	std::vector<String> filePatterns;
-	std::vector<String> filePatternsExclude;
-	std::vector<String> dirPatterns;
-	std::vector<String> dirPatternsExclude;
-	String ext(extensions);
+	CString strParsed;
+	CString strPattern;
+	BOOL bFilterAdded = FALSE;
 	static const TCHAR pszSeps[] = _T(" ;|,:");
 
-	ext += _T(";"); // Add one separator char to end
-	size_t pos = ext.find_first_of(pszSeps);
+	extensions += _T(";"); // Add one separator char to end
+	int pos = extensions.FindOneOf(pszSeps);
 	
-	while (pos != String::npos)
+	while (pos >= 0)
 	{
-		String token = ext.substr(0, pos); // Get first extension
-		ext = ext.substr(pos + 1); // Remove extension + separator
+		CString token = extensions.Left(pos); // Get first extension
+		extensions.Delete(0, pos + 1); // Remove extension + separator
 		
 		// Only "*." or "*.something" allowed, other ignored
-		if (token.length() >= 1)
+		if (token.GetLength() >= 2 && token[0] == '*' && token[1] == '.')
 		{
-			bool exclude = token[0] == '!';
-			if (exclude)
-				token = token.substr(1);
-			bool isdir = token.back() == '\\';
-			if (isdir)
-				token = token.substr(0, token.size() - 1);
-			if (token.find('.') == String::npos && !token.empty() && token.back() != '*')
-				token += _T(".");
-			String strRegex = strutils::makelower(ConvertWildcardPatternToRegexp(token));
-			if (exclude)
-			{
-				if (isdir)
-					dirPatternsExclude.push_back(strRegex);
-				else
-					filePatternsExclude.push_back(strRegex);
-			}
-			else
-			{
-				if (isdir)
-					dirPatterns.push_back(strRegex);
-				else
-					filePatterns.push_back(strRegex);
-			}
+			bFilterAdded = TRUE;
+			strPattern += _T(".*\\.");
+			strPattern += token.Mid(2);
+			strPattern += _T("$");
 		}
+		else
+			bFilterAdded = FALSE;
 
-		pos = ext.find_first_of(pszSeps); 
+		pos = extensions.FindOneOf(pszSeps); 
+		if (bFilterAdded && pos >= 0)
+			strPattern += _T("|");
 	}
 
-	if (filePatterns.empty())
-		strFileParsed = _T(".*"); // Match everything
+	if (strPattern.IsEmpty())
+		strParsed = _T(".*"); // Match everything
 	else
-		strFileParsed = strutils::join(filePatterns.begin(), filePatterns.end(), _T("|"));
-	if (dirPatterns.empty())
-		strDirParsed = _T(".*"); // Match everything
-	else
-		strDirParsed = strutils::join(dirPatterns.begin(), dirPatterns.end(), _T("|"));
-	String strFileParsedExclude = strutils::join(filePatternsExclude.begin(), filePatternsExclude.end(), _T("|"));
-	String strDirParsedExclude = strutils::join(dirPatternsExclude.begin(), dirPatternsExclude.end(), _T("|"));
-	return { strFileParsed, strFileParsedExclude, strDirParsed, strDirParsedExclude };
+	{
+		strParsed = _T("^");
+		strPattern.MakeLower();
+		strParsed += strPattern + _T("$");
+	}
+	return strParsed;
+}
+
+/** 
+ * @brief Returns TRUE if active filter is mask.
+ */
+BOOL FileFilterHelper::IsUsingMask()
+{
+	return m_bUseMask;
 }
 
 /** 
  * @brief Returns active filter (or mask string)
- * @return The active filter.
  */
-String FileFilterHelper::GetFilterNameOrMask() const
+CString FileFilterHelper::GetFilterNameOrMask()
 {
-	String sFilter;
+	CString sFilter;
 
 	if (!IsUsingMask())
 		sFilter = GetFileFilterName(m_sFileFilterPath);
@@ -392,38 +341,46 @@ String FileFilterHelper::GetFilterNameOrMask() const
  * filter type so caller doesn't need to care about it.
  *
  * @param [in] filter File mask or filter name.
- * @return true if given filter was set, false if default filter was set.
- * @note If function returns false, you should ask filter set with
+ * @return TRUE if given filter was set, FALSE if default filter was set.
+ * @note If function returns FALSE, you should ask filter set with
  * GetFilterNameOrMask().
  */
-bool FileFilterHelper::SetFilter(const String &filter)
+BOOL FileFilterHelper::SetFilter(CString filter)
 {
 	// If filter is empty string set default filter
-	if (filter.empty())
+	if (filter.IsEmpty())
 	{
-		UseMask(true);
 		SetMask(_T("*.*"));
+		UseMask(TRUE);
 		SetFileFilterPath(_T(""));
-		return false;
+		return FALSE;
 	}
 
-	// Remove leading and trailing whitespace characters from the string.
-	String flt = strutils::trim_ws(filter);
-
-	String path = GetFileFilterPath(flt);
-	if (!path.empty())
+	// Star means we have a file extension mask
+	if (filter[0] == '*')
 	{
-		UseMask(false);
-		SetFileFilterPath(path);
+		SetMask(filter);
+		UseMask(TRUE);
+		SetFileFilterPath(_T(""));
 	}
 	else
 	{
-		UseMask(true);
-		SetMask(flt);
-		SetFileFilterPath(_T(""));
-		return false;
+		CString path = GetFileFilterPath(filter);
+		if (!path.IsEmpty())
+		{
+			SetFileFilterPath(path);
+			UseMask(FALSE);
+		}
+		// If filter not found with given name, use default filter
+		else
+		{
+			SetMask(_T("*.*"));
+			UseMask(TRUE);
+			SetFileFilterPath(_T(""));
+			return FALSE;
+		}
 	}
-	return true;
+	return TRUE;
 }
 
 /** 
@@ -431,34 +388,49 @@ bool FileFilterHelper::SetFilter(const String &filter)
  *
  * Checks if filter file has been modified since it was last time
  * loaded/reloaded. If file has been modified we reload it.
- * @todo How to handle an error in reloading filter?
  */
 void FileFilterHelper::ReloadUpdatedFilters()
 {
-	DirItem fileInfo;
-	String selected;
-	vector<FileFilterInfo> filters = GetFileFilters(selected);
-	vector<FileFilterInfo>::const_iterator iter = filters.begin();
-	while (iter != filters.end())
+	FILEFILTER_INFOLIST filters;
+	FileInfo fileInfo;
+	FileInfo *fileInfoStored = NULL;
+	FileFilterInfo * filter = NULL;
+	CString selected;
+
+	GetFileFilters(&filters, selected);
+	for (int i = 0; i < filters.GetSize(); i++)
 	{
-		String path = (*iter).fullpath;
+		filter = &filters.GetAt(i);
+		CString path = filter->fullpath;
+		fileInfoStored = &filter->fileinfo;
 
 		fileInfo.Update(path);
-		if (fileInfo.mtime != (*iter).fileinfo.mtime ||
-			fileInfo.size != (*iter).fileinfo.size)
+		if (fileInfo.mtime != fileInfoStored->mtime ||
+			fileInfo.size != fileInfoStored->size)
 		{
 			// Reload filter after changing it
-			int retval = m_fileFilterMgr->ReloadFilterFromDisk(path);
-			
-			if (retval == FILTER_OK)
-			{
-				// If it was active filter we have to re-set it
-				if (path == selected)
-					SetFileFilterPath(path);
-			}
+			m_fileFilterMgr->ReloadFilterFromDisk(path);
+
+			// If it was active filter we have to re-set it
+			if (path == selected)
+				SetFileFilterPath(path);
 		}
-		++iter;
 	}
+}
+
+/**
+ * @ brief Returns true if directory exists or successfully created
+ * Tries to create multiple directories if needed
+ */
+static bool
+EnsureDirectoryExists(const CString & sPath)
+{
+	// paths_CanUse will 
+	if (paths_CreateIfNeeded(sPath))
+		return true;
+	else
+		return false;
+
 }
 
 /**
@@ -467,82 +439,50 @@ void FileFilterHelper::ReloadUpdatedFilters()
  */
 void FileFilterHelper::LoadAllFileFilters()
 {
+	// Load filters from all possible subdirectories
+	FILEFILTER_FILEMAP patternsLoaded;
+
 	// First delete existing filters
 	m_fileFilterMgr->DeleteAllFilters();
 
 	// Program application directory
-	m_sGlobalFilterPath = paths::ConcatPath(env::GetProgPath(), _T("Filters"));
-	paths::normalize(m_sGlobalFilterPath);
-	String pattern(_T("*"));
-	pattern += FileFilterExt;
-	LoadFileFilterDirPattern(m_sGlobalFilterPath, pattern);
-	if (strutils::compare_nocase(m_sGlobalFilterPath, m_sUserSelFilterPath) != 0)
-		LoadFileFilterDirPattern(m_sUserSelFilterPath, pattern);
+	m_sGlobalFilterPath = GetModulePath() + _T("\\Filters");
+	LoadFileFilterDirPattern(patternsLoaded, m_sGlobalFilterPath + _T("\\*") + FileFilterExt);
+
+
+	// User application data path
+	m_sUserFilterPath = _T("");
+	CString sAppPath;
+	if (GetAppDataPath(sAppPath))
+	{
+		m_sUserFilterPath = sAppPath + _T("\\WinMerge\\Filters");
+		LoadFileFilterDirPattern(patternsLoaded, m_sUserFilterPath + _T("\\*") + FileFilterExt);
+	}
+	else
+	{
+		// User profile local & roaming settings
+		CString sProfile;
+		if (GetUserProfilePath(sProfile))
+		{
+			m_sUserFilterPath = sProfile + _T("\\Application Data\\WinMerge\\Filters");
+			LoadFileFilterDirPattern(patternsLoaded, m_sUserFilterPath + _T("\\*") + FileFilterExt);
+		}
+	}
 }
 
 /**
  * @brief Return path to global filters (& create if needed), or empty if cannot create
  */
-String FileFilterHelper::GetGlobalFilterPathWithCreate() const
+CString FileFilterHelper::GetGlobalFilterPathWithCreate() const
 {
-	return paths::EnsurePathExist(m_sGlobalFilterPath);
+	return paths_EnsurePathExist(m_sGlobalFilterPath);
 }
 
 /**
  * @brief Return path to user filters (& create if needed), or empty if cannot create
  */
-String FileFilterHelper::GetUserFilterPathWithCreate() const
+CString FileFilterHelper::GetUserFilterPathWithCreate() const
 {
-	return paths::EnsurePathExist(m_sUserSelFilterPath);
+	return paths_EnsurePathExist(m_sUserFilterPath);
 }
 
-/**
- * @brief Clone file filter helper from another file filter helper.
- * This function clones file filter helper from another file filter helper.
- * Current contents in the file filter helper are removed and new contents added from the given file filter helper.
- * @param [in] pHelper File filter helper to clone.
- */
-void FileFilterHelper::CloneFrom(const FileFilterHelper* pHelper)
-{
-	if (!pHelper)
-		return;
-
-	if (pHelper->m_pMaskFileFilter)
-	{
-		auto filterList = std::make_unique<FilterList>(FilterList());
-		m_pMaskFileFilter = std::move(filterList);
-		m_pMaskFileFilter->CloneFrom(pHelper->m_pMaskFileFilter.get());
-	}
-
-	if (pHelper->m_pMaskDirFilter)
-	{
-		auto filterList = std::make_unique<FilterList>(FilterList());
-		m_pMaskDirFilter = std::move(filterList);
-		m_pMaskDirFilter->CloneFrom(pHelper->m_pMaskDirFilter.get());
-	}
-
-	if (pHelper->m_fileFilterMgr)
-	{
-		auto fileFilterMgr = std::make_unique<FileFilterMgr>(FileFilterMgr());
-		m_fileFilterMgr = std::move(fileFilterMgr);
-		m_fileFilterMgr->CloneFrom(pHelper->m_fileFilterMgr.get());
-	}
-
-	m_currentFilter = nullptr;
-	if (pHelper->m_currentFilter && pHelper->m_fileFilterMgr)
-	{
-		int count = pHelper->m_fileFilterMgr->GetFilterCount();
-		for (int i = 0; i < count; i++)
-			if (pHelper->m_fileFilterMgr->GetFilterByIndex(i) == pHelper->m_currentFilter)
-			{
-				m_currentFilter = m_fileFilterMgr->GetFilterByIndex(i);
-				break;
-			}
-	}
-
-	m_sFileFilterPath = pHelper->m_sFileFilterPath;
-	m_sMask = pHelper->m_sMask;
-	m_bUseMask = pHelper->m_bUseMask;
-	m_sGlobalFilterPath = pHelper->m_sGlobalFilterPath;
-	m_sUserSelFilterPath = pHelper->m_sUserSelFilterPath;
-}

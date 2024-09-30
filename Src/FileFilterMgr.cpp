@@ -1,87 +1,130 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+// FileFilterMgr.cpp : implementation file
+// see FileFilterMgr.h for description
+/////////////////////////////////////////////////////////////////////////////
+//    License (GPLv2+):
+//    This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+//    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+//    You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/////////////////////////////////////////////////////////////////////////////
 /**
  *  @file FileFilterMgr.cpp
  *
  *  @brief Implementation of FileFilterMgr and supporting routines
  */ 
+// RCS ID line follows -- this is updated by CVS
+// $Id: FileFilterMgr.cpp,v 1.13.2.4 2006/07/19 06:41:55 kimmov Exp $
 
-#include "pch.h"
+#include "stdafx.h"
 #include "FileFilterMgr.h"
-#include <vector>
-#include <Poco/String.h>
-#include <Poco/Glob.h>
-#include <Poco/RegularExpression.h>
-#include "DirTravel.h"
-#include "DirItem.h"
-#include "UnicodeString.h"
-#include "FileFilter.h"
+#include "RegExp.h"
 #include "UniFile.h"
-#include "paths.h"
 
-using std::vector;
-using Poco::Glob;
-using Poco::icompare;
-using Poco::RegularExpression;
-
-static void AddFilterPattern(vector<FileFilterElementPtr> *filterList, String & str);
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
+#endif
 
 /**
- * @brief Destructor, frees all filters.
+ * @brief Deletes items from filter list.
+ *
+ * @param [in] filterList List to empty.
  */
+void EmptyFilterList(FileFilterList & filterList)
+{
+	while (!filterList.IsEmpty())
+	{
+		FileFilterElement &elem = filterList.GetHead();
+		delete elem.pRegExp;
+		filterList.RemoveHead();
+	}
+}
+
+/**
+ * @brief One actual filter.
+ *
+ * For example, this might be a GNU C filter, excluding *.o files and CVS
+ * directories. That is to say, a filter is a set of file masks and
+ * directory masks. Usually FileFilter contains rules from one filter
+ * definition file. So it can be thought as filter file contents.
+ * @sa FileFilterList
+ */
+struct FileFilter
+{
+	bool default_include;	/**< If true, filter rules are inclusive by default */
+	CString name;			/**< Filter name (shown in UI) */
+	CString description;	/**< Filter description text */
+	CString fullpath;		/**< Full path to filter file */
+	FileFilterList filefilters; /**< List of rules for files */
+	FileFilterList dirfilters;  /**< List of rules for directories */
+	FileFilter() : default_include(true) { }
+	~FileFilter();
+};
+
+FileFilter::~FileFilter()
+{
+	EmptyFilterList(filefilters);
+	EmptyFilterList(dirfilters);
+}
+
 FileFilterMgr::~FileFilterMgr()
 {
 	DeleteAllFilters();
 }
 
 /**
- * @brief Loads filterfile from disk and adds it to filters.
- * @param [in] szFilterFile Filter file to load.
- * @return FILTER_OK if succeeded or one of FILTER_RETVALUE values on error.
+ * @brief Loads filterfile and adds filters.
+ *
+ * @param [in] szFilterFile
+ * @bug Silently fails loading
  */
-int FileFilterMgr::AddFilter(const String& szFilterFile)
+void FileFilterMgr::AddFilter(LPCTSTR szFilterFile)
 {
-	int errorcode = FILTER_OK;
-	FileFilter * pFilter = LoadFilterFile(szFilterFile, errorcode);
-	if (pFilter != nullptr)
-		m_filters.push_back(FileFilterPtr(pFilter));
-	return errorcode;
+	TCHAR dir[_MAX_DRIVE] = {0};
+	TCHAR path[_MAX_PATH] = {0};
+	TCHAR filename[_MAX_PATH] = {0};
+	TCHAR ext[_MAX_EXT] = {0};
+
+	_tsplitpath(szFilterFile, dir, path, filename, ext);
+
+	CString filterPath = dir;
+	filterPath += path;
+	CString filterFile = filename;
+	filterFile += ext;
+
+	FileFilter * pFilter = LoadFilterFile(szFilterFile, filterFile);
+	if (pFilter)
+		m_filters.Add(pFilter);
 }
 
 /**
  * @brief Load all filter files matching pattern from disk into internal filter set.
- * @param [in] dir Directory from where filters are loaded.
- * @param [in] szPattern Pattern for filters to load filters, for example "*.flt".
- * @param [in] szExt File-extension of filter files.
+ *
+ * @param [in] szPattern Pattern from where to load filters, for example "\\Filters\\*.flt"
+ * @param [in] szExt File-extension of filter files
  */
-void FileFilterMgr::LoadFromDirectory(const String& dir, const String& szPattern, const String& szExt)
+void FileFilterMgr::LoadFromDirectory(LPCTSTR szPattern, LPCTSTR szExt)
 {
-	try
+	CFileFind finder;
+	BOOL bWorking = finder.FindFile(szPattern);
+	int extlen = szExt ? _tcslen(szExt) : 0;
+	while (bWorking)
 	{
-		DirItemArray dirs, files;
-		LoadAndSortFiles(dir, &dirs, &files, false);
-		Glob glb(ucr::toUTF8(szPattern));
-	
-		for (DirItem& item: files)
+		bWorking = finder.FindNextFile();
+		if (finder.IsDots() || finder.IsDirectory())
+			continue;
+		CString sFilename = finder.GetFileName();
+		if (szExt)
 		{
-			String filename = item.filename;
-			if (!glb.match(ucr::toUTF8(filename)))
-				continue;
-			if (!szExt.empty())
-			{
-				// caller specified a specific extension
-				// (This is really a workaround for brokenness in windows, which
-				//  doesn't screen correctly on extension in pattern)
-				const String ext = filename.substr(filename.length() - szExt.length());
-				if (strutils::compare_nocase(szExt, ext) != 0)
-					return;
-			}
-
-			String filterpath = paths::ConcatPath(dir, filename);
-			AddFilter(filterpath);
+			// caller specified a specific extension
+			// (This is really a workaround for brokenness in windows, which
+			//  doesn't screen correctly on extension in pattern)
+			if (sFilename.Right(extlen).CompareNoCase(szExt))
+				return;
 		}
-	}
-	catch (...)
-	{
+		FileFilter * pfilter = LoadFilterFile(finder.GetFilePath(), sFilename);
+		m_filters.Add(pfilter);
 	}
 }
 
@@ -90,18 +133,17 @@ void FileFilterMgr::LoadFromDirectory(const String& dir, const String& szPattern
  *
  * @param [in] szFilterFile Filename of filter to remove.
  */
-void FileFilterMgr::RemoveFilter(const String& szFilterFile)
+void FileFilterMgr::RemoveFilter(LPCTSTR szFilterFile)
 {
 	// Note that m_filters.GetSize can change during loop
-	vector<FileFilterPtr>::iterator iter = m_filters.begin();
-	while (iter != m_filters.end())
+	for (int i = 0; i < m_filters.GetSize(); i++)
 	{
-		if (strutils::compare_nocase((*iter)->fullpath, szFilterFile) == 0)
+		FileFilter * pFilter = m_filters.GetAt(i);
+		if (pFilter->fullpath.CompareNoCase(szFilterFile) == 0)
 		{
-			m_filters.erase(iter);
-			break;
+			m_filters.RemoveAt(i);
+			delete pFilter;
 		}
-		++iter;
 	}
 }
 
@@ -110,7 +152,12 @@ void FileFilterMgr::RemoveFilter(const String& szFilterFile)
  */
 void FileFilterMgr::DeleteAllFilters()
 {
-	m_filters.clear();
+	for (int i=0; i<m_filters.GetSize(); ++i)
+	{
+		delete m_filters[i];
+		m_filters[i] = 0;
+	}
+	m_filters.RemoveAll();
 }
 
 /**
@@ -119,37 +166,40 @@ void FileFilterMgr::DeleteAllFilters()
  * @param [in] filterList List where pattern is added.
  * @param [in] str Temporary variable (ie, it may be altered)
  */
-static void AddFilterPattern(vector<FileFilterElementPtr> *filterList, String & str)
+static void AddFilterPattern(FileFilterList & filterList, CString & str)
 {
-	const String& commentLeader = _T("##"); // Starts comment
-	str = strutils::trim_ws_begin(str);
+	LPCTSTR commentLeader = _T("##"); // Starts comment
+	str.MakeUpper();
+	str.TrimLeft();
 
 	// Ignore lines beginning with '##'
-	size_t pos = str.find(commentLeader);
+	int pos = str.Find(commentLeader);
 	if (pos == 0)
 		return;
 
 	// Find possible comment-separator '<whitespace>##'
-	while (pos != std::string::npos && !(str[pos - 1] == ' ' || str[pos - 1] == '\t'))
-		pos = str.find(commentLeader, pos + 1);
+	while (pos > 0 && !_istspace(str[pos - 1]))
+		pos = str.Find(commentLeader, pos);	
 
 	// Remove comment and whitespaces before it
-	if (pos != std::string::npos)
-		str = str.substr(0, pos);
-	str = strutils::trim_ws_end(str);
-	if (str.empty())
+	if (pos > 0)
+		str = str.Left(pos);
+	str.TrimRight();
+	if (str.IsEmpty())
 		return;
 
-	int re_opts = RegularExpression::RE_CASELESS;
-	std::string regexString = ucr::toUTF8(str);
-	re_opts |= RegularExpression::RE_UTF8;
-	try
+	CRegExp * regexp = new CRegExp;
+	if (regexp)
 	{
-		filterList->push_back(FileFilterElementPtr(new FileFilterElement(regexString, re_opts)));
-	}
-	catch (...)
-	{
-		// TODO:
+		if (regexp->RegComp(str))
+		{
+			FileFilterElement elem;
+			elem.pRegExp = regexp;
+		
+			filterList.AddTail(elem);
+		}
+		else
+			delete regexp;
 	}
 }
 
@@ -157,88 +207,68 @@ static void AddFilterPattern(vector<FileFilterElementPtr> *filterList, String & 
  * @brief Parse a filter file, and add it to array if valid.
  *
  * @param [in] szFilePath Path (w/ filename) to file to load.
- * @param [out] error Error-code if loading failed (returned `nullptr`).
- * @return Pointer to new filter, or `nullptr` if error (check error code too).
+ * @param [in] szFilename Name of file to load.
+ * @todo Remove redundancy from parameters (both having filename)
  */
-FileFilter * FileFilterMgr::LoadFilterFile(const String& szFilepath, int & error)
+FileFilter * FileFilterMgr::LoadFilterFile(LPCTSTR szFilepath, LPCTSTR szFilename)
 {
 	UniMemFile file;
 	if (!file.OpenReadOnly(szFilepath))
-	{
-		error = FILTER_ERROR_FILEACCESS;
-		return nullptr;
-	}
+		return NULL;
 
 	file.ReadBom(); // in case it is a Unicode file, let UniMemFile handle BOM
 
-	String fileName;
-	paths::SplitFilename(szFilepath, nullptr, &fileName, nullptr);
 	FileFilter *pfilter = new FileFilter;
 	pfilter->fullpath = szFilepath;
-	pfilter->name = std::move(fileName); // Filename is the default name
-
-	String sLine;
-	bool lossy = false;
-	bool bLinesLeft = true;
+	pfilter->name = szFilename; // default if no name
+	CString sLine;
+	BOOL bLinesLeft = TRUE;
 	do
 	{
 		// Returns false when last line is read
-		String tmpLine;
-		bLinesLeft = file.ReadString(tmpLine, &lossy);
-		sLine = std::move(tmpLine);
-		sLine = strutils::trim_ws(sLine);
+		bLinesLeft = file.ReadString(sLine);
+		sLine.TrimLeft();
+		sLine.TrimRight();
 
-		if (0 == sLine.compare(0, 5, _T("name:"), 5))
+		if (0 == _tcsncmp(sLine, _T("name:"), 5))
 		{
 			// specifies display name
-			String str = sLine.substr(5);
-			str = strutils::trim_ws_begin(str);
-			if (!str.empty())
-				pfilter->name = std::move(str);
+			CString str = sLine.Mid(5);
+			str.TrimLeft();
+			if (!str.IsEmpty())
+				pfilter->name = str;
 		}
-		else if (0 == sLine.compare(0, 5, _T("desc:"), 5))
+		else if (0 == _tcsncmp(sLine, _T("desc:"), 5))
 		{
 			// specifies display name
-			String str = sLine.substr(5);
-			str = strutils::trim_ws_begin(str);
-			if (!str.empty())
-				pfilter->description = std::move(str);
+			CString str = sLine.Mid(5);
+			str.TrimLeft();
+			if (!str.IsEmpty())
+				pfilter->description = str;
 		}
-		else if (0 == sLine.compare(0, 4, _T("def:"), 4))
+		else if (0 == _tcsncmp(sLine, _T("def:"), 4))
 		{
 			// specifies default
-			String str = sLine.substr(4);
-			str = strutils::trim_ws_begin(str);
+			CString str = sLine.Mid(4);
+			str.TrimLeft();
 			if (str == _T("0") || str == _T("no") || str == _T("exclude"))
 				pfilter->default_include = false;
 			else if (str == _T("1") || str == _T("yes") || str == _T("include"))
 				pfilter->default_include = true;
 		}
-		else if (0 == sLine.compare(0, 2, _T("f:"), 2))
+		else if (0 == _tcsncmp(sLine, _T("f:"), 2))
 		{
 			// file filter
-			String str = sLine.substr(2);
-			AddFilterPattern(&pfilter->filefilters, str);
+			CString str = sLine.Mid(2);
+			AddFilterPattern(pfilter->filefilters, str);
 		}
-		else if (0 == sLine.compare(0, 2, _T("d:"), 2))
+		else if (0 == _tcsncmp(sLine, _T("d:"), 2))
 		{
 			// directory filter
-			String str = sLine.substr(2);
-			AddFilterPattern(&pfilter->dirfilters, str);
+			CString str = sLine.Mid(2);
+			AddFilterPattern(pfilter->dirfilters, str);
 		}
-		else if (0 == sLine.compare(0, 3, _T("f!:"), 3))
-		{
-			// file filter
-			String str = sLine.substr(3);
-			AddFilterPattern(&pfilter->filefiltersExclude, str);
-		}
-		else if (0 == sLine.compare(0, 3, _T("d!:"), 3))
-		{
-			// directory filter
-			String str = sLine.substr(3);
-			AddFilterPattern(&pfilter->dirfiltersExclude, str);
-		}
-	} while (bLinesLeft);
+	} while (bLinesLeft == TRUE);
 
 	return pfilter;
 }
@@ -247,33 +277,17 @@ FileFilter * FileFilterMgr::LoadFilterFile(const String& szFilepath, int & error
  * @brief Give client back a pointer to the actual filter.
  *
  * @param [in] szFilterPath Full path to filterfile.
- * @return Pointer to found filefilter or `nullptr`;
+ * @return Pointer to found filefilter or NULL;
  * @note We just do a linear search, because this is seldom called
  */
-FileFilter * FileFilterMgr::GetFilterByPath(const String& szFilterPath)
+FileFilter * FileFilterMgr::GetFilterByPath(LPCTSTR szFilterPath)
 {
-	vector<FileFilterPtr>::const_iterator iter = m_filters.begin();
-	while (iter != m_filters.end())
+	for (int i=0; i<m_filters.GetSize(); ++i)
 	{
-		if (strutils::compare_nocase((*iter)->fullpath, szFilterPath) == 0)
-			return (*iter).get();
-		++iter;
+		if (m_filters[i]->fullpath.CompareNoCase(szFilterPath) == 0)
+			return m_filters[i];
 	}
 	return 0;
-}
-
-/**
- * @brief Give client back a pointer to the actual filter.
- *
- * @param [in] i Index of filter.
- * @return Pointer to filefilter in given index or `nullptr`.
- */
-FileFilter * FileFilterMgr::GetFilterByIndex(int i)
-{
-	if (i < 0 || i >= m_filters.size())
-		return nullptr;
-
-	return m_filters[i].get();
 }
 
 /**
@@ -281,56 +295,41 @@ FileFilter * FileFilterMgr::GetFilterByIndex(int i)
  *
  * @param [in] filterList List of regexps to test against.
  * @param [in] szTest String to test against regexps.
- * @return true if string passes
+ * @return TRUE if string passes
  * @note Matching stops when first match is found.
  */
-bool TestAgainstRegList(const vector<FileFilterElementPtr> *filterList, const String& szTest)
+BOOL TestAgainstRegList(const FileFilterList & filterList, LPCTSTR szTest)
 {
-	if (filterList->size() == 0)
-		return false;
-
-	std::string compString;
-	ucr::toUTF8(szTest, compString);
-	vector<FileFilterElementPtr>::const_iterator iter = filterList->begin();
-	while (iter != filterList->end())
+	CString str = szTest;
+	str.MakeUpper();
+	for (POSITION pos = filterList.GetHeadPosition(); pos; )
 	{
-		RegularExpression::Match match;
-		try
-		{
-			if ((*iter)->regexp.match(compString, 0, match) > 0)
-				return true;
-		}
-		catch (...)
-		{
-			// TODO:
-		}
-		
-		++iter;
+		const FileFilterElement & elem = filterList.GetNext(pos);
+		CRegExp * regexp = elem.pRegExp;
+		if (regexp->RegFind(str) != -1)
+			return TRUE;
 	}
-	return false;
+	return FALSE;
 }
 
 /**
  * @brief Test given filename against filefilter.
  *
  * Test filename against active filefilter. If matching rule is found
- * we must first determine type of rule that matched. If we return false
+ * we must first determine type of rule that matched. If we return FALSE
  * from this function directory scan marks file as skipped.
  *
  * @param [in] pFilter Pointer to filefilter
  * @param [in] szFileName Filename to test
- * @return true if file passes the filter
+ * @return TRUE if file passes the filter
  */
-bool FileFilterMgr::TestFileNameAgainstFilter(const FileFilter * pFilter,
-	const String& szFileName) const
+BOOL FileFilterMgr::TestFileNameAgainstFilter(const FileFilter * pFilter,
+	LPCTSTR szFileName) const
 {
-	if (pFilter == nullptr)
-		return true;
-	if (TestAgainstRegList(&pFilter->filefilters, szFileName))
-	{
-		if (pFilter->filefiltersExclude.empty() || !TestAgainstRegList(&pFilter->filefiltersExclude, szFileName))
-			return !pFilter->default_include;
-	}
+	if (!pFilter)
+		return TRUE;
+	if (TestAgainstRegList(pFilter->filefilters, szFileName))
+		return !pFilter->default_include;
 	return pFilter->default_include;
 }
 
@@ -338,24 +337,65 @@ bool FileFilterMgr::TestFileNameAgainstFilter(const FileFilter * pFilter,
  * @brief Test given directory name against filefilter.
  *
  * Test directory name against active filefilter. If matching rule is found
- * we must first determine type of rule that matched. If we return false
+ * we must first determine type of rule that matched. If we return FALSE
  * from this function directory scan marks file as skipped.
  *
  * @param [in] pFilter Pointer to filefilter
  * @param [in] szDirName Directory name to test
- * @return true if directory name passes the filter
+ * @return TRUE if directory name passes the filter
  */
-bool FileFilterMgr::TestDirNameAgainstFilter(const FileFilter * pFilter,
-	const String& szDirName) const
+BOOL FileFilterMgr::TestDirNameAgainstFilter(const FileFilter * pFilter,
+	LPCTSTR szDirName) const
 {
-	if (pFilter == nullptr)
-		return true;
-	if (TestAgainstRegList(&pFilter->dirfilters, szDirName))
-	{
-		if (pFilter->dirfiltersExclude.empty() || !TestAgainstRegList(&pFilter->dirfiltersExclude, szDirName))
-			return !pFilter->default_include;
-	}
+	if (!pFilter)
+		return TRUE;
+	if (TestAgainstRegList(pFilter->dirfilters, szDirName))
+		return !pFilter->default_include;
 	return pFilter->default_include;
+}
+
+/**
+ * @brief Return name of filter.
+ *
+ * @param [in] i Index of filter.
+ * @return Name of filter in given index.
+ */
+CString FileFilterMgr::GetFilterName(int i) const
+{
+	return m_filters[i]->name; 
+}
+
+/**
+ * @brief Return description of filter.
+ *
+ * @param [in] i Index of filter.
+ * @return Description of filter in given index.
+ */
+CString FileFilterMgr::GetFilterDesc(int i) const
+{
+	return m_filters[i]->description; 
+}
+
+/**
+ * @brief Return full path to filter.
+ *
+ * @param [in] i Index of filter.
+ * @return Full path of filter in given index.
+ */
+CString FileFilterMgr::GetFilterPath(int i) const
+{
+	return m_filters[i]->fullpath;
+}
+
+/**
+ * @brief Return full path to filter.
+ *
+ * @param [in] pFilter Pointer to filter.
+ * @return Full path of filter.
+ */
+CString FileFilterMgr::GetFullpath(FileFilter * pfilter) const
+{
+	return pfilter->fullpath;
 }
 
 /**
@@ -364,70 +404,31 @@ bool FileFilterMgr::TestDirNameAgainstFilter(const FileFilter * pFilter,
  * Reloads filter from disk. This is done by creating a new one
  * to substitute for old one.
  * @param [in] pFilter Pointer to filter to reload.
- * @return FILTER_OK when succeeds, one of FILTER_RETVALUE values on error.
- * @note Given filter (pfilter) is freed and must not be used anymore.
- * @todo Should return new filter.
  */
-int FileFilterMgr::ReloadFilterFromDisk(FileFilter * pfilter)
+void FileFilterMgr::ReloadFilterFromDisk(FileFilter * pfilter)
 {
-	int errorcode = FILTER_OK;
-	FileFilter * newfilter = LoadFilterFile(pfilter->fullpath, errorcode);
-
-	if (newfilter == nullptr)
+	FileFilter * newfilter = LoadFilterFile(pfilter->fullpath, pfilter->name);
+	for (int i=0; i<m_filters.GetSize(); ++i)
 	{
-		return errorcode;
-	}
-
-	vector<FileFilterPtr>::iterator iter = m_filters.begin();
-	while (iter != m_filters.end())
-	{
-		if (pfilter == (*iter).get())
+		if (pfilter == m_filters[i])
 		{
-			m_filters.erase(iter);
+			m_filters.RemoveAt(i);
+			delete pfilter;
 			break;
 		}
 	}
-	m_filters.push_back(FileFilterPtr(newfilter));
-	return errorcode;
+	m_filters.Add(newfilter);
 }
 
 /**
- * @brief Reload filter from disk.
+ * @brief Reload filter from disk
  *
  * Reloads filter from disk. This is done by creating a new one
  * to substitute for old one.
  * @param [in] szFullPath Full path to filter file to reload.
- * @return FILTER_OK when succeeds or one of FILTER_RETVALUE values when fails.
  */
-int FileFilterMgr::ReloadFilterFromDisk(const String& szFullPath)
+void FileFilterMgr::ReloadFilterFromDisk(LPCTSTR szFullPath)
 {
-	int errorcode = FILTER_OK;
 	FileFilter * filter = GetFilterByPath(szFullPath);
-	if (filter)
-		errorcode = ReloadFilterFromDisk(filter);
-	else
-		errorcode = FILTER_NOTFOUND;
-	return errorcode;
-}
-
-/**
- * @brief Clone file filter manager from another file filter Manager.
- * This function clones file filter manager from another file filter manager.
- * Current contents in the file filter manager are removed and new contents added from the given file filter manager.
- * @param [in] fileFilterManager File filter manager to clone.
- */
-void FileFilterMgr::CloneFrom(const FileFilterMgr* fileFilterMgr)
-{
-	if (!fileFilterMgr)
-		return;
-
-	m_filters.clear();
-
-	size_t count = fileFilterMgr->m_filters.size();
-	for (size_t i = 0; i < count; i++)
-	{
-		auto ptr = std::make_shared<FileFilter>(FileFilter());
-		ptr->CloneFrom(fileFilterMgr->m_filters[i].get());
-		m_filters.push_back(ptr);
-	}
+	ReloadFilterFromDisk(filter);
 }

@@ -1,36 +1,63 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+// FileFilterMgr.h : declaration file
+//
+// The FileFilterMgr loads a collection of named file filters from disk,
+// and provides lookup access by name, or array access by index, to these
+// named filters. It also provides test functions for actually using the filters.
+/////////////////////////////////////////////////////////////////////////////
+//    License (GPLv2+):
+//    This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+//    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+//    You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/////////////////////////////////////////////////////////////////////////////
 /**
  *  @file FileFilterMgr.h
  *
  *  @brief Declaration file for FileFilterMgr
  */ 
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: FileFilterMgr.h,v 1.8 2005/02/13 00:17:42 kimmov Exp $
 
-#include <vector>
-#include "UnicodeString.h"
-#include "FileFilter.h"
+#ifndef FileFilter_h_included
+#define FileFilter_h_included
+
+// Uses MFC C++ template containers
+#ifndef __AFXTEMPL_H__
+#include <afxtempl.h>
+#endif
+
+class CRegExp;
+struct FileFilterElement;
+/**
+ * @brief List of file filtering rules.
+ * @sa FileFilterElement
+ * @sa FileFilter
+ */
+typedef CList<FileFilterElement, FileFilterElement&> FileFilterList;
 
 /**
- * @brief Return values for many filter functions.
+ * @brief FileFilter rule.
+ *
+ * Contains one filtering element definition (rule). In addition to
+ * regular expression there is boolean value for defining if rule
+ * is inclusive or exclusive. File filters have global inclusive/exclusive
+ * selection but this per-rule setting overwrites it.
  */
-enum FILTER_RETVALUE
+struct FileFilterElement
 {
-	FILTER_OK = 0,  /**< Success */
-	FILTER_ERROR_FILEACCESS,  /**< File could not be opened etc. */
-	FILTER_NOTFOUND, /**< Filter not found */
+	CRegExp *pRegExp;			/**< Pointer to regexp */
+	CString sRule;				/**< Uncompiled rule text */
+	FileFilterElement() : pRegExp(NULL) { };
 };
+
+struct FileFilter;
 
 /**
  * @brief File filter manager for handling filefilters.
  *
  * The FileFilterMgr loads a collection of named file filters from disk,
  * and provides lookup access by name, or array access by index, to these
- * named filters. It also provides test functions for actually using the
- * filters.
- *
- * We are using PCRE for regular expressions. Nice thing in PCRE is it supports
- * UTF-8 unicode, unlike many other libs. For ANSI builds we use just ansi
- * strings, and for unicode we must first convert strings to UTF-8.
+ * named filters. It also provides test functions for actually using the filters.
  */
 class FileFilterMgr
 {
@@ -39,108 +66,47 @@ private:
 public:
 	~FileFilterMgr();
 	// Reload filter array from specified directory (passed to CFileFind)
-	void LoadFromDirectory(const String& dir, const String& szPattern, const String& szExt);
+	void LoadFromDirectory(LPCTSTR szPattern, LPCTSTR szExt);
 	// Reload an edited filter
-	int ReloadFilterFromDisk(FileFilter * pfilter);
-	int ReloadFilterFromDisk(const String& szFullPath);
+	void ReloadFilterFromDisk(FileFilter * pfilter);
+	void ReloadFilterFromDisk(LPCTSTR szFullPath);
 	// Load a filter from a string
-	void LoadFilterString(const String& szFilterString);
-	int AddFilter(const String& szFilterFile);
-	void RemoveFilter(const String& szFilterFile);
+	void LoadFilterString(LPCTSTR szFilterString);
+	void AddFilter(LPCTSTR szFilterFile);
+	void RemoveFilter(LPCTSTR szFilterFile);
 
 	// access to array of filters
-	int GetFilterCount() const { return (int) m_filters.size(); }
-	String GetFilterName(int i) const;
-	String GetFilterName(const FileFilter *pFilter) const;
-	String GetFilterPath(int i) const;
-	String GetFilterDesc(int i) const;
-	String GetFilterDesc(const FileFilter *pFilter) const;
-	FileFilter * GetFilterByPath(const String& szFilterName);
-	FileFilter * GetFilterByIndex(int i);
-	String GetFullpath(FileFilter * pfilter) const;
+	int GetFilterCount() const { return m_filters.GetSize(); }
+	CString GetFilterName(int i) const;
+	CString GetFilterPath(int i) const;
+	CString GetFilterDesc(int i) const;
+	FileFilter * GetFilterByPath(LPCTSTR szFilterName);
+	CString GetFullpath(FileFilter * pfilter) const;
 
 	// methods to actually use filter
-	bool TestFileNameAgainstFilter(const FileFilter * pFilter, const String& szFileName) const;
-	bool TestDirNameAgainstFilter(const FileFilter * pFilter, const String& szDirName) const;
+	BOOL TestFileNameAgainstFilter(const FileFilter * pFilter, LPCTSTR szFileName) const;
+	BOOL TestDirNameAgainstFilter(const FileFilter * pFilter, LPCTSTR szDirName) const;
 
 	void DeleteAllFilters();
-	void CloneFrom(const FileFilterMgr* fileFilterMgr);
 
 // Implementation methods
 protected:
 	// Clear the list of known filters
 	// Load a filter from a file (if syntax is valid)
-	FileFilter * LoadFilterFile(const String& szFilepath, int & errorcode);
+	FileFilter * LoadFilterFile(LPCTSTR szFilepath, LPCTSTR szFilename);
 
 // Implementation data
 private:
-	std::vector<FileFilterPtr> m_filters; /*< List of filters loaded */
+	CTypedPtrArray<CPtrArray, FileFilter *> m_filters; /*< List of filters loaded */
 };
 
 
-bool TestAgainstRegList(const std::vector<FileFilterElementPtr> *filterList, const String& szTest);
-void EmptyFilterList(std::vector<FileFilterElementPtr> *filterList);
+// I think that CRegExp doesn't copy correctly (I get heap corruption in CRegList::program)
+// so I'm using pointers to avoid its copy constructor
+// Perry, 2003-05-18
 
-/**
- * @brief Return name of filter.
- *
- * @param [in] i Index of filter.
- * @return Name of filter in given index.
- */
-inline String FileFilterMgr::GetFilterName(int i) const
-{
-	return m_filters[i]->name; 
-}
+BOOL TestAgainstRegList(const FileFilterList & filterList, LPCTSTR szTest);
+void EmptyFilterList(FileFilterList & filterList);
 
-/**
- * @brief Return name of filter.
- * @param [in] pFilter Filter to get name for.
- * @return Given filter's name.
- */
-inline String FileFilterMgr::GetFilterName(const FileFilter *pFilter) const
-{
-	return pFilter->name; 
-}
 
-/**
- * @brief Return description of filter.
- *
- * @param [in] i Index of filter.
- * @return Description of filter in given index.
- */
-inline String FileFilterMgr::GetFilterDesc(int i) const
-{
-	return m_filters[i]->description; 
-}
-
-/**
- * @brief Return description of filter.
- * @param [in] pFilter Filter to get description for.
- * @return Given filter's description.
- */
-inline String FileFilterMgr::GetFilterDesc(const FileFilter *pFilter) const
-{
-	return pFilter->description;
-}
-
-/**
- * @brief Return full path to filter.
- *
- * @param [in] i Index of filter.
- * @return Full path of filter in given index.
- */
-inline String FileFilterMgr::GetFilterPath(int i) const
-{
-	return m_filters[i]->fullpath;
-}
-
-/**
- * @brief Return full path to filter.
- *
- * @param [in] pFilter Pointer to filter.
- * @return Full path of filter.
- */
-inline String FileFilterMgr::GetFullpath(FileFilter * pfilter) const
-{
-	return pfilter->fullpath;
-}
+#endif // FileFilter_h_included

@@ -1,41 +1,39 @@
 /**
  * @file  PropCodepage.h
  *
- * @brief Declaration of PropCodepage class
+ * @brief Declaration of CPropCodepage class
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: PropCodepage.h,v 1.1 2004/08/18 15:12:05 kimmov Exp $
 
-#include "OptionsPanel.h"
+#if !defined(AFX_PROPCODEPAGE_H__0DF931F8_E845_48B7_A658_3BEE6D3EAF85__INCLUDED_)
+#define AFX_PROPCODEPAGE_H__0DF931F8_E845_48B7_A658_3BEE6D3EAF85__INCLUDED_
 
-class COptionsMgr;
 
-class PropCodepage : public OptionsPanel
+/////////////////////////////////////////////////////////////////////////////
+// CPropCodepage dialog
+
+class CPropCodepage : public CPropertyPage
 {
+	DECLARE_DYNCREATE(CPropCodepage)
+
 // Construction
 public:
-	explicit PropCodepage(COptionsMgr *optionsMgr);
-
-// Implement IOptionsPanel
-	virtual void ReadOptions() override;
-	virtual void WriteOptions() override;
+	CPropCodepage();
+	~CPropCodepage();
 
 // Dialog Data
-	//{{AFX_DATA(PropCodepage)
+	//{{AFX_DATA(CPropCodepage)
 	enum { IDD = IDD_PROPPAGE_CODEPAGE };
-	CComboBox m_comboCustomCodepageValue;
-	CComboBox m_comboAutodetectType;
 	int		m_nCodepageSystem;
 	int		m_nCustomCodepageValue;
-	String	m_cCustomCodepageValue;
-	bool	m_bDetectCodepage;
-	bool	m_bDetectCodepage2;
-	int		m_nAutodetectType;
+	BOOL	m_bDetectCodepage;
 	//}}AFX_DATA
 
 
 // Overrides
 	// ClassWizard generate virtual function overrides
-	//{{AFX_VIRTUAL(PropCodepage)
+	//{{AFX_VIRTUAL(CPropCodepage)
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
@@ -43,14 +41,17 @@ public:
 // Implementation
 protected:
 	// Generated message map functions
-	//{{AFX_MSG(PropCodepage)
-	virtual BOOL OnInitDialog() override;
-	void GetEncodingCodePageFromNameString();
+	//{{AFX_MSG(CPropCodepage)
+	virtual BOOL OnInitDialog();
 	afx_msg void OnCpSystem();
 	afx_msg void OnCpCustom();
 	afx_msg void OnCpUi();
-	afx_msg void OnDetectCodepage2();
-	afx_msg void OnDetectAutodetecttype();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+
 };
+
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
+
+#endif // !defined(AFX_PROPCODEPAGE_H__0DF931F8_E845_48B7_A658_3BEE6D3EAF85__INCLUDED_)

@@ -7,14 +7,13 @@
  *
  * @brief Project-wide includes and declarations
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: StdAfx.h,v 1.17.2.2 2006/01/07 12:03:21 kimmov Exp $
 
-// On Win XP, with VS2008, do not use default WINVER 0x0600 because of 
-// some windows structure used in API (on VISTA they are longer)
-#if !defined(WINVER)
-#  define WINVER 0x0501
-#endif /* !defined(WINVER) */
+#if !defined(AFX_STDAFX_H__BBCD4F8A_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)
+#define AFX_STDAFX_H__BBCD4F8A_34E4_11D1_BAA6_00A024706EDC__INCLUDED_
 
+#define WINVER 0x400
 #define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
 
 // Common MFC headers
@@ -27,26 +26,15 @@
 #include <afxpriv.h>        // MFC private declarations (crystal text needs but doesn't include this)
 #include <afxole.h>         // MFC OLE (COM) support
 
-#include <atlimage.h>
-
 // For CSizingControlBar
 #include "sizecbar.h"
 #include "scbarg.h"
 
-#include <string>
-#include <vector>
-#include <map>
-#include <unordered_set>
-#include <stack>
-#include <list>
-#include <array>
-#include <algorithm>
-#include <iostream>
-#include <sstream>
-#include <memory>
-#include <functional>
-#include <cassert>
-#include <ctime>
+// Miscellaneous macros
+
+#ifndef countof
+#define countof(array)  (sizeof(array)/sizeof((array)[0]))
+#endif /* countof */
 
 /**
  * @name User-defined Windows-messages
@@ -54,96 +42,53 @@
 /* @{ */
 /// Directory compare thread asks UI (view) update
 const UINT MSG_UI_UPDATE = WM_USER + 1;
-/// Request to save panesizes
-const UINT MSG_STORE_PANESIZES = WM_USER + 2;
-/// Request to generate file compare report
-const UINT MSG_GENERATE_FLIE_COMPARE_REPORT = WM_USER + 3;
+/// New item compared, update statepane
+const UINT MSG_STAT_UPDATE = WM_USER + 2;
 /* @} */
 
 /// Seconds ignored in filetime differences if option enabled
 static const UINT SmallTimeDiff = 2;
 
-#include "UnicodeString.h"
-#include "MergeApp.h"
+// Miscellaneous functions defined in StdAfx.cpp
 
-	/** @brief Wrapper around CMergeApp::TranslateDialog() */
-void NTAPI LangTranslateDialog(HWND);
+int xisspecial (int c);
+int xisalpha (int c);
+int xisalnum (int c);
+int xisspace (int c);
 
-	/** @brief Lang aware version of AfxMessageBox() */
-int NTAPI LangMessageBox(UINT, UINT nType = MB_OK, UINT nIDHelp = (UINT)-1);
+	/** @brief Load string from string resources; shortcut for CString::LoadString */
+CString LoadResString(int id);
+
+	/** @brief Format single-argument resource string and display via AfxMessageBox */
+int ResMsgBox1(int msgid, LPCTSTR arg, UINT nType = MB_OK, UINT nIDHelp = 0);
+
+	/** @brief Retrieve error description from Windows; uses FormatMessage */
+CString GetSysError(int nerr);
+
+	/** @brief Send message to log file (in theory; actually doesn't yet) */
+void LogErrorString(LPCTSTR sz);
+
+	/** @brief Inline sprintf-style format; shortcut for CString::Format */
+CString Fmt(LPCTSTR fmt, ...);
+
+	/** @brief Get appropriate clipboard format for TCHAR text, ie, CF_TEXT or CF_UNICODETEXT */
+int GetClipTcharTextFormat();
+
+class CLogFile;
+extern CLogFile gLog;
+
+	/** @brief Shortcuts for common gLog messages */
+struct gLog
+{
+	static UINT DeleteFileFailed(LPCTSTR path);
+};
+
 
 	/** @brief include for the custom dialog boxes, with do not ask/display again */
 #include "MessageBoxDialog.h"
 
-#ifdef _MAX_PATH
-#  undef _MAX_PATH
-#endif
-#define _MAX_PATH (260 * sizeof(wchar_t) / sizeof(TCHAR))
 
-#ifdef MAX_PATH
-#  undef MAX_PATH
-#endif
-#define MAX_PATH (260 * sizeof(wchar_t) / sizeof(TCHAR))
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Developer Studio will insert additional declarations immediately before the previous line.
 
-#ifdef MAX_PATH_FULL
-#  undef MAX_PATH_FULL
-#endif
-#define MAX_PATH_FULL (32767 * sizeof(wchar_t) / sizeof(TCHAR))
-
-#define WMPROFILE(x) CWinMergeProfile __wmtl__(x)
-
-class CWinMergeProfile
-{
-private:
-	static int level;
-	static CMapStringToPtr map;
-	static LARGE_INTEGER origin;
-	LARGE_INTEGER li[2];
-	LARGE_INTEGER freq;
-	TCHAR funcname[256];
-public:
-	explicit CWinMergeProfile(LPCTSTR pFuncName) {
-		TCHAR buf[256];
-		_stprintf_s(buf, _T("%-*s funcname=%s Start\n"), level, L"", pFuncName);
-		OutputDebugString(buf);
-		lstrcpy(funcname, pFuncName);
-		QueryPerformanceFrequency(&freq);
-		QueryPerformanceCounter(&li[0]);
-		if (origin.QuadPart == 0)
-			origin = li[0];
-		++level;
-	}
-	~CWinMergeProfile() {
-		QueryPerformanceCounter(&li[1]);
-		TCHAR buf[256];
-		level--;
-		int elapsed = (int)((double)(li[1].QuadPart - li[0].QuadPart) / freq.QuadPart*1000.0*1000.0);
-		int tim = (int)((double)(li[1].QuadPart - origin.QuadPart) / freq.QuadPart*1000.0*1000.0);
-		struct stat {
-			int sum = 0;
-			int count = 0;
-		} *pstat;
-		void *pstatv = nullptr;
-		if (!map.Lookup(funcname, pstatv))
-		{
-			pstat = new stat();
-			map[funcname] = (void *)pstat;
-		}
-		else
-		{
-			pstat = reinterpret_cast<stat *>(pstatv);
-		}
-		pstat->sum += elapsed;
-		pstat->count++;
-		_stprintf_s(buf, _T("%-*s funcname=%s t=%d[us] count=%d sum=%d[us] time=%g[ms]\n"), level, L"", funcname, elapsed, pstat->count, pstat->sum, tim/1000.0);
-		OutputDebugString(buf);
-	}
-	static void ResetTimer()
-	{
-		QueryPerformanceCounter(&origin);
-	}
-	static void Terminiate()
-	{
-		map.RemoveAll();
-	}
-};
+#endif // !defined(AFX_STDAFX_H__BBCD4F8A_34E4_11D1_BAA6_00A024706EDC__INCLUDED_)

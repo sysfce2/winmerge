@@ -5,111 +5,85 @@
  *
  * @date  Created: 2003-08-19
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: DirColsDlg.cpp,v 1.6 2004/07/09 12:48:35 kimmov Exp $
 
 
 #include "stdafx.h"
+#include "merge.h"
 #include "DirColsDlg.h"
-#include <algorithm>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
 // CDirColsDlg dialog
 
-/**
- * @brief Default dialog constructor.
- * @param [in] pParent Dialog's parent component (window).
- */
-CDirColsDlg::CDirColsDlg(CWnd* pParent /*= nullptr*/)
-	: CTrDialog(CDirColsDlg::IDD, pParent)
-	, m_bReset(false)
-	, m_showAdditionalProperties(false)
+
+CDirColsDlg::CDirColsDlg(CWnd* pParent /*=NULL*/)
+	: CDialog(CDirColsDlg::IDD, pParent)
 {
+	//{{AFX_DATA_INIT(CDirColsDlg)
+	m_bReset = FALSE;
+	m_bFromKeyboard = FALSE;
+	//}}AFX_DATA_INIT
 }
 
-/**
- * @brief Handle dialog data exchange between controls and variables.
- */
 void CDirColsDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CTrDialog::DoDataExchange(pDX);
+	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CDirColsDlg)
-	DDX_Control(pDX, IDC_COLDLG_LIST, m_listColumns);
+	DDX_Control(pDX, IDC_LIST_SHOW, m_list_show);
+	DDX_Control(pDX, IDC_LIST_HIDE, m_list_hide);
 	//}}AFX_DATA_MAP
 }
 
-BEGIN_MESSAGE_MAP(CDirColsDlg, CTrDialog)
+
+BEGIN_MESSAGE_MAP(CDirColsDlg, CDialog)
 	//{{AFX_MSG_MAP(CDirColsDlg)
 	ON_BN_CLICKED(IDC_UP, OnUp)
 	ON_BN_CLICKED(IDC_DOWN, OnDown)
-	ON_BN_CLICKED(IDC_COLDLG_ADDITIONAL_PROPERTIES, OnAdditionalProperties)
+	ON_BN_CLICKED(IDC_ADD, OnAdd)
+	ON_BN_CLICKED(IDC_REMOVE, OnRemove)
 	ON_BN_CLICKED(IDC_COLDLG_DEFAULTS, OnDefaults)
 	//}}AFX_MSG_MAP
-	ON_NOTIFY(LVN_ITEMCHANGED, IDC_COLDLG_LIST, OnLvnItemchangedColdlgList)
+	ON_LBN_SELCHANGE(IDC_LIST_SHOW, OnLbnSelchangeListShow)
+	ON_LBN_SELCHANGE(IDC_LIST_HIDE, OnLbnSelchangeListHide)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CDirColsDlg message handlers
 
 /**
- * @brief Initialize listcontrol in dialog.
- */
-void CDirColsDlg::InitList()
-{
-	const int lpx = CClientDC(this).GetDeviceCaps(LOGPIXELSX);
-	auto pointToPixel = [lpx](int point) { return MulDiv(point, lpx, 72); };
-
-	// Show selection across entire row.
-	// Also enable infotips.
-	m_listColumns.SetExtendedStyle(LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT | LVS_EX_INFOTIP);
-	m_listColumns.InsertColumn(0, _T(""), LVCFMT_LEFT, pointToPixel(148));
-}
-
-/**
  * @brief Dialog initialisation. Load column lists.
  */
 BOOL CDirColsDlg::OnInitDialog() 
 {
-	CTrDialog::OnInitDialog();
-	InitList();
+	CDialog::OnInitDialog();
+
 	LoadLists();
-#ifndef _WIN64
-	EnableDlgItem(IDC_COLDLG_ADDITIONAL_PROPERTIES, false);
-#endif
 	
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
 }
 
 /**
- * @brief Load listboxes on screen from column array.
+ * @brief Load listboxes on screen from column array
  */
 void CDirColsDlg::LoadLists()
 {
-	for (ColumnArray::iterator iter = m_cols.begin(); iter != m_cols.end(); ++iter)
+	for (int i=0; i<m_cols.GetSize(); ++i)
 	{
-		const column & c = *iter;
-		int x = m_listColumns.InsertItem(m_listColumns.GetItemCount(),
-			c.name.c_str());
-		m_listColumns.SetItemData(x, c.log_col);
-		if (c.phy_col >= 0)
-			m_listColumns.SetCheck(x, TRUE);
+		const column & c = m_cols[i];
+		CListBox * list = (c.phy_col >= 0) ? &m_list_show : &m_list_hide;
+		int x = list->AddString(m_cols[i].name);
+		list->SetItemData(x, c.log_col);
 	}
 	SortArrayToLogicalOrder();
-	
-	// Set first item to selected state
-	SelectItem(0);
-}
-
-/**
- * @brief Select item in list.
- * @param [in] index Index of item to select.
- */
-void CDirColsDlg::SelectItem(int index)
-{
-	m_listColumns.SetItemState(index, LVIS_SELECTED, LVIS_SELECTED);
+	UpdateEnables();
 }
 
 /**
@@ -117,89 +91,65 @@ void CDirColsDlg::SelectItem(int index)
  */
 void CDirColsDlg::LoadDefLists()
 {
-	for (ColumnArray::iterator iter = m_defCols.begin(); iter != m_defCols.end(); ++iter)
+	for (int i=0; i<m_cols.GetSize(); ++i)
 	{
-		const column & c = *iter;
-		int x = m_listColumns.InsertItem(m_listColumns.GetItemCount(),
-			c.name.c_str());
-		m_listColumns.SetItemData(x, c.log_col);
-		if (c.phy_col >= 0)
-			m_listColumns.SetCheck(x, TRUE);
+		const column & c = m_defCols[i];
+		CListBox * list = (c.phy_col >= 0) ? &m_list_show : &m_list_hide;
+		int x = list->AddString(m_defCols[i].name);
+		list->SetItemData(x, c.log_col);
 	}
 	SortArrayToLogicalOrder();
+	UpdateEnables();
 }
+
 /**
  * @brief Sort m_cols so that it is in logical column order.
  */
 void CDirColsDlg::SortArrayToLogicalOrder()
 {
-	std::sort(m_cols.begin(), m_cols.end(), &CompareColumnsByLogicalOrder);
+	qsort(m_cols.GetData(), m_cols.GetSize(), sizeof(m_cols[0]), &cmpcols);
 }
 
-/**
- * @brief Compare column order of two columns.
- * @param [in] el1 First column to compare.
- * @param [in] el2 Second column to compare.
- * @return Column order.
- */
-bool CDirColsDlg::CompareColumnsByLogicalOrder( const column & el1, const column & el2 )
+int __cdecl CDirColsDlg::cmpcols(const void * el1, const void * el2)
 {
-   return el1.log_col < el2.log_col;
+	const column * col1 = reinterpret_cast<const column *>(el1);
+	const column * col2 = reinterpret_cast<const column *>(el2);
+	return col1->log_col - col2->log_col;
 }
 
 /**
- * @brief Move column name in the list.
- * @param [in] index Index of column to move.
- * @param [in] newIndex New index for the column to move.
- */
-void CDirColsDlg::MoveItem(int index, int newIndex)
-{
-	// Get current column data
-	String text =  m_listColumns.GetItemText(index, 0);
-	bool checked = !!m_listColumns.GetCheck(index);
-	UINT state = m_listColumns.GetItemState(index, LVIS_SELECTED);
-	DWORD_PTR data = m_listColumns.GetItemData(index);
-
-	// Delete column
-	m_listColumns.DeleteItem(index);
-	
-	// Insert column in new index
-	m_listColumns.InsertItem(newIndex, text.c_str());
-	m_listColumns.SetItemState(newIndex, state, LVIS_SELECTED);
-	m_listColumns.SetItemData(newIndex, data);
-	if (checked)
-		m_listColumns.SetCheck(newIndex);
-}
-
-/**
- * @brief Move selected items one position up or down.
- * @param [in] bUp If `true` items are moved up,
- *  if `false` items are moved down.
- */
-void CDirColsDlg::MoveSelectedItems(bool bUp)
-{
-	int firstInd = -1;
-	POSITION pos = m_listColumns.GetFirstSelectedItemPosition();
-
-	while (pos != nullptr)
-	{
-		int ind = m_listColumns.GetNextSelectedItem(pos);
-		int newInd = bUp ? ind - 1: ind + 1;
-		
-		// Remember first item
-		if (firstInd == -1)
-			firstInd = newInd;
-		MoveItem(ind, newInd);
-	}
-	m_listColumns.EnsureVisible(firstInd, FALSE);
-}
-
-/**
- * @brief Move selected items up in list.
+ * @brief Move selected items up (in show list)
  */
 void CDirColsDlg::OnUp()
 {
-	MoveSelectedItems(true);
+	CHScrollListBox * list = &m_list_show;
+	// find the first item not selected
+	for (int i=0; i<list->GetCount(); ++i)
+	{
+		if (!list->GetSel(i))
+			break;
+	}
+	// continue down, moving up all selected items 
+	for (++i; i<list->GetCount(); ++i)
+	{
+		if (list->GetSel(i))
+		{
+			int data = list->GetItemData(i);
+			CString str;
+			list->GetText(i, str);
+			list->DeleteString(i);
+			int inew = i-1;
+			list->InsertString(inew, str);
+			list->SetItemData(inew, data);
+			if (m_bFromKeyboard) // If from keyboard, don't move selection anymore
+			{
+				list->SetSel(inew + 1);
+				m_bFromKeyboard = FALSE;
+			}
+			else
+				list->SetSel(inew);
+		}
+	}
 }
 
 /**
@@ -207,66 +157,105 @@ void CDirColsDlg::OnUp()
  */
 void CDirColsDlg::OnDown() 
 {
-	MoveSelectedItems(false);
-}
-
-/**
- * @brief Close this dialog and show Additional Properties dialog
- */
-void CDirColsDlg::OnAdditionalProperties() 
-{
-	m_showAdditionalProperties = true;
-	OnOK();
-}
-
-/**
- * @brief Move hidden columns as last items in the list.
- */
-void CDirColsDlg::SanitizeOrder()
-{
-	// Find last visible column.
-	int i = m_listColumns.GetItemCount() - 1;
-	for ( ; i >= 0; i--)
+	CHScrollListBox * list = &m_list_show;
+	// find the lst item not selected
+	for (int i=list->GetCount()-1; i>=0; --i)
 	{
-		if (m_listColumns.GetCheck(i))
+		if (!list->GetSel(i))
 			break;
 	}
-
-	// Move all hidden columns below last visible column.
-	for (int j = i; j >= 0; j--)
+	// continue down, moving up all selected items 
+	for (--i; i>=0; --i)
 	{
-		if (!m_listColumns.GetCheck(j))
+		if (list->GetSel(i))
 		{
-			MoveItem(j, i);
-			i--;
+			int data = list->GetItemData(i);
+			CString str;
+			list->GetText(i, str);
+			list->DeleteString(i);
+			int inew = i+1;
+			list->InsertString(inew, str);
+			list->SetItemData(inew, data);
+			if (m_bFromKeyboard) // If from keyboard, don't move selection anymore
+			{
+				list->SetSel(inew - 1);
+				m_bFromKeyboard = FALSE;
+			}
+			else
+				list->SetSel(inew);
 		}
 	}
 }
 
 /**
- * @brief User clicked ok, so we update m_cols and close.
+ * @brief Move selected items from hide list to show list
+ */
+void CDirColsDlg::OnAdd() 
+{
+	MoveItems(&m_list_hide, &m_list_show, false);
+}
+
+/**
+ * @brief Move selected items from show list to hide list
+ */
+void CDirColsDlg::OnRemove() 
+{
+	MoveItems(&m_list_show, &m_list_hide, true);
+}
+
+/**
+ * @brief Move selected items from list1 to list2, putting at top if top==true
+ */
+void CDirColsDlg::MoveItems(CHScrollListBox * list1, CHScrollListBox * list2, bool top)
+{
+	for (int i=0; i<list1->GetCount(); ++i)
+	{
+		if (list1->GetSel(i))
+		{
+			int data = list1->GetItemData(i);
+			CString str;
+			list1->GetText(i, str);
+			list1->DeleteString(i);
+			--i; // new item promoted to slot#i in list1, we need to check it next
+			int inew = top ? 0 : list2->GetCount();
+			list2->InsertString(inew, str);
+			list2->SetItemData(inew, data);
+			list2->SetSel(inew);
+		}
+	}
+	UpdateEnables();
+}
+
+/**
+ * @brief Enable/disable the Add/Remove buttons appropriately
+ */
+void CDirColsDlg::UpdateEnables()
+{
+	// TODO: We could enable/disable Up/Down buttons also, but
+	// we'd have to trap selection events
+
+	GetDlgItem(IDC_ADD)->EnableWindow(m_list_hide.GetCount() > 0);
+	GetDlgItem(IDC_REMOVE)->EnableWindow(m_list_show.GetCount() > 0);
+}
+
+/**
+ * @brief User clicked ok, so we update m_cols and close
  */
 void CDirColsDlg::OnOK() 
 {
-	SanitizeOrder();
-
-	size_t colssize = m_cols.size();
-	for (int i = 0; i < m_listColumns.GetItemCount(); i++)
+	// Update all the data in m_cols according to layout on screen
+	for (int i=0; i<m_list_show.GetCount(); ++i)
 	{
-		bool checked = !!m_listColumns.GetCheck(i);
-		DWORD_PTR data = m_listColumns.GetItemData(i);
-		assert(data >= 0 && data < colssize);
-		if (data >= 0 && data < colssize)
-		{
-			column& col1 = m_cols[data];
-			if (checked)
-				col1.phy_col = i;
-			else
-				col1.phy_col = -1;
-		}
+		column * col1 = &m_cols[m_list_show.GetItemData(i)];
+		col1->phy_col = i;
 	}
-
-	CTrDialog::OnOK();
+	for (i=0; i<m_list_hide.GetCount(); ++i)
+	{
+		column * col1 = &m_cols[m_list_hide.GetItemData(i)];
+		col1->phy_col = -1;
+	}
+	
+	CDialog::OnOK();
 }
 
 /**
@@ -274,46 +263,97 @@ void CDirColsDlg::OnOK()
  */
 void CDirColsDlg::OnDefaults()
 {
-	m_listColumns.DeleteAllItems();
-	m_bReset = true;
+	m_bReset = TRUE;
+	m_list_show.ResetContent();
+	m_list_hide.ResetContent();
 	LoadDefLists();
 }
 
 /**
  * @brief Update description when selected item changes.
  */
-void CDirColsDlg::OnLvnItemchangedColdlgList(NMHDR *pNMHDR, LRESULT *pResult)
+void CDirColsDlg::OnLbnSelchangeListShow()
 {
-	POSITION pos = m_listColumns.GetFirstSelectedItemPosition();
-
-	if (pos != nullptr)
+	for (int i=0; i<m_list_show.GetCount(); ++i)
 	{
-		int ind = m_listColumns.GetNextSelectedItem(pos);
-		DWORD_PTR data = m_listColumns.GetItemData(ind);
-
-		ColumnArray::size_type j;
-		for (j = 0; j < m_cols.size(); j++)
+		if (m_list_show.GetSel(i))
 		{
-			if (static_cast<DWORD_PTR>(m_cols[j].log_col) == data)
-				break;
-		}
-		SetDlgItemText(IDC_COLDLG_DESC, m_cols[j].desc);
-
-		// Disable Up/Down -buttons when first/last items are selected.
-		EnableDlgItem(IDC_UP, ind != 0);
-		EnableDlgItem(IDC_DOWN,
-			ind != m_listColumns.GetItemCount() - static_cast<int>(m_listColumns.GetSelectedCount()));
-	}
-
-	// Disable the "OK" button when no items are checked.
-	bool bChecked = false;
-	for (int i = 0; i < m_listColumns.GetItemCount(); i++)
-		if (!!m_listColumns.GetCheck(i))
-		{
-			bChecked = true;
+			int data = m_list_show.GetItemData(i);
+			CString str;
+			
+			for (int j = 0; j < m_cols.GetSize(); j++)
+			{
+				if (m_cols.GetAt(j).log_col == data)
+					break;
+			}
+			GetDlgItem(IDC_COLDLG_DESC)->SetWindowText(m_cols[j].desc);
 			break;
 		}
-	EnableDlgItem(IDOK, bChecked);
+	}
+}
 
-	*pResult = 0;
+/**
+ * @brief Update description when selected item changes.
+ */
+void CDirColsDlg::OnLbnSelchangeListHide()
+{
+	for (int i=0; i<m_list_hide.GetCount(); ++i)
+	{
+		if (m_list_hide.GetSel(i))
+		{
+			int data = m_list_hide.GetItemData(i);
+			CString str;
+			
+			for (int j = 0; j < m_cols.GetSize(); j++)
+			{
+				if (m_cols.GetAt(j).log_col == data)
+					break;
+			}
+			GetDlgItem(IDC_COLDLG_DESC)->SetWindowText(m_cols[j].desc);
+			break;
+		}
+	}
+}
+
+BOOL CDirColsDlg::PreTranslateMessage(MSG* pMsg)
+{
+	if (pMsg->message == WM_KEYDOWN && pMsg->wParam != VK_CONTROL)
+	{
+		if (GetAsyncKeyState(VK_CONTROL))
+		{
+			HWND hwndFocus = 0;
+			switch (pMsg->wParam)
+			{
+			case VK_LEFT:
+				OnAdd();
+				break;
+			case VK_RIGHT:
+				OnRemove();
+				break;
+			case VK_UP:
+				m_bFromKeyboard = TRUE;
+				OnUp();
+				break;
+			case VK_DOWN:
+				m_bFromKeyboard = TRUE;
+				OnDown();
+				break;
+			case VK_TAB:
+				// When CTRL-TAB pressed, switch focus between listboxes
+				hwndFocus = ::GetFocus();
+				if (m_list_show.GetSafeHwnd() == hwndFocus)
+				{
+					m_list_hide.SetFocus();
+				}
+				else if (m_list_hide.GetSafeHwnd() == hwndFocus)
+				{
+					m_list_show.SetFocus();
+				}
+				break;
+			}	
+			return FALSE;
+		}
+	}
+
+	return CDialog::PreTranslateMessage(pMsg);
 }

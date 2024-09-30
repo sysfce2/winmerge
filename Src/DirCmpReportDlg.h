@@ -4,24 +4,23 @@
  * @brief Declaration file for DirCmpReport Dialog.
  *
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: DirCmpReportDlg.h,v 1.1 2005/07/25 11:48:20 kimmov Exp $
 
-#include "DirReportTypes.h"
-#include "TrDialogs.h"
+#ifndef _DIRCMPREPORTDLG_H_
+#define _DIRCMPREPORTDLG_H_
+
 #include "SuperComboBox.h"
 
-/** 
- * @brief Folder compare dialog class.
- * This dialog (and class) shows folder-compare report's selections
- * for user. Also filename and path for report file can be chosen
- * with this dialog.
- */
-class DirCmpReportDlg : public CTrDialog
+// DirCmpReportDlg dialog
+
+class DirCmpReportDlg : public CDialog
 {
 	DECLARE_DYNAMIC(DirCmpReportDlg)
 
 public:
-	explicit DirCmpReportDlg(CWnd* pParent = nullptr);   // standard constructor
+	DirCmpReportDlg(CWnd* pParent = NULL);   // standard constructor
+	virtual ~DirCmpReportDlg();
 
 // Dialog Data
 	enum { IDD = IDD_DIRCMP_REPORT };
@@ -31,23 +30,14 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 public:
-	void LoadSettings();
-
-	// Generated message map functions
-	//{{AFX_MSG(DirCmpReportDlg)
 	afx_msg void OnBtnClickReportBrowse();
-	afx_msg void OnBtnDblclickCopyClipboard();
-	afx_msg void OnCbnSelchangeReportStylecombo();
-	virtual BOOL OnInitDialog() override;
-	virtual void OnOK() override;
-	//}}AFX_MSG
+	virtual BOOL OnInitDialog();
+	virtual void OnOK();
 
-	//{{AFX_DATA(DirCmpReportDlg)
 	CSuperComboBox m_ctlReportFile; /**< Report filename control */
-	String m_sReportFile; /**< Report filename string */
+	CString m_sReportFile; /**< Report filename string */
 	CComboBox m_ctlStyle; /**< Report type control */
-	REPORT_TYPE m_nReportType; /**< Report type integer */
-	bool m_bCopyToClipboard; /**< Do we copy report to clipboard? */
-	bool m_bIncludeFileCmpReport; /**< Do we include file compare report in folder compare report? */
-	//}}AFX_DATA
+	int m_nReportType; /**< Report type integer */
 };
+
+#endif // _DIRCMPREPORTDLG_H_

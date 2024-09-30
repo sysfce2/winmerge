@@ -1,133 +1,205 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+//    License (GPLv2+):
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or (at
+//    your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful, but
+//    WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/////////////////////////////////////////////////////////////////////////////
 /**
  * @file  PropRegistry.cpp
  *
- * @brief PropRegistry implementation file
+ * @brief CPropRegistry implementation file
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: PropRegistry.cpp,v 1.13.2.1 2005/11/08 18:48:11 kimmov Exp $
 
 #include "stdafx.h"
+#include "resource.h"
 #include "PropRegistry.h"
 #include "RegKey.h"
-#include "FileOrFolderSelect.h"
-#include "OptionsDef.h"
-#include "OptionsMgr.h"
-#include "OptionsPanel.h"
+#include "coretools.h"
+#include "Merge.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
 
-PropRegistry::PropRegistry(COptionsMgr *optionsMgr)
-: OptionsPanel(optionsMgr, PropRegistry::IDD)
-, m_bUseRecycleBin(true)
-, m_tempFolderType(0)
+/// Flags for enabling and mode of extension
+#define CONTEXT_F_ENABLED 0x01
+#define CONTEXT_F_ADVANCED 0x02
+
+// registry dir to WinMerge
+static LPCTSTR f_RegDir = _T("Software\\Thingamahoochie\\WinMerge");
+
+// registry values
+static LPCTSTR f_RegValueEnabled = _T("ContextMenuEnabled");
+static LPCTSTR f_RegValuePath = _T("Executable");
+
+/////////////////////////////////////////////////////////////////////////////
+// CPropRegistry dialog
+
+
+CPropRegistry::CPropRegistry()
+	: CPropertyPage(CPropRegistry::IDD)
 {
+	//{{AFX_DATA_INIT(CPropRegistry)
+	m_bContextAdded = FALSE;
+	m_bUseRecycleBin = TRUE;
+	m_bContextAdvanced = FALSE;
+	m_bIgnoreSmallTimeDiff = FALSE;
+	//}}AFX_DATA_INIT
 }
 
-void PropRegistry::DoDataExchange(CDataExchange* pDX)
+void CPropRegistry::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(PropRegistry)
+	//{{AFX_DATA_MAP(CPropRegistry)
+	DDX_Check(pDX, IDC_EXPLORER_CONTEXT, m_bContextAdded);
 	DDX_Text(pDX, IDC_EXT_EDITOR_PATH, m_strEditorPath);
 	DDX_Check(pDX, IDC_USE_RECYCLE_BIN, m_bUseRecycleBin);
-	DDX_Text(pDX, IDC_FILTER_USER_PATH, m_strUserFilterPath);
-	DDX_Radio(pDX, IDC_TMPFOLDER_SYSTEM, m_tempFolderType);
-	DDX_Text(pDX, IDC_TMPFOLDER_NAME, m_tempFolder);
+	DDX_Check(pDX, IDC_EXPLORER_ADVANCED, m_bContextAdvanced);
+	DDX_Check(pDX, IDC_IGNORE_SMALLTIMEDIFF, m_bIgnoreSmallTimeDiff);
 	//}}AFX_DATA_MAP
 }
 
-BEGIN_MESSAGE_MAP(PropRegistry, OptionsPanel)
-	//{{AFX_MSG_MAP(PropRegistry)
+BEGIN_MESSAGE_MAP(CPropRegistry, CDialog)
+	//{{AFX_MSG_MAP(CPropRegistry)
+	ON_BN_CLICKED(IDC_EXPLORER_CONTEXT, OnAddToExplorer)
 	ON_BN_CLICKED(IDC_EXT_EDITOR_BROWSE, OnBrowseEditor)
-	ON_BN_CLICKED(IDC_FILTER_USER_BROWSE, OnBrowseFilterPath)
-	ON_BN_CLICKED(IDC_TMPFOLDER_BROWSE, OnBrowseTmpFolder)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
-/** 
- * @brief Reads options values from storage to UI.
- */
-void PropRegistry::ReadOptions()
+/////////////////////////////////////////////////////////////////////////////
+// CPropRegistry message handlers
+
+BOOL CPropRegistry::OnInitDialog()
 {
-	m_strEditorPath = GetOptionsMgr()->GetString(OPT_EXT_EDITOR_CMD);
-	m_bUseRecycleBin = GetOptionsMgr()->GetBool(OPT_USE_RECYCLE_BIN);
-	m_strUserFilterPath = GetOptionsMgr()->GetString(OPT_FILTER_USERPATH);
-	m_tempFolderType = GetOptionsMgr()->GetBool(OPT_USE_SYSTEM_TEMP_PATH) ? 0 : 1;
-	m_tempFolder = GetOptionsMgr()->GetString(OPT_CUSTOM_TEMP_PATH);
+	CPropertyPage::OnInitDialog();
+
+	// Update shell extension checkboxes
+	GetContextRegValues();
+	AdvancedContextMenuCheck();
+	UpdateData(FALSE);
+
+	return TRUE;  // return TRUE unless you set the focus to a control
+	              // EXCEPTION: OCX Property Pages should return FALSE
 }
 
-/** 
- * @brief Writes options values from UI to storage.
- */
-void PropRegistry::WriteOptions()
+/// Get registry values for ShellExtension
+void CPropRegistry::GetContextRegValues()
 {
-	GetOptionsMgr()->SaveOption(OPT_USE_RECYCLE_BIN, m_bUseRecycleBin);
+	CRegKeyEx reg;
+	LONG retVal = 0;
+	retVal = reg.Open(HKEY_CURRENT_USER, f_RegDir);
+	if (retVal != ERROR_SUCCESS)
+	{
+		CString msg;
+		msg.Format(_T("Failed to open registry key HKCU/%s:\n\t%d : %s"),
+			f_RegDir, retVal, GetSysError(retVal));
+		LogErrorString(msg);
+		return;
+	}
 
-	String sExtEditor = strutils::trim_ws(m_strEditorPath);
-	if (sExtEditor.empty())
-		sExtEditor = GetOptionsMgr()->GetDefault<String>(OPT_EXT_EDITOR_CMD);
-	GetOptionsMgr()->SaveOption(OPT_EXT_EDITOR_CMD, sExtEditor);
+	// This will be bit mask, although now there is only one bit defined
+	DWORD dwContextEnabled = reg.ReadDword(f_RegValueEnabled, 0);
 
-	String sFilterPath = strutils::trim_ws(m_strUserFilterPath);
-	GetOptionsMgr()->SaveOption(OPT_FILTER_USERPATH, sFilterPath);
+	if (dwContextEnabled & CONTEXT_F_ENABLED)
+		m_bContextAdded = TRUE;
 
-	bool useSysTemp = m_tempFolderType == 0;
-	GetOptionsMgr()->SaveOption(OPT_USE_SYSTEM_TEMP_PATH, useSysTemp);
-
-	String tempFolder = strutils::trim_ws(m_tempFolder);
-	GetOptionsMgr()->SaveOption(OPT_CUSTOM_TEMP_PATH, tempFolder);
+	if (dwContextEnabled & CONTEXT_F_ADVANCED)
+		m_bContextAdvanced = TRUE;
 }
 
-BOOL PropRegistry::OnInitDialog()
+/// Set registry values for ShellExtension
+void CPropRegistry::OnAddToExplorer()
 {
-	OptionsPanel::OnInitDialog();
-	m_tooltips.Create(this);
-	m_tooltips.SetMaxTipWidth(600);
-	m_tooltips.AddTool(GetDlgItem(IDC_EXT_EDITOR_PATH), 
-		_("You can specify the following parameters to the path:\n"
-		  "$file: Path name of the current file\n"
-		  "$linenum: Line number of the current cursor position").c_str());
-	return TRUE;
+	AdvancedContextMenuCheck();
+}
+
+/// Saves given path to registry for ShellExtension
+void CPropRegistry::SaveMergePath()
+{
+	TCHAR temp[MAX_PATH] = {0};
+	LONG retVal = 0;
+	GetModuleFileName(AfxGetInstanceHandle(), temp, MAX_PATH);
+
+	CRegKeyEx reg;
+	retVal = reg.Open(HKEY_CURRENT_USER, f_RegDir);
+	if (retVal != ERROR_SUCCESS)
+	{
+		CString msg;
+		msg.Format(_T("Failed to open registry key HKCU/%s:\n\t%d : %s"),
+			f_RegDir, retVal, GetSysError(retVal));
+		LogErrorString(msg);
+		return;
+	}
+
+	// Save path to WinMerge(U).exe
+	retVal = reg.WriteString(f_RegValuePath, temp);
+	if (retVal != ERROR_SUCCESS)
+	{
+		CString msg;
+		msg.Format(_T("Failed to set registry value %s:\n\t%d : %s"),
+			f_RegValuePath, retVal, GetSysError(retVal));
+		LogErrorString(msg);
+	}
+
+	// Determine bitmask for shell extension
+	DWORD dwContextEnabled = reg.ReadDword(f_RegValueEnabled, 0);
+	if (m_bContextAdded)
+		dwContextEnabled |= CONTEXT_F_ENABLED;
+	else
+		dwContextEnabled &= ~CONTEXT_F_ENABLED;
+
+	if (m_bContextAdvanced)
+		dwContextEnabled |= CONTEXT_F_ADVANCED;
+	else
+		dwContextEnabled &= ~CONTEXT_F_ADVANCED;
+
+	retVal = reg.WriteDword(f_RegValueEnabled, dwContextEnabled);
+	if (retVal != ERROR_SUCCESS)
+	{
+		CString msg;
+		msg.Format(_T("Failed to set registry value %s to %d:\n\t%d : %s"),
+			f_RegValueEnabled, dwContextEnabled, retVal, GetSysError(retVal));
+		LogErrorString(msg);
+	}
 }
 
 /// Open file browse dialog to locate editor
-void PropRegistry::OnBrowseEditor()
+void CPropRegistry::OnBrowseEditor()
 {
-	String path;
-	if (SelectFile(GetSafeHwnd(), path, true, m_strEditorPath.c_str(), _T(""), _("Programs|*.exe;*.bat;*.cmd|All Files (*.*)|*.*||")))
+	CString path;
+	CString title;
+	VERIFY(title.LoadString(IDS_OPEN_TITLE));
+
+	if (SelectFile(path, NULL, title, IDS_PROGRAMFILES, TRUE))
 	{
-		SetDlgItemText(IDC_EXT_EDITOR_PATH, path);
+		m_strEditorPath = path;
+		UpdateData(FALSE);
 	}
 }
 
-/// Open Folder selection dialog for user to select filter folder.
-void PropRegistry::OnBrowseFilterPath()
+/// Enable/Disable "Advanced menu" checkbox.
+void CPropRegistry::AdvancedContextMenuCheck()
 {
-	String path;
-	if (SelectFolder(path, m_strUserFilterPath.c_str(), _("Open"), GetSafeHwnd()))
+	if (IsDlgButtonChecked(IDC_EXPLORER_CONTEXT))
+		GetDlgItem(IDC_EXPLORER_ADVANCED)->EnableWindow(TRUE);
+	else
 	{
-		SetDlgItemText(IDC_FILTER_USER_PATH, path);
+		GetDlgItem(IDC_EXPLORER_ADVANCED)->EnableWindow(FALSE);
+		CheckDlgButton(IDC_EXPLORER_ADVANCED, FALSE);
+		m_bContextAdvanced = FALSE;
 	}
-}
-
-/// Select temporary files folder.
-void PropRegistry::OnBrowseTmpFolder()
-{
-	String path;
-	if (SelectFolder(path, m_tempFolder.c_str(), _T(""), GetSafeHwnd()))
-	{
-		SetDlgItemText(IDC_TMPFOLDER_NAME, path);
-	}
-}
-
-BOOL PropRegistry::PreTranslateMessage(MSG* pMsg)
-{
-	if (pMsg->message == WM_LBUTTONDOWN ||
-		pMsg->message == WM_LBUTTONUP ||
-		pMsg->message == WM_MOUSEMOVE)
-	{
-		m_tooltips.RelayEvent(pMsg);
-	}
-
-	return OptionsPanel::PreTranslateMessage(pMsg);
 }

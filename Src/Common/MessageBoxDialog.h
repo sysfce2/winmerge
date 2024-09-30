@@ -31,8 +31,6 @@
 #pragma once
 
 #include "resource.h"
-#include "UnicodeString.h"
-#include <vector>
 
 //////////////////////////////////////////////////////////////////////////////
 // Message box style definitions (mostly taken from WinUser.h).
@@ -50,11 +48,9 @@
 #define MB_YES_TO_ALL				0x04000000L	// Additional style.
 #define MB_NO_TO_ALL				0x08000000L	// Additional style.
 
-#define MB_DEFAULT_CHECKED			0x10000000L // Additional style.
+#define MB_DEFAULT_CHECKED      0x10000000L // Additional style.
 #define MB_RIGHT_ALIGN				0x20000000L	// Additional style.
 #define MB_NO_SOUND					0x40000000L	// Additional style.
-
-#define MB_MODELESS					0x80000000L	// Additional style.
 
 #define MB_DEFBUTTON5				0x00000400L	// Additional style.
 #define MB_DEFBUTTON6				0x00000500L	// Additional style.
@@ -97,11 +93,11 @@ public:
 
 	// Constructor of the class for direct providing of the message strings.
 	CMessageBoxDialog ( CWnd* pParent, CString strMessage, 
-		CString strTitle = _T(""), UINT nStyle = MB_OK, UINT nHelp = 0, const CString& strRegistryKey = _T("") );
+		CString strTitle = _T(""), UINT nStyle = MB_OK, UINT nHelp = 0 );
 
 	// Constructor of the class for loading the strings from the resources.
 	CMessageBoxDialog ( CWnd* pParent, UINT nMessageID, UINT nTitleID = 0,
-		UINT nStyle = MB_OK, UINT nHelp = 0, const CString& strRegistryKey = _T("") );
+		UINT nStyle = MB_OK, UINT nHelp = 0 );
 
 	// Default destructor of the class.
 	virtual ~CMessageBoxDialog ( );
@@ -120,18 +116,18 @@ public:
 	UINT GetStyle ( );
 
 	// Methods for setting the message to be displayed in the message box.
-	void SetMessage ( LPCTSTR strMessage );
+	void SetMessage ( CString strMessage );
 	void SetMessage ( UINT nMessageID );
 
 	// Method for retrieving the message to be displayed in the message box.
-	const String &GetMessage ( );
+	CString GetMessage ( );
 
 	// Methods for setting the title to be displayed in the message box.
-	void SetTitle ( LPCTSTR strTitle );
+	void SetTitle ( CString strTitle );
 	void SetTitle ( UINT nTitleID );
 
 	// Method for retrieving the title to be displayed in the message box.
-	const String &GetTitle ( );
+	CString GetTitle ( );
 
 	// Methods for setting the icon to be displayed in the message box.
 	void SetMessageIcon ( HICON hIcon );
@@ -141,18 +137,13 @@ public:
 	HICON GetMessageIcon ( );
 
 	// Method for setting a timeout.
-	void SetTimeout ( UINT nSeconds, bool bDisabled = false );
+	void SetTimeout ( UINT nSeconds, BOOL bDisabled = FALSE );
 
 	// Method for retrieving the seconds for the timeout.
 	UINT GetTimeoutSeconds ( );
 
 	// Method for retrieving whether a timeout is disabled.
-	bool GetTimeoutDisabled ( );
-
-	// Method for retrieving the former result of the message box from the registry.
-	int GetFormerResult();
-	// Method for storing the former result of the message box to the registry.
-	int SetFormerResult(int nResult);
+	BOOL GetTimeoutDisabled ( );
 
 public:
 
@@ -161,7 +152,6 @@ public:
 
 	// Method for resetting the message boxes stored in the registry.
 	static void ResetMessageBoxes ( );
-	static CString GenerateRegistryKey (UINT nMessageID, UINT nHelpID);
 
 public:
 
@@ -169,7 +159,7 @@ public:
 	// Methods for handling common window functions.
 
 	// Method for displaying the dialog.
-	virtual INT_PTR DoModal ( );
+	virtual int DoModal ( );
 
 	// Method for closing the dialog.
 	void EndDialog ( int nResult );
@@ -185,9 +175,7 @@ public:
 	virtual BOOL PreTranslateMessage ( MSG* pMsg );
 
 	// Method for handling a timer event.
-	afx_msg void OnTimer ( UINT_PTR nIDEvent );
-	afx_msg BOOL OnEraseBkgnd( CDC* pDC );
-	afx_msg HBRUSH OnCtlColor( CDC* pDC, CWnd* pWnd, UINT nCtlColor );
+	afx_msg void OnTimer ( UINT nIDEvent );
 
 protected:
 
@@ -205,23 +193,20 @@ private:
 	//////////////////////////////////////////////////////////////////////////
 	// Private member variables of this dialog.
 
-	String		m_strMessage;		// Message to be displayed.
-	String		m_strTitle;			// Title to be used.
+	CString		m_strMessage;		// Message to be displayed.
+	CString		m_strTitle;			// Title to be used.
 	UINT		m_nStyle;			// Style of the message box.
 	UINT		m_nHelp;			// Help context of the message box.
 
 	HICON		m_hIcon;			// Icon to be displayed in the dialog.
 
 	UINT		m_nTimeoutSeconds;	// Seconds for a timeout.
-	bool		m_bTimeoutDisabled;	// Flag whether the timeout is disabled.
-	UINT_PTR	m_nTimeoutTimer;	// Timer for the timeout.
+	BOOL		m_bTimeoutDisabled;	// Flag whether the timeout is disabled.
+	UINT		m_nTimeoutTimer;	// Timer for the timeout.
 
 	CString		m_strRegistryKey;	// Entry for storing the result in the
 									// registry, if the MB_DONT_DISPLAY_AGAIN
 									// or MB_DONT_ASK_AGAIN flag is given.
-	CFont       m_font;
-	CFont       m_fontMainInstruction;
-	COLORREF    m_clrMainInstructionFont;
 
 private:
 
@@ -230,11 +215,11 @@ private:
 
 	typedef struct tagMSGBOXBTN
 	{
-		UINT	nID;				// ID of a dialog button.
+		int		nID;				// ID of a dialog button.
 		UINT	nTitle;				// ID of the title string resource.
 	} MSGBOXBTN;
 
-    std::vector<MSGBOXBTN> m_aButtons;
+	CArray<MSGBOXBTN, const MSGBOXBTN&> m_aButtons;
 									// List of all buttons in the dialog.
 
 	int			m_nDefaultButton;	// ID of the default button.
@@ -242,7 +227,6 @@ private:
 
 	CStatic		m_stcIcon;			// Static control for the icon.
 	CStatic		m_stcMessage;		// Static control for the message.
-	CToolTipCtrl	m_tooltips;
 
 private:
 
@@ -264,8 +248,8 @@ private:
 	CString	GenerateRegistryKey ( );
 
 	// Method for adding a button to the list of buttons.
-	void AddButton ( UINT nID, UINT nTitle, bool bIsDefault = false,
-		bool bIsEscape = false );
+	void AddButton ( UINT nID, UINT nTitle, BOOL bIsDefault = FALSE,
+		BOOL bIsEscape = FALSE );
 
 	// Methods for converting a dialog units to a pixel values.
 	int XDialogUnitToPixel ( int x );

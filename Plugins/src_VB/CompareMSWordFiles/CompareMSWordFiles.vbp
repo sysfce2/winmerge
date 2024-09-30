@@ -1,24 +1,20 @@
 Type=OleDll
-Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\SysWOW64\stdole2.tlb#OLE Automation
+Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\..\..\..\..\WINNT\system32\stdole2.tlb#OLE Automation
 Class=WinMergeScript; WinMergeScript.cls
 Startup="(None)"
 HelpFile=""
 Title="CompareMSWordFiles"
 ExeName32="CompareMSWordFiles.dll"
-Path32="..\..\dlls"
 Command32=""
 Name="CompareMSWordFiles"
 HelpContextID="0"
 CompatibleMode="1"
-CompatibleEXE32="..\..\dlls\CompareMSWordFiles.dll"
+CompatibleEXE32="CompareMSWordFiles.dll"
 MajorVer=1
 MinorVer=0
-RevisionVer=2
+RevisionVer=0
 AutoIncrementVer=0
 ServerSupportFiles=0
-VersionFileDescription="WinMerge Plugin for MS-Word files"
-VersionLegalCopyright="WinMerge"
-VersionProductName="WinMerge CompareMSWordFiles Plugin"
 CompilationType=0
 OptimizationType=0
 FavorPentiumPro(tm)=0
@@ -38,3 +34,4 @@ DebugStartupOption=0
 
 [MS Transaction Server]
 AutoRefresh=1
+

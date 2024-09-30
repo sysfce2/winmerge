@@ -4,9 +4,11 @@
  * @brief Interface for Options management classes
  *
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: OptionsMgr.h,v 1.8 2005/05/20 22:29:35 elsapo Exp $
 
 /* The MIT License
-Copyright (c) 2004-2009 Kimmo Varis
+Copyright (c) 2004 Kimmo Varis
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files
 (the "Software"), to deal in the Software without restriction, including
@@ -25,142 +27,112 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#pragma once
 
-#include <map>
-#include <vector>
-#include "UnicodeString.h"
+#ifndef _OPTIONS_MGR_
+#define _OPTIONS_MGR_
+
+#include <afxtempl.h>
 #include "varprop.h"
 
 /**
- * @brief Class to store option name, value and default value.
+ * @brief Return values for functions
+ */
+enum
+{
+	OPT_OK				= 0,
+	OPT_ERR				= 1,
+	OPT_WRONG_TYPE		= 2,
+	OPT_UNKNOWN_TYPE	= 3,
+	OPT_NOTFOUND		= 4,
+};
+
+/**
+ * @brief Class to store option name, value and default value
  */
 class COption
 {
 public:
-	/**
-	* @brief Return values for functions.
-	*/
-	enum
-	{
-		OPT_OK				= 0, /**< All good. */
-		OPT_ERR				= 1, /**< General error. */
-		OPT_WRONG_TYPE		= 2, /**< Option type was wrong. */
-		OPT_UNKNOWN_TYPE	= 3, /**< Given option type is not known. */
-		OPT_NOTFOUND		= 4, /**< Option name not found. */
-	};
-
-	COption();
-	COption(const COption& option);
-
-	COption& operator=(const COption& option);
-
-	int Init(const String& name, const varprop::VariantValue& defaultVal);
-	const varprop::VariantValue& Get() const;
-	const varprop::VariantValue& GetDefault() const;
-	int Set(const varprop::VariantValue& value, bool allowConversion = false);
-	int SetDefault(const varprop::VariantValue& defaultValue); 
+	int Init(CString name, varprop::VariantValue defaultVal);
+	varprop::VariantValue Get() const;
+	varprop::VariantValue GetDefault() const;
+	int Set(varprop::VariantValue value);
+	int SetDefault(varprop::VariantValue defaultValue); 
 	void Reset();
 
-protected:
-	bool ConvertInteger(varprop::VariantValue & value, varprop::VT_TYPE nType);
-	bool ConvertString(varprop::VariantValue & value, varprop::VT_TYPE nType);
-	bool ConvertType(varprop::VariantValue & value, varprop::VT_TYPE nType);
-
 private:
-	String m_strName; /**< Option's name. */
-	varprop::VariantValue m_value; /**< Option's current value. */
-	varprop::VariantValue m_valueDef; /**< Option's default value. */
+	CString m_strName;
+	varprop::VariantValue m_value;
+	varprop::VariantValue m_valueDef;
 };
 
 /**
- * @brief Return option value.
- * @return Value as Variant type.
- */
-inline const varprop::VariantValue& COption::Get() const
-{
-	return m_value;
-}
-
-/**
- * @brief Return option default value.
- * @return Default value as varian type.
- */
-inline const varprop::VariantValue& COption::GetDefault() const
-{
-	return m_valueDef;
-}
-
-typedef std::map<String, COption> OptionsMap;
-
-/**
- * @brief Class to store list of options.
- * This class holds a list of all options (known to application). Options
- * are accessed by their name.
- *
- * Option must be first initialized before it can be read/set. Initialization
- * is done with InitOption() method.
+ * @brief Class to store list of options
  */
 class COptionsMgr
 {
 public:
-	virtual ~COptionsMgr() {}
-	int AddOption(const String& name, const varprop::VariantValue& defaultValue);
-	const varprop::VariantValue& Get(const String& name) const;
-	const String& GetString(const String& name) const;
-	int GetInt(const String& name) const;
-	bool GetBool(const String& name) const;
-	int Set(const String& name, const varprop::VariantValue& value);
-	int Set(const String& name, const String& value);
-	int Set(const String& name, const TCHAR *value);
-	int Set(const String& name, bool value);
-	int Set(const String& name, int value);
-	int Reset(const String& name);
-	int GetDefault(const String& name, String & value) const;
-	int GetDefault(const String& name, unsigned & value) const;
-	int GetDefault(const String& name, bool & value) const;
-	template <typename T> T GetDefault(const String& name) const { T v; GetDefault(name, v); return v; }
-	template <template<typename T, typename = std::allocator<T>> class Container = std::vector>
-	Container<String> GetNameList() const
-	{
-		Container<String> nameList;
-		for (const auto& e : m_optionsMap)
-			nameList.push_back(e.first);
-		return nameList;
-	}
-	String ExpandShortName(const String & shortname) const;
+	int Add(CString name, varprop::VariantValue defaultValue);
+	varprop::VariantValue Get(CString name) const;
+	CString GetString(CString name) const;
+	int GetInt(const CString & name) const;
+	void SetInt(const CString & name, int value) { SaveOption(name, value); }
+	bool GetBool(CString name) const;
+	void SetBool(const CString & name, bool value) { SaveOption(name, value); }
+	int Set(CString name, varprop::VariantValue value);
+	int Reset(CString name);
+	int GetDefault(CString name, CString & value) const;
+	int GetDefault(CString name, DWORD & value) const;
+	int GetDefault(CString name, bool & value) const;
 
-	virtual int InitOption(const String& name, const varprop::VariantValue& defaultValue) = 0;
-	virtual int InitOption(const String& name, const String& defaultValue) = 0;
-	virtual int InitOption(const String& name, const TCHAR *defaultValue) = 0;
-	virtual int InitOption(const String& name, int defaultValue, bool serializable = true) = 0;
-	virtual int InitOption(const String& name, int defaultValue, int minValue, int maxValue, bool serializable = true);
-	virtual int InitOption(const String& name, bool defaultValue) = 0;
+	virtual int InitOption(CString name,
+		varprop::VariantValue defaultValue) = 0;
+	virtual int InitOption(CString name, LPCTSTR defaultValue) = 0;
+	virtual int InitOption(CString name, int defaultValue) = 0;
+	virtual int InitOption(CString name, bool defaultValue) = 0;
 
-	virtual int SaveOption(const String& name) = 0;
-	virtual int SaveOption(const String& name, const varprop::VariantValue& value) = 0;
-	virtual int SaveOption(const String& name, const String& value) = 0;
-	virtual int SaveOption(const String& name, const TCHAR *value) = 0;
-	virtual int SaveOption(const String& name, int value) = 0;
-	virtual int SaveOption(const String& name, bool value) = 0;
-	virtual int SaveOption(const String& name, unsigned value);
+	virtual int SaveOption(CString name) = 0;
+	virtual int SaveOption(CString name, varprop::VariantValue value) = 0;
+	virtual int SaveOption(CString name, CString value) = 0;
+	virtual int SaveOption(CString name, int value) = 0;
+	virtual int SaveOption(CString name, bool value) = 0;
+	virtual int SaveOption(CString name, UINT value);
+	virtual int SaveOption(CString name, COLORREF value);
 
-	virtual int RemoveOption(const String& name);
-
-	virtual int FlushOptions() = 0;
-
-	virtual int ExportOptions(const String& filename, const bool bHexColor=false) const;
-	virtual int ImportOptions(const String& filename);
-	
-	virtual void SetSerializing(bool serializing=true) = 0;
-
-protected:
-	static String EscapeValue(const String& text);
-	static String UnescapeValue(const String& text);
-	static std::pair<String, String> SplitName(const String& strName);
-
-	OptionsMap m_optionsMap; /**< Map where options are stored. */
 
 private:
-	static varprop::VariantValue m_emptyValue;
+	CMap<CString, LPCTSTR, COption, COption&> m_optionsMap;
 };
+
+/**
+ * @brief Class to load/save options to registry
+ */
+class CRegOptions : public COptionsMgr
+{
+public:
+	int LoadOption(CString name);
+	int SetRegRootKey(CString path);
+
+	virtual int InitOption(CString name, varprop::VariantValue defaultValue);
+	virtual int InitOption(CString name, LPCTSTR defaultValue);
+	virtual int InitOption(CString name, int defaultValue);
+	virtual int InitOption(CString name, bool defaultValue);
+
+	virtual int SaveOption(CString name);
+	virtual int SaveOption(CString name, varprop::VariantValue value);
+	virtual int SaveOption(CString name, CString value);
+	virtual int SaveOption(CString name, int value);
+	virtual int SaveOption(CString name, bool value);
+
+protected:
+	void SplitName(CString strName, CString &strPath, CString &strValue);
+	int LoadValueFromReg(HKEY hKey, CString strName,
+		varprop::VariantValue &value);
+	int SaveValueToReg(HKEY hKey, CString strValueName,
+		varprop::VariantValue value);
+
+private:
+	CString m_registryRoot;
+
+};
+
+#endif // _OPTIONS_MGR_

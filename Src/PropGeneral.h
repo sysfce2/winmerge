@@ -1,62 +1,66 @@
 /**
  * @file  PropGeneral.h
  *
- * @brief Declaration of PropGeneral class
+ * @brief Declaration of CPropGeneral class
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: PropGeneral.h,v 1.20 2005/06/07 20:56:33 kimmov Exp $
 
-#include "OptionsPanel.h"
-#include "Concurrent.h"
+#if !defined(AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_)
+#define AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_
 
-class COptionsMgr;
+
+/////////////////////////////////////////////////////////////////////////////
+// CPropGeneral dialog
 
 /**
  * @brief Class for General options -propertypage.
  */
-class PropGeneral : public OptionsPanel
+class CPropGeneral : public CPropertyPage
 {
+	DECLARE_DYNCREATE(CPropGeneral)
+
 // Construction
 public:
-	explicit PropGeneral(COptionsMgr *optionsMgr);
-	~PropGeneral();
-
-// Implement IOptionsPanel
-	virtual void ReadOptions() override;
-	virtual void WriteOptions() override;
+	CPropGeneral();
+	~CPropGeneral();
 
 // Dialog Data
-	//{{AFX_DATA(PropGeneral)
-	enum { IDD = IDD_PROPPAGE_GENERAL };
-	bool  m_bScroll;
-	bool  m_bScrollToFirstInlineDiff;
-	int   m_nSingleInstance;
-	int   m_nFileReloadMode;
-	bool  m_bVerifyPaths;
-	int   m_nCloseWindowWithEsc;
-	bool  m_bAskMultiWindowClose;
-	int   m_nAutoCompleteSource;
-	bool  m_bPreserveFiletime;
-	bool  m_bShowSelectFolderOnStartup;
-	bool  m_bCloseWithOK;
-	Concurrent::Task<std::vector<std::pair<LANGID, String>>> m_asyncLanguagesLoader;
-	CComboBox	m_ctlLangList;
+	//{{AFX_DATA(CPropGeneral)
+	enum { IDD = IDD_PROPPAGE_LARGE };
+	BOOL  m_bBackup;
+	BOOL  m_bScroll;
+	BOOL  m_bDisableSplash;
+	BOOL  m_bAutoCloseCmpPane;
+	BOOL  m_bSingleInstance;
+	BOOL  m_bVerifyPaths;
+	BOOL  m_bCloseWindowWithEsc;
+	BOOL	m_bMultipleFileCmp;
+	BOOL	m_bMultipleDirCmp;
 	//}}AFX_DATA
 
 
 // Overrides
 	// ClassWizard generate virtual function overrides
-	//{{AFX_VIRTUAL(PropGeneral)
+	//{{AFX_VIRTUAL(CPropGeneral)
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
 
 // Implementation
 protected:
-	virtual BOOL OnInitDialog() override;
+	virtual BOOL OnInitDialog();
 
 	// Generated message map functions
-	//{{AFX_MSG(PropGeneral)
-	afx_msg LRESULT OnLoadLanguages(WPARAM, LPARAM);
+	//{{AFX_MSG(CPropGeneral)
+	afx_msg void OnResetAllMessageBoxes();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+
 };
+
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Developer Studio will insert additional declarations immediately before the previous line.
+
+#endif // !defined(AFX_PROPGENERAL_H__30AD07B0_E420_11D1_BBC5_00A024706EDC__INCLUDED_)
+

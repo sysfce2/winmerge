@@ -1,4 +1,4 @@
-// Microsoft Visual C++ generated resource script.
+//Microsoft Developer Studio generated resource script.
 //
 #include "resource.h"
 
@@ -13,102 +13,49 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// 日本語 (日本) resources
+// French (France) resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
-LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
-#pragma code_page(932)
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_DIALOG1 DIALOGEX 0, 0, 240, 68
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "設定"
-FONT 8, "MS Shell Dlg", 400, 0, 0x80
-BEGIN
-    LTEXT           "無視する列番号\n例)  3,10-20,32-33\n",IDC_STATIC,6,6,228,18
-    EDITTEXT        IDC_EDIT1,6,30,228,14,ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,132,48,50,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,186,48,50,14
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
-
-#ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
-BEGIN
-    IDD_DIALOG1, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 233
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 61
-    END
-END
-#endif    // APSTUDIO_INVOKED
-
-#endif    // 日本語 (日本) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// 英語 (米国) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FRA)
+#ifdef _WIN32
+LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
 #pragma code_page(1252)
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_DIALOG1 DIALOGEX 0, 0, 240, 68
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Settings"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    LTEXT           "Column Ranges To Ignore:\ne.g.)  3,10-20,32-33\n",IDC_STATIC,6,6,228,18
-    EDITTEXT        IDC_EDIT1,6,30,228,14,ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,132,48,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,186,48,50,14
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// DESIGNINFO
-//
+#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
 BEGIN
-    IDD_DIALOG1, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 233
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 61
-    END
+    "resource.h\0"
 END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "1 TYPELIB ""IgnoreFieldsTab.tlb""\r\n"
+    "\0"
+END
+
 #endif    // APSTUDIO_INVOKED
 
 
+#ifndef _MAC
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,1,5
- PRODUCTVERSION 1,0,1,5
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -121,15 +68,17 @@ VS_VERSION_INFO VERSIONINFO
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "040904b0"
+        BLOCK "040904B0"
         BEGIN
-            VALUE "FileDescription", "IgnoreFieldsTab Module"
-            VALUE "FileVersion", "1.0.1.5"
-            VALUE "InternalName", "IgnoreFieldsTab"
-            VALUE "LegalCopyright", "Copyright 2003-2021"
-            VALUE "OriginalFilename", "IgnoreFieldsTab.DLL"
-            VALUE "ProductName", "IgnoreFieldsTab Module"
-            VALUE "ProductVersion", "1.0.1.5"
+            VALUE "CompanyName", "\0"
+            VALUE "FileDescription", "IgnoreFieldsTab Module\0"
+            VALUE "FileVersion", "1, 0, 0, 1\0"
+            VALUE "InternalName", "IgnoreFieldsTab\0"
+            VALUE "LegalCopyright", "Copyright 2003\0"
+            VALUE "OriginalFilename", "IgnoreFieldsTab.DLL\0"
+            VALUE "ProductName", "IgnoreFieldsTab Module\0"
+            VALUE "ProductVersion", "1, 0, 0, 1\0"
+            VALUE "OLESelfRegister", "\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -138,31 +87,7 @@ BEGIN
     END
 END
 
-
-#ifdef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// TEXTINCLUDE
-//
-
-1 TEXTINCLUDE 
-BEGIN
-    "resource.h\0"
-END
-
-2 TEXTINCLUDE 
-BEGIN
-    "#include ""winres.h""\r\n"
-    "\0"
-END
-
-3 TEXTINCLUDE 
-BEGIN
-    "1 TYPELIB ""IgnoreFieldsTab.tlb""\r\n"
-    "\0"
-END
-
-#endif    // APSTUDIO_INVOKED
+#endif    // !_MAC
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -170,12 +95,12 @@ END
 // String Table
 //
 
-STRINGTABLE
+STRINGTABLE DISCARDABLE 
 BEGIN
     IDS_PROJNAME            "IgnoreFieldsTab"
 END
 
-#endif    // 英語 (米国) resources
+#endif    // French (France) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

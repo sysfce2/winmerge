@@ -1,66 +1,72 @@
 /** 
  * @file  PropArchive.cpp
  *
- * @brief Implementation of PropArchive propertysheet
+ * @brief Implementation of CPropArchive propertysheet
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: PropArchive.cpp,v 1.1.2.1 2005/09/20 15:27:00 kimmov Exp $
 
 #include "stdafx.h"
+#include "Merge.h"
 #include "PropArchive.h"
-#include "OptionsDef.h"
-#include "OptionsMgr.h"
-#include "OptionsPanel.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
 
-// PropArchive dialog
+// CPropArchive dialog
 
-PropArchive::PropArchive(COptionsMgr *optionsMgr)
-: OptionsPanel(optionsMgr, PropArchive::IDD)
-, m_bEnableSupport(false)
-, m_bProbeType(false)
+IMPLEMENT_DYNAMIC(CPropArchive, CPropertyPage)
+CPropArchive::CPropArchive()
+	: CPropertyPage(CPropArchive::IDD)
+	, m_bEnableSupport(false)
+	, m_nInstallType(0)
+	, m_bProbeType(false)
+{
+}
+
+CPropArchive::~CPropArchive()
 {
 }
 
 /** 
  * @brief Sets update handlers for dialog controls.
  */
-void PropArchive::DoDataExchange(CDataExchange* pDX)
+void CPropArchive::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_ARCHIVE_WWW, m_wwwLink);
 	DDX_Check(pDX, IDC_ARCHIVE_ENABLE, m_bEnableSupport);
+	DDX_Radio(pDX, IDC_ARCHIVE_INSTALSTANDALONE, m_nInstallType);
 	DDX_Check(pDX, IDC_ARCHIVE_DETECTTYPE, m_bProbeType);
-	UpdateControls();
 }
 
 
-BEGIN_MESSAGE_MAP(PropArchive, OptionsPanel)
+BEGIN_MESSAGE_MAP(CPropArchive, CPropertyPage)
 	ON_BN_CLICKED(IDC_ARCHIVE_ENABLE, OnEnableClicked)
 END_MESSAGE_MAP()
 
-/** 
- * @brief Reads options values from storage to UI.
- */
-void PropArchive::ReadOptions()
-{
-	m_bEnableSupport = GetOptionsMgr()->GetBool(OPT_ARCHIVE_ENABLE);
-	m_bProbeType = GetOptionsMgr()->GetBool(OPT_ARCHIVE_PROBETYPE);
-}
 
 /** 
- * @brief Writes options values from UI to storage.
+ * @brief Called before propertysheet is drawn.
  */
-void PropArchive::WriteOptions()
+BOOL CPropArchive::OnInitDialog()
 {
-	GetOptionsMgr()->SaveOption(OPT_ARCHIVE_ENABLE, m_bEnableSupport);
-	GetOptionsMgr()->SaveOption(OPT_ARCHIVE_PROBETYPE, m_bProbeType);
+	m_wwwLink.m_link = _T("http://winmerge.org/downloads.php");
+	UpdateData(FALSE);
+
+	UpdateControls();
+	
+	return TRUE;  // return TRUE unless you set the focus to a control
+	              // EXCEPTION: OCX Property Pages should return FALSE
 }
 
 /** 
  * @brief Called when archive support is enabled or disabled.
  */
-void PropArchive::OnEnableClicked()
+void CPropArchive::OnEnableClicked()
 {
 	UpdateControls();
 }
@@ -68,7 +74,17 @@ void PropArchive::OnEnableClicked()
 /** 
  * @brief Called Updates controls enabled/disables state.
  */
-void PropArchive::UpdateControls()
+void CPropArchive::UpdateControls()
 {
-	EnableDlgItem(IDC_ARCHIVE_DETECTTYPE, IsDlgButtonChecked(IDC_ARCHIVE_ENABLE) == 1);
+	CButton *chkEnabled = (CButton *) GetDlgItem(IDC_ARCHIVE_ENABLE);
+	CButton *btnLocal = (CButton *) GetDlgItem(IDC_ARCHIVE_INSTALLOCAL);
+	CButton *btnStandAlone = (CButton *) GetDlgItem(IDC_ARCHIVE_INSTALSTANDALONE);
+	CButton *chkProbe = (CButton *) GetDlgItem(IDC_ARCHIVE_DETECTTYPE);
+
+	BOOL enableItems = FALSE;
+	if (chkEnabled->GetCheck() == 1)
+		enableItems = TRUE;
+	btnLocal->EnableWindow(enableItems);
+	btnStandAlone->EnableWindow(enableItems);
+	chkProbe->EnableWindow(enableItems);
 }

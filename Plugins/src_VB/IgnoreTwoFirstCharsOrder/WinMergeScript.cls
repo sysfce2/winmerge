@@ -30,21 +30,16 @@ Public Property Get PluginIsAutomatic() As Boolean
 End Property
 
 Public Function PrediffBufferW(ByRef text As String, ByRef size As Long, ByRef bChanged As Boolean) As Boolean
-    Dim c1 As String, c2 As String
-    
-    c1 = Mid(text, 1, 1)
-    c2 = Mid(text, 2, 1)
-    If (c1 < c2) Then
-        text = c2 & c1 & Mid(text, 3)
+    If Mid(text, 1, 1) < Mid(text, 2, 1) Then
+        Dim c1, c2
+        c1 = Mid(text, 1, 1)
+        c2 = Mid(text, 2, 1)
+        text = c2 + c1 + Mid(text, 3)
         bChanged = True
     Else
         bChanged = False
     End If
-    PrediffBufferW = True
+    DiffingPreprocessW = True
 End Function
 
-Public Function ShowSettingsDialog() As Boolean
-    ShowSettingsDialog = False
-    Err.Raise 30001, , "Not Implemented"
-End Function
 

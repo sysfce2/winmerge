@@ -1,71 +1,72 @@
-/**
- *  @file varprop.h
- *
- *  @brief Declaration of generic named property classes
- */ 
-#pragma once
+#ifndef varprop_h_included
+#define varprop_h_included
 
-#include <ctime>
-#include "UnicodeString.h"
+namespace varprop {
 
-namespace varprop
-{
+typedef enum { VT_NULL, VT_BOOL, VT_INT, VT_FLOAT, VT_STRING, VT_TIME } VT_TYPE;
 
-/**
- * @brief Types that variant type can contain.
- */
-typedef enum
-{
-	VT_NULL,     /**< No type */
-	VT_BOOL,     /**< Boolean type */
-	VT_INT,      /**< Integer type */
-	VT_FLOAT,    /**< Floating point type */
-	VT_STRING,   /**< String type */
-	VT_TIME      /**< Time type */
-} VT_TYPE;
-
-/**
- * @brief A variant class.
- * This class can hold several base types. Type is set when the value is set.
- * @todo Add function to get/set string values as UTF-8 string - to avoid
- *  conversions in call sites.
- */
-class VariantValue
+struct VariantValue
 {
 public:
-	VariantValue();
-	VariantValue(const VariantValue &value);
-	VariantValue& operator=(const VariantValue& value);
+	VariantValue() : vtype(VT_NULL), bvalue(false), ivalue(0), fvalue(0) { }
+	bool isBool() const { return vtype == VT_BOOL; }
+	bool isInt() const { return vtype == VT_INT; }
+	bool isFloat() const { return vtype == VT_FLOAT; }
+	bool isString() const { return vtype == VT_STRING; }
+	bool isTime() const { return vtype == VT_TIME; }
+	VT_TYPE getType() const { return vtype; }
 
-	bool IsBool() const { return m_vtype == VT_BOOL; }
-	bool IsInt() const { return m_vtype == VT_INT; }
-	bool IsFloat() const { return m_vtype == VT_FLOAT; }
-	bool IsString() const { return m_vtype == VT_STRING; }
-	bool IsTime() const { return m_vtype == VT_TIME; }
-	VT_TYPE GetType() const { return m_vtype; }
+	void SetBool(bool v) { Clear(); vtype = VT_BOOL; bvalue = v; }
+	void SetInt(int v) { Clear(); vtype = VT_INT; ivalue = v; }
+	void SetFloat(double v) { Clear(); vtype = VT_FLOAT; fvalue = v; }
+	void SetString(LPCTSTR sz) { Clear(); vtype = VT_STRING; svalue = sz; }
+	void SetString(const CString & str) { Clear(); vtype = VT_STRING; svalue = str; }
+	void SetTime(const COleDateTime & v) { Clear(); vtype = VT_TIME; tvalue = v; }
 
-	void SetBool(bool v);
-	void SetInt(int v);
-	void SetFloat(double v);
-	void SetString(const TCHAR *sz);
-	void SetString(const String& sz);
-	void SetTime(time_t v);
+	void Clear() { vtype = VT_NULL; bvalue = false; ivalue = 0; fvalue = 0;
+		svalue = _T(""); tvalue.m_status = COleDateTime::null;}
 
-	void Clear();
-
-	bool GetBool() const;
-	int GetInt() const;
-	double GetFloat() const;
-	const String& GetString() const;
-	time_t GetTime() const;
+	bool getBool() const { ASSERT(vtype == VT_BOOL); return bvalue; }
+	int getInt() const { ASSERT(vtype == VT_INT); return ivalue; }
+	double getFloat() const { ASSERT(vtype == VT_FLOAT); return fvalue; }
+	CString getString() const { ASSERT(vtype == VT_STRING); return svalue; }
+	COleDateTime getTime() const { ASSERT(vtype == VT_TIME); return tvalue; }
 
 private:
-	VT_TYPE m_vtype;  /**< Type of the variant. */
-	bool m_bvalue;    /**< Boolean value of the variant. */
-	int m_ivalue;     /**< Integer value of the variant. */
-	double m_fvalue;  /**< Floating point value of the variant. */
-	String m_svalue;  /**< String value of the variant. */
-	time_t m_tvalue;  /**< Time value of the variant. */
+	VT_TYPE vtype;
+	bool bvalue;
+	int ivalue;
+	double fvalue;
+	CString svalue;
+	COleDateTime tvalue;
+};
+
+// Generic named property (name & value)
+struct Property { CString name; VariantValue value; };
+
+// Generic container of string properties, may be copied
+class PropertySet : private CTypedPtrMap<CMapStringToPtr, CString, Property*>
+{
+public:
+	// constructors, destructor, and copy operator
+	PropertySet(int hashsize=-1);
+	PropertySet(const PropertySet & src);
+	PropertySet & operator=(const PropertySet & src);
+	~PropertySet();
+	void CopyFrom(const PropertySet & src);
+
+	// use
+	void SetProperty(const Property & property);
+	void SetProperty(LPCTSTR name, COleDateTime time);
+	void SetProperty(LPCTSTR name, LPCTSTR value);
+	void SetProperty(LPCTSTR name, const CString & value);
+	void SetProperty(LPCTSTR name, int value);
+	Property * GetProperty(LPCTSTR szname);
+	const Property * GetProperty(LPCTSTR szname) const;
+private:
+	void RemoveAll();
 };
 
 } // namespace
+
+#endif // varprop_h_included

@@ -2,27 +2,49 @@
 //    WinMerge:  an interactive diff/merge utility
 //    Copyright (C) 1997-2000  Thingamahoochie Software
 //    Author: Dean Grimm
-//    SPDX-License-Identifier: GPL-2.0-or-later
+//
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+//
 /////////////////////////////////////////////////////////////////////////////
 /**
  *  @file DiffContext.cpp
  *
  *  @brief Implementation of CDiffContext
  */ 
+// RCS ID line follows -- this is updated by CVS
+// $Id: DiffContext.cpp,v 1.54 2005/08/26 20:47:22 kimmov Exp $
+//////////////////////////////////////////////////////////////////////
 
-#include "pch.h"
+#include "stdafx.h"
+#include <shlwapi.h>
+#include "Merge.h"
+#include "CompareStats.h"
+#include "version.h"
 #include "DiffContext.h"
-#include <Poco/ScopedLock.h>
-#include "CompareOptions.h"
-#include "VersionInfo.h"
 #include "paths.h"
+#include "coretools.h"
 #include "codepage_detect.h"
 #include "DiffItemList.h"
 #include "IAbortable.h"
-#include "DiffWrapper.h"
-#include "DebugNew.h"
 
-using Poco::FastMutex;
+#ifdef _DEBUG
+#undef THIS_FILE
+static char THIS_FILE[]=__FILE__;
+#define new DEBUG_NEW
+#endif
+
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -33,306 +55,172 @@ using Poco::FastMutex;
  *
  * @param [in] pszLeft Initial left-side path.
  * @param [in] pszRight Initial right-side path.
- * @param [in] compareMethod Main compare method for this compare.
  */
-CDiffContext::CDiffContext(const PathContext & paths, int compareMethod)
-: m_piFilterGlobal(nullptr)
-, m_piPluginInfos(nullptr)
-, m_nCompMethod(compareMethod)
-, m_bIgnoreSmallTimeDiff(false)
-, m_pCompareStats(nullptr)
-, m_piAbortable(nullptr)
-, m_bStopAfterFirstDiff(false)
-, m_pFilterList(nullptr)
-, m_pSubstitutionList(nullptr)
-, m_pContentCompareOptions(nullptr)
-, m_pQuickCompareOptions(nullptr)
-, m_pOptions(nullptr)
-, m_bPluginsEnabled(false)
-, m_bRecursive(false)
-, m_bWalkUniques(true)
-, m_bIgnoreReparsePoints(false)
-, m_bIgnoreCodepage(false)
-, m_iGuessEncodingType(0)
-, m_nQuickCompareLimit(0)
-, m_nBinaryCompareLimit(0)
-, m_bEnableImageCompare(false)
-, m_pImgfileFilter(nullptr)
-, m_dColorDistanceThreshold(0.0)
+CDiffContext::CDiffContext(LPCTSTR pszLeft /*=NULL*/, LPCTSTR pszRight /*=NULL*/)
+: m_bRecurse(FALSE)
+, m_piFilterGlobal(NULL)
+, m_piPluginInfos(NULL)
+, m_msgUpdateStatus(0)
+, m_hDirFrame(NULL)
+, m_nCompMethod(-1)
+, m_bIgnoreSmallTimeDiff(FALSE)
+, m_pCompareStats(NULL)
+, m_pList(&m_dirlist)
+, m_piAbortable(NULL)
+, m_bStopAfterFirstDiff(FALSE)
 {
-	int index;
-	for (index = 0; index < paths.GetSize(); index++)
-		m_paths.SetPath(index, paths[index]);
+	m_paths.SetLeft(pszLeft);
+	m_paths.SetRight(pszRight);
 }
 
 /**
- * @brief Destructor.
+ * @brief Construct copy of existing CDiffContext.
+ *
+ * @param [in] pszLeft Initial left-side path.
+ * @param [in] pszRight Initial right-side path.
+ * @param [in] src Existing CDiffContext whose data is copied.
  */
-CDiffContext::~CDiffContext() = default;
-
-/**
- * @brief Update info in item in result list from disk.
- * This function updates result list item's file information from actual
- * file in the disk. This updates info like date, size and attributes.
- * @param [in] diffpos DIFFITEM to update.
- * @param [in] nIndex index to update 
- */
-void CDiffContext::UpdateStatusFromDisk(DIFFITEM *diffpos, int nIndex)
+CDiffContext::CDiffContext(LPCTSTR pszLeft, LPCTSTR pszRight, CDiffContext& src)
 {
-	DIFFITEM &di = GetDiffRefAt(diffpos);
-	di.diffFileInfo[nIndex].ClearPartial();
-	if (di.diffcode.exists(nIndex))
-		UpdateInfoFromDiskHalf(di, nIndex);
+	// This is used somehow in recursive comparisons
+	// I think that it is only used during rescan to copy into temporaries
+	// which modify the original (because pointers are copied below)
+	// and then the temporary goes away
+	// so the temporary never exists while the user is interacting with the GUI
+
+	m_bRecurse=src.m_bRecurse;
+	m_paths.SetLeft(pszLeft);
+	m_paths.SetRight(pszRight);
+	m_pList = src.m_pList;
+	m_piFilterGlobal = src.m_piFilterGlobal;
+	m_msgUpdateStatus = src.m_msgUpdateStatus;
+	m_hDirFrame = src.m_hDirFrame;
+	m_nCompMethod = src.m_nCompMethod;
+	m_bIgnoreSmallTimeDiff = src.m_bIgnoreSmallTimeDiff;
+	m_bStopAfterFirstDiff = src.m_bStopAfterFirstDiff;
 }
 
 /**
- * @brief Update file information from disk for DIFFITEM.
- * This function updates DIFFITEM's file information from actual file in
- * the disk. This updates info like date, size and attributes.
- * @param [in, out] di DIFFITEM to update.
- * @param [in] nIndex index to update
- * @return true if file exists
+ * @brief Fetch & return the fixed file version as a dotted string
  */
-bool CDiffContext::UpdateInfoFromDiskHalf(DIFFITEM &di, int nIndex)
+static CString GetFixedFileVersion(const CString & path)
 {
-	String filepath = paths::ConcatPath(paths::ConcatPath(m_paths[nIndex], di.diffFileInfo[nIndex].path), di.diffFileInfo[nIndex].filename);
-	DiffFileInfo & dfi = di.diffFileInfo[nIndex];
-	if (!dfi.Update(filepath))
-		return false;
-	UpdateVersion(di, nIndex);
-	dfi.encoding = codepage_detect::Guess(filepath, m_iGuessEncodingType);
-	return true;
+	CVersionInfo ver(path);
+	return ver.GetFixedFileVersion();
 }
 
 /**
- * @brief Determine if file is one to have a version information.
- * This function determines if the given file has a version information
- * attached into it in resource. This is done by comparing file extension to
- * list of known filename extensions usually to have a version information.
- * @param [in] ext Extension to check.
- * @return true if extension has version info, false otherwise.
+ * @brief Add new diffitem to CDiffContext array
  */
-static bool CheckFileForVersion(const String& ext)
+void CDiffContext::AddDiff(const DIFFITEM & di)
 {
-	String lower_ext = strutils::makelower(ext);
-	if (lower_ext == _T(".exe") || lower_ext == _T(".dll") || lower_ext == _T(".sys") ||
-	    lower_ext == _T(".drv") || lower_ext == _T(".ocx") || lower_ext == _T(".cpl") ||
-	    lower_ext == _T(".scr") || lower_ext == _T(".lang"))
+	DiffItemList::AddDiff(di);
+	m_pCompareStats->AddItem(di.diffcode);
+}
+
+/**
+ * @brief Update info in list (specified by position) from disk
+ * @param [in] diffpos Difference to update
+ * @param [in] bLeft Update left-side item
+ * @param [in] bRight Update right-side item
+ */
+void CDiffContext::UpdateStatusFromDisk(POSITION diffpos, BOOL bLeft, BOOL bRight)
+{
+	DIFFITEM &di = m_pList->GetAt(diffpos);
+	if (bLeft)
+	{
+		di.left.Clear();
+		if (!di.isSideRight())
+			UpdateInfoFromDiskHalf(di, di.left);
+	}
+	if (bRight)
+	{
+		di.right.Clear();
+		if (!di.isSideLeft())
+			UpdateInfoFromDiskHalf(di, di.right);
+	}
+}
+
+/**
+ * @brief Update information from disk (for one side)
+ */
+void CDiffContext::UpdateInfoFromDiskHalf(DIFFITEM & di, DiffFileInfo & dfi)
+{
+	UpdateVersion(di, dfi);
+	ASSERT(&dfi == &di.left || &dfi == &di.right);
+	CString filepath
+	(
+		&dfi == &di.left
+	?	paths_ConcatPath(di.getLeftFilepath(GetNormalizedLeft()), di.sLeftFilename)
+	:	paths_ConcatPath(di.getRightFilepath(GetNormalizedRight()), di.sRightFilename)
+	);
+	dfi.Update(filepath);
+	GuessCodepageEncoding(filepath, &dfi.unicoding, &dfi.codepage, m_bGuessEncoding);
+}
+
+/**
+ * @brief Return if this extension is one we expect to have a file version
+ */
+static bool CheckFileForVersion(LPCTSTR ext)
+{
+	if (!lstrcmpi(ext, _T(".EXE")) || !lstrcmpi(ext, _T(".DLL")) || !lstrcmpi(ext, _T(".SYS")) ||
+	    !lstrcmpi(ext, _T(".DRV")) || !lstrcmpi(ext, _T(".OCX")) || !lstrcmpi(ext, _T(".CPL")) ||
+	    !lstrcmpi(ext, _T(".SCR")) || !lstrcmpi(ext, _T(".LANG")))
 	{
 		return true;
 	}
-	return false;
+	else
+	{
+		return false;
+	}
 }
 
 /**
- * @brief Load file version from disk.
- * Update fileversion for given item and side from disk. Note that versions
- * are read from only some filetypes. See CheckFileForVersion() function
- * for list of files to check versions.
- * @param [in,out] di DIFFITEM to update.
- * @param [in] bLeft If true left-side file is updated, right-side otherwise.
+ * @brief Load file versions from disk
  */
-void CDiffContext::UpdateVersion(DIFFITEM &di, int nIndex) const
+void CDiffContext::UpdateVersion(DIFFITEM & di, DiffFileInfo & dfi) const
 {
-	DiffFileInfo & dfi = di.diffFileInfo[nIndex];
 	// Check only binary files
-	dfi.version.SetFileVersionNone();
+	dfi.version = _T("");
+	dfi.bVersionChecked = true;
 
-	if (di.diffcode.isDirectory())
+	if (di.isDirectory())
 		return;
 	
-	String spath;
-	if (!di.diffcode.exists(nIndex))
-		return;
-	String ext = paths::FindExtension(di.diffFileInfo[nIndex].filename);
-	if (!CheckFileForVersion(ext))
-		return;
-	spath = di.getFilepath(nIndex, GetNormalizedPath(nIndex));
-	spath = paths::ConcatPath(spath, di.diffFileInfo[nIndex].filename);
-	
-	// Get version info if it exists
-	CVersionInfo ver(spath.c_str());
-	unsigned verMS = 0;
-	unsigned verLS = 0;
-	if (ver.GetFixedFileVersion(verMS, verLS))
-		dfi.version.SetFileVersion(verMS, verLS);
-}
-
-/**
- * @brief Create compare-method specific compare options class.
- * This function creates a compare options class that is specific for
- * main compare method. Compare options class is initialized from
- * given set of options.
- * @param [in] compareMethod Selected compare method.
- * @param [in] options Initial set of compare options.
- * @return true if creation succeeds.
- */
-bool CDiffContext::CreateCompareOptions(int compareMethod, const DIFFOPTIONS & options)
-{
-	m_pContentCompareOptions.reset();
-	m_pQuickCompareOptions.reset();
-	m_pOptions.reset(new DIFFOPTIONS);
-	*m_pOptions.get() = options;
-
-	m_nCompMethod = compareMethod;
-	if (GetCompareOptions(m_nCompMethod) == nullptr)
+	CString spath;
+	if (&dfi == &di.left)
 	{
-		// For Date and Date+Size compare `nullptr` is ok since they don't have actual
-		// compare options.
-		if (m_nCompMethod == CMP_DATE || m_nCompMethod == CMP_DATE_SIZE ||
-			m_nCompMethod == CMP_SIZE)
-		{
-			return true;
-		}
-		else
-			return false;
+		if (di.isSideRight())
+			return;
+		LPCTSTR ext = PathFindExtension(di.sLeftFilename);
+		if (!CheckFileForVersion(ext))
+			return;
+		spath = di.getLeftFilepath(GetNormalizedLeft());
+		spath = paths_ConcatPath(spath, di.sLeftFilename);
 	}
-	return true;
-}
-
-/**
- * @brief Get compare-type specific compare options.
- * This function returns per-compare method options. The compare options
- * returned are converted from general options to match options for specific
- * comapare type. Not all compare options in general set are available for
- * some other compare type. And some options can have different values.
- * @param [in] compareMethod Compare method used.
- * @return Compare options class.
- */
-CompareOptions * CDiffContext::GetCompareOptions(int compareMethod)
-{
-	FastMutex::ScopedLock lock(m_mutex);
-	CompareOptions *pCompareOptions = nullptr;
-
-	// Otherwise we have to create new options
-	switch (compareMethod)
+	else
 	{
-	case CMP_CONTENT:
-		if (m_pContentCompareOptions != nullptr)
-			return m_pContentCompareOptions.get();
-		m_pContentCompareOptions.reset(pCompareOptions = new DiffutilsOptions());
-		break;
-
-	case CMP_QUICK_CONTENT:
-		if (m_pQuickCompareOptions != nullptr)
-			return m_pQuickCompareOptions.get();
-		m_pQuickCompareOptions.reset(pCompareOptions = new QuickCompareOptions());
-		break;
+		ASSERT(&dfi == &di.right);
+		if (di.isSideLeft())
+			return;
+		LPCTSTR ext = PathFindExtension(di.sRightFilename);
+		if (!CheckFileForVersion(ext))
+			return;
+		spath = di.getRightFilepath(GetNormalizedRight());
+		spath = paths_ConcatPath(spath, di.sRightFilename);
 	}
-
-
-	if (pCompareOptions != nullptr)
-		pCompareOptions->SetFromDiffOptions(*m_pOptions);
-
-	return pCompareOptions;
+	dfi.version = GetFixedFileVersion(spath);
 }
 
 /** @brief Forward call to retrieve plugin info (winds up in DirDoc) */
-void CDiffContext::FetchPluginInfos(const String& filteredFilenames,
-		PackingInfo ** infoUnpacker, PrediffingInfo ** infoPrediffer)
+void CDiffContext::FetchPluginInfos(const CString& filteredFilenames, PackingInfo ** infoUnpacker, PrediffingInfo ** infoPrediffer)
 {
-	if (!m_piPluginInfos)
-		return;
+	ASSERT(m_piPluginInfos);
 	m_piPluginInfos->FetchPluginInfos(filteredFilenames, infoUnpacker, infoPrediffer);
 }
 
-/**
- * @brief Check if user has requested aborting the compare.
- * @return true if user has requested abort, false otherwise.
- */
+/** @brief Return true only if user has requested abort */
 bool CDiffContext::ShouldAbort() const
 {
-	return m_piAbortable!=nullptr && m_piAbortable->ShouldAbort();
-}
-
-/**
- * @brief Get actual compared paths from DIFFITEM.
- * @param [in] pCtx Pointer to compare context.
- * @param [in] di DiffItem from which the paths are created.
- * @param [out] left Gets the left compare path.
- * @param [out] right Gets the right compare path.
- * @note If item is unique, same path is returned for both.
- */
-void CDiffContext::GetComparePaths(const DIFFITEM &di, PathContext & tFiles) const
-{
-	int nDirs = GetCompareDirs();
-
-	tFiles.SetSize(nDirs);
-
-	for (int nIndex = 0; nIndex < nDirs; nIndex++)
-	{
-		if (di.diffcode.exists(nIndex))
-		{
-			tFiles.SetPath(nIndex,
-				paths::ConcatPath(GetPath(nIndex), di.diffFileInfo[nIndex].GetFile()), false);
-		}
-		else
-		{
-			tFiles.SetPath(nIndex, _T("NUL"), false);
-		}
-	}
-}
-
-String CDiffContext::GetFilteredFilenames(const DIFFITEM& di) const
-{
-	PathContext paths;
-	GetComparePaths(di, paths);
-	return GetFilteredFilenames(paths);
-}
-
-void CDiffContext::CreateDuplicateValueMap()
-{
-	if (!m_pPropertySystem)
-		return;
-	const int nDirs = GetCompareDirs();
-	m_duplicateValues.clear();
-	m_duplicateValues.resize(m_pPropertySystem->GetCanonicalNames().size());
-	DIFFITEM *pos = GetFirstDiffPosition();
-	std::vector<int> currentGroupId(m_duplicateValues.size());
-	while (pos != nullptr)
-	{
-		const DIFFITEM& di = GetNextDiffPosition(pos);
-		for (int pane = 0; pane < nDirs; ++pane)
-		{
-			const PropertyValues* pValues = di.diffFileInfo[pane].m_pAdditionalProperties.get();
-			if (pValues)
-			{
-				for (size_t j = 0; j < pValues->GetSize(); ++j)
-				{
-					if (pValues->IsHashValue(j) )
-					{
-						std::vector<uint8_t> value = pValues->GetHashValue(j);
-						if (!value.empty())
-						{
-							auto it = m_duplicateValues[j].find(value);
-							if (it == m_duplicateValues[j].end())
-							{
-								DuplicateInfo info{};
-								++info.count[pane];
-								info.nonpaired = !di.diffcode.existAll();
-								m_duplicateValues[j].insert_or_assign(value, info);
-							}
-							else
-							{
-								if (it->second.groupid == 0)
-								{
-									int count = 0;
-									for (int k = 0; k < nDirs; ++k)
-										count += it->second.count[k];
-									if (count > 0)
-									{
-										++currentGroupId[j];
-										it->second.groupid = currentGroupId[j];
-									}
-								}
-								++it->second.count[pane];
-								if (!it->second.nonpaired && !di.diffcode.existAll())
-									it->second.nonpaired = true;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	return m_piAbortable && m_piAbortable->ShouldAbort();
 }

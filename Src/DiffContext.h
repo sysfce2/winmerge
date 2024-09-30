@@ -3,49 +3,50 @@
  *
  *  @brief Declarations of CDiffContext and diff structures
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: DiffContext.h,v 1.51.2.1 2005/10/23 18:59:13 kimmov Exp $
+
+#if !defined(AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_)
+#define AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_
 #pragma once
 
-#define POCO_NO_UNWINDOWS 1
-#include <Poco/Mutex.h>
-#include <memory>
+#ifndef _PATH_CONTEXT_H_
 #include "PathContext.h"
+#endif
+
+#ifndef _DIFF_FILE_INFO_H_INCLUDED
+#include "DiffFileInfo.h"
+#endif
+
+#ifndef _DIFF_ITEM_LIST_H_
 #include "DiffItemList.h"
-#include "FilterList.h"
-#include "SubstitutionList.h"
-#include "PropertySystem.h"
+#endif
 
 class PackingInfo;
 class PrediffingInfo;
 class IDiffFilter;
+struct DIFFITEM;
 class CompareStats;
 class IAbortable;
-class CDiffWrapper;
-class CompareOptions;
-struct DIFFOPTIONS;
+
+// Interface for reporting current file, as diff traverses file tree
+class IDiffStatus
+{
+public:
+	virtual void rptFile(BYTE code)=0;
+};
 
 /** Interface to a provider of plugin info */
 class IPluginInfos
 {
 public:
-	virtual void FetchPluginInfos(const String& filteredFilenames, 
+	virtual void FetchPluginInfos(const CString& filteredFilenames, 
                                       PackingInfo ** infoUnpacker, 
                                       PrediffingInfo ** infoPrediffer) = 0;
 };
 
-/** Information on the number of duplicate hash values */
-struct DuplicateInfo
-{
-	int groupid;
-	int count[3];
-	bool nonpaired;
-};
-
 /**
- * The folder compare context.
- * This class holds data of the current folder compare. There are paths
- * to compare, filters used, compare options etc. And compare results list
- * is also contained in this class. Many compare classes and functions have
- * a pointer to instance of this class. 
+ * @brief Directory compare context.
  *
  * @note If you add new member variables, remember to copy values in
  * CDiffContext::CDiffContext(..,CDiffContext) constructor!
@@ -53,23 +54,12 @@ struct DuplicateInfo
 class CDiffContext : public DiffItemList
 {
 public:
-	/** @brief Special values for difference counts. */
-	enum
-	{
-		DIFFS_UNKNOWN = -1, /**< Difference count unknown (generally). */
-		DIFFS_UNKNOWN_QUICKCOMPARE = -9, /**< Unknown because of quick-compare method. */
-	};
+	CDiffContext(LPCTSTR pszLeft, LPCTSTR pszRight);
+	CDiffContext(LPCTSTR pszLeft, LPCTSTR pszRight, CDiffContext& src);
 
-	CDiffContext(const PathContext & paths, int compareMethod);
-	~CDiffContext();
-
-	void UpdateVersion(DIFFITEM &di, int nIndex) const;
-
-	/**
-	 * Get the main compare method used in this compare.
-	 * @return Compare method used.
-	 */
-	int GetCompareMethod(void) const { return m_nCompMethod; }
+	// add & remove differences
+	virtual void AddDiff(const DIFFITEM & di);
+	void UpdateVersion(DIFFITEM & di, DiffFileInfo & dfi) const;
 
 	//@{
 	/**
@@ -80,153 +70,39 @@ public:
 	 * Normalized paths are preferred to use - short paths are expanded
 	 * and trailing slashes removed (except from root path).
 	 */
-	/**
-	 * Get left-side compare path.
-	 * @return full path in left-side.
-	 */
-	String GetLeftPath() const { return m_paths.GetLeft(false); }
-	String GetMiddlePath() const { return m_paths.GetMiddle(false); }
-	/**
-	 * Get right-side compare path.
-	 * @return full path in right-side.
-	 */
-	String GetRightPath() const { return m_paths.GetRight(false); }
-	String GetPath(int nIndex) const { return m_paths.GetPath(nIndex, false); }
-	/**
-	 * Get left-side compare path in normalized form.
-	 * @return full path in left-side.
-	 */
-	String GetNormalizedLeft() const { return m_paths.GetLeft(); }
-	String GetNormalizedMiddle() const { return m_paths.GetMiddle(); }
-	/**
-	 * Get right-side compare path in normalized form.
-	 * @return full path in left-side.
-	 */
-	String GetNormalizedRight() const { return m_paths.GetRight(); }
-	String GetNormalizedPath(int nIndex) const { return m_paths.GetPath(nIndex, true); }
-	PathContext GetNormalizedPaths() const
-	{
-		PathContext paths;
-		for (int nIndex = 0; nIndex < m_paths.GetSize(); nIndex++)
-			paths.SetPath(nIndex, m_paths.GetPath(nIndex, true));
-		return paths;
-	}
+	CString GetLeftPath() const { return m_paths.GetLeft(FALSE); }
+	CString GetRightPath() const { return m_paths.GetRight(FALSE); }
+	CString GetNormalizedLeft() const { return m_paths.GetLeft(); }
+	CString GetNormalizedRight() const { return m_paths.GetRight(); }
 	//@}
 
 	// change an existing difference
-	bool UpdateInfoFromDiskHalf(DIFFITEM &di, int nIndex);
-	void UpdateStatusFromDisk(DIFFITEM *diffpos, int nIndex);
-
-	bool CreateCompareOptions(int compareMethod, const DIFFOPTIONS & options);
-	CompareOptions * GetCompareOptions(int compareMethod);
+	void UpdateInfoFromDiskHalf(DIFFITEM & di, DiffFileInfo & dfi);
+	void UpdateStatusFromDisk(POSITION diffpos, BOOL bLeft, BOOL bRight);
 
 	// retrieve or manufacture plugin info for specified file comparison
-	void FetchPluginInfos(const String& filteredFilenames,
-		PackingInfo ** infoUnpacker, PrediffingInfo ** infoPrediffer);
+	void FetchPluginInfos(const CString& filteredFilenames, PackingInfo ** infoUnpacker, PrediffingInfo ** infoPrediffer);
 
-	//@{
-	/**
-	 * @name Compare aborting interface.
-	 * These functions handle compare aborting using IAbortable interface.
-	 */
 	bool ShouldAbort() const;
-
-	/**
-	 * Set pointer to IAbortable interface.
-	 * This function sets pointer to interface used to abort the compare when
-	 * user wants to.
-	 * @param [in] piAbortable Pointer to interface.
-	 */
 	void SetAbortable(IAbortable * piAbortable) { m_piAbortable = piAbortable; }
-
-	/**
-	 * Returns a pointer to current IAbortable interface.
-	 * This function returns a pointer to interface used to abort the compare.
-	 * @return Pointer to current IAbortable interface.
-	 */
 	const IAbortable * GetAbortable() const { return m_piAbortable; }
-	//@}
 
-	int GetCompareDirs() const { return m_paths.GetSize(); }
-
-	void Swap(int idx1, int idx2)
-	{
-		String tmp;
-		tmp = m_paths.GetPath(idx1);
-		m_paths.SetPath(idx1, m_paths.GetPath(idx2));
-		m_paths.SetPath(idx2, tmp);
-		DiffItemList::Swap(idx1, idx2);
-	}
-
-	const DIFFOPTIONS *GetOptions() const { return m_pOptions.get(); }
-
-	void GetComparePaths(const DIFFITEM& di, PathContext& tFiles) const;
-	String GetFilteredFilenames(const DIFFITEM& di) const;
-	static String GetFilteredFilenames(const PathContext& paths) { return strutils::join(paths.begin(), paths.end(), _T("|")); }
-	void CreateDuplicateValueMap();
-
-	IDiffFilter * m_piFilterGlobal; /**< Interface for file filtering. */
-	IDiffFilter * m_pImgfileFilter; /**< Interface for image file filtering */
+	BOOL m_bRecurse;
+	IDiffFilter * m_piFilterGlobal;
 	IPluginInfos * m_piPluginInfos;
-	int m_iGuessEncodingType;
-
-	bool m_bIgnoreSmallTimeDiff; /**< Ignore small timedifferences when comparing by date */
-	CompareStats *m_pCompareStats; /**< Pointer to compare statistics */
-
-	/**
-	 * Optimize compare by stopping after first difference.
-	 * In some compare methods (currently quick compare) we can stop the
-	 * compare right after finding the first difference. This speeds up the
-	 * compare, but also causes compare statistics to be inaccurate.
-	 */
-	bool m_bStopAfterFirstDiff;
-
-	/**
-	 * Threshold size for switching to quick compare.
-	 * When diffutils compare is selected, files bigger (in bytes) than this
-	 * value are compared using Quick compare. This is because diffutils simply
-	 * cannot compare large files. And large files are usually binary files.
-	 */
-	int m_nQuickCompareLimit;
-
-	int m_nBinaryCompareLimit;
-
-	/**
-	 * Walk into unique folders and add contents.
-	 * This enables/disables walking into unique folders. If we don't walk into
-	 * unique folders, they are shown as such in folder compare results. If we
-	 * walk into unique folders, we'll show all files in the unique folder and
-	 * in possible subfolders.
-	 *
-	 * This value is true by default.
-	 */
-	bool m_bWalkUniques;
-	bool m_bIgnoreReparsePoints;
-	bool m_bIgnoreCodepage;
-	bool m_bEnableImageCompare;
-	double m_dColorDistanceThreshold;
-
-	bool m_bRecursive; /**< Do we include subfolders to compare? */
-	bool m_bPluginsEnabled; /**< Are plugins enabled? */
-	std::unique_ptr<FilterList> m_pFilterList; /**< Filter list for line filters */
-	std::shared_ptr<SubstitutionList> m_pSubstitutionList; /// list for Substitution Filters
-	std::unique_ptr<PropertySystem> m_pPropertySystem; /**< pointer to Property System */
-	std::vector<std::map<std::vector<uint8_t>, DuplicateInfo>> m_duplicateValues; /**< Number of duplicate hash values */
-	std::vector<String> m_vCurrentlyHiddenItems; /**< The list of currently hidden items */
+	UINT m_msgUpdateStatus;
+	HWND m_hDirFrame;
+	BOOL m_bGuessEncoding;
+	int m_nCompMethod; /**< Compare method */
+	BOOL m_bIgnoreSmallTimeDiff; /**< Ignore small timedifferences when comparing by date */
+	CompareStats *m_pCompareStats;
+	BOOL m_bStopAfterFirstDiff; /**< Optimize compare by stopping after first difference? */
+	int m_nQuickCompareLimit; /**< Bigger files are always compared with quick compare */
 
 private:
-	/**
-	 * The main compare method used.
-	 * This is the main compare method set when compare is started. There
-	 * can be temporary switches to other method (e.g. for large file) but
-	 * this main method must be set back for next file.
-	 */
-	int m_nCompMethod;
-
-	std::unique_ptr<DIFFOPTIONS> m_pOptions; /**< Generalized compare options. */
-	std::unique_ptr<CompareOptions> m_pContentCompareOptions; /**< Per compare method compare options. */
-	std::unique_ptr<CompareOptions> m_pQuickCompareOptions;   /**< Per compare method compare options. */
+	CList<DIFFITEM,DIFFITEM&> *m_pList; /**< Pointer to list, used to access list */
 	PathContext m_paths; /**< (root) paths for this context */
-	IAbortable *m_piAbortable; /**< Interface for aborting the compare. */
-	Poco::FastMutex m_mutex;
+	IAbortable *m_piAbortable;
 };
+
+#endif // !defined(AFX_DIFFCONTEXT_H__D3CC86BE_F11E_11D2_826C_00A024706EDC__INCLUDED_)

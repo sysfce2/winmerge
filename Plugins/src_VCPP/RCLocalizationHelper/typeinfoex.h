@@ -63,7 +63,7 @@ public:
 
 	// This function is called by the module on exit
 	// It is registered through _Module.AddTermFunc()
-	static void __stdcall Cleanup(DWORD_PTR dw)
+	static void __stdcall Cleanup(DWORD dw)
 	{
 		CComTypeInfoHolder* p = (CComTypeInfoHolder*) dw;
 		if (p->m_pInfo != NULL)
@@ -89,8 +89,7 @@ public:
 			for (int i=0; i<(int)cNames; i++)
 			{
 				int n = ocslen(rgszNames[i]);
-				int j;
-				for (j=m_nCount-1; j>=0; j--)
+				for (int j=m_nCount-1; j>=0; j--)
 				{
 					if ((n == m_pMap[j].nLen) &&
 						(memcmp(m_pMap[j].bstr, rgszNames[i], m_pMap[j].nLen * sizeof(OLECHAR)) == 0))
@@ -154,7 +153,7 @@ inline HRESULT CComTypeInfoHolderModule<nObtainMethod>::GetTI(LCID lcid)
     USES_CONVERSION;
 	//If this assert occurs then most likely didn't initialize properly
 	ATLASSERT(m_plibid != NULL && m_pguid != NULL);
-	ATLASSERT(!InlineIsEqualGUID(*m_plibid, GUID_NULL) && "Did you forget to pass the LIBID to CComModule::Init?");
+	ATLASSERT(!::InlineIsEqualGUID(*m_plibid, GUID_NULL) && "Did you forget to pass the LIBID to CComModule::Init?");
 
 	if (m_pInfo != NULL)
 		return S_OK;
@@ -201,7 +200,7 @@ inline HRESULT CComTypeInfoHolderModule<nObtainMethod>::GetTI(LCID lcid)
 		}
 	}
 	LeaveCriticalSection(&_Module.m_csTypeInfoHolder);
-	_Module.AddTermFunc(Cleanup, (DWORD_PTR)this);
+	_Module.AddTermFunc(Cleanup, (DWORD)this);
 	return hRes;
 }
 

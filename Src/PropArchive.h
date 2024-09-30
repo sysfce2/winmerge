@@ -1,38 +1,45 @@
+
 /** 
  * @file  PropArchive.h
  *
- * @brief Declaration file for PropArchive propertyheet
+ * @brief Declaration file for CPropArchive propertyheet
  *
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: PropArchive.h,v 1.1 2005/08/29 16:28:29 kimmov Exp $
 
-#include "OptionsPanel.h"
+#ifndef _PROP_ARCHIVE_H_
+#define _PROP_ARCHIVE_H_
 
-class COptionsMgr;
+#include "StatLink.h"
+
 
 /** 
  * @brief Class for Archive Support options page.
  */
-class PropArchive : public OptionsPanel
+class CPropArchive : public CPropertyPage
 {
-public:
-	explicit PropArchive(COptionsMgr *optionsMgr);
+	DECLARE_DYNAMIC(CPropArchive)
 
-// Implement IOptionsPanel
-	virtual void ReadOptions() override;
-	virtual void WriteOptions() override;
+public:
+	CPropArchive();
+	virtual ~CPropArchive();
 
 // Dialog Data
-	enum { IDD = IDD_PROPPAGE_ARCHIVE };
+	enum { IDD = IDD_PROP_ARCHIVE };
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	virtual BOOL OnInitDialog();
 	void UpdateControls();
 
 	afx_msg void OnEnableClicked();
 
 	DECLARE_MESSAGE_MAP()
 public:
-	bool m_bEnableSupport;
-	bool m_bProbeType;
+	CStaticLink m_wwwLink;
+	BOOL m_bEnableSupport;
+	int m_nInstallType;
+	BOOL m_bProbeType;
 };
+#endif // _PROP_ARCHIVE_H_

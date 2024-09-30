@@ -1,14 +1,44 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+//    License (GPLv2+):
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful, but
+//    WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/////////////////////////////////////////////////////////////////////////////
 /**
  * @file  SaveClosingDlg.h
  *
  * @brief Declaration file for SaveClosingDlg dialog
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: SaveClosingDlg.h,v 1.3 2005/05/25 00:14:21 elsapo Exp $
 
-#include "TrDialogs.h"
+
+#ifndef _SAVECLOSINGDLG_H_
+#define _SAVECLOSINGDLG_H_
+
+
+#ifndef CMoveConstraint_h
 #include "CMoveConstraint.h"
-#include "UnicodeString.h"
+#endif
+
+/** 
+ * @brief Choices for modified files: save/discard changes.
+ */
+enum SAVECLOSING_CHOICE
+{
+	SAVECLOSING_SAVE = 0, //*< Save changes */
+	SAVECLOSING_DISCARD,  //*< Discard changes */
+};
 
 /////////////////////////////////////////////////////////////////////////////
 // SaveClosingDlg dialog
@@ -21,32 +51,22 @@
  * controls inside it are disabled. Asked file(s) are selected using
  * DoAskFor() function.
  */
-class SaveClosingDlg : public CTrDialog
+class SaveClosingDlg : public CDialog
 {
 	DECLARE_DYNAMIC(SaveClosingDlg)
 
 public:
-
-	/** @brief Choices for modified files: save/discard changes. */
-	enum SAVECLOSING_CHOICE
-	{
-		SAVECLOSING_SAVE = 0, /**< Save changes */
-		SAVECLOSING_DISCARD,  /**< Discard changes */
-	};
-
-	explicit SaveClosingDlg(CWnd* pParent = nullptr);   // standard constructor
-	void DoAskFor(bool bLeft = false, bool bMiddle = false, bool bRight = false);
+	SaveClosingDlg(CWnd* pParent = NULL);   // standard constructor
+	void DoAskFor(BOOL bLeft = FALSE, BOOL bRight = FALSE);
 
 // Dialog Data
 	//{{AFX_DATA(SaveClosingDlg)
 	enum { IDD = IDD_SAVECLOSING };
-	String m_sLeftFile; /**< Path to left-file to save. */
-	String m_sMiddleFile; /**< Path to middle-file to save. */
-	String m_sRightFile; /**< Path to right-side file to save. */
-	int m_leftSave; /**< User's choice for left-side save. */
-	int m_middleSave; /**< User's choice for middle-side save. */
-	int m_rightSave; /**< User's choice for righ-side save. */
-	bool m_bDisableCancel; /**< Should we disable Cancel-button? */
+	CString m_sLeftFile;
+	CString m_sRightFile;
+	int m_leftSave;
+	int m_rightSave;
+	BOOL m_bDisableCancel;
 	//}}AFX_DATA
 
 protected:
@@ -54,15 +74,16 @@ protected:
 
 	// Generated message map functions
 	//{{AFX_MSG(SaveClosingDlg)
-	afx_msg BOOL OnInitDialog() override;
+	afx_msg BOOL OnInitDialog();
 	afx_msg void OnDiscardAll();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
 // Implementation data
 private:
-	prdlg::CMoveConstraint m_constraint; /**< Resizes dialog controls when dialog resized */
-	bool m_bAskForLeft; /**< Is left file modified? */
-	bool m_bAskForMiddle; /**< Is middle file modified? */
-	bool m_bAskForRight; /**< Is right file modified? */
+	prdlg::CMoveConstraint m_constraint; //*< Resizes dialog controls when dialog resized */
+	BOOL m_bAskForLeft; //*< Is left file modified? */
+	BOOL m_bAskForRight; //*< Is right file modified? */
 };
+
+#endif // _SAVECLOSINGDLG_H_

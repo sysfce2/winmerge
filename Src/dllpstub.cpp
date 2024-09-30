@@ -20,28 +20,27 @@ Please mind 2. a) of the GNU General Public License, and log your changes below.
 DATE:		BY:					DESCRIPTION:
 ==========	==================	================================================
 2005/02/26	Jochen Tucht		Created
-2006/09/10	Kimmo Varis			Don't use 'export' as variable name
-								Visual Studio 2005 warns about it.
 */
 
 #include "stdafx.h"
-#include "dllpstub.h"
+#include <shlwapi.h>
 #include <afxdisp.h>
 #include <afxinet.h>
+#include "dllpstub.h"
 
 /**
  * @brief Throw DLLPSTUB related exception.
  */
-void DLLPSTUB::Throw(LPCSTR name, HMODULE handle, DWORD dwError, bool bFreeLibrary)
+void DLLPSTUB::Throw(LPCSTR name, HMODULE handle, DWORD dwError, BOOL bFreeLibrary)
 {
 	CString strError = name;
-	if (handle != nullptr)
+	if (handle)
 	{
 		TCHAR module[4096];
 		module[0] = '@';
 		if (::GetModuleFileName(handle, module + 1, 4095) == 0)
 		{
-			wsprintf(module + 1, _T("%p"), handle);
+			wsprintf(module + 1, _T("%08lX"), handle);
 		}
 		strError += strError.IsEmpty() ? module + 1 : module;
 	}
@@ -52,7 +51,7 @@ void DLLPSTUB::Throw(LPCSTR name, HMODULE handle, DWORD dwError, bool bFreeLibra
 		szError[1] = '\n';
 		strError += szError;
 	}
-	if (bFreeLibrary && handle != nullptr)
+	if (bFreeLibrary)
 	{
 		FreeLibrary(handle);
 	}
@@ -68,13 +67,13 @@ HMODULE DLLPSTUB::Load()
 	// followed by a char array of the DLL name to load
 	// so it access the char array via *(this + 1)
 	LPCSTR *proxy = (LPCSTR *) (this + 1);
-	HMODULE handle = nullptr;
+	HMODULE handle = NULL;
 	if (LPCSTR name = *proxy)
 	{
-		if (proxy[1] != nullptr && proxy[1] != name)
+		if (proxy[1] && proxy[1] != name)
 		{
 			handle = LoadLibraryA(name);
-			if (handle != nullptr)
+			if (handle)
 			{
 				// If any of the version members are non-zero
 				// then we require that DLL export "DllGetVersion"
@@ -83,14 +82,15 @@ HMODULE DLLPSTUB::Load()
 				if (dwMajorVersion || dwMinorVersion || dwBuildNumber)
 				{
 					// Is the DLL up to date?
-					DLLVERSIONINFO dvi{ sizeof dvi };
+					DLLVERSIONINFO dvi;
+					dvi.cbSize = sizeof dvi;
 					dvi.dwMajorVersion = 0;
 					dvi.dwMinorVersion = 0;
 					dvi.dwBuildNumber = 0;
 					DLLGETVERSIONPROC DllGetVersion = (DLLGETVERSIONPROC)GetProcAddress(handle, "DllGetVersion");
 					if
 					(
-						DllGetVersion == nullptr
+						DllGetVersion == NULL
 					||	FAILED(DllGetVersion(&dvi))
 					||	(
 							dwMajorVersion && dvi.dwMajorVersion != dwMajorVersion
@@ -104,34 +104,34 @@ HMODULE DLLPSTUB::Load()
 						// Well, that's the most appropriate canned system
 						// message I came across: If DLL is outdated, it may
 						// actually lack some interface we need...
-						Throw(0, handle, CO_S_NOTALLINTERFACES, true);
+						Throw(0, handle, CO_S_NOTALLINTERFACES, TRUE);
 					}
 				}
-				LPCSTR *pszExport = proxy;
-				*proxy = nullptr;
-				while ((name = *++pszExport) != nullptr)
+				LPCSTR *export = proxy;
+				*proxy = NULL;
+				while ((name = *++export) != NULL)
 				{
-					*pszExport = (LPCSTR)GetProcAddress(handle, name);
-					if (*pszExport == nullptr)
+					*export = (LPCSTR)GetProcAddress(handle, name);
+					if (*export == NULL)
 					{
 						*proxy = proxy[1] = name;
-						pszExport = proxy + 2;
+						export = proxy + 2;
 						break;
 					}
 				}
-				*pszExport = (LPCSTR)handle;
+				*export = (LPCSTR)handle;
 			}
 		}
-		if ((name = *proxy) != nullptr)
+		if ((name = *proxy) != NULL)
 		{
 			DWORD dwError = ERROR_MOD_NOT_FOUND;
-			HMODULE handle1 = 0;
+			HMODULE handle = 0;
 			if (proxy[1] == name)
 			{
 				dwError = ERROR_PROC_NOT_FOUND;
-				handle1 = (HMODULE)proxy[2];
+				handle = (HMODULE)proxy[2];
 			}
-			Throw(name, handle1, dwError, false);
+			Throw(name, handle, dwError, FALSE);
 		}
 	}
 	return handle;

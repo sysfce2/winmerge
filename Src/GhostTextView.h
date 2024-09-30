@@ -3,7 +3,10 @@
  *
  * @brief Declaration of CGhostTextView (subclasses CCrystalEditViewEx to handle ghost lines)
  */
-#pragma once
+
+
+#ifndef __GHOSTTEXTVIEW_H__
+#define __GHOSTTEXTVIEW_H__
 
 #include "crystalEditViewex.h"
 
@@ -45,14 +48,11 @@ private:
 	 */
 	struct SCursorPushed
 	{
-		/// char pos
 		int x;
-		/// real line number of itself (is the line is real)/the first real line after this line (else)
+		// real line number of itself (is the line is real)/the first real line after this line (else)
 		int y;
-		/// 0 (is the line is real)/ distance to the first real line after this one 
+		// 0 (is the line is real)/ distance to the first real line after this one 
 		int nToFirstReal;
-
-		SCursorPushed() : x(0), y(0), nToFirstReal(0) { }
 	};
 	
 	/** 
@@ -76,16 +76,14 @@ private:
 	SCursorPushed m_ptSelStartPushed, m_ptSelEndPushed;
 	/// anchor point for selection (during shift is pressed)
 	SCursorPushed m_ptAnchorPushed;
-	/// during dragging, extremities of dragged text : if (m_bDraggingText == true)
+	/// during dragging, extremities of dragged text : if (m_bDraggingText == TRUE)
 	SCursorPushed m_ptDraggedTextBeginPushed, m_ptDraggedTextEndPushed;
-	/// during drag/drop, droping position : if (m_bDropPosVisible == true)
+	/// during drag/drop, droping position : if (m_bDropPosVisible == TRUE)
 	SCursorPushed m_ptSavedCaretPosPushed;
-	/// memorize selected text during OnEditReplace : if (m_bSelectionPushed == true)
+	/// memorize selected text during OnEditReplace : if (m_bSelectionPushed == TRUE)
 	SCursorPushed m_ptSavedSelStartPushed, m_ptSavedSelEndPushed;
 	/// memorize top line positions
-	int m_nTopSubLinePushed;
-	/// memorize X offset positions
-	int m_nOffsetCharPushed;
+	SCursorPushed m_nTopLinePushed;
 	/** last change position, in the buffer ; used in insertText
 	 * initialized with (-1,-1), so don't assert for this invalid value
 	 */
@@ -95,28 +93,28 @@ private:
 	//   m_ptDropPos : only used inside one function which does not change the buffer
 
 public:
-	virtual void ReAttachToBuffer (CCrystalTextBuffer * pBuf = nullptr) override;
-	virtual void AttachToBuffer (CCrystalTextBuffer * pBuf = nullptr) override;
-	virtual void DetachFromBuffer () override;
+	virtual void ReAttachToBuffer (CCrystalTextBuffer * pBuf = NULL);
+	virtual void AttachToBuffer (CCrystalTextBuffer * pBuf = NULL);
+	virtual void DetachFromBuffer ();
 
 	/** real cursor function to preserve cursor during Rescan */
 	void PopCursors ();
 	/** real cursor function to preserve cursor during Rescan */
 	void PushCursors ();
 
-	void GetTextWithoutEmptys (int nStartLine, int nStartChar,
-			int nEndLine, int nEndChar, CString &text,
-			CRLFSTYLE nCrlfStyle = CRLFSTYLE::AUTOMATIC,
-			bool bExcludeInvisibleLines = true);
-	void GetTextWithoutEmptysInColumnSelection (CString & text,
-			bool bExcludeInvisibleLines = true);
+	virtual void GetTextWithoutEmptys (int nStartLine, int nStartChar, int nEndLine, int nEndChar, CString &text, int nCrlfStyle =CRLF_STYLE_AUTOMATIC );
 	/** 
 	 * @brief Override this drag-n-drop function to call GetTextWithoutEmptys
 	 */
-	virtual HGLOBAL PrepareDragData () override;
+	virtual HGLOBAL PrepareDragData ();
 
 	int ComputeApparentLine (int nRealLine) const;
 	int ComputeRealLine (int nApparentLine) const;
-	virtual void DrawMargin (const CRect & rect, int nLineIndex, int nLineNumber) override;
 
 };
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+
+#endif //__GHOSTTEXTVIEW_H__

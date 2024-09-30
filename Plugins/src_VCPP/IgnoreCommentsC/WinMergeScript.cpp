@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "IgnoreCommentsC.h"
 #include "WinMergeScript.h"
-#include <fstream>
+#include <fstream.h>
 
 /////////////////////////////////////////////////////////////////////////////
 // CWinMergeScript
@@ -16,13 +16,13 @@ STDMETHODIMP CWinMergeScript::get_PluginEvent(BSTR *pVal)
 
 STDMETHODIMP CWinMergeScript::get_PluginDescription(BSTR *pVal)
 {
-  *pVal = SysAllocString(L"The plugin ignores comments (//... and /* ... */) in C, C++, PHP and JavaScript files.");
+  *pVal = SysAllocString(L"Transform C/CPP to compare without comments - save not possible");
   return S_OK;
 }
 
 STDMETHODIMP CWinMergeScript::get_PluginFileFilters(BSTR *pVal)
 {
-  *pVal = SysAllocString(L"\\.cpp$;\\.cxx$;\\.h$;\\.hxx$;\\.c$;\\.php$;\\.js$;\\.cs$;\\.ts$");
+  *pVal = SysAllocString(L"\\.cpp$;\\.cxx$;\\.h$;\\.hxx$;\\.c$;\\.php$;\\.js$");
   return S_OK;
 }
 
@@ -32,11 +32,6 @@ STDMETHODIMP CWinMergeScript::get_PluginIsAutomatic(VARIANT_BOOL *pVal)
   return S_OK;
 }
 
-STDMETHODIMP CWinMergeScript::get_PluginExtendedProperties(BSTR *pVal)
-{
-	*pVal = SysAllocString(L"MenuCaption=Ignore Comments (C-Family Languages)");
-	return S_OK;
-}
 
 STDMETHODIMP CWinMergeScript::UnpackBufferA(SAFEARRAY **pBuffer, INT *pSize, VARIANT_BOOL *pbChanged, INT *pSubcode, VARIANT_BOOL *pbSuccess)
 {
@@ -75,6 +70,9 @@ STDMETHODIMP CWinMergeScript::PrediffBufferW(BSTR *pText, INT *pSize, VARIANT_BO
  // find // in lines
  //   compact // ..EOL  to //EOL
  //   compact /*.. */ to /**/   (keep line ends)
+#ifdef _DEBUG
+  __asm  { int 3 };
+#endif
   
   LPWSTR p;
   p=*pText;
@@ -170,8 +168,3 @@ CloseClipboard();
   return S_OK;
 }
 
-STDMETHODIMP CWinMergeScript::ShowSettingsDialog(VARIANT_BOOL *pbHandled)
-{
-	*pbHandled = VARIANT_FALSE;
-	return E_NOTIMPL;
-}

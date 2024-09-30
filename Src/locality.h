@@ -3,15 +3,17 @@
  *
  * @brief Declaration of helper functions involving locale
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: locality.h,v 1.1 2003/08/30 01:33:36 puddle Exp $
 
-#include "UnicodeString.h"
+#ifndef locality_h_included
+#define locality_h_included
 
 namespace locality {
 
-String NumToLocaleStr(int n);
-String NumToLocaleStr(int64_t n);
-String GetLocaleStr(const TCHAR *str, int decimalDigits = 0);
-String TimeString(const int64_t * tim);
+CString NumToLocaleStr(UINT n);
+CString GetLocaleStr(const CString & str);
 
 };
+
+#endif // locality_h_included

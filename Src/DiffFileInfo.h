@@ -1,46 +1,96 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+//    License (GPLv2+):
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful, but
+//    WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/////////////////////////////////////////////////////////////////////////////
 /** 
  * @file  DiffFileInfo.h
  *
  * @brief Declaration file for DiffFileInfo
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: DiffFileInfo.h,v 1.10 2005/06/17 19:21:17 kimmov Exp $
 
-#include "DirItem.h"
-#include "FileVersion.h"
-#include "FileTextEncoding.h"
-#include "FileTextStats.h"
-#include "PropertySystem.h"
+#ifndef _DIFF_FILE_INFO_H_INCLUDED
+#define _DIFF_FILE_INFO_H_INCLUDED
+
+#ifndef _FILE_INFO_H_INCLUDED
+#include "FileInfo.h"
+#endif
 
 /**
- * @brief Information for file.
- * This class expands DirItem class with encoding information and
- * text stats information.
- * @sa DirItem.
+ * @brief Class for fileflags and coding info.
  */
-struct DiffFileInfo : public DirItem
+struct DiffFileFlags : public FileFlags
 {
-// data
-	FileVersion version; /**< string of fixed file version, eg, 1.2.3.4 */
-	FileTextEncoding encoding; /**< unicode or codepage info */
-	FileTextStats m_textStats; /**< EOL, zero-byte etc counts */
-	std::unique_ptr<PropertyValues> m_pAdditionalProperties; /**< Additional Property values */
+	DWORD coding; /**< Coding info for item */
+	DiffFileFlags() : coding(0) { FileFlags(); }
+	
+	/// Convert flags and coding to string for UI.
+	CString toString() const
+		{
+			CString sflags;
+			if (attributes & FILE_ATTRIBUTE_READONLY)
+				sflags += _T("R");
+			if (attributes & FILE_ATTRIBUTE_HIDDEN)
+				sflags += _T("H");
+			if (attributes & FILE_ATTRIBUTE_SYSTEM)
+				sflags += _T("S");
+			if (attributes & FILE_ATTRIBUTE_ARCHIVE)
+				sflags += _T("A");
 
-	// We could stash a pointer here to the parent DIFFITEM
-	// but, I ran into trouble with, I think, the DIFFITEM copy constructor
+			if ((coding & coding_mask) == UTF_8)
+				sflags += _T("8");
+			if ((coding & coding_mask) == UCS_2BE)
+				sflags += _T("B");
+			if ((coding & coding_mask) == UCS_2LE)
+				sflags += _T("L");
+			if ((coding & coding_mask) == UCS_4)
+				sflags += _T("4");
+			return sflags;
+		}
 
-// methods
-
-	DiffFileInfo() = default;
-	//void Clear();
-	void ClearPartial();
-	bool IsEditableEncoding() const;
+	/**
+	* @brief Encodings supported.
+	*/
+	enum
+	{ 
+		UTF_8 = 0x1000,
+		UCS_4 = 0x2000,
+		UCS_2BE = 0x3000,
+		UCS_2LE = 0x4000,
+		coding_mask = 0x7000,
+	};
 };
 
 /**
- * @brief Return true if file is in any Unicode encoding
+ * @brief Information for file
  */
-inline bool DiffFileInfo::IsEditableEncoding() const
+struct DiffFileInfo : public FileInfo
 {
-	return !encoding.m_bom;
-}
+	bool bVersionChecked; /**< true if version string is up-to-date */
+	DiffFileFlags flags; /**< file attributes */
+	int codepage; /**< 8bit codepage, if applicable, 0 is unknown or N/A */
+	int unicoding; /**< Unicode encoding (ucr::CODESET) */
+	DiffFileInfo() { Clear(); }
+
+	CString getEncodingString() const;
+	// We could stash a pointer here to the parent DIFFITEM
+	// but, I ran into trouble with, I think, the DIFFITEM copy constructor
+	
+	void Update(CString sFilePath);
+	void Clear();
+};
+
+#endif // _DIFF_FILE_INFO_H_INCLUDED

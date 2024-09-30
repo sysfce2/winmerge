@@ -3,63 +3,42 @@
  *
  *  @brief Declaration of DiffItemList
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: DiffItemList.h,v 1.3 2005/08/11 20:13:17 kimmov Exp $
 
+#ifndef _DIFF_ITEM_LIST_H_
+#define _DIFF_ITEM_LIST_H_
+
+#ifndef _DIFF_ITEM_H_
 #include "DiffItem.h"
+#endif
 
 /**
- * @brief List of DIFFITEMs in folder compare.
- * This class holds a list of items we have in the folder compare. Basically
- * we have a linked list of DIFFITEMs. But there is a structure that follows
- * the actual folder structure. Each DIFFITEM can have a parent folder and
- * another list of child items. Parent DIFFITEM is always a folder item.
+ * @brief List of DiffItems
  */
 class DiffItemList
 {
 public:
-	DiffItemList();
-	~DiffItemList();
 	// add & remove differences
-	DIFFITEM *AddNewDiff(DIFFITEM *parent);
-	void RemoveAll();
-	void InitDiffItemList();
-	void ClearAllAdditionalProperties();
+	virtual void AddDiff(const DIFFITEM & di);
+	virtual void RemoveDiff(POSITION diffpos);
+	virtual void RemoveAll();
 
 	// to iterate over all differences on list
-	DIFFITEM *GetFirstDiffPosition() const;
-	DIFFITEM *GetFirstChildDiffPosition(const DIFFITEM *par) const;
-	const DIFFITEM &GetNextDiffPosition(DIFFITEM *&diffpos) const;
-	DIFFITEM &GetNextDiffRefPosition(DIFFITEM *&diffpos);
-	const DIFFITEM &GetNextSiblingDiffPosition(DIFFITEM *&diffpos) const;
-	DIFFITEM &GetNextSiblingDiffRefPosition(DIFFITEM *&diffpos);
-	const DIFFITEM &GetDiffAt(DIFFITEM *diffpos) const;
-	DIFFITEM &GetDiffRefAt(DIFFITEM *diffpos);
+	POSITION GetFirstDiffPosition() const;
+	DIFFITEM GetNextDiffPosition(POSITION & diffpos) const;
+	DIFFITEM GetDiffAt(POSITION diffpos) const;
+	DIFFITEM & GetDiffRefAt(POSITION diffpos);
 
-	void SetDiffStatusCode(DIFFITEM *diffpos, unsigned diffcode, unsigned mask);
-	void SetDiffCounts(DIFFITEM *diffpos, unsigned diffs, unsigned ignored);
-	unsigned GetCustomFlags1(DIFFITEM *diffpos) const;
-	void SetCustomFlags1(DIFFITEM *diffpos, unsigned flag);
+	int GetDiffCount() const;
 
-	void Swap(int idx1, int idx2);
+	void SetDiffStatusCode(POSITION diffpos, UINT diffcode, UINT mask);
+	void SetDiffCounts(POSITION diffpos, UINT diffs, UINT ignored);
+	UINT GetCustomFlags1(POSITION diffpos) const;
+	void SetCustomFlags1(POSITION diffpos, UINT flag);
 
 protected:
-	DIFFITEM* m_pRoot; /**< Root of list of diffitems; initially `nullptr`. */
+	CList<DIFFITEM,DIFFITEM&> m_dirlist; /**< List of diffitems */
 };
 
-/**
- * @brief Get copy of Diff Item at given position in difflist.
- * @param diffpos position of item to return
- */
-inline const DIFFITEM &DiffItemList::GetDiffAt(DIFFITEM *diffpos) const
-{
-	return *diffpos;
-}
-
-/**
- * @brief Get Diff Item (by reference) at given position in difflist.
- * @param diffpos position of item to return
- */
-inline DIFFITEM &DiffItemList::GetDiffRefAt(DIFFITEM *diffpos)
-{
-	return *diffpos;
-}
+#endif // _DIFF_ITEM_LIST_H_

@@ -6,6 +6,8 @@
  * This object implements the method PrediffBufferW (q.v.).
  *
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: WinMergeScript.cpp,v 1.2.4.1 2006/08/08 14:01:20 galh Exp $
 
 #include "stdafx.h"
 #include "RCLocalizationHelper.h"
@@ -50,8 +52,7 @@ STDMETHODIMP CWinMergeScript::get_PluginIsAutomatic(VARIANT_BOOL *pVal)
 static int
 GetLineLength(const WCHAR * start, int maxlen)
 {
-	int i;
-	for (i=0; (maxlen == -1 || i < maxlen); ++i)
+	for (int i=0; (maxlen == -1 || i < maxlen); ++i)
 	{
 		if (start[i] == '\n' || start[i] == '\r' || start[i] == 0)
 			return i;
@@ -138,10 +139,4 @@ STDMETHODIMP CWinMergeScript::PrediffBufferW(BSTR *pText, INT *pSize, VARIANT_BO
 
 	*pbHandled = VARIANT_TRUE;
 	return S_OK;
-}
-
-STDMETHODIMP CWinMergeScript::ShowSettingsDialog(VARIANT_BOOL *pbHandled)
-{
-	*pbHandled = VARIANT_FALSE;
-	return E_NOTIMPL;
 }

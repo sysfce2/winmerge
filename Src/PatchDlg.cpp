@@ -1,54 +1,74 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+//    License (GPLv2+):
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or (at
+//    your option) any later version.
+//    
+//    This program is distributed in the hope that it will be useful, but
+//    WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/////////////////////////////////////////////////////////////////////////////
 /** 
  * @file  PatchDlg.cpp
  *
  * @brief Implementation of Patch creation dialog
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: PatchDlg.cpp,v 1.20.2.1 2005/12/31 00:25:31 elsapo Exp $
 
-#include "StdAfx.h"
+#include "stdafx.h"
+#include "merge.h"
 #include "PatchDlg.h"
-#include "PatchTool.h"
 #include "diff.h"
+#include "coretools.h"
 #include "paths.h"
 #include "CompareOptions.h"
-#include "FileOrFolderSelect.h"
-#include "Environment.h"
-#include "OptionsDef.h"
-#include "OptionsMgr.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
 
-using std::swap;
 
 /////////////////////////////////////////////////////////////////////////////
 // CPatchDlg dialog
 
-/** 
- * @brief Constructor, initializes members.
- */
-CPatchDlg::CPatchDlg(CWnd* pParent /*= nullptr*/)
-	: CTrDialog(CPatchDlg::IDD, pParent)
-	, m_copyToClipboard(false)
-	, m_appendFile(false)
-	, m_openToEditor(false)
-	, m_includeCmdLine(false)
-	, m_outputStyle(OUTPUT_NORMAL)
-	, m_contextLines(0)
+
+CPatchDlg::CPatchDlg(CWnd* pParent /*=NULL*/)
+	: CDialog(CPatchDlg::IDD, pParent)
 {
+	//{{AFX_DATA_INIT(CPatchDlg)
+	m_caseSensitive = TRUE;
+	m_file1 = _T("");
+	m_file2 = _T("");
+	m_fileResult = _T("");
+	m_ignoreBlanks = 0;
+	m_whitespaceCompare = 0;
+	m_appendFile = FALSE;
+	m_openToEditor = FALSE;
+	m_includeCmdLine = FALSE;
+	m_outputStyle = OUTPUT_NORMAL;
+	m_contextLines = 0;
+	//}}AFX_DATA_INIT
 }
 
-/**
- * @brief Map dialog controls and class member variables.
- */
+
 void CPatchDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CTrDialog::DoDataExchange(pDX);
+	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CPatchDlg)
 	DDX_Control(pDX, IDC_DIFF_STYLE, m_comboStyle);
 	DDX_Control(pDX, IDC_DIFF_CONTEXT, m_comboContext);
-	DDX_Check(pDX, IDC_DIFF_COPYCLIPBOARD, m_copyToClipboard);
+	DDX_Check(pDX, IDC_DIFF_CASESENSITIVE, m_caseSensitive);
+	DDX_Check(pDX, IDC_DIFF_WHITESPACE_IGNOREBLANKS, m_ignoreBlanks);
+	DDX_Radio(pDX, IDC_DIFF_WHITESPACE_COMPARE, m_whitespaceCompare);
 	DDX_Check(pDX, IDC_DIFF_APPENDFILE, m_appendFile);
 	DDX_Control(pDX, IDC_DIFF_FILE1, m_ctlFile1);
 	DDX_Control(pDX, IDC_DIFF_FILE2, m_ctlFile2);
@@ -62,18 +82,17 @@ void CPatchDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(CPatchDlg, CTrDialog)
+BEGIN_MESSAGE_MAP(CPatchDlg, CDialog)
 	//{{AFX_MSG_MAP(CPatchDlg)
 	ON_BN_CLICKED(IDC_DIFF_BROWSE_FILE1, OnDiffBrowseFile1)
 	ON_BN_CLICKED(IDC_DIFF_BROWSE_FILE2, OnDiffBrowseFile2)
 	ON_BN_CLICKED(IDC_DIFF_BROWSE_RESULT, OnDiffBrowseResult)
 	ON_BN_CLICKED(IDC_DIFF_DEFAULTS, OnDefaultSettings)
+	ON_CBN_SELCHANGE(IDC_DIFF_FILE1, OnSelchangeFile1Combo)
+	ON_CBN_SELCHANGE(IDC_DIFF_FILE2, OnSelchangeFile2Combo)
+	ON_CBN_SELCHANGE(IDC_DIFF_FILERESULT, OnSelchangeResultCombo)
 	ON_CBN_SELCHANGE(IDC_DIFF_STYLE, OnSelchangeDiffStyle)
 	ON_BN_CLICKED(IDC_DIFF_SWAPFILES, OnDiffSwapFiles)
-	ON_CBN_SELCHANGE(IDC_DIFF_FILE1, OnSelchangeFile1)
-	ON_CBN_SELCHANGE(IDC_DIFF_FILE2, OnSelchangeFile2)
-	ON_CBN_EDITCHANGE(IDC_DIFF_FILE1, OnEditchangeFile1)
-	ON_CBN_EDITCHANGE(IDC_DIFF_FILE2, OnEditchangeFile2)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -81,8 +100,7 @@ END_MESSAGE_MAP()
 // CPatchDlg message handlers
 
 /** 
- * @brief Called when dialog is closed with OK.
- * Check options and filenames given and close the dialog.
+ * @brief OK button pressed: check options and filenames and close dialog
  */
 void CPatchDlg::OnOK()
 {
@@ -92,68 +110,46 @@ void CPatchDlg::OnOK()
 	// multiple files.  Multiple files are selected from DirView.
 	// Only if single files selected, filenames are checked here.
 	// Filenames read from Dirview must be valid ones.
-	size_t selectCount = m_fileList.size();
-	if (selectCount == 0)
-	{
-		PATCHFILES tFiles;
-		tFiles.lfile = m_file1;
-		tFiles.rfile = m_file2;
-		AddItem(tFiles);
-		selectCount = 1;
-	}
+	int selectCount = m_fileList.GetCount();
 	if (selectCount == 1)
 	{
-		bool file1Ok = (paths::DoesPathExist(m_file1) != paths::DOES_NOT_EXIST);
-		bool file2Ok = (paths::DoesPathExist(m_file2) != paths::DOES_NOT_EXIST);
+		BOOL file1Ok = (paths_DoesPathExist(m_file1) == IS_EXISTING_FILE);
+		BOOL file2Ok = (paths_DoesPathExist(m_file2) == IS_EXISTING_FILE);
 
 		if (!file1Ok || !file2Ok)
 		{
 			if (!file1Ok)
-				LangMessageBox(IDS_DIFF_ITEM1NOTFOUND, MB_ICONSTOP);
+				AfxMessageBox(IDS_DIFF_ITEM1NOTFOUND, MB_ICONSTOP);
 
 			if (!file2Ok)
-				LangMessageBox(IDS_DIFF_ITEM2NOTFOUND, MB_ICONSTOP);
+				AfxMessageBox(IDS_DIFF_ITEM2NOTFOUND, MB_ICONSTOP);
 			return;
 		}
-
-		PATCHFILES tFiles = m_fileList[0];
-		if (tFiles.lfile != m_file1 && !tFiles.pathLeft.empty())
-			tFiles.pathLeft.clear();
-		if (tFiles.rfile != m_file2 && !tFiles.pathRight.empty())
-			tFiles.pathRight.clear();
-		tFiles.lfile = m_file1;
-		tFiles.rfile = m_file2;
-		m_fileList[0] = tFiles;
 	}
 
-	// Check that result (patch) file is absolute path
-	if (!paths::IsPathAbsolute(m_fileResult))
+	// Check that a result file was specified
+	if (m_fileResult.IsEmpty())
 	{
-		if (m_fileResult.length() == 0)
-		{
-			TCHAR szTempFile[MAX_PATH];
-			::GetTempFileName(env::GetTemporaryPath().c_str(), _T("pat"), 0, szTempFile);
-			m_fileResult = szTempFile;
-			m_ctlResult.SetWindowText(m_fileResult.c_str());
-			DeleteFile(m_fileResult.c_str());
-		}
-		if (!paths::IsPathAbsolute(m_fileResult))
-		{
-			String msg = strutils::format_string1(_("The specified output path is not an absolute path: %1"),
-				m_fileResult);
-			AfxMessageBox(msg.c_str(), MB_ICONSTOP);
-			m_ctlResult.SetFocus();
-			return;
-		}
+		AfxMessageBox(IDS_MUST_SPECIFY_OUTPUT, MB_ICONSTOP);
+		m_ctlResult.SetFocus();
+		return;
+	}
+ 
+	// Check that result (patch) file is absolute path
+	if (!paths_IsPathAbsolute(m_fileResult))
+	{
+		ResMsgBox1(IDS_PATH_NOT_ABSOLUTE, m_fileResult, MB_ICONSTOP);
+		m_ctlResult.SetFocus();
+		return;
 	}
 	
-	bool fileExists = (paths::DoesPathExist(m_fileResult) == paths::IS_EXISTING_FILE);
+	BOOL fileExists = (paths_DoesPathExist(m_fileResult) == IS_EXISTING_FILE);
 
 	// Result file already exists and append not selected
 	if (fileExists && !m_appendFile)
 	{
-		if (LangMessageBox(IDS_DIFF_FILEOVERWRITE,
-				MB_YESNO | MB_ICONWARNING | MB_DONT_ASK_AGAIN,
+		if (AfxMessageBox(IDS_DIFF_FILEOVERWRITE,
+				MB_YESNO | MB_ICONQUESTION | MB_DONT_ASK_AGAIN,
 				IDS_DIFF_FILEOVERWRITE) != IDYES)
 		{
 			return;
@@ -161,84 +157,81 @@ void CPatchDlg::OnOK()
 	}
 	// else it's OK to write new file
 
-	switch (m_comboStyle.GetCurSel())
-	{
-	case 1: m_outputStyle = (enum output_style)OUTPUT_CONTEXT; break;
-	case 2: m_outputStyle = (enum output_style)OUTPUT_UNIFIED; break;
-	case 3: m_outputStyle = (enum output_style)OUTPUT_HTML; break;
-	default: m_outputStyle = (enum output_style)OUTPUT_NORMAL; break;
-	}
+	m_outputStyle = (enum output_style) m_comboStyle.GetCurSel();
 
-	m_contextLines = GetDlgItemInt(IDC_DIFF_CONTEXT);
+	int contextSel = m_comboContext.GetCurSel();
+	if (contextSel != CB_ERR)
+	{
+		TCHAR contextText[50] = _T("");
+		m_comboContext.GetLBText(contextSel, contextText);
+		m_contextLines = _ttoi(contextText);
+	}
+	else
+		m_contextLines = 0;
 
 	SaveSettings();
 
 	// Save combobox history
+	m_ctlFile1.SaveState(_T("Files\\DiffFile1"));
+	m_ctlFile2.SaveState(_T("Files\\DiffFile2"));
 	m_ctlResult.SaveState(_T("Files\\DiffFileResult"));
-	m_comboContext.SaveState(_T("PatchCreator\\DiffContext"));
-	// Don't save filenames if multiple file selected (as editbox reads
-	// [X files selected])
-	if (selectCount <= 1)
-	{
-		m_ctlFile1.SaveState(_T("Files\\DiffFile1"));
-		m_ctlFile2.SaveState(_T("Files\\DiffFile2"));
-	}
-	
-	CTrDialog::OnOK();
+
+	CDialog::OnOK();
 }
 
 /** 
- * @brief Initialise dialog data.
- *
- * There are two cases for filename editboxes:
- * - if one file was added to list then we show that filename
- * - if multiple files were added we show text [X files selected]
+ * @brief Initialise dialog data
  */
 BOOL CPatchDlg::OnInitDialog()
 {
-	CTrDialog::OnInitDialog();
+	CDialog::OnInitDialog();
 
 	// Load combobox history
 	m_ctlFile1.LoadState(_T("Files\\DiffFile1"));
 	m_ctlFile2.LoadState(_T("Files\\DiffFile2"));
-	m_comboContext.LoadState(_T("PatchCreator\\DiffContext"));
 	m_ctlResult.LoadState(_T("Files\\DiffFileResult"));
 
-	size_t count = m_fileList.size();
+	int count = m_fileList.GetCount();
 
 	// If one file added, show filenames on dialog
 	if (count == 1)
 	{
-        const PATCHFILES& tFiles = m_fileList.front();
-		m_file1 = tFiles.lfile;
-		m_ctlFile1.SetWindowText(tFiles.lfile.c_str());
-		m_file2 = tFiles.rfile;
-		m_ctlFile2.SetWindowText(tFiles.rfile.c_str());
+		PATCHFILES files = m_fileList.GetHead();
+		m_file1 = files.lfile;
+		m_ctlFile1.SetWindowText(files.lfile);
+		m_file2 = files.rfile;
+		m_ctlFile2.SetWindowText(files.rfile);
 	}
 	else if (count > 1)	// Multiple files added, show number of files
 	{
-		m_file1 = m_file2 = strutils::format_string1(_("[%1 files selected]"), strutils::to_str(count));
+		CString msg;
+		CString num;
+		num.Format(_T("%d"), count);
+		AfxFormatString1(msg, IDS_DIFF_SELECTEDFILES, num);
+		m_file1 = msg;
+		m_file2 = msg;
 	}
 	UpdateData(FALSE);
 
 	// Add patch styles to combobox
-	m_comboStyle.AddString(_("Normal").c_str());
-	m_comboStyle.AddString(_("Context").c_str());
-	m_comboStyle.AddString(_("Unified").c_str());
-	m_comboStyle.AddString(_("HTML").c_str());
+	CString str;
+	VERIFY(str.LoadString(IDS_DIFF_NORMAL));
+	m_comboStyle.AddString(str);
+	VERIFY(str.LoadString(IDS_DIFF_CONTEXT));
+	m_comboStyle.AddString(str);
+	VERIFY(str.LoadString(IDS_DIFF_UNIFIED));
+	m_comboStyle.AddString(str);
 
 	m_outputStyle = OUTPUT_NORMAL;
 	m_comboStyle.SetCurSel(0);
 
-	// Add default context line counts to combobox if its empty
-	if (m_comboContext.GetCount() == 0)
-	{
-		m_comboContext.AddString(_T("0"));
-		m_comboContext.AddString(_T("1"));
-		m_comboContext.AddString(_T("3"));
-		m_comboContext.AddString(_T("5"));
-		m_comboContext.AddString(_T("7"));
-	}
+	// Add context line counts to combobox
+	m_comboContext.AddString(_T("0"));
+	m_comboContext.AddString(_T("1"));
+	m_comboContext.AddString(_T("3"));
+	m_comboContext.AddString(_T("5"));
+	m_comboContext.AddString(_T("7"));
+	m_comboContext.AddString(_T("11"));
 	
 	LoadSettings();
 
@@ -247,71 +240,155 @@ BOOL CPatchDlg::OnInitDialog()
 }
 
 /** 
- * @brief Select the left file.
+ * @brief Select left file
  */
 void CPatchDlg::OnDiffBrowseFile1()
 {
-	String s;
-	String folder;
+	CString s;
+	CString folder;
+	CString name;
+	CString title;
 
-	folder = m_file1;
-	if (SelectFileOrFolder(GetSafeHwnd(), s, folder.c_str()))
+	VERIFY(title.LoadString(IDS_OPEN_TITLE));
+	if (SelectFile(s, folder, title, NULL, TRUE))
 	{
-		m_ctlFile1.SetWindowText(s.c_str());
-		if (m_fileList.size() > 1)
-		{
-			m_ctlFile2.SetWindowText(_T(""));
-			ClearItems();
-		}
+		ChangeFile(s, TRUE);
+		m_ctlFile1.SetWindowText(s);
 	}
 }
 
 /** 
- * @brief Select the right file.
+ * @brief Select right file
  */
 void CPatchDlg::OnDiffBrowseFile2()
 {
-	String s;
-	String folder;
+	CString s;
+	CString folder;
+	CString name;
+	CString title;
 
-	folder = m_file2;
-	if (SelectFileOrFolder(GetSafeHwnd(), s, folder.c_str()))
+	VERIFY(title.LoadString(IDS_OPEN_TITLE));
+	if (SelectFile(s, folder, title, NULL, TRUE))
 	{
-		m_ctlFile2.SetWindowText(s.c_str());
-		if (m_fileList.size() > 1)
-		{
-			m_ctlFile1.SetWindowText(_T(""));
-			ClearItems();
-		}
+		ChangeFile(s, FALSE);
+		m_ctlFile2.SetWindowText(s);
 	}
 }
 
 /** 
- * @brief Select the patch file.
+ * @brief Changes file in patchfiles list and to UI.
  */
-void CPatchDlg::OnDiffBrowseResult()
+void CPatchDlg::ChangeFile(CString sFile, BOOL bLeft)
 {
-	String s;
-	String folder;
+	PATCHFILES pf;
+	int count = GetItemCount();
 
-	folder = m_fileResult;
-	if (SelectFile(GetSafeHwnd(), s, false, folder.c_str()))
-		m_ctlResult.SetWindowText(s.c_str());
+	if (count == 1)
+	{
+		POSITION pos = GetFirstItem();
+		pf = GetNextItem(pos);
+	}
+	else if (count > 1)
+	{
+		if (bLeft)
+			m_file1.Empty();
+		else
+			m_file2.Empty();
+	}
+	ClearItems();
+
+	// Change file
+	if (bLeft)
+	{
+		pf.lfile = sFile;
+		m_file1 = sFile;
+	}
+	else
+	{
+		pf.rfile = sFile;
+		m_file2 = sFile;
+	}
+	AddItem(pf);
 }
 
 /** 
- * @brief Called when diff style dropdown selection is changed.
- * Called when diff style dropdown selection is changed.
- * If the new selection is context patch or unified patch format then
- * enable context lines selection control. Otherwise context lines selection
- * is disabled.
+ * @brief Select patch file
+ */
+void CPatchDlg::OnDiffBrowseResult()
+{
+	CString s;
+	CString folder;
+	CString name;
+	CString title;
+
+	VERIFY(title.LoadString(IDS_SAVE_AS_TITLE));
+	folder = m_fileResult;
+	if (SelectFile(s, folder, title, NULL, FALSE))
+	{
+		SplitFilename(s, &folder, &name, NULL);
+		m_fileResult = s;
+		m_ctlResult.SetWindowText(s);
+	}
+}
+
+/** 
+ * @brief Called when File1 combo selection is changed
+ */
+void CPatchDlg::OnSelchangeFile1Combo() 
+{
+	int sel = m_ctlFile1.GetCurSel();
+	if (sel != CB_ERR)
+	{
+		CString file;
+		m_ctlFile1.GetLBText(sel, file);
+		m_ctlFile1.SetWindowText(file);
+		ChangeFile(file, TRUE);
+		m_file1 = file;
+	}
+}
+
+/** 
+ * @brief Called when File2 combo selection is changed
+ */
+void CPatchDlg::OnSelchangeFile2Combo() 
+{
+	int sel = m_ctlFile2.GetCurSel();
+	if (sel != CB_ERR)
+	{
+		CString file;
+		m_ctlFile2.GetLBText(sel, file);
+		m_ctlFile2.SetWindowText(file);
+		ChangeFile(file, FALSE);
+		m_file2 = file;
+
+	}
+}
+
+/** 
+ * @brief Called when Result combo selection is changed
+ */
+void CPatchDlg::OnSelchangeResultCombo() 
+{
+	int sel = m_ctlResult.GetCurSel();
+	if (sel != CB_ERR)
+	{
+		m_ctlResult.GetLBText(sel, m_fileResult);
+		m_ctlResult.SetWindowText(m_fileResult);
+	}
+}
+
+/** 
+ * @brief Change diff style, enable/disable context selection
  */
 void CPatchDlg::OnSelchangeDiffStyle()
 {
-	int selection = m_comboStyle.GetCurSel();
+	int selection = -1;
+
+	selection = m_comboStyle.GetCurSel();
 
 	// Only context and unified formats allow context lines
-	if (selection != OUTPUT_NORMAL)
+	if ((selection == OUTPUT_CONTEXT) ||
+			(selection == OUTPUT_UNIFIED))
 	{
 		m_comboContext.EnableWindow(TRUE);
 		// 3 lines is default context for Difftools too
@@ -326,148 +403,186 @@ void CPatchDlg::OnSelchangeDiffStyle()
 }
 
 /** 
- * @brief Swap filenames on file1 and file2.
+ * @brief Swap filenames on file1 and file2
  */
 void CPatchDlg::OnDiffSwapFiles()
 {
-	CString cstrFile1 = m_file1.c_str();
-	CString cstrFile2 = m_file2.c_str();
-	m_ctlFile1.GetWindowText(cstrFile1);
-	m_ctlFile2.GetWindowText(cstrFile2);
+	CString file1;
+	CString file2;
+	PATCHFILES files;
 
-	m_ctlFile1.SetWindowText(cstrFile2);
-	m_ctlFile2.SetWindowText(cstrFile1);
+	m_ctlFile1.GetWindowText(file1);
+	m_ctlFile2.GetWindowText(file2);
 
-	//  swapped files
-	Swap();
+	m_ctlFile1.SetWindowText(file2);
+	m_ctlFile2.SetWindowText(file1);
+	m_file1 = file2;
+	m_file2 = file1;
+
+	// Empty list
+	while (!m_fileList.IsEmpty())
+		m_fileList.RemoveTail();
+
+	// Add swapped files
+	files.lfile = file2;
+	files.rfile = file1;
+	AddItem(files);
 }
 
 /** 
- * @brief Updates patch dialog settings from member variables.
+ * @brief Add file to internal list
  */
-void CPatchDlg::UpdateSettings()
+void CPatchDlg::AddItem(PATCHFILES pf)
 {
+	m_fileList.AddTail(pf);
+}
+
+/** 
+ * @brief Returns amount of files in internal list
+ */
+int CPatchDlg::GetItemCount()
+{
+	return m_fileList.GetCount();
+}
+
+/** 
+ * @brief Return ref to first files in internal list
+ */
+POSITION CPatchDlg::GetFirstItem()
+{
+	return m_fileList.GetHeadPosition();
+}
+
+/** 
+ * @brief Return next files in internal list
+ */
+PATCHFILES CPatchDlg::GetNextItem(POSITION &pos)
+{
+	return m_fileList.GetNext(pos);
+}
+
+/** 
+ * @brief Set files in given pos of internal list
+ */
+void CPatchDlg::SetItemAt(POSITION pos, PATCHFILES pf)
+{
+	m_fileList.SetAt(pos, pf);
+}
+
+/** 
+ * @brief Empties internal file list
+ */
+void CPatchDlg::ClearItems()
+{
+	m_fileList.RemoveAll();
+}
+
+/** 
+ * @brief Loads patch dialog settings from registry
+ */
+void CPatchDlg::LoadSettings()
+{
+	int patchStyle = theApp.GetProfileInt(_T("PatchCreator"), _T("PatchStyle"), 0);
+	if (patchStyle < DIFF_OUTPUT_NORMAL || patchStyle > DIFF_OUTPUT_UNIFIED)
+		patchStyle = DIFF_OUTPUT_NORMAL;
+	m_outputStyle = (enum output_style) patchStyle;
+	
+	m_contextLines = theApp.GetProfileInt(_T("PatchCreator"), _T("ContextLines"), 0);
+	if (m_contextLines < 0 || m_contextLines > 50)
+		m_contextLines = 0;
+
+	m_caseSensitive = theApp.GetProfileInt(_T("PatchCreator"), _T("CaseSensitive"), TRUE);
+	m_ignoreBlanks = theApp.GetProfileInt(_T("PatchCreator"), _T("IgnoreBlankLines"), FALSE);
+	
+	m_whitespaceCompare = theApp.GetProfileInt(_T("PatchCreator"), _T("Whitespace"), WHITESPACE_COMPARE_ALL);
+	if (m_whitespaceCompare < WHITESPACE_COMPARE_ALL ||
+		m_whitespaceCompare > WHITESPACE_IGNORE_ALL)
+	{
+		m_whitespaceCompare = WHITESPACE_COMPARE_ALL;
+	}
+	
+	m_openToEditor = theApp.GetProfileInt(_T("PatchCreator"), _T("OpenToEditor"), FALSE);
+	m_includeCmdLine = theApp.GetProfileInt(_T("PatchCreator"), _T("IncludeCmdLine"), FALSE);
+
 	UpdateData(FALSE);
 
+	CString str;
 	switch (m_outputStyle)
 	{
 	case DIFF_OUTPUT_NORMAL:
-		m_comboStyle.SelectString(-1, _("Normal").c_str());
+		VERIFY(str.LoadString(IDS_DIFF_NORMAL));
+		m_comboStyle.SelectString(-1, str);
 		break;
 	case DIFF_OUTPUT_CONTEXT:
-		m_comboStyle.SelectString(-1, _("Context").c_str());
+		VERIFY(str.LoadString(IDS_DIFF_CONTEXT));
+		m_comboStyle.SelectString(-1, str);
 		break;
 	case DIFF_OUTPUT_UNIFIED:
-		m_comboStyle.SelectString(-1, _("Unified").c_str());
-		break;
-	case DIFF_OUTPUT_HTML:
-		m_comboStyle.SelectString(-1, _("HTML").c_str());
+		VERIFY(str.LoadString(IDS_DIFF_UNIFIED));
+		m_comboStyle.SelectString(-1, str);
 		break;
 	}
 
-	m_comboContext.SelectString(-1, strutils::to_str(m_contextLines).c_str());
+	str.Format(_T("%d"), m_contextLines);
+	m_comboContext.SelectString(-1, str);
 
-	if (m_outputStyle == OUTPUT_CONTEXT || m_outputStyle == OUTPUT_UNIFIED || m_outputStyle == OUTPUT_HTML)
+	if (m_outputStyle == OUTPUT_CONTEXT || m_outputStyle == OUTPUT_UNIFIED)
 		m_comboContext.EnableWindow(TRUE);
 	else
 		m_comboContext.EnableWindow(FALSE);
 }
 
 /** 
- * @brief Loads patch dialog settings from registry.
- */
-void CPatchDlg::LoadSettings()
-{
-	int patchStyle = GetOptionsMgr()->GetInt(OPT_PATCHCREATOR_PATCH_STYLE);
-	if ((patchStyle < DIFF_OUTPUT_NORMAL || patchStyle > DIFF_OUTPUT_UNIFIED) &&  patchStyle != DIFF_OUTPUT_HTML)
-		patchStyle = DIFF_OUTPUT_NORMAL;
-	m_outputStyle = (enum output_style) patchStyle;
-	
-	m_contextLines = GetOptionsMgr()->GetInt(OPT_PATCHCREATOR_CONTEXT_LINES);
-	if (m_contextLines < 0 || m_contextLines > 50)
-		m_contextLines = 0;
-
-	m_openToEditor = GetOptionsMgr()->GetBool(OPT_PATCHCREATOR_OPEN_TO_EDITOR);
-	m_includeCmdLine = GetOptionsMgr()->GetBool(OPT_PATCHCREATOR_INCLUDE_CMD_LINE);
-	m_copyToClipboard = GetOptionsMgr()->GetBool(OPT_PATCHCREATOR_COPY_TO_CLIPBOARD);
-
-	UpdateSettings();
-}
-
-/** 
- * @brief Saves patch dialog settings to registry.
+ * @brief Saves patch dialog settings to registry
  */
 void CPatchDlg::SaveSettings()
 {
-	COptionsMgr *pOptions = GetOptionsMgr();
-	pOptions->SaveOption(OPT_PATCHCREATOR_PATCH_STYLE, m_outputStyle);
-	pOptions->SaveOption(OPT_PATCHCREATOR_CONTEXT_LINES, m_contextLines);
-	pOptions->SaveOption(OPT_PATCHCREATOR_OPEN_TO_EDITOR, m_openToEditor);
-	pOptions->SaveOption(OPT_PATCHCREATOR_INCLUDE_CMD_LINE, m_includeCmdLine);
-	pOptions->SaveOption(OPT_PATCHCREATOR_COPY_TO_CLIPBOARD, m_copyToClipboard);
+	theApp.WriteProfileInt(_T("PatchCreator"), _T("PatchStyle"), m_outputStyle);
+	theApp.WriteProfileInt(_T("PatchCreator"), _T("ContextLines"), m_contextLines);
+	theApp.WriteProfileInt(_T("PatchCreator"), _T("CaseSensitive"), m_caseSensitive);
+	theApp.WriteProfileInt(_T("PatchCreator"), _T("IgnoreBlankLines"), m_ignoreBlanks);
+	theApp.WriteProfileInt(_T("PatchCreator"), _T("Whitespace"), m_whitespaceCompare);
+	theApp.WriteProfileInt(_T("PatchCreator"), _T("OpenToEditor"), m_openToEditor);
+	theApp.WriteProfileInt(_T("PatchCreator"), _T("IncludeCmdLine"), m_includeCmdLine);
 }
 
 /** 
- * @brief Resets patch dialog settings to defaults.
+ * @brief Resets patch dialog settings to defaults
  */
 void CPatchDlg::OnDefaultSettings()
 {
 	m_outputStyle = (enum output_style) DIFF_OUTPUT_NORMAL;
 	m_contextLines = 0;
-	m_openToEditor = false;
-	m_includeCmdLine = false;
-	m_copyToClipboard = false;
+	m_caseSensitive = TRUE;
+	m_ignoreBlanks = FALSE;
+	m_whitespaceCompare = WHITESPACE_COMPARE_ALL;
+	m_openToEditor = FALSE;
+	m_includeCmdLine = FALSE;
 
-	UpdateSettings();
-}
+	UpdateData(FALSE);
 
-void CPatchDlg::OnSelchangeFile1()
-{
-	if (m_fileList.size() > 1)
+	CString str;
+	switch (m_outputStyle)
 	{
-		m_ctlFile2.SetWindowText(_T(""));
-		ClearItems();
+	case DIFF_OUTPUT_NORMAL:
+		VERIFY(str.LoadString(IDS_DIFF_NORMAL));
+		m_comboStyle.SelectString(-1, str);
+		break;
+	case DIFF_OUTPUT_CONTEXT:
+		VERIFY(str.LoadString(IDS_DIFF_CONTEXT));
+		m_comboStyle.SelectString(-1, str);
+		break;
+	case DIFF_OUTPUT_UNIFIED:
+		VERIFY(str.LoadString(IDS_DIFF_UNIFIED));
+		m_comboStyle.SelectString(-1, str);
+		break;
 	}
-}
 
-void CPatchDlg::OnSelchangeFile2()
-{
-	if (m_fileList.size() > 1)
-	{
-		m_ctlFile1.SetWindowText(_T(""));
-		ClearItems();
-	}
-}
+	str.Format(_T("%d"), m_contextLines);
+	m_comboContext.SelectString(-1, str);
 
-void CPatchDlg::OnEditchangeFile1()
-{
-	if (m_fileList.size() > 1)
-	{
-		m_ctlFile2.SetWindowText(_T(""));
-		ClearItems();
-	}
-}
-
-void CPatchDlg::OnEditchangeFile2()
-{
-	if (m_fileList.size() > 1)
-	{
-		m_ctlFile1.SetWindowText(_T(""));
-		ClearItems();
-	}
-}
-
-
-/**
- * @brief Swap sides.
- */
-void CPatchDlg::Swap()
-{
-	std::vector<PATCHFILES>::iterator iter = m_fileList.begin();
-	std::vector<PATCHFILES>::const_iterator iterEnd = m_fileList.end();
-	while (iter != iterEnd)
-	{
-		(*iter).swap_sides();
-		++iter;
-	}
+	if (m_outputStyle == OUTPUT_CONTEXT || m_outputStyle == OUTPUT_UNIFIED)
+		m_comboContext.EnableWindow(TRUE);
+	else
+		m_comboContext.EnableWindow(FALSE);
 }

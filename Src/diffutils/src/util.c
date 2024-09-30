@@ -20,6 +20,12 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 #include <windows.h>
 #include "diff.h"
 
+// reduce some noise produced with the MSVC compiler
+#if defined (_AFXDLL)
+#pragma warning(disable : 4131 4127)
+#endif
+
+
 /* Queue up one-line messages to be printed at the end,
    when -l is specified.  Each message is recorded with a `struct msg'.  */
 
@@ -45,7 +51,8 @@ static struct msg **msg_chain_end = &msg_chain;
    TEXT should normally be the file name.  */
 
 void
-perror_with_name (char const *text)
+perror_with_name (text)
+     char const *text;
 {
   int e = errno;
   fprintf (stderr, "%s: ", program);
@@ -56,7 +63,8 @@ perror_with_name (char const *text)
 /* Use when a system call returns non-zero status and that is fatal.  */
 
 void
-pfatal_with_name (char const *text)
+pfatal_with_name (text)
+     char const *text;
 {
   int e = errno;
   print_message_queue ();
@@ -71,7 +79,8 @@ pfatal_with_name (char const *text)
    with args ARG1 and ARG2.  */
 
 void
-error (char const *format, char const *arg, char const *arg1)
+error (format, arg, arg1)
+     char const *format, *arg, *arg1;
 {
   fprintf (stderr, "%s: ", program);
   fprintf (stderr, format, arg, arg1);
@@ -81,7 +90,8 @@ error (char const *format, char const *arg, char const *arg1)
 /* Print an error message containing the string TEXT, then exit.  */
 
 void
-fatal (char const *m)
+fatal (m)
+     char const *m;
 {
   print_message_queue ();
   error ("%s", m, 0);
@@ -93,13 +103,15 @@ fatal (char const *m)
    This is used for things like "binary files differ" and "Only in ...".  */
 
 void
-message (char const *format, char const *arg1, char const *arg2)
+message (format, arg1, arg2)
+     char const *format, *arg1, *arg2;
 {
   message5 (format, arg1, arg2, 0, 0);
 }
 
 void
-message5 (char const *format, char const *arg1, char const *arg2, char const *arg3, char const *arg4)
+message5 (format, arg1, arg2, arg3, arg4)
+     char const *format, *arg1, *arg2, *arg3, *arg4;
 {
   if (paginate_flag)
     {
@@ -109,7 +121,7 @@ message5 (char const *format, char const *arg1, char const *arg2, char const *ar
       new->arg2 = concat (arg2, "", "");
       new->arg3 = arg3 ? concat (arg3, "", "") : 0;
       new->arg4 = arg4 ? concat (arg4, "", "") : 0;
-      new->next = NULL;
+      new->next = 0;
       *msg_chain_end = new;
       msg_chain_end = &new->next;
     }
@@ -144,12 +156,14 @@ static char const *current_name1;
 static int current_depth;
 
 void
-setup_output (char const *name0, char const *name1, int depth)
+setup_output (name0, name1, depth)
+     char const *name0, *name1;
+     int depth;
 {
   current_name0 = name0;
   current_name1 = name1;
   current_depth = depth;
-  outfile = NULL;
+  outfile = 0;
 }
 
 static pid_t pr_pid;
@@ -159,28 +173,25 @@ begin_output ()
 {
   char *name;
 
-  if (outfile != NULL)
+  if (outfile != 0)
     return;
 
-  char *mySwitch = (switch_string != NULL ? switch_string : "");
-
   /* Construct the header of this piece of diff.  */
-  const size_t nameSiz = strlen(current_name0) + strlen(current_name1)
-	  + strlen(mySwitch) + 7;
-  name = xmalloc (nameSiz);
+  name = xmalloc (strlen (current_name0) + strlen (current_name1)
+		  + strlen (switch_string) + 7);
   /* Posix.2 section 4.17.6.1.1 specifies this format.  But there are some
      bugs in the first printing (IEEE Std 1003.2-1992 p 251 l 3304):
      it says that we must print only the last component of the pathnames,
      and it requires two spaces after "diff" if there are no options.
      These requirements are silly and do not match historical practice.  */
-  sprintf_s (name, nameSiz, "diff%s %s %s", mySwitch, current_name0, current_name1);
+  sprintf (name, "diff%s %s %s", switch_string, current_name0, current_name1);
 
   if (paginate_flag)
     {
 #if defined(__MSDOS__) || defined(__NT__) || defined(WIN32)
       char command[120];
 
-      sprintf_s(command, sizeof(command), "%s -f -h \"%s\"", PR_FILE_NAME, name);
+      sprintf(command, "%s -f -h \"%s\"", PR_FILE_NAME, name);
       if ((outfile = popen(command, "w")) == NULL)
         pfatal_with_name ("popen");
 #else
@@ -253,7 +264,7 @@ begin_output ()
 void
 finish_output ()
 {
-  if (outfile != NULL && outfile != stdout)
+  if (outfile != 0 && outfile != stdout)
     {
 #if defined(__MSDOS__) || defined(__NT__) || defined(WIN32)
       if (pclose (outfile))
@@ -281,7 +292,7 @@ finish_output ()
 #endif /*__MSDOS__||__NT__*/
     }
 
-  outfile = NULL;
+  outfile = 0;
 }
 
 
@@ -296,7 +307,9 @@ ISWSPACE (char ch)
    Return 1 if the lines differ, like `memcmp'.  */
 
 int
-line_cmp (char const *s1, size_t len1, char const *s2, size_t len2)
+line_cmp (s1, len1, s2, len2)
+     char const HUGE *s1, HUGE *s2;
+     size_t len1, len2;
 {
   register unsigned char const *t1, *t2;
   register unsigned char end_char = line_end_char;
@@ -315,7 +328,7 @@ line_cmp (char const *s1, size_t len1, char const *s2, size_t len2)
      when the line has been entirely scanned.
      c2 is the equivalent of c1 for the line s2 */
 
-  if (ignore_case_flag | ignore_space_change_flag | ignore_all_space_flag | ignore_eol_diff | ignore_numbers_flag)
+  if (ignore_case_flag | ignore_space_change_flag | ignore_all_space_flag | ignore_eol_diff)
     {
       t1 = (unsigned char const *) s1;
       t2 = (unsigned char const *) s2;
@@ -324,11 +337,11 @@ line_cmp (char const *s1, size_t len1, char const *s2, size_t len2)
 	{
 	  register unsigned char c1;
 	  register unsigned char c2;
-	  if (t1-(unsigned char *)s1<(int)len1)
+	  if (t1-s1<(int)len1)
 	    c1 = *t1++;
 	  else
 	    c1 = 0;
-	  if (t2-(unsigned char *)s2<(int)len2)
+	  if (t2-s2<(int)len2)
 	    c2 = *t2++;
 	  else
 	    c2 = 0;
@@ -343,7 +356,7 @@ line_cmp (char const *s1, size_t len1, char const *s2, size_t len2)
 	      /* For -w, just skip past any white space.  */
 	      while (ISWSPACE (c1))
 		{
-		  if (t1-(unsigned char *)s1<(int)len1)
+		  if (t1-s1<(int)len1)
 		    {
 		      c1 = *t1++;
 		    }
@@ -355,7 +368,7 @@ line_cmp (char const *s1, size_t len1, char const *s2, size_t len2)
 		}
 	      while (ISWSPACE (c2))
 		{
-		  if (t2-(unsigned char *)s2<(int)len2)
+		  if (t2-s2<(int)len2)
 		    {
 		      c2 = *t2++;
 		    }
@@ -376,14 +389,14 @@ line_cmp (char const *s1, size_t len1, char const *s2, size_t len2)
 		  /* Any whitespace sequence counts as one space */
 		  c1 = ' ';
 		  /* Skip to end of whitespace sequence */
-		  while (t1-(unsigned char *)s1<(int)len1 && ISWSPACE(*t1))
+		  while (t1-s1<(int)len1 && ISWSPACE(*t1))
 		    ++t1;
 		  /* if c1 is whitespace and c2 is end of line
 		  we must advance c1 to next char, because c1
 		  whitespace matches the nothing in c2 */
 		  if (c2=='\r' || c2=='\n')
 		    {
-		      if (t1-(unsigned char *)s1<(int)len1)
+		      if (t1-s1<(int)len1)
 			c1 = *t1++;
 		      else
 			c1 = 0;
@@ -396,14 +409,14 @@ line_cmp (char const *s1, size_t len1, char const *s2, size_t len2)
 		  /* Any whitespace sequence counts as one space */
 		  c2 = ' ';
 		  /* Skip to end of whitespace sequence */
-		  while (t2-(unsigned char *)s2<(int)len2 && ISWSPACE(*t2))
+		  while (t2-s2<(int)len2 && ISWSPACE(*t2))
 		    ++t2;
 		  /* if c2 is whitespace and c1 is end of line
 		  we must advance c1 to next char, because c2
 		  whitespace matches the nothing in c1 */
 		  if (c1=='\r' || c1=='\n')
 		    {
-		      if (t2-(unsigned char *)s2<(int)len2)
+		      if (t2-s2<(int)len2)
 			c2 = *t2++;
 		      else
 			c2 = 0;
@@ -449,43 +462,14 @@ line_cmp (char const *s1, size_t len1, char const *s2, size_t len2)
 		}
 	    }
 
-		if (ignore_numbers_flag)
-		{
-			/* For ..., just skip past any numbers.  */
-			while (isdigit(c1))
-			{
-				if (t1 - (unsigned char*)s1 < (int)len1)
-				{
-					c1 = *t1++;
-				}
-				else
-				{
-					c1 = 0;
-					break;
-				}
-			}
-			while (isdigit(c2))
-			{
-				if (t2 - (unsigned char*)s2 < (int)len2)
-				{
-					c2 = *t2++;
-				}
-				else
-				{
-					c2 = 0;
-					break;
-				}
-			}
-		}
-
 	  /* Upcase all letters if -i is specified.  */
 
 	  if (ignore_case_flag)
 	    {
-	      if (isupper (c1))
-	        c1 = (unsigned char)tolower (c1);
-	      if (isupper(c2))
-	        c2 = (unsigned char)tolower (c2);
+	      if (islower (c1))
+		c1 = (unsigned char)toupper (c1);
+	      if (islower (c2))
+		c2 = (unsigned char)toupper (c2);
 	    }
 
 	  if (ignore_eol_diff)
@@ -507,20 +491,22 @@ line_cmp (char const *s1, size_t len1, char const *s2, size_t len2)
 	}
     }
 
-  return 1;
+  return (1);
 }
 
 /* Find the consecutive changes at the start of the script START.
    Return the last link before the first gap.  */
 
 struct change *
-find_change (struct change *start)
+find_change (start)
+     struct change *start;
 {
   return start;
 }
 
 struct change *
-find_reverse_change (struct change *start)
+find_reverse_change (start)
+     struct change *start;
 {
   return start;
 }
@@ -537,9 +523,10 @@ find_reverse_change (struct change *start)
    link at the end) and prints it.  */
 
 void
-print_script (struct change *script, 
-				struct change *(*hunkfun) (struct change *), 
-				void (*printfun) (struct change *) )
+print_script (script, hunkfun, printfun)
+     struct change *script;
+     struct change * (*hunkfun) PARAMS((struct change *));
+     void (*printfun) PARAMS((struct change *));
 {
   struct change *next = script;
 
@@ -554,7 +541,7 @@ print_script (struct change *script,
       /* Disconnect them from the rest of the changes,
 	 making them a hunk, and remember the rest for next iteration.  */
       next = end->link;
-      end->link = NULL;
+      end->link = 0;
 #ifdef DEBUG
       debug_script (this);
 #endif
@@ -572,17 +559,19 @@ print_script (struct change *script,
    the line is inserted, deleted, changed, etc.).  */
 
 void
-print_1_line (char const *line_flag, char const * const *line)
+print_1_line (line_flag, line)
+     char const *line_flag;
+     char const HUGE * const *line;
 {
   char const HUGE *text = line[0], HUGE *limit = line[1]; /* Help the compiler.  */
   FILE *out = outfile; /* Help the compiler some more.  */
-  char const *flag_format = NULL;
+  char const *flag_format = 0;
 
   /* If -T was specified, use a Tab between the line-flag and the text.
      Otherwise use a Space (as Unix diff does).
      Print neither space nor tab if line-flags are empty.  */
 
-  if (line_flag != NULL && *line_flag != 0)
+  if (line_flag && *line_flag)
     {
       flag_format = tab_align_flag ? "%s\t" : "%s ";
       fprintf (out, flag_format, line_flag);
@@ -590,7 +579,7 @@ print_1_line (char const *line_flag, char const * const *line)
 
   output_1_line (text, limit, flag_format, line_flag);
 
-  if ((line_flag == NULL || line_flag[0]) && limit[-1] != '\n' && limit[-1] != '\r'
+  if ((!line_flag || line_flag[0]) && limit[-1] != '\n' && limit[-1] != '\r'
       && line_end_char == '\n')
     fprintf (out, "\n\\ No newline at end of file\n");
 }
@@ -612,7 +601,7 @@ fwrite_textify( const void *buffer, size_t size, size_t count, FILE *stream )
 	so the tricky part is just avoiding outputing \r\n\r\n for the \r\n pair.
 	*/
 
-	size_t bytes=0;
+	int bytes=0;
 	unsigned int i;
 	const char * text = buffer;
 	int cr = 0;
@@ -664,7 +653,8 @@ fwrite_textify( const void *buffer, size_t size, size_t count, FILE *stream )
    internal carriage return, so that tab stops continue to line up.  */
 
 void
-output_1_line (char const *text, char const *limit, char const *flag_format, char const *line_flag)
+output_1_line (text, limit, flag_format, line_flag)
+     char const HUGE *text, HUGE *limit, *flag_format, *line_flag;
 {
   char * pos = NULL;
   if (!tab_expand_flag)
@@ -713,7 +703,8 @@ output_1_line (char const *text, char const *limit, char const *flag_format, cha
 }
 
 int
-change_letter (int inserts, int deletes)
+change_letter (inserts, deletes)
+     int inserts, deletes;
 {
   if (!inserts)
     return 'd';
@@ -731,13 +722,18 @@ change_letter (int inserts, int deletes)
    Actual line numbers count from 1 within the entire file.  */
 
 int
-translate_line_number (struct file_data const *file, int lnum)
+translate_line_number (file, lnum)
+     struct file_data const *file;
+     int lnum;
 {
   return lnum + file->prefix_lines + 1;
 }
 
 void
-translate_range (struct file_data const *file, int a, int b, int *aptr, int *bptr)
+translate_range (file, a, b, aptr, bptr)
+     struct file_data const *file;
+     int a, b;
+     int *aptr, *bptr;
 {
   *aptr = translate_line_number (file, a - 1) + 1;
   *bptr = translate_line_number (file, b + 1) - 1;
@@ -750,7 +746,10 @@ translate_range (struct file_data const *file, int a, int b, int *aptr, int *bpt
    We print the translated (real) line numbers.  */
 
 void
-print_number_range (int sepchar, struct file_data *file, int a, int b)
+print_number_range (sepchar, file, a, b)
+     int sepchar;
+     struct file_data *file;
+     int a, b;
 {
   int trans_a, trans_b;
   translate_range (file, a, b, &trans_a, &trans_b);
@@ -769,19 +768,6 @@ int iseolch (char ch)
   return ch=='\n' || ch=='\r';
 }
 
-int is_blank_line (char const *pch, char const *limit)
-{
-  while (pch < limit)
-    {
-      if ((*pch) == '\n' || (*pch) == '\r')
-        break;
-      if ((*pch) != ' ' && (*pch) != '\t')
-        return 0;
-      pch++;
-    }
-  return 1;
-}
-
 /* Look at a hunk of edit script and report the range of lines in each file
    that it applies to.  HUNK is the start of the hunk, which is a chain
    of `struct change'.  The first and last line numbers of file 0 are stored in
@@ -796,14 +782,14 @@ int is_blank_line (char const *pch, char const *limit)
    set to 0.  */
 
 void
-analyze_hunk (struct change *hunk, 
-    int *first0, int *last0, 
-    int *first1, int *last1, 
-    int *deletes, int *inserts, const struct file_data fd[])
+analyze_hunk (hunk, first0, last0, first1, last1, deletes, inserts)
+     struct change *hunk;
+     int *first0, *last0, *first1, *last1;
+     int *deletes, *inserts;
 {
   int l0, l1, show_from, show_to;
   int i;
-  int trivial = ignore_blank_lines_flag;
+  int trivial = ignore_blank_lines_flag || ignore_regexp_list;
   struct change *next;
 
   show_from = show_to = 0;
@@ -820,39 +806,38 @@ analyze_hunk (struct change *hunk,
       show_to += next->inserted;
 
       for (i = next->line0; i <= l0 && trivial; i++)
-        {
-          if (!ignore_blank_lines_flag)
-            {
-              trivial = 0;
-            }
-          else if (ignore_all_space_flag | ignore_space_change_flag)
-            {
-              if (!is_blank_line(fd[0].linbuf[i], fd[0].linbuf[i + 1]))
-                trivial = 0;
-            }
-          else if (!iseolch(fd[0].linbuf[i][0]) && fd[0].linbuf[i][0] != 0)
-            {
-              trivial = 0;
-            }
-        }
+	if (!ignore_blank_lines_flag || (!iseolch(files[0].linbuf[i][0]) && files[0].linbuf[i][0] != 0))
+	  {
+	    struct regexp_list *r;
+	    char const HUGE *line = files[0].linbuf[i];
+	    int len = files[0].linbuf[i + 1] - line;
+
+	    for (r = ignore_regexp_list; r; r = r->next)
+	      if (0 <= re_search (&r->buf, line, len, 0, len, 0))
+		break;	/* Found a match.  Ignore this line.  */
+	    /* If we got all the way through the regexp list without
+	       finding a match, then it's nontrivial.  */
+	    if (!r)
+	      trivial = 0;
+	  }
+
       for (i = next->line1; i <= l1 && trivial; i++)
-        {
-          if (!ignore_blank_lines_flag)
-            {
-              trivial = 0;
-            }
-          else if (ignore_all_space_flag | ignore_space_change_flag)
-            {
-              if (!is_blank_line(fd[1].linbuf[i], fd[1].linbuf[i + 1]))
-                trivial = 0;
-            }
-          else if (!iseolch(fd[1].linbuf[i][0]) && fd[1].linbuf[i][0] != 0)
-            {
-              trivial = 0;
-            }
-        }
+	if (!ignore_blank_lines_flag || (!iseolch(files[1].linbuf[i][0]) && files[1].linbuf[i][0] != 0))
+	  {
+	    struct regexp_list *r;
+	    char const HUGE *line = files[1].linbuf[i];
+	    int len = files[1].linbuf[i + 1] - line;
+
+	    for (r = ignore_regexp_list; r; r = r->next)
+	      if (0 <= re_search (&r->buf, line, len, 0, len, 0))
+		break;	/* Found a match.  Ignore this line.  */
+	    /* If we got all the way through the regexp list without
+	       finding a match, then it's nontrivial.  */
+	    if (!r)
+	      trivial = 0;
+	  }
     }
-  while ((next = next->link) != NULL);
+  while ((next = next->link) != 0);
 
   *last0 = l0;
   *last1 = l1;
@@ -863,11 +848,8 @@ analyze_hunk (struct change *hunk,
     show_from = show_to = 0;
 
   /* WinMerge editor needs to know if there were trivial changes though,
-     so stash that off in the trivial field */
-  if (trivial)
-    hunk->trivial = 1;
-  else
-    hunk->trivial = 0;
+  so stash that off in the trivial field */
+  hunk->trivial = trivial;
 
   *deletes = show_from;
   *inserts = show_to;
@@ -876,7 +858,8 @@ analyze_hunk (struct change *hunk,
 /* malloc a block of memory, with fatal error message if we can't do it. */
 
 VOID *
-xmalloc (size_t size)
+xmalloc (size)
+     size_t size;
 {
   register VOID *value;
 
@@ -897,7 +880,9 @@ xmalloc (size_t size)
 /* realloc a block of memory, with fatal error message if we can't do it. */
 
 VOID *
-xrealloc (VOID *old, size_t size)
+xrealloc (old, size)
+     VOID *old;
+     size_t size;
 {
   register VOID *value;
 
@@ -918,11 +903,12 @@ xrealloc (VOID *old, size_t size)
 /* Concatenate three strings, returning a newly malloc'd string.  */
 
 char *
-concat (char const *s1, char const *s2, char const *s3)
+concat (s1, s2, s3)
+     char const *s1, *s2, *s3;
 {
   size_t len = strlen (s1) + strlen (s2) + strlen (s3);
   char *new = xmalloc (len + 1);
-  sprintf_s (new, len+1, "%s%s%s", s1, s2, s3);
+  sprintf (new, "%s%s%s", s1, s2, s3);
   return new;
 }
 
@@ -930,7 +916,8 @@ concat (char const *s1, char const *s2, char const *s3)
    of the file in DIR whose filename is FILE.  */
 
 char *
-dir_file_pathname (char const *dir, char const *file)
+dir_file_pathname (dir, file)
+     char const *dir, *file;
 {
 #if defined(__MSDOS__) || defined(__NT__) || defined(WIN32)
   char sep = dir[strlen(dir) - 1];
@@ -941,10 +928,11 @@ dir_file_pathname (char const *dir, char const *file)
 }
 
 void
-debug_script (struct change *sp)
+debug_script (sp)
+     struct change *sp;
 {
   fflush (stdout);
-  for (; sp!=NULL; sp = sp->link)
+  for (; sp; sp = sp->link)
     fprintf (stderr, "%3d %3d delete %d insert %d\n",
 	     sp->line0, sp->line1, sp->deleted, sp->inserted);
   fflush (stderr);
@@ -961,6 +949,6 @@ memchr (s, c, n)
   for (;  p < lim;  p++)
     if (*p == c)
       return (char *) p;
-  return NULL;
+  return 0;
 }
 #endif

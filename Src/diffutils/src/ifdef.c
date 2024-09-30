@@ -7,12 +7,12 @@ GNU DIFF is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY.  No author or distributor
 accepts responsibility to anyone for the consequences of using it
 or for whether it serves any particular purpose or works at all,
-unless he says so in writing.  Refer to the GNU General Public
+unless he says so in writing.  Refer to the GNU DIFF General Public
 License for full details.
 
 Everyone is granted permission to copy, modify and redistribute
 GNU DIFF, but only under the conditions described in the
-GNU General Public License.   A copy of this license is
+GNU DIFF General Public License.   A copy of this license is
 supposed to have been given to you along with GNU DIFF so you
 can know your rights and responsibilities.  It should be in a
 file named COPYING.  Among other things, the copyright notice
@@ -20,7 +20,12 @@ and this notice must be preserved on all copies.  */
 
 
 #include "diff.h"
-#include <assert.h>
+
+// reduce some noise produced with the MSVC compiler
+#if defined (_AFXDLL)
+#pragma warning(disable : 4131)
+#endif
+
 
 struct group
 {
@@ -28,20 +33,21 @@ struct group
   int from, upto; /* start and limit lines for this group of lines */
 };
 
-static char *format_group (FILE *, char *, int, struct group const[]);
-static char *scan_char_literal (char *, int *);
-static char *scan_printf_spec (char *);
-static int groups_letter_value (struct group const[], int);
-static void format_ifdef (char *, int, int, int, int);
-static void print_ifdef_hunk (struct change *);
-static void print_ifdef_lines (FILE *, char *, struct group const *);
+static char *format_group PARAMS((FILE *, char *, int, struct group const[]));
+static char *scan_char_literal PARAMS((char *, int *));
+static char *scan_printf_spec PARAMS((char *));
+static int groups_letter_value PARAMS((struct group const[], int));
+static void format_ifdef PARAMS((char *, int, int, int, int));
+static void print_ifdef_hunk PARAMS((struct change *));
+static void print_ifdef_lines PARAMS((FILE *, char *, struct group const *));
 
-static DECL_TLS int next_line;
+static int next_line;
 
 /* Print the edit-script SCRIPT as a merged #ifdef file.  */
 
 void
-print_ifdef_script (struct change *script)
+print_ifdef_script (script)
+     struct change *script;
 {
   next_line = - files[0].prefix_lines;
   print_script (script, find_change, print_ifdef_hunk);
@@ -59,13 +65,14 @@ print_ifdef_script (struct change *script)
    describing changes in consecutive lines.  */
 
 static void
-print_ifdef_hunk (struct change *hunk)
+print_ifdef_hunk (hunk)
+     struct change *hunk;
 {
   int first0, last0, first1, last1, deletes, inserts;
   char *format;
 
   /* Determine range of line numbers involved in each file.  */
-  analyze_hunk (hunk, &first0, &last0, &first1, &last1, &deletes, &inserts, files);
+  analyze_hunk (hunk, &first0, &last0, &first1, &last1, &deletes, &inserts);
   if (inserts)
     format = deletes ? group_format[CHANGED] : group_format[NEW];
   else if (deletes)
@@ -90,7 +97,9 @@ print_ifdef_hunk (struct change *hunk)
    lines BEG1 up to END1 are from the second file.  */
 
 static void
-format_ifdef (char *format, int beg0, int end0, int beg1, int end1)
+format_ifdef (format, beg0, end0, beg1, end1)
+     char *format;
+     int beg0, end0, beg1, end1;
 {
   struct group groups[2];
 
@@ -110,7 +119,11 @@ format_ifdef (char *format, int beg0, int end0, int beg1, int end1)
    If OUT is zero, do not actually print anything; just scan the format.  */
 
 static char *
-format_group (register FILE *out, char *format, int endchar, struct group const groups[])
+format_group (out, format, endchar, groups)
+     register FILE *out;
+     char *format;
+     int endchar;
+     struct group const groups[];
 {
   register char c;
   register char *f = format;
@@ -230,7 +243,9 @@ format_group (register FILE *out, char *format, int endchar, struct group const 
 /* For the line group pair G, return the number corresponding to LETTER.
    Return -1 if LETTER is not a group format letter.  */
 static int
-groups_letter_value (struct group const g[], int letter)
+groups_letter_value (g, letter)
+     struct group const g[];
+     int letter;
 {
   if (isupper (letter))
     {
@@ -251,7 +266,10 @@ groups_letter_value (struct group const g[], int letter)
 /* Print to file OUT, using FORMAT to print the line group GROUP.
    But do nothing if OUT is zero.  */
 static void
-print_ifdef_lines (register FILE *out, char *format, struct group const *group)
+print_ifdef_lines (out, format, group)
+     register FILE *out;
+     char *format;
+     struct group const *group;
 {
   struct file_data const *file = group->file;
   char const HUGE * const *linbuf = file->linbuf;
@@ -352,7 +370,9 @@ print_ifdef_lines (register FILE *out, char *format, struct group const *group)
    Yield the address of the first character after the closing apostrophe,
    or zero if the literal is ill-formed.  */
 static char *
-scan_char_literal (char *lit, int *intptr)
+scan_char_literal (lit, intptr)
+     char *lit;
+     int *intptr;
 {
   register char *p = lit;
   int value, digits;
@@ -362,7 +382,7 @@ scan_char_literal (char *lit, int *intptr)
     {
       case 0:
       case '\'':
-	return NULL;
+	return 0;
 
       case '\\':
 	value = 0;
@@ -370,19 +390,18 @@ scan_char_literal (char *lit, int *intptr)
 	  {
 	    unsigned digit = c - '0';
 	    if (8 <= digit)
-	      return NULL;
+	      return 0;
 	    value = 8 * value + digit;
 	  }
-	assert((p - lit - 2) < INT_MAX);
-	digits = (int)(p - lit - 2);
+	digits = p - lit - 2;
 	if (! (1 <= digits && digits <= 3))
-	  return NULL;
+	  return 0;
 	break;
 
       default:
 	value = c;
 	if (*p++ != '\'')
-	  return NULL;
+	  return 0;
 	break;
     }
   *intptr = value;
@@ -390,9 +409,10 @@ scan_char_literal (char *lit, int *intptr)
 }
 
 /* Scan optional printf-style SPEC of the form `-*[0-9]*(.[0-9]*)?[cdoxX]'.
-   Return the address of the character following SPEC, or NULL if failure.  */
+   Return the address of the character following SPEC, or zero if failure.  */
 static char *
-scan_printf_spec (register char *spec)
+scan_printf_spec (spec)
+     register char *spec;
 {
   register unsigned char c;
 
@@ -409,6 +429,6 @@ scan_printf_spec (register char *spec)
 	return spec;
 
       default:
-	return NULL;
+	return 0;
     }
 }

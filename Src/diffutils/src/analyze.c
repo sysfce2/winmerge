@@ -21,41 +21,37 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
    "An O(ND) Difference Algorithm and its Variations", Eugene Myers,
    Algorithmica Vol. 1 No. 2, 1986, pp. 251-266;
    see especially section 4.2, which describes the variation used below.
-
    Unless the --minimal option is specified, this code uses the TOO_EXPENSIVE
    heuristic, by Paul Eggert, to limit the cost to O(N**1.5 log N)
    at the price of producing suboptimal output for large inputs with
-   many differences.  Related algorithms are surveyed by Alfred V. Aho in
-   section 6.3 of 'Algorithms for Finding Patterns in Strings',
-   Handbook of Theoretical Computer Science (Jan Van Leeuwen,
-   ed.), Vol. A, Algorithms and Complexity, Elsevier/MIT Press,
-   1990, pp. 255--300.
+   many differences.
 
    The basic algorithm was independently discovered as described in:
-   "Algorithms for Approximate String Matching", Esko Ukkonen,
-   Information and Control Vol. 64, 1985, pp. 100-118.  
-*/
+   "Algorithms for Approximate String Matching", E. Ukkonen,
+   Information and Control Vol. 64, 1985, pp. 100-118.  */
+
+// reduce some noise produced with the MSVC compiler
+#if defined (_AFXDLL)
+#pragma warning(disable : 4131 4127 4013 4090)
+#endif
+
 
 #include "diff.h"
 #include "cmpbuf.h"
-#include <assert.h>
-#ifdef _WIN32
-#  include <io.h>
-#endif
 
-DECL_TLS int no_discards;
-DECL_TLS int need_free_buffers=0;
+int no_discards;
+int need_free_buffers=0;
 
-static DECL_TLS int *xvec, *yvec;	/* Vectors being compared. */
-static DECL_TLS int *fdiag;		/* Vector, indexed by diagonal, containing
+static int *xvec, *yvec;	/* Vectors being compared. */
+static int *fdiag;		/* Vector, indexed by diagonal, containing
 				   1 + the X coordinate of the point furthest
 				   along the given diagonal in the forward
 				   search of the edit matrix. */
-static DECL_TLS int *bdiag;		/* Vector, indexed by diagonal, containing
+static int *bdiag;		/* Vector, indexed by diagonal, containing
 				   the X coordinate of the point furthest
 				   along the given diagonal in the backward
 				   search of the edit matrix. */
-static DECL_TLS int too_expensive;	/* Edit scripts longer than this are too
+static int too_expensive;	/* Edit scripts longer than this are too
 				   expensive to compute.  */
 
 #define SNAKE_LIMIT 20	/* Snakes bigger than this are considered `big'.  */
@@ -67,14 +63,14 @@ struct partition
   int hi_minimal;	/* Likewise for high half.  */
 };
 
-static int diag (int, int, int, int, int, struct partition *);
-static struct change *add_change (int, int, int, int, struct change *);
-static struct change *build_reverse_script (struct file_data const[]);
-static struct change *build_script (struct file_data const[]);
-static void briefly_report (int, struct file_data const[]);
-static void compareseq (int, int, int, int, int);
-static void discard_confusing_lines (struct file_data[]);
-static void shift_boundaries (struct file_data[]);
+static int diag PARAMS((int, int, int, int, int, struct partition *));
+static struct change *add_change PARAMS((int, int, int, int, struct change *));
+static struct change *build_reverse_script PARAMS((struct file_data const[]));
+static struct change *build_script PARAMS((struct file_data const[]));
+static void briefly_report PARAMS((int, struct file_data const[]));
+static void compareseq PARAMS((int, int, int, int, int));
+static void discard_confusing_lines PARAMS((struct file_data[]));
+static void shift_boundaries PARAMS((struct file_data[]));
 
 /* Find the midpoint of the shortest edit script for a specified
    portion of the two files.
@@ -108,7 +104,9 @@ static void shift_boundaries (struct file_data[]);
    It cannot cause incorrect diff output.  */
 
 static int
-diag (int xoff, int xlim, int yoff, int ylim, int minimal, struct partition *part)
+diag (xoff, xlim, yoff, ylim, minimal, part)
+     int xoff, xlim, yoff, ylim, minimal;
+     struct partition *part;
 {
   int *const fd = fdiag;	/* Give the compiler a chance. */
   int *const bd = bdiag;	/* Additional help for the compiler. */
@@ -346,7 +344,8 @@ diag (int xoff, int xlim, int yoff, int ylim, int minimal, struct partition *par
    expensive it is.  */
 
 static void
-compareseq (int xoff, int xlim, int yoff, int ylim, int minimal)
+compareseq (xoff, xlim, yoff, ylim, minimal)
+     int xoff, xlim, yoff, ylim, minimal;
 {
   int * const xv = xvec; /* Help the compiler.  */
   int * const yv = yvec;
@@ -623,7 +622,7 @@ discard_confusing_lines (struct file_data filevec[])
    but usually it is cleaner to consider the following identical line
    to be the "change".  */
 
-DECL_TLS int inhibit;
+int inhibit;
 
 static void
 shift_boundaries (struct file_data filevec[])
@@ -734,7 +733,9 @@ shift_boundaries (struct file_data filevec[])
    which the insertion was done; vice versa for INSERTED and LINE1.  */
 
 static struct change *
-add_change (int line0, int line1, int deleted, int inserted, struct change *old)
+add_change (line0, line1, deleted, inserted, old)
+     int line0, line1, deleted, inserted;
+     struct change *old;
 {
   struct change *newob = (struct change *) xmalloc (sizeof (struct change));
   memset(newob, 0, sizeof(*newob));
@@ -753,9 +754,10 @@ add_change (int line0, int line1, int deleted, int inserted, struct change *old)
    producing an edit script in reverse order.  */
 
 static struct change *
-build_reverse_script (struct file_data const filevec[])
+build_reverse_script (filevec)
+     struct file_data const filevec[];
 {
-  struct change *script = NULL;
+  struct change *script = 0;
   char *changed0 = filevec[0].changed_flag;
   char *changed1 = filevec[1].changed_flag;
   int len0 = filevec[0].buffered_lines;
@@ -790,9 +792,10 @@ build_reverse_script (struct file_data const filevec[])
    producing an edit script in forward order.  */
 
 static struct change *
-build_script (struct file_data const filevec[])
+build_script (filevec)
+     struct file_data const filevec[];
 {
-  struct change *script = NULL;
+  struct change *script = 0;
   char *changed0 = filevec[0].changed_flag;
   char *changed1 = filevec[1].changed_flag;
   int i0 = filevec[0].buffered_lines, i1 = filevec[1].buffered_lines;
@@ -822,7 +825,9 @@ build_script (struct file_data const filevec[])
 
 /* If CHANGES, briefly report that two files differed.  */
 static void
-briefly_report (int changes, struct file_data const filevec[])
+briefly_report (changes, filevec)
+     int changes;
+     struct file_data const filevec[];
 {
   if (changes)
     message (no_details_flag ? "Files %s and %s differ\n"
@@ -832,11 +837,7 @@ briefly_report (int changes, struct file_data const filevec[])
 
 //  Report the differences of two files.  DEPTH is the current directory
 // depth. 
-// WinMerge: add bMoved_blocks_flag for detecting moved blocks and
-// bin_file for getting info which file is binary file (can be NULL)
-// Winmerge: assume S_ISREG() files, not pipes, directories or devices
-struct change * diff_2_files (struct file_data filevec[], int depth, int * bin_status,
-	int bMoved_blocks_flag, int * bin_file)
+struct change * diff_2_files (struct file_data filevec[], int depth, int * bin_status, int moved_blocks_flag)
 {
 	int diags;
 	int i;
@@ -849,70 +850,62 @@ struct change * diff_2_files (struct file_data filevec[], int depth, int * bin_s
 	// only when the first chunk is read.
 	// Also, --brief without any --ignore-* options means
 	// we can speed things up by treating the files as binary.  
-	if (read_files (filevec, no_details_flag & ~ignore_some_changes, bin_file))
+	
+	if (read_files (filevec, no_details_flag & ~ignore_some_changes))
 	{
-		//  We can now safely assume to have a pair of Binary files.
-
-		// Are both files Open and Regular (no Pipes, Directories, Devices (e.g. NUL))
-		if (filevec[0].desc < 0 || filevec[1].desc < 0 ||
-			!(S_ISREG (filevec[0].stat.st_mode)) || !(S_ISREG (filevec[1].stat.st_mode))   )
-			changes = 1;
-		else
 		//  Files with different lengths must be different.  
-		if (filevec[0].stat.st_size != filevec[1].stat.st_size)
+		if (filevec[0].stat.st_size != filevec[1].stat.st_size
+			&& (filevec[0].desc < 0 || S_ISREG (filevec[0].stat.st_mode))
+			&& (filevec[1].desc < 0 || S_ISREG (filevec[1].stat.st_mode)))
 			changes = 1;
-		else
-		//  Identical descriptor implies identical files
-		if (filevec[0].desc == filevec[1].desc)
+		
+		//  Standard input equals itself.  
+		else if (filevec[0].desc == filevec[1].desc)
 			changes = 0;
-		//  Scan both files, a buffer at a time, looking for a difference.  
 		else
+			//  Scan both files, a buffer at a time, looking for a difference.  
 		{
-			//  Same-sized buffers for both files were allocated in read_files().  
-			size_t buffer_size = filevec[0].bufsize;
+			//  Allocate same-sized buffers for both files.  
+			size_t buffer_size = buffer_lcm (STAT_BLOCKSIZE (filevec[0].stat),
+				STAT_BLOCKSIZE (filevec[1].stat));
+			for (i = 0; i < 2; i++)
+				filevec[i].buffer = (char *)xrealloc (filevec[i].buffer, buffer_size);
 			
-			for (;;)
+			for (;;  filevec[0].buffered_chars = filevec[1].buffered_chars = 0)
 			{
 				//  Read a buffer's worth from both files.  
 				for (i = 0; i < 2; i++)
-					while (filevec[i].buffered_chars < buffer_size)
-					  {
-						int r = _read (filevec[i].desc,
-									   filevec[i].buffer	+ filevec[i].buffered_chars,
-									   (int)(buffer_size - filevec[i].buffered_chars));
-						if (r == 0)
-							break;
-						if (r < 0)
-							pfatal_with_name (filevec[i].name);
-						filevec[i].buffered_chars += r;
-					  }
+					if (0 <= filevec[i].desc)
+						while (filevec[i].buffered_chars != buffer_size)
+						{
+							int r = read (filevec[i].desc,
+								filevec[i].buffer
+								+ filevec[i].buffered_chars,
+								buffer_size - filevec[i].buffered_chars);
+							if (r == 0)
+								break;
+							if (r < 0)
+								pfatal_with_name (filevec[i].name);
+							filevec[i].buffered_chars += r;
+						}
 						
-				//  If the buffers have different number of chars, the files differ.  
-				if (filevec[0].buffered_chars != filevec[1].buffered_chars)
-				{
-					changes = 1;
-					break;
-				}
-
-				//  If we reach end-of-file, the files are the same.  
-				if (filevec[0].buffered_chars==0) // therefore: filevec[1].buffered_chars==0
-				{
-					changes = 0;
-					break;
-				}	
-
-				//	If buffers have different contents, the files are different.
-				if (memcmp (filevec[0].buffer,
+						//  If the buffers differ, the files differ.  
+						if (filevec[0].buffered_chars != filevec[1].buffered_chars
+							|| (filevec[0].buffered_chars != 0
+							&& memcmp (filevec[0].buffer,
 							filevec[1].buffer,
-							filevec[0].buffered_chars) != 0)
-				{
-					changes = 1;
-					break;
-				}
-
-				//	Files appear identical so far...
-				//	Prepare to loop again for the next pair of buffers.
-				filevec[0].buffered_chars = filevec[1].buffered_chars = 0;
+							filevec[0].buffered_chars) != 0))
+						{
+							changes = 1;
+							break;
+						}
+						
+						//  If we reach end of file, the files are the same.  
+						if (filevec[0].buffered_chars != buffer_size)
+						{
+							changes = 0;
+							break;
+						}
 			}
 		}
 		
@@ -953,13 +946,12 @@ struct change * diff_2_files (struct file_data filevec[], int depth, int * bin_s
 		bdiag += filevec[1].nondiscarded_lines + 1;
 		
       /* Set TOO_EXPENSIVE to be approximate square root of input size,
-	     bounded below by 4096.  4096 seems to be good for circa-2016 CPUs 
-	  */
-        too_expensive = 1;
-        for (i = filevec[0].nondiscarded_lines + filevec[1].nondiscarded_lines;
-	         i != 0; i >>= 2)
-		  too_expensive <<= 1;
-        too_expensive = max (4096, too_expensive);
+	 bounded below by 256.  */
+      too_expensive = 1;
+      for (i = filevec[0].nondiscarded_lines + filevec[1].nondiscarded_lines;
+	   i != 0; i >>= 2)
+	too_expensive <<= 1;
+      too_expensive = max (256, too_expensive);
 
 		files[0] = filevec[0];
 		files[1] = filevec[1];
@@ -977,21 +969,19 @@ struct change * diff_2_files (struct file_data filevec[], int depth, int * bin_s
 		//  Get the results of comparison in the form of a chain
 		// of `struct change's -- an edit script.  
 		
-#if 0
 		if (output_style == OUTPUT_ED)
 			script = build_reverse_script (filevec);
 		else
-#endif
 			script = build_script (filevec);
 		
 		//  Set CHANGES if we had any diffs.
 		// If some changes are ignored, we must scan the script to decide.  
-		if (ignore_blank_lines_flag)
+		if (ignore_blank_lines_flag || ignore_regexp_list)
 		{
 			struct change *next = script;
 			changes = 0;
 			
-			while (next)
+			while (next && changes == 0)
 			{
 				struct change *thisob, *end;
 				int first0, last0, first1, last1, deletes, inserts;
@@ -1003,11 +993,11 @@ struct change * diff_2_files (struct file_data filevec[], int depth, int * bin_s
 				//  Disconnect them from the rest of the changes, making them
 				// a hunk, and remember the rest for next iteration.  
 				next = end->link;
-				end->link = NULL;
+				end->link = 0;
 				
 				//  Determine whether thisob hunk is really a difference.  
 				analyze_hunk (thisob, &first0, &last0, &first1, &last1,
-					&deletes, &inserts, files);
+					&deletes, &inserts);
 				
 				//  Reconnect the script so it will all be freed properly.  
 				end->link = next;
@@ -1016,14 +1006,16 @@ struct change * diff_2_files (struct file_data filevec[], int depth, int * bin_s
 					changes = 1;
 
 			}
+			if (script)
+				script->trivial = !changes;
 		}
 		else
 		{
-			changes = (script != NULL);
+			changes = (script != 0);
 		}
 
 		/* WinMerge moved block support */
-		if (bMoved_blocks_flag)
+		if (moved_blocks_flag)
 		{
 			moved_block_analysis(&script, filevec);
 		}
@@ -1036,7 +1028,7 @@ struct change * diff_2_files (struct file_data filevec[], int depth, int * bin_s
 			{
 				// determined that there were no nontrivial changes after considering flags
 			}
-			else if (changes == 0)
+			else if (changes == 0 && ignore_regexp_list )
 			{
 				// determined that there were no nontrivial changes after considering flags
 			}

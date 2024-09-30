@@ -5,56 +5,56 @@
  */ 
 //////////////////////////////////////////////////////////////////////
 
-#include "pch.h"
+#include "stdafx.h"
 #include "PluginManager.h"
-#include <Poco/ScopedLock.h>
 
-using Poco::FastMutex;
+#ifdef _DEBUG
+#undef THIS_FILE
+static char THIS_FILE[]=__FILE__;
+#define new DEBUG_NEW
+#endif
 
-PluginManager::~PluginManager() = default;
+
+
+PluginManager::~PluginManager()
+{
+	// Manually free all items in cache
+	// This could also be done with a DestructElements helper
+	CString filteredFilenames;
+	PluginFileInfo * fi=0;
+	for (POSITION pos = m_pluginSettings.GetStartPosition(); pos; )
+	{
+		m_pluginSettings.GetNextAssoc(pos, filteredFilenames, fi);
+		delete fi;
+	}
+	m_pluginSettings.RemoveAll();
+}
 
 /**
  * @brief retrieve relevant plugin settings for specified comparison
  */
-void PluginManager::FetchPluginInfos(const String& filteredFilenames, 
+void PluginManager::FetchPluginInfos(const CString& filteredFilenames, 
                                      PackingInfo ** infoUnpacker, 
                                      PrediffingInfo ** infoPrediffer)
 {
-	FastMutex::ScopedLock lock(m_mutex);
-	PluginFileInfoPtr fi;
-	PluginFileInfoMap::iterator it = m_pluginSettings.find(filteredFilenames);
-	if (it == m_pluginSettings.end())
+	PluginFileInfo * fi=0;
+	if (!m_pluginSettings.Lookup(filteredFilenames, fi))
 	{
+		fi = new PluginFileInfo;
 		// This might be a good place to set any user-specified default values
-		fi.reset(new PluginFileInfo);
-		m_pluginSettings[filteredFilenames] = fi;
-	}
-	else
-	{
-		fi = it->second;
+		m_pluginSettings.SetAt(filteredFilenames, fi);
 	}
 	*infoUnpacker = &fi->m_infoUnpacker;
 	*infoPrediffer = &fi->m_infoPrediffer;
 }
 
-void PluginManager::SetUnpackerSettingAll(bool automatic)
+/**
+ * @brief Store specified prediff choice for specified comparison
+ */
+void PluginManager::SetPrediffSetting(const CString & filteredFilenames, int newsetting)
 {
-	FastMutex::ScopedLock lock(m_mutex);
-	for (PluginFileInfoMap::iterator it = m_pluginSettings.begin(); it != m_pluginSettings.end(); ++it)
-		it->second->m_infoUnpacker.Initialize(automatic);
-}
-
-void PluginManager::SetPrediffSettingAll(bool automatic)
-{
-	FastMutex::ScopedLock lock(m_mutex);
-	for (PluginFileInfoMap::iterator it = m_pluginSettings.begin(); it != m_pluginSettings.end(); ++it)
-		it->second->m_infoPrediffer.Initialize(automatic);
-}
-
-void PluginManager::SetPrediffer(const String& filteredFilenames, const String& predifferPipeline)
-{
-	PackingInfo * infoUnpacker = nullptr;
-	PrediffingInfo * infoPrediffer = nullptr;
+	PackingInfo * infoUnpacker = 0;
+	PrediffingInfo * infoPrediffer = 0;
 	FetchPluginInfos(filteredFilenames, &infoUnpacker, &infoPrediffer);
-	infoPrediffer->SetPluginPipeline(predifferPipeline);
+	infoPrediffer->Initialize(newsetting);
 }

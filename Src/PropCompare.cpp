@@ -1,156 +1,125 @@
 /** 
- * @file  PropCompare.cpp
+ * @file  PropColors.cpp
  *
- * @brief Implementation of PropCompare propertysheet
+ * @brief Implementation of CPropCompare propertysheet
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: PropCompare.cpp,v 1.8 2005/08/26 20:47:23 kimmov Exp $
 
 #include "stdafx.h"
+#include "merge.h"
 #include "PropCompare.h"
 #include "OptionsDef.h"
 #include "OptionsMgr.h"
-#include "OptionsPanel.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
 
+/////////////////////////////////////////////////////////////////////////////
+// CPropCompare property page
+
 /** 
- * @brief Constructor.
- * @param [in] optionsMgr Pointer to COptionsMgr.
+ * @brief Constructor
  */
-PropCompare::PropCompare(COptionsMgr *optionsMgr) 
- : OptionsPanel(optionsMgr, PropCompare::IDD)
- , m_bIgnoreCase(false)
- , m_bIgnoreNumbers(false)
- , m_bIgnoreBlankLines(false)
- , m_bIgnoreEol(true)
- , m_bIgnoreCodepage(true)
- , m_nIgnoreWhite(-1)
- , m_bMovedBlocks(false)
- , m_bMatchSimilarLines(false)
- , m_bFilterCommentsLines(false)
- , m_nDiffAlgorithm(0)
- , m_bIndentHeuristic(true)
- , m_bCompleteBlankOutIgnoredChanges(false)
+CPropCompare::CPropCompare(COptionsMgr *optionsMgr) : CPropertyPage(CPropCompare::IDD)
 {
+	//{{AFX_DATA_INIT(CPropCompare)
+	m_compareMethod = -1;
+	m_bIgnoreCase = FALSE;
+	m_bIgnoreBlankLines = FALSE;
+	m_bEolSensitive = FALSE;
+	m_nIgnoreWhite = -1;
+	m_bMovedBlocks = FALSE;
+	m_bStopAfterFirst = FALSE;
+	//}}AFX_DATA_INIT
+
+	m_pOptionsMgr = optionsMgr;
 }
 
-void PropCompare::DoDataExchange(CDataExchange* pDX)
+void CPropCompare::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(PropCompare)
-	DDX_CBIndex(pDX, IDC_DIFF_ALGORITHM, m_nDiffAlgorithm);
-	DDX_Check(pDX, IDC_INDENT_HEURISTIC, m_bIndentHeuristic);
+	//{{AFX_DATA_MAP(CPropCompare)
+	DDX_CBIndex(pDX, IDC_COMPAREMETHODCOMBO, m_compareMethod);
 	DDX_Check(pDX, IDC_IGNCASE_CHECK, m_bIgnoreCase);
 	DDX_Check(pDX, IDC_IGNBLANKS_CHECK, m_bIgnoreBlankLines);
-	DDX_Check(pDX, IDC_FILTERCOMMENTS_CHECK, m_bFilterCommentsLines);
-	DDX_Check(pDX, IDC_CP_SENSITIVE, m_bIgnoreCodepage);
-	DDX_Check(pDX, IDC_EOL_SENSITIVE, m_bIgnoreEol);
-	DDX_Check(pDX, IDC_IGNORE_NUMBERS, m_bIgnoreNumbers);
+	DDX_Check(pDX, IDC_EOL_SENSITIVE, m_bEolSensitive);
 	DDX_Radio(pDX, IDC_WHITESPACE, m_nIgnoreWhite);
 	DDX_Check(pDX, IDC_MOVED_BLOCKS, m_bMovedBlocks);
-	DDX_Check(pDX, IDC_MATCH_SIMILAR_LINES, m_bMatchSimilarLines);
-	DDX_Check(pDX, IDC_COMPLETELY_BLANK_OUT_IGNORED_DIFFERENCES, m_bCompleteBlankOutIgnoredChanges);
+	DDX_Check(pDX, IDC_COMPARE_STOPFIRST, m_bStopAfterFirst);
 	//}}AFX_DATA_MAP
-	UpdateControls();
 }
 
 
-BEGIN_MESSAGE_MAP(PropCompare, OptionsPanel)
-	//{{AFX_MSG_MAP(PropCompare)
+BEGIN_MESSAGE_MAP(CPropCompare, CPropertyPage)
+	//{{AFX_MSG_MAP(CPropCompare)
 	ON_BN_CLICKED(IDC_COMPARE_DEFAULTS, OnDefaults)
-	ON_CBN_SELCHANGE(IDC_DIFF_ALGORITHM, OnCbnSelchangeDiffAlgorithm)
 	//}}AFX_MSG_MAP
+	ON_CBN_SELCHANGE(IDC_COMPAREMETHODCOMBO, OnCbnSelchangeComparemethodcombo)
 END_MESSAGE_MAP()
 
-/** 
- * @brief Reads options values from storage to UI.
- * Property sheet calls this before displaying GUI to load values
- * into members.
- */
-void PropCompare::ReadOptions()
-{
-	m_nIgnoreWhite = GetOptionsMgr()->GetInt(OPT_CMP_IGNORE_WHITESPACE);
-	m_bIgnoreBlankLines = GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_BLANKLINES);
-	m_bFilterCommentsLines = GetOptionsMgr()->GetBool(OPT_CMP_FILTER_COMMENTLINES);
-	m_bIgnoreCase = GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_CASE);
-	m_bIgnoreNumbers = GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_NUMBERS);
-	m_bIgnoreEol = GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_EOL);
-	m_bIgnoreCodepage = GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_CODEPAGE);
-	m_bMovedBlocks = GetOptionsMgr()->GetBool(OPT_CMP_MOVED_BLOCKS);
-	m_bMatchSimilarLines = GetOptionsMgr()->GetBool(OPT_CMP_MATCH_SIMILAR_LINES);
-	m_nDiffAlgorithm = GetOptionsMgr()->GetInt(OPT_CMP_DIFF_ALGORITHM);
-	m_bIndentHeuristic = GetOptionsMgr()->GetBool(OPT_CMP_INDENT_HEURISTIC);
-	m_bCompleteBlankOutIgnoredChanges = GetOptionsMgr()->GetBool(OPT_CMP_COMPLETELY_BLANK_OUT_IGNORED_CHANGES);
-}
-
-/** 
- * @brief Writes options values from UI to storage.
- * Property sheet calls this after dialog is closed with OK button to
- * store values in member variables.
- */
-void PropCompare::WriteOptions()
-{
-	GetOptionsMgr()->SaveOption(OPT_CMP_IGNORE_WHITESPACE, m_nIgnoreWhite);
-	GetOptionsMgr()->SaveOption(OPT_CMP_IGNORE_BLANKLINES, m_bIgnoreBlankLines);
-	GetOptionsMgr()->SaveOption(OPT_CMP_FILTER_COMMENTLINES, m_bFilterCommentsLines);
-	GetOptionsMgr()->SaveOption(OPT_CMP_IGNORE_CODEPAGE, m_bIgnoreCodepage);
-	GetOptionsMgr()->SaveOption(OPT_CMP_IGNORE_EOL, m_bIgnoreEol);
-	GetOptionsMgr()->SaveOption(OPT_CMP_IGNORE_CASE, m_bIgnoreCase);
-	GetOptionsMgr()->SaveOption(OPT_CMP_IGNORE_NUMBERS, m_bIgnoreNumbers);
-	GetOptionsMgr()->SaveOption(OPT_CMP_MOVED_BLOCKS, m_bMovedBlocks);
-	GetOptionsMgr()->SaveOption(OPT_CMP_MATCH_SIMILAR_LINES, m_bMatchSimilarLines);
-	GetOptionsMgr()->SaveOption(OPT_CMP_DIFF_ALGORITHM, m_nDiffAlgorithm);
-	GetOptionsMgr()->SaveOption(OPT_CMP_INDENT_HEURISTIC, m_bIndentHeuristic);
-	GetOptionsMgr()->SaveOption(OPT_CMP_COMPLETELY_BLANK_OUT_IGNORED_CHANGES, m_bCompleteBlankOutIgnoredChanges);
-}
+/////////////////////////////////////////////////////////////////////////////
+// CPropCompare message handlers
 
 /** 
  * @brief Called before propertysheet is drawn.
  */
-BOOL PropCompare::OnInitDialog()
+BOOL CPropCompare::OnInitDialog() 
 {
-	CComboBox * combo = (CComboBox*) GetDlgItem(IDC_DIFF_ALGORITHM);
+	CPropertyPage::OnInitDialog();
+	CComboBox * combo = (CComboBox*) GetDlgItem(IDC_COMPAREMETHODCOMBO);
 
-	combo->AddString(_("default").c_str());
-	combo->AddString(_("minimal").c_str());
-	combo->AddString(_("patience").c_str());
-	combo->AddString(_("histogram").c_str());
-	combo->AddString(_("none").c_str());
-	combo->SetCurSel(m_nDiffAlgorithm);
+	CString item;
+	VERIFY(item.LoadString(IDS_COMPMETHOD_FULL_CONTENTS));
+	combo->AddString(item);
+	VERIFY(item.LoadString(IDS_COMPMETHOD_QUICK_CONTENTS));
+	combo->AddString(item);
+	VERIFY(item.LoadString(IDS_COMPMETHOD_MODDATE));
+	combo->AddString(item);
+	combo->SetCurSel(m_compareMethod);
 
-	OptionsPanel::OnInitDialog();
+	CButton * pBtn = (CButton*) GetDlgItem(IDC_COMPARE_STOPFIRST);
+	if (m_compareMethod == 1)
+		pBtn->EnableWindow(TRUE);
+	else
+		pBtn->EnableWindow(FALSE);
+
 	return TRUE;  // return TRUE unless you set the focus to a control
+	              // EXCEPTION: OCX Property Pages should return FALSE
 }
 
 /** 
  * @brief Sets options to defaults
  */
-void PropCompare::OnDefaults()
+void CPropCompare::OnDefaults()
 {
-	m_nIgnoreWhite = GetOptionsMgr()->GetDefault<unsigned>(OPT_CMP_IGNORE_WHITESPACE);
-	m_bIgnoreEol = GetOptionsMgr()->GetDefault<bool>(OPT_CMP_IGNORE_EOL);
-	m_bIgnoreCodepage = GetOptionsMgr()->GetDefault<bool>(OPT_CMP_IGNORE_CODEPAGE);
-	m_bIgnoreBlankLines = GetOptionsMgr()->GetDefault<bool>(OPT_CMP_IGNORE_BLANKLINES);
-	m_bFilterCommentsLines = GetOptionsMgr()->GetDefault<bool>(OPT_CMP_FILTER_COMMENTLINES);
-	m_bIgnoreCase = GetOptionsMgr()->GetDefault<bool>(OPT_CMP_IGNORE_CASE);
-	m_bIgnoreNumbers = GetOptionsMgr()->GetDefault<bool>(OPT_CMP_IGNORE_NUMBERS);
-	m_bMovedBlocks = GetOptionsMgr()->GetDefault<bool>(OPT_CMP_MOVED_BLOCKS);
-	m_bMatchSimilarLines = GetOptionsMgr()->GetDefault<bool>(OPT_CMP_MATCH_SIMILAR_LINES);
-	m_nDiffAlgorithm = GetOptionsMgr()->GetDefault<unsigned>(OPT_CMP_DIFF_ALGORITHM);
-	m_bIndentHeuristic = GetOptionsMgr()->GetDefault<bool>(OPT_CMP_INDENT_HEURISTIC);
-	m_bCompleteBlankOutIgnoredChanges = GetOptionsMgr()->GetDefault<bool>(OPT_CMP_COMPLETELY_BLANK_OUT_IGNORED_CHANGES);
+	DWORD tmp;
+	m_pOptionsMgr->GetDefault(OPT_CMP_METHOD, tmp);
+	m_compareMethod = tmp;
+	m_pOptionsMgr->GetDefault(OPT_CMP_IGNORE_WHITESPACE, tmp);
+	m_nIgnoreWhite = tmp;
+	m_pOptionsMgr->GetDefault(OPT_CMP_EOL_SENSITIVE, tmp);
+	m_bEolSensitive = !tmp; // Reverse
+	m_pOptionsMgr->GetDefault(OPT_CMP_IGNORE_BLANKLINES, tmp);
+	m_bIgnoreBlankLines = tmp;
+	m_pOptionsMgr->GetDefault(OPT_CMP_IGNORE_CASE, tmp);
+	m_bIgnoreCase = tmp;
+	m_pOptionsMgr->GetDefault(OPT_CMP_MOVED_BLOCKS, tmp);
+	m_bMovedBlocks = tmp;
+	m_pOptionsMgr->GetDefault(OPT_CMP_STOP_AFTER_FIRST, tmp);
+	m_bStopAfterFirst = tmp;
 	UpdateData(FALSE);
 }
 
-void PropCompare::OnCbnSelchangeDiffAlgorithm()
+void CPropCompare::OnCbnSelchangeComparemethodcombo()
 {
-	UpdateControls();
-}
-
-void PropCompare::UpdateControls()
-{
-	CComboBox * pCombo = (CComboBox*)GetDlgItem(IDC_DIFF_ALGORITHM);
-	int cursel = pCombo->GetCurSel();
-	EnableDlgItem(IDC_INDENT_HEURISTIC, cursel != 0/*default*/ && cursel != 4/*none*/);
+	CComboBox * pCombo = (CComboBox*) GetDlgItem(IDC_COMPAREMETHODCOMBO);
+	CButton * pBtn = (CButton*) GetDlgItem(IDC_COMPARE_STOPFIRST);
+	if (pCombo->GetCurSel() == 1)
+		pBtn->EnableWindow(TRUE);
+	else
+		pBtn->EnableWindow(FALSE);
 }

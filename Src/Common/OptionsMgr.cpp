@@ -4,10 +4,12 @@
  * @brief Implementation of Options management classes
  *
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: OptionsMgr.cpp,v 1.7 2005/05/20 22:29:35 elsapo Exp $
 
 
 /* The MIT License
-Copyright (c) 2004-2009 Kimmo Varis
+Copyright (c) 2004 Kimmo Varis
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files
 (the "Software"), to deal in the Software without restriction, including
@@ -26,67 +28,24 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include "pch.h"
+#include "stdafx.h"
+#include "varprop.h"
 #include "OptionsMgr.h"
-#include <algorithm>
-#include <cassert>
-#include <Windows.h>
-
-constexpr int MAX_PATH_FULL = 32767;
-
-static bool GetAsInt(const String& str, int & val);
-
-varprop::VariantValue COptionsMgr::m_emptyValue;
-
-/**
- * @brief Default constructor.
- */
-COption::COption() = default;
-
-/**
- * @brief Copy constructor.
- * @param [in] option Object to copy.
- */
-COption::COption(const COption& option)
-: m_strName(option.m_strName)
-, m_value(option.m_value)
-, m_valueDef(option.m_valueDef)
-{
-}
-
-/**
- * @brief Assignment operator override.
- * @param [in] option Object to copy.
- * @return Copy of given object.
- */
-COption& COption::operator=(const COption& option)
-{
-	if (this != &option)
-	{
-		m_strName = option.m_strName;
-		m_value = option.m_value;
-		m_valueDef = option.m_valueDef;
-	}
-	return *this;
-}
 
 /**
  * @brief Set name, value and default value for option
- * @param [in] name Name of option with full path ("Settings/AutomaticRescan")
+ * @param [in] optName Name of option ("Settings/AutomaticRescan")
  * @param [in] defaultValue Default value for option. This value
  * is restored for otion when Reset() is run.
  * @sa COption::Reset()
  */
-int COption::Init(const String& name, const varprop::VariantValue& defaultValue)
+int COption::Init(CString optName, varprop::VariantValue defaultValue)
 {
-	int retVal = COption::OPT_OK;
-
-	m_strName = name;
-	if (m_strName.empty())
-		return OPT_ERR;
+	int retVal = OPT_OK;
 
 	// Dont' check type here since we are initing it!
-	varprop::VT_TYPE inType = defaultValue.GetType();
+	m_strName = optName;
+	varprop::VT_TYPE inType = defaultValue.getType();
 
 	switch (inType)
 	{
@@ -94,173 +53,62 @@ int COption::Init(const String& name, const varprop::VariantValue& defaultValue)
 		retVal = OPT_UNKNOWN_TYPE;
 		break;
 	case varprop::VT_BOOL:
-		m_value.SetBool(defaultValue.GetBool());
-		m_valueDef.SetBool(defaultValue.GetBool());
+		m_value.SetBool(defaultValue.getBool());
+		m_valueDef.SetBool(defaultValue.getBool());
 		break;
 	case varprop::VT_INT:
-		m_value.SetInt(defaultValue.GetInt());
-		m_valueDef.SetInt(defaultValue.GetInt());
+		m_value.SetInt(defaultValue.getInt());
+		m_valueDef.SetInt(defaultValue.getInt());
 		break;
 	case varprop::VT_FLOAT:
-		m_value.SetFloat(defaultValue.GetFloat());
-		m_valueDef.SetFloat(defaultValue.GetFloat());
+		m_value.SetFloat(defaultValue.getFloat());
+		m_valueDef.SetFloat(defaultValue.getFloat());
 		break;
 	case varprop::VT_STRING:
-		m_value.SetString(defaultValue.GetString());
-		m_valueDef.SetString(defaultValue.GetString());
+		m_value.SetString(defaultValue.getString());
+		m_valueDef.SetString(defaultValue.getString());
 		break;
 	case varprop::VT_TIME:
-		m_value.SetTime(defaultValue.GetTime());
-		m_valueDef.SetTime(defaultValue.GetTime());
+		m_value.SetTime(defaultValue.getTime());
+		m_valueDef.SetTime(defaultValue.getTime());
 		break;
 	default:
 		retVal = OPT_UNKNOWN_TYPE;
 	}
-	return retVal;
+	return retVal;		
 }
 
 /**
- * @brief Convert string to integer.
- * @param [in] str String to convert.
- * @param [out] val Converted integer.
- * @return true if conversion succeeded, false otherwise.
+ * @brief Return option value
  */
-static bool GetAsInt(const String& str, int & val)
+varprop::VariantValue COption::Get() const
 {
-	if (str.empty())
-		return false;
-	const size_t len = str.length();
-
-	val = 0;
-	for (int i = 0; i < (int)len; ++i)
-	{
-		int ch = (int)str[i];
-		if (ch < '0' || ch > '9')
-			return false;
-		val *= 10;
-		val += ch - '0';
-	}
-	return true;
+	return m_value;
 }
 
 /**
- * @brief Convert integer value to desired type.
- * @param [in, out] value Value to convert.
- * @param [in] nType Type to convert to.
- * @return true if conversion succeeded, false otherwise.
- * @note Only supports converting to boolean at the moment.
- * @todo Add other conversions (string?).
-  */
-bool COption::ConvertInteger(varprop::VariantValue & value, varprop::VT_TYPE nType)
-{
-	int ivalue = value.GetInt();
-
-	switch(nType)
-	{
-	case varprop::VT_BOOL:
-		// Convert integer to boolean
-		{
-			if (ivalue > 0)
-			{
-				value.SetBool(true);
-				return true;
-			}
-			else
-			{
-				value.SetBool(false);
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-/**
- * @brief Convert string value to desired type.
- * @param [in, out] value Value to convert.
- * @param [in] nType Type to convert to.
- * @return true if conversion succeeded, false otherwise.
- * @note Only supports converting to integer and boolean at the moment.
- * @todo Add other conversions (float?).
-  */
-bool COption::ConvertString(varprop::VariantValue & value, varprop::VT_TYPE nType)
-{
-	String svalue = value.GetString();
-	switch(nType)
-	{
-	case varprop::VT_INT:
-		// Convert string to integer
-		{
-			int val=0;
-			if (!GetAsInt(svalue, val))
-				return false;
-			value.SetInt(val);
-			return true;
-		}
-	case varprop::VT_BOOL:
-		// Convert string to boolean
-		{
-			svalue = strutils::makelower(svalue);
-			if (svalue == _T("1") || svalue == _T("yes")
-				|| svalue == _T("true"))
-			{
-				value.SetBool(true);
-				return true;
-			}
-			if (svalue == _T("0") || svalue == _T("no")
-				|| svalue == _T("false"))
-			{
-				value.SetBool(false);
-				return true;
-			}
-			return false;
-		}
-	}
-	return false;
-}
-
-/**
- * @brief Convert value to desired type.
- * @param [in, out] value Value to convert.
- * @param [in] nType Type to convert to.
- * @return true if conversion succeeded, false otherwise.
- * @note Currently converts only strings and integers.
- * @todo Add other conversions.
+ * @brief Return option default value
  */
-bool COption::ConvertType(varprop::VariantValue & value, varprop::VT_TYPE nType)
+varprop::VariantValue COption::GetDefault() const
 {
-	if (value.GetType() == varprop::VT_STRING)
-		return ConvertString(value, nType);
-	if (value.GetType() == varprop::VT_INT)
-		return ConvertInteger(value, nType);
-	return false;
+	return m_valueDef;
 }
 
 /**
  * @brief Set option value.
  * 
- * Set new value for option. If automatic conversion is not allowed,
- * type of value must match to type set when option was initialised.
- * @param [in] value New value to set.
- * @param [in] allowConversion Is automatic type conversion allowed?
+ * Set new value for option. Type of value must match to type
+ * set when option was initialised.
  * @sa COption::Init()
  */
-int COption::Set(const varprop::VariantValue& value, bool allowConversion)
+int COption::Set(varprop::VariantValue value)
 {
-	int retVal = COption::OPT_OK;
+	int retVal = OPT_OK;
 
 	// Check that type matches
-	varprop::VT_TYPE inType = value.GetType();
-	if (value.GetType() != m_value.GetType())
-	{
-		if (allowConversion)
-		{
-			varprop::VariantValue val(value);
-			if (ConvertType(val, m_value.GetType()))
-				return Set(val);
-		}
-		return COption::OPT_WRONG_TYPE;
-	}
+	varprop::VT_TYPE inType = value.getType();
+	if (value.getType() != m_value.getType())
+		return OPT_WRONG_TYPE;
 
 	switch (inType)
 	{
@@ -268,19 +116,19 @@ int COption::Set(const varprop::VariantValue& value, bool allowConversion)
 		retVal = OPT_UNKNOWN_TYPE;
 		break;
 	case varprop::VT_BOOL:
-		m_value.SetBool(value.GetBool());
+		m_value.SetBool(value.getBool());
 		break;
 	case varprop::VT_INT:
-		m_value.SetInt(value.GetInt());
+		m_value.SetInt(value.getInt());
 		break;
 	case varprop::VT_FLOAT:
-		m_value.SetFloat(value.GetFloat());
+		m_value.SetFloat(value.getFloat());
 		break;
 	case varprop::VT_STRING:
-		m_value.SetString(value.GetString());
+		m_value.SetString(value.getString());
 		break;
 	case varprop::VT_TIME:
-		m_value.SetTime(value.GetTime());
+		m_value.SetTime(value.getTime());
 		break;
 	default:
 		retVal = OPT_UNKNOWN_TYPE;
@@ -291,21 +139,18 @@ int COption::Set(const varprop::VariantValue& value, bool allowConversion)
 /**
  * @brief Change default value for option.
  *
- * Set new value for option default value.  If automatic conversion is not
- * allowed, type of value must match to type set when option was initialised.
- * @param [in] defaultValue New default value.
+ * Set new value for option default value. Type of given value
+ * must match to type given when option was initialised.
  * @sa COption::Init()
  */
-int COption::SetDefault(const varprop::VariantValue& defaultValue)
+int COption::SetDefault(varprop::VariantValue defaultValue)
 {
-	int retVal = COption::OPT_OK;
+	int retVal = OPT_OK;
 
 	// Check that type matches
-	varprop::VT_TYPE inType = defaultValue.GetType();
-	if (inType != m_valueDef.GetType())
-	{
-		return COption::OPT_WRONG_TYPE;
-	}
+	varprop::VT_TYPE inType = defaultValue.getType();
+	if (inType != m_valueDef.getType())
+		return OPT_WRONG_TYPE;
 
 	switch (inType)
 	{
@@ -313,19 +158,19 @@ int COption::SetDefault(const varprop::VariantValue& defaultValue)
 		retVal = OPT_UNKNOWN_TYPE;
 		break;
 	case varprop::VT_BOOL:
-		m_valueDef.SetBool(defaultValue.GetBool());
+		m_valueDef.SetBool(defaultValue.getBool());
 		break;
 	case varprop::VT_INT:
-		m_valueDef.SetInt(defaultValue.GetInt());
+		m_valueDef.SetInt(defaultValue.getInt());
 		break;
 	case varprop::VT_FLOAT:
-		m_valueDef.SetFloat(defaultValue.GetFloat());
+		m_valueDef.SetFloat(defaultValue.getFloat());
 		break;
 	case varprop::VT_STRING:
-		m_valueDef.SetString(defaultValue.GetString());
+		m_valueDef.SetString(defaultValue.getString());
 		break;
 	case varprop::VT_TIME:
-		m_valueDef.SetTime(defaultValue.GetTime());
+		m_valueDef.SetTime(defaultValue.getTime());
 		break;
 	default:
 		retVal = OPT_UNKNOWN_TYPE;
@@ -334,482 +179,228 @@ int COption::SetDefault(const varprop::VariantValue& defaultValue)
 }
 
 /**
- * @brief Reset option's value to default value.
+ * @brief Reset options value to default value
  */
 void COption::Reset()
 {
-	switch (m_value.GetType())
+	switch (m_value.getType())
 	{
 	case varprop::VT_BOOL:
-		m_value.SetBool(m_valueDef.GetBool());
+		m_value.SetBool(m_valueDef.getBool());
 		break;
 	case varprop::VT_INT:
-		m_value.SetInt(m_valueDef.GetInt());
+		m_value.SetInt(m_valueDef.getInt());
 		break;
 	case varprop::VT_FLOAT:
-		m_value.SetFloat(m_valueDef.GetFloat());
+		m_value.SetFloat(m_valueDef.getFloat());
 		break;
 	case varprop::VT_STRING:
-		m_value.SetString(m_valueDef.GetString());
+		m_value.SetString(m_valueDef.getString());
 		break;
 	case varprop::VT_TIME:
-		m_value.SetTime(m_valueDef.GetTime());
+		m_value.SetTime(m_valueDef.getTime());
 		break;
 	}
 }
 
 /**
  * @brief Add new option to list.
- * @param [in] name Option's name.
- * @param [in] defaultValue Option's initial and default value.
  */
-int COptionsMgr::AddOption(const String& name, const varprop::VariantValue& defaultValue)
+int COptionsMgr::Add(CString name, varprop::VariantValue defaultValue)
+{
+	int retVal = OPT_OK;
+	COption tmpOption;
+	
+	retVal = tmpOption.Init(name, defaultValue);
+	if (retVal == OPT_OK)
+		m_optionsMap.SetAt(name, tmpOption);
+
+	return retVal;
+}
+
+/**
+ * @brief Get option value from list by name
+ */
+varprop::VariantValue COptionsMgr::Get(CString name) const
 {
 	COption tmpOption;
-	int retVal = tmpOption.Init(name, defaultValue);
-	if (retVal == COption::OPT_OK)
-		m_optionsMap.insert_or_assign(name, tmpOption);
+	varprop::VariantValue value;
+	BOOL optionFound = FALSE;
 
-	return retVal;
-}
-
-int COptionsMgr::InitOption(const String& name, int defaultValue, int minValue, int maxValue, bool serializable)
-{
-	int retVal = InitOption(name, defaultValue, serializable);
-	if (retVal == COption::OPT_OK)
+	optionFound = m_optionsMap.Lookup(name, tmpOption);
+	if (optionFound)
 	{
-		int ival = GetInt(name);
-		if (ival < minValue || ival > maxValue)
-			Reset(name);
+		value = tmpOption.Get();
 	}
-	return retVal;
+	return value;
 }
 
 /**
- * @brief Get option value from list by name.
- * @param [in] name Name of the option to get.
- * @return Option's value as variant type.
+ * @brief Return string option value
  */
-const varprop::VariantValue& COptionsMgr::Get(const String& name) const
+CString COptionsMgr::GetString(CString name) const
 {
-	OptionsMap::const_iterator found = m_optionsMap.find(name);
-	if (found != m_optionsMap.end())
-	{
-		return found->second.Get();
-	}
-	return m_emptyValue;
+	varprop::VariantValue val;
+	val = Get(name);
+	return val.getString();
 }
 
 /**
- * @brief Return string option value.
- * @param [in] name Option's name.
+ * @brief Return integer option value
  */
-const String& COptionsMgr::GetString(const String& name) const
+int COptionsMgr::GetInt(const CString & name) const
 {
-	return Get(name).GetString();
-}
-
-/**
- * @brief Return integer option value.
- * @param [in] name Option's name.
- */
-int COptionsMgr::GetInt(const String& name) const
-{
-	return Get(name).GetInt();
+	varprop::VariantValue val;
+	val = Get(name);
+	return val.getInt();
 }
 
 /**
  * @brief Return boolean option value
- * @param [in] name Option's name.
  */
-bool COptionsMgr::GetBool(const String& name) const
+bool COptionsMgr::GetBool(CString name) const
 {
-	return Get(name).GetBool();
+	varprop::VariantValue val;
+	val = Get(name);
+	return val.getBool();
 }
 
 /**
- * @brief Set new value for option.
- * @param [in] name Option's name.
- * @param [in] value Option's new value.
+ * @brief Set new value for option
  */
-int COptionsMgr::Set(const String& name, const varprop::VariantValue& value)
+int COptionsMgr::Set(CString name, varprop::VariantValue value)
 {
-	int retVal = COption::OPT_OK;
+	COption tmpOption;
+	BOOL optionFound = FALSE;
+	int retVal = OPT_OK;
 
-	OptionsMap::const_iterator found = m_optionsMap.find(name);
-	if (found != m_optionsMap.end())
+	optionFound = m_optionsMap.Lookup(name, tmpOption);
+	if (optionFound == TRUE)
 	{
-		// Allow automatic conversion so we don't bother callsites about this!
-		COption tmpOption = found->second;
-		retVal = tmpOption.Set(value, true);
-		if (retVal == COption::OPT_OK)
-			m_optionsMap.insert_or_assign(name, tmpOption);
+		retVal = tmpOption.Set(value);
+		if (retVal == OPT_OK)
+			m_optionsMap.SetAt(name, tmpOption);
 	}
 	else
 	{
-		retVal = COption::OPT_NOTFOUND;
+		retVal = OPT_NOTFOUND;
 	}
 	return retVal;
 }
 
-/**
- * @brief Set new value for boolean option.
- * @param [in] name Option's name.
- * @param [in] value Option's new value.
+/*
+ * @brief Type-convert and forward to SaveOption(CString, int)
  */
-int COptionsMgr::Set(const String& name, bool value)
+int COptionsMgr::SaveOption(CString name, UINT value)
 {
-	varprop::VariantValue valx;
-	valx.SetBool(value);
-	return Set(name, valx);
+	int xvalue = value;
+	return SaveOption(name, xvalue);
 }
 
-/**
- * @brief Set new value for integer option.
- * @param [in] name Option's name.
- * @param [in] value Option's new value.
+/*
+ * @brief Type-convert and forward to SaveOption(CString, int)
  */
-int COptionsMgr::Set(const String& name, int value)
-{
-	varprop::VariantValue valx;
-	valx.SetInt(value);
-	return Set(name, valx);
-}
-
-/**
- * @brief Set new value for string option.
- * @param [in] name Option's name.
- * @param [in] value Option's new value.
- */
-int COptionsMgr::Set(const String& name, const String& value)
-{
-	varprop::VariantValue valx;
-	valx.SetString(value);
-	return Set(name, valx);
-}
-
-/**
- * @brief Set new value for string option.
- * @param [in] name Option's name.
- * @param [in] value Option's new value.
- */
-int COptionsMgr::Set(const String& name, const TCHAR *value)
-{
-	return Set(name, String(value));
-}
-
-/**
- * @brief Type-convert and forward to SaveOption(String, int)
- * @param [in] name Option's name.
- * @param [in] value Option's new value.
- */
-int COptionsMgr::SaveOption(const String& name, unsigned value)
+int COptionsMgr::SaveOption(CString name, COLORREF value)
 {
 	int xvalue = value;
 	return SaveOption(name, xvalue);
 }
 
 /**
- * @brief Remove option from options list.
- * @param [in] name Name of the option to remove.
+ * @brief Reset option value to default
  */
-int COptionsMgr::RemoveOption(const String& name)
+int COptionsMgr::Reset(CString name)
 {
-	int retVal = COption::OPT_OK;
+	COption tmpOption;
+	BOOL optionFound = FALSE;
+	int retVal = OPT_OK;
 
-	OptionsMap::const_iterator found = m_optionsMap.find(name);
-	if (found != m_optionsMap.end())
+	optionFound = m_optionsMap.Lookup(name, tmpOption);
+	if (optionFound == TRUE)
 	{
-		size_t nr_removed = m_optionsMap.erase(name);
-		if (nr_removed == 0)
-			retVal = COption::OPT_NOTFOUND;
-	}
-	else
-		retVal = COption::OPT_NOTFOUND;
-
-	return retVal;
-}
-
-/**
- * @brief Reset option value to default.
- * @param [in] name Name of the option to reset.
- */
-int COptionsMgr::Reset(const String& name)
-{
-	int retVal = COption::OPT_OK;
-
-	OptionsMap::const_iterator found = m_optionsMap.find(name);
-	if (found != m_optionsMap.end())
-	{
-		COption tmpOption = found->second;
 		tmpOption.Reset();
-		m_optionsMap.insert_or_assign(name, tmpOption);
+		m_optionsMap.SetAt(name, tmpOption);
 	}
 	else
 	{
-		retVal = COption::OPT_NOTFOUND;
+		retVal = OPT_NOTFOUND;
 	}
 	return retVal;
 }
 
 /**
- * @brief Return default string value.
- * @param [in] name Option's name.
- * @param [out] value Option's default value.
+ * @brief Return default string value
  */
-int COptionsMgr::GetDefault(const String& name, String & value) const
+int COptionsMgr::GetDefault(CString name, CString & value) const
 {
-	int retVal = COption::OPT_OK;
+	COption tmpOption;
+	BOOL optionFound = FALSE;
+	int retVal = OPT_OK;
 
-	OptionsMap::const_iterator found = m_optionsMap.find(name);
-	if (found != m_optionsMap.end())
+	optionFound = m_optionsMap.Lookup(name, tmpOption);
+	if (optionFound == TRUE)
 	{
-		varprop::VariantValue val = found->second.GetDefault();
-		if (val.IsString())
-			value = val.GetString();
+		varprop::VariantValue val = tmpOption.GetDefault();
+		if (val.isString())
+			value = val.getString();
 		else
-			retVal = COption::OPT_WRONG_TYPE;
+			retVal = OPT_WRONG_TYPE;
 	}
 	else
 	{
-		retVal = COption::OPT_NOTFOUND;
+		retVal = OPT_NOTFOUND;
 	}
 	return retVal;
 }
 
 /**
  * @brief Return default number value
- * @param [in] name Option's name.
- * @param [out] value Option's default value.
  */
-int COptionsMgr::GetDefault(const String& name, unsigned & value) const
+int COptionsMgr::GetDefault(CString name, DWORD & value) const
 {
-	int retVal = COption::OPT_OK;
+	COption tmpOption;
+	BOOL optionFound = FALSE;
+	int retVal = OPT_OK;
 
-	OptionsMap::const_iterator found = m_optionsMap.find(name);
-	if (found != m_optionsMap.end())
+	optionFound = m_optionsMap.Lookup(name, tmpOption);
+	if (optionFound == TRUE)
 	{
-		varprop::VariantValue val = found->second.GetDefault();
-		if (val.IsInt())
-			value = val.GetInt();
+		varprop::VariantValue val = tmpOption.GetDefault();
+		if (val.isInt())
+			value = val.getInt();
 		else
-			retVal = COption::OPT_WRONG_TYPE;
+			retVal = OPT_WRONG_TYPE;
 	}
 	else
 	{
-		retVal = COption::OPT_NOTFOUND;
+		retVal = OPT_NOTFOUND;
 	}
 	return retVal;
 }
 
 /**
  * @brief Return default boolean value
- * @param [in] name Option's name.
- * @param [out] value Option's default value.
  */
-int COptionsMgr::GetDefault(const String& name, bool & value) const
+int COptionsMgr::GetDefault(CString name, bool & value) const
 {
-	int retVal = COption::OPT_OK;
+	COption tmpOption;
+	BOOL optionFound = FALSE;
+	int retVal = OPT_OK;
 
-	OptionsMap::const_iterator found = m_optionsMap.find(name);
-	if (found != m_optionsMap.end())
+	optionFound = m_optionsMap.Lookup(name, tmpOption);
+	if (optionFound == TRUE)
 	{
-		varprop::VariantValue val = found->second.GetDefault();
-		if (val.IsBool())
-			value = val.GetBool();
+		varprop::VariantValue val = tmpOption.GetDefault();
+		if (val.isBool())
+			value = val.getBool();
 		else
-			retVal = COption::OPT_WRONG_TYPE;
+			retVal = OPT_WRONG_TYPE;
 	}
 	else
 	{
-		retVal = COption::OPT_NOTFOUND;
+		retVal = OPT_NOTFOUND;
 	}
 	return retVal;
-}
-
-String COptionsMgr::ExpandShortName(const String& shortname) const
-{
-	int nmatched = 0;
-	String matchedkey;
-	for (const auto& it : m_optionsMap)
-	{
-		if (it.first.find(shortname) != String::npos)
-		{
-			matchedkey = it.first;
-			++nmatched;
-		}
-	}
-	return (nmatched == 1) ? matchedkey : _T("");
-}
-
-/**
- * @brief Export options to file.
- *
- * This function enumerates through our options storage and saves
- * every option name and value to file.
- *
- * @param [in] filename Filename where optios are written.
- * @return
- * - COption::OPT_OK when succeeds
- * - COption::OPT_ERR when writing to the file fails
- */
-int COptionsMgr::ExportOptions(const String& filename, const bool bHexColor /*= false*/) const
-{
-	int retVal = COption::OPT_OK;
-	OptionsMap::const_iterator optIter = m_optionsMap.begin();
-	while (optIter != m_optionsMap.end() && retVal == COption::OPT_OK)
-	{
-		const String name(optIter->first);
-		String strVal, strType;
-		varprop::VariantValue value = optIter->second.Get();
-		if (value.GetType() == varprop::VT_BOOL)
-		{
-			strType = _T("bool");
-			if (value.GetBool())
-				strVal = _T("1");
-			else
-				strVal = _T("0");
-		}
-		else if (value.GetType() == varprop::VT_INT)
-		{
-			strType = _T("int");
-			if ( bHexColor && (strutils::makelower(name).find(String(_T("color"))) != std::string::npos) )
-				strVal = strutils::format(_T("0x%06x"), value.GetInt());
-			else
-				strVal = strutils::to_str(value.GetInt());
-		}
-		else if (value.GetType() == varprop::VT_STRING)
-		{
-			strType = _T("string");
-			strVal = EscapeValue(value.GetString());
-		}
-
-		bool bRet = !!WritePrivateProfileString(_T("WinMerge"), name.c_str(),
-				strVal.c_str(), filename.c_str());
-		if (!bRet)
-			retVal = COption::OPT_ERR;
-		bRet = !!WritePrivateProfileString(_T("WinMerge.TypeInfo"), name.c_str(),
-				strType.c_str(), filename.c_str());
-		if (!bRet)
-			retVal = COption::OPT_ERR;
-		++optIter;
-	}
-	return retVal;
-}
-
-/**
- * @brief Import options from file.
- *
- * This function reads options values and names from given file and
- * updates values to our options storage. If valuename does not exist
- * already in options storage its is not created.
- *
- * @param [in] filename Filename where optios are written.
- * @return
- * - COption::OPT_OK when succeeds
- * - COption::OPT_NOTFOUND if file wasn't found or didn't contain values
- */
-int COptionsMgr::ImportOptions(const String& filename)
-{
-	int retVal = COption::OPT_OK;
-	const int BufSize = 40960; // This should be enough for a long time..
-	std::vector<TCHAR> buf(BufSize);
-	auto oleTranslateColor = [](unsigned color) -> unsigned { return ((color & 0xffffff00) == 0x80000000) ? GetSysColor(color & 0x000000ff) : color; };
-
-	// Query keys - returns NUL separated strings
-	DWORD len = GetPrivateProfileString(_T("WinMerge"), nullptr, _T(""), buf.data(), BufSize, filename.c_str());
-	if (len == 0)
-		return COption::OPT_NOTFOUND;
-
-	bool init = false;
-	TCHAR *pKey = buf.data();
-	while (*pKey != '\0')
-	{
-		varprop::VariantValue value = Get(pKey);
-		if (value.GetType() == varprop::VT_NULL)
-		{
-			init = true;
-			TCHAR strType[MAX_PATH_FULL] = {0};
-			GetPrivateProfileString(_T("WinMerge.TypeInfo"), pKey, _T(""), strType, MAX_PATH_FULL, filename.c_str());
-			if (_tcsicmp(strType, _T("bool")) == 0)
-				value.SetBool(false);
-			else if (_tcsicmp(strType, _T("int")) == 0)
-				value.SetInt(0);
-			else if (_tcsicmp(strType, _T("string")) == 0)
-				value.SetString(_T(""));
-		}
-
-		if (value.GetType() == varprop::VT_BOOL)
-		{
-			bool boolVal = GetPrivateProfileInt(_T("WinMerge"), pKey, 0, filename.c_str()) == 1;
-			value.SetBool(boolVal);
-		}
-		else if (value.GetType() == varprop::VT_INT)
-		{
-			int intVal = GetPrivateProfileInt(_T("WinMerge"), pKey, 0, filename.c_str());
-			if (strutils::makelower(pKey).find(String(_T("color"))) != std::string::npos)
-				intVal = static_cast<int>(oleTranslateColor(static_cast<unsigned>(intVal)));
-			value.SetInt(intVal);
-		}
-		else if (value.GetType() == varprop::VT_STRING)
-		{
-			TCHAR strVal[MAX_PATH_FULL] = {0};
-			GetPrivateProfileString(_T("WinMerge"), pKey, _T(""), strVal, MAX_PATH_FULL, filename.c_str());
-			String sVal = UnescapeValue(strVal);
-			value.SetString(sVal);
-		}
-
-		if (value.GetType() != varprop::VT_NULL)
-		{
-			if (init)
-				InitOption(pKey, value);
-			SaveOption(pKey, value);
-		}
-
-		pKey += _tcslen(pKey);
-
-		// Check: pointer is not past string end, and next char is not null
-		// double NUL char ends the keynames string
-		if ((pKey < buf.data() + len) && (*(pKey + 1) != '\0'))
-			pKey++;
-	}
-	FlushOptions();
-	return retVal;
-}
-
-String COptionsMgr::EscapeValue(const String& text)
-{
-	String text2;
-	for (size_t i = 0; i < text.length(); ++i)
-	{
-		TCHAR ch = text[i];
-		if (ch == '\0' || ch == '\x1b' || ch == '\r' || ch == '\n')
-		{
-			text2 += '\x1b';
-			text2 += ch + '@';
-		}
-		else
-			text2 += ch;
-	}
-	return text2;
-}
-
-String COptionsMgr::UnescapeValue(const String& text)
-{
-	if (text.find('\x1b') == String::npos)
-		return text;
-	String text2;
-	for (size_t i = 0; i < text.length(); ++i)
-	{
-		if (text[i] == '\x1b' && i < text.length() - 1)
-		{
-			++i;
-			text2 += text[i] - '@';
-		}
-		else
-			text2 += text[i];
-	}
-	return text2;
 }
 
 /**
@@ -823,21 +414,441 @@ String COptionsMgr::UnescapeValue(const String& text)
  * @param [out] srPath Path (key) in registry
  * @param [out] strValue Value in registry
  */
-std::pair<String, String> COptionsMgr::SplitName(const String& strName)
+void CRegOptions::SplitName(CString strName, CString &strPath,
+	CString &strValue)
 {
-	String strValue, strPath;
-	size_t pos = strName.rfind('/');
-	if (pos != String::npos)
+	int pos = strName.ReverseFind('/');
+	if (pos > 0)
 	{
-		size_t len = strName.length();
-		strValue = strName.substr(pos + 1, len - pos - 1); //Right(len - pos - 1);
-		strPath = strName.substr(0, pos);  //Left(pos);
+		int len = strName.GetLength();
+		strValue = strName.Right(len - pos - 1);
+		strPath = strName.Left(pos);
 	}
 	else
 	{
 		strValue = strName;
-		strPath.erase();
+		strPath.Empty();
 	}
-	return { strPath, strValue };
+}
+
+/**
+ * @brief Load value from registry.
+ *
+ * Loads one value from registry from key previously opened. Type
+ * is read from value parameter and error is returned if value
+ * cannot be found or if it is different type than value parameter.
+ * @param [in] hKey Handle to open registry key
+ * @param [in] strName Name of value to read (incl. path!).
+ * @param [in, out] value
+ * [in] Values type must match to value type in registry
+ * [out] Read value is returned
+ * @note This function must handle ANSI and UNICODE data!
+ * @todo Handles only string and integer types
+ */
+int CRegOptions::LoadValueFromReg(HKEY hKey, CString strName,
+	varprop::VariantValue &value)
+{
+	CString strPath;
+	CString strValueName;
+	LONG retValReg = 0;
+	LPBYTE pData = NULL;
+	DWORD type = 0;
+	TCHAR * valueBuf = NULL;
+	DWORD size = 0;
+	int valType = value.getType();
+	int retVal = OPT_OK;
+
+	SplitName(strName, strPath, strValueName);
+
+	// Get type and size of value in registry
+	retValReg = RegQueryValueEx(hKey, (LPCTSTR)strValueName, 0, &type,
+		NULL, &size);
+	
+	if (retValReg == ERROR_SUCCESS)
+	{
+		pData = new BYTE[size];
+		if (pData == NULL)
+			return OPT_ERR;
+
+		// Get data
+		retValReg = RegQueryValueEx(hKey, (LPCTSTR)strValueName,
+			0, &type, pData, &size);
+	}
+	
+	if (retValReg == ERROR_SUCCESS)
+	{
+		if (type == REG_SZ && valType == varprop::VT_STRING )
+		{
+			CString strValue;
+			valueBuf = strValue.GetBuffer(size);
+			CopyMemory(valueBuf, pData, size); // Copy NULL also
+			strValue.ReleaseBuffer();
+			value.SetString(strValue);
+			retVal = Set(strName, value);
+		}
+		else if (type == REG_DWORD)
+		{
+			if (valType == varprop::VT_INT)
+			{
+				DWORD dwordValue;
+				CopyMemory(&dwordValue, pData, sizeof(DWORD));
+				value.SetInt(dwordValue);
+				retVal = Set(strName, value);
+			}
+			else if (valType == varprop::VT_BOOL)
+			{
+				DWORD dwordValue;
+				CopyMemory(&dwordValue, pData, sizeof(DWORD));
+				value.SetBool(dwordValue > 0 ? true : false);
+				retVal = Set(strName, value);
+			}
+			else
+				retVal = OPT_WRONG_TYPE;
+		}
+		else
+			retVal = OPT_WRONG_TYPE;
+	}
+	else
+		retVal = OPT_ERR;
+
+	delete [] pData;
+
+	return retVal;
+}
+
+/**
+ * @brief Save value to registry.
+ *
+ * Saves one value to registry to key previously opened. Type of
+ * value is determined from given value parameter.
+ * @param [in] hKey Handle to open registry key
+ * @param [in] strValueName Name of value to write
+ * @param [in] value value to write to registry value
+ * @todo Handles only string and integer types
+ */
+int CRegOptions::SaveValueToReg(HKEY hKey, CString strValueName,
+	varprop::VariantValue value)
+{
+	LONG retValReg = 0;
+	int valType = value.getType();
+	int retVal = OPT_OK;
+
+	if (valType == varprop::VT_STRING)
+	{
+		CString strVal = value.getString();
+		retValReg = RegSetValueEx(hKey, (LPCTSTR)strValueName, 0, REG_SZ,
+				(LPBYTE)(LPCTSTR)value.getString(),
+				(strVal.GetLength() + 1) * sizeof(TCHAR));
+	}
+	else if (valType == varprop::VT_INT)
+	{
+		DWORD dwordVal = value.getInt();
+		retValReg = RegSetValueEx(hKey, (LPCTSTR)strValueName, 0, REG_DWORD,
+				(LPBYTE)&dwordVal, sizeof(DWORD));
+	}
+	else if (valType == varprop::VT_BOOL)
+	{
+		DWORD dwordVal = value.getBool() ? 1 : 0;
+		retValReg = RegSetValueEx(hKey, (LPCTSTR)strValueName, 0, REG_DWORD,
+				(LPBYTE)&dwordVal, sizeof(DWORD));
+	}
+	else
+	{
+		retVal = OPT_UNKNOWN_TYPE;
+	}
+		
+	if (retValReg != ERROR_SUCCESS)
+	{
+		retVal = OPT_ERR;
+	}
+	return retVal;
+}
+
+/**
+ * @brief Init and add new option.
+ *
+ * Adds new option to list of options. Sets value to default value.
+ * If option does not exist in registry, saves with default value.
+ */
+int CRegOptions::InitOption(CString name, varprop::VariantValue defaultValue)
+{
+	CString strPath;
+	CString strValueName;
+	CString strRegPath = m_registryRoot;
+	HKEY hKey = NULL;
+	LONG retValReg = 0;
+	DWORD type = 0;
+	DWORD size = MAX_PATH;
+	DWORD action = 0;
+	BYTE dataBuf[MAX_PATH] = {0};
+	int retVal = OPT_OK;
+	int valType = varprop::VT_NULL;
+
+	// Check type
+	valType = defaultValue.getType();
+	if (valType == varprop::VT_NULL)
+		retVal = OPT_NOTFOUND;
+
+	if (retVal == OPT_OK)
+	{
+		SplitName(name, strPath, strValueName);
+		strRegPath += strPath;
+
+		// Open key. Create new key if it does not exist.
+		retValReg = RegCreateKeyEx(HKEY_CURRENT_USER, strRegPath, NULL, _T(""),
+			REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, &action);
+
+		if (retValReg == ERROR_SUCCESS)
+		{
+			retValReg = RegQueryValueEx(hKey, (LPCTSTR)strValueName,
+				0, &type, dataBuf, &size);
+
+			retVal = Add(name, defaultValue);
+			
+			if (retVal == OPT_OK)
+			{
+				// Value didn't exist. Save default value to registry
+				if (retValReg == ERROR_FILE_NOT_FOUND)
+				{
+					retVal = SaveValueToReg(hKey, strValueName,	defaultValue);
+				}
+				// Value already exists so read it.
+				else if (retValReg == ERROR_SUCCESS)
+				{
+					retVal = LoadValueFromReg(hKey, name, defaultValue);
+					if (retVal == OPT_OK)
+						retVal = Set(name, defaultValue);
+				}
+			}
+			RegCloseKey(hKey);
+		}
+		else
+		{
+			retVal = OPT_ERR;
+		}
+	}
+	return retVal;
+}
+
+/**
+ * @brief Init and add new string option.
+ *
+ * Adds new option to list of options. Sets value to default value.
+ * If option does not exist in registry, saves with default value.
+ */
+int CRegOptions::InitOption(CString name, LPCTSTR defaultValue)
+{
+	varprop::VariantValue defValue;
+	int retVal = OPT_OK;
+	
+	defValue.SetString(defaultValue);
+	retVal = InitOption(name, defValue);
+	return retVal;
+}
+
+/**
+ * @brief Init and add new int option.
+ *
+ * Adds new option to list of options. Sets value to default value.
+ * If option does not exist in registry, saves with default value.
+ */
+int CRegOptions::InitOption(CString name, int defaultValue)
+{
+	varprop::VariantValue defValue;
+	int retVal = OPT_OK;
+	
+	defValue.SetInt(defaultValue);
+	retVal = InitOption(name, defValue);
+	return retVal;
+}
+
+/**
+ * @brief Init and add new boolean option.
+ *
+ * Adds new option to list of options. Sets value to default value.
+ * If option does not exist in registry, saves with default value.
+ */
+int CRegOptions::InitOption(CString name, bool defaultValue)
+{
+	varprop::VariantValue defValue;
+	int retVal = OPT_OK;
+	
+	defValue.SetBool(defaultValue);
+	retVal = InitOption(name, defValue);
+	return retVal;
+}
+
+/**
+ * @brief Load option from registry.
+ * @note Currently handles only integer and string options!
+ */
+int CRegOptions::LoadOption(CString name)
+{
+	varprop::VariantValue value;
+	CString strPath;
+	CString strValueName;
+	CString strRegPath = m_registryRoot;
+	HKEY hKey = NULL;
+	LONG retValReg = 0;
+	int valType = varprop::VT_NULL;
+	int retVal = OPT_OK;
+
+	SplitName(name, strPath, strValueName);
+	strRegPath += strPath;
+
+	value = Get(name);
+	valType = value.getType();
+	if (valType == varprop::VT_NULL)
+		retVal = OPT_NOTFOUND;
+	
+	if (retVal == OPT_OK)
+	{
+		retValReg = RegOpenKeyEx(HKEY_CURRENT_USER, (LPCTSTR)strRegPath,
+			NULL, KEY_READ, &hKey);
+
+		if (retValReg == ERROR_SUCCESS)
+		{
+			retVal = LoadValueFromReg(hKey, name, value);
+			RegCloseKey(hKey);
+		}
+		else
+			retVal = OPT_ERR;
+	}
+	return retVal;
+}
+
+/**
+ * @brief Save option to registry
+ * @note Currently handles only integer and string options!
+ */
+int CRegOptions::SaveOption(CString name)
+{
+	varprop::VariantValue value;
+	CString strPath;
+	CString strValueName;
+	CString strRegPath = m_registryRoot;
+	HKEY hKey = NULL;
+	LONG retValReg = 0;
+	int valType = varprop::VT_NULL;
+	int retVal = OPT_OK;
+
+	SplitName(name, strPath, strValueName);
+	strRegPath += strPath;
+
+	value = Get(name);
+	valType = value.getType();
+	if (valType == varprop::VT_NULL)
+		retVal = OPT_NOTFOUND;
+	
+	if (retVal == OPT_OK)
+	{
+		retValReg = RegOpenKeyEx(HKEY_CURRENT_USER, (LPCTSTR)strRegPath,
+			NULL, KEY_WRITE, &hKey);
+
+		if (retValReg == ERROR_SUCCESS)
+		{
+			retVal = SaveValueToReg(hKey, strValueName, value);
+			RegCloseKey(hKey);
+		}
+		else
+			retVal = OPT_ERR;
+	}
+	return retVal;
+}
+
+/**
+ * @brief Set new value for option and save option to registry
+ */
+int CRegOptions::SaveOption(CString name, varprop::VariantValue value)
+{
+	int retVal = OPT_OK;
+	retVal = Set(name, value);
+	if (retVal == OPT_OK)
+		retVal = SaveOption(name);
+	return retVal;
+}
+
+/**
+ * @brief Set new string value for option and save option to registry
+ */
+int CRegOptions::SaveOption(CString name, CString value)
+{
+	varprop::VariantValue val;
+	int retVal = OPT_OK;
+
+	val.SetString(value);
+	retVal = Set(name, val);
+	if (retVal == OPT_OK)
+		retVal = SaveOption(name);
+	return retVal;
+}
+
+/**
+ * @brief Set new integer value for option and save option to registry
+ */
+int CRegOptions::SaveOption(CString name, int value)
+{
+	varprop::VariantValue val;
+	int retVal = OPT_OK;
+
+	val.SetInt(value);
+	retVal = Set(name, val);
+	if (retVal == OPT_OK)
+		retVal = SaveOption(name);
+	return retVal;
+}
+
+/**
+ * @brief Set new boolean value for option and save option to registry
+ */
+int CRegOptions::SaveOption(CString name, bool value)
+{
+	varprop::VariantValue val;
+	int retVal = OPT_OK;
+
+	val.SetBool(value);
+	retVal = Set(name, val);
+	if (retVal == OPT_OK)
+		retVal = SaveOption(name);
+	return retVal;
+}
+
+/**
+ * @brief Set registry root path for options.
+ *
+ * Sets path used as root path when loading/saving options. Paths
+ * given to other functions are relative to this path.
+ */
+int CRegOptions::SetRegRootKey(CString key)
+{
+	HKEY hKey = NULL;
+	LONG retValReg = 0;
+	DWORD action = 0;
+	int retVal = OPT_OK;
+	int ind = 0;
+
+	ind = key.Find(_T("Software"), 0);
+	if (ind != 0)
+		key.Insert(0, _T("Software\\"));
+	
+	m_registryRoot = key;
+
+	retValReg =  RegCreateKeyEx(HKEY_CURRENT_USER, key, NULL, _T(""),
+		REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, &action);
+
+	if (retValReg == ERROR_SUCCESS)
+	{
+		if (action == REG_CREATED_NEW_KEY)
+		{
+			// TODO: At least log message..?
+		}
+		RegCloseKey(hKey);
+	}
+	else
+	{
+		retVal = OPT_ERR;
+	}
+
+	return retVal;
 }
 

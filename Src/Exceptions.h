@@ -2,22 +2,33 @@
 //    WinMerge:  an interactive diff/merge utility
 //    Copyright (C) 1997-2000  Thingamahoochie Software
 //    Author: Dean Grimm
-//    SPDX-License-Identifier: GPL-2.0-or-later
+//
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+//
 /////////////////////////////////////////////////////////////////////////////
 /**
  *  @file Exceptions.h
  *
  *  @brief Exceptions handlers (currently, only SE handler for try/catch)
  */ 
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: Exceptions.h,v 1.2 2003/11/23 23:34:05 puddle Exp $
 
-#ifdef _MSC_VER
+#include "StdAfx.h"
+#include "eh.h"
 
-#include <windows.h>
-#include <tchar.h>
-#include <strsafe.h>
-
-#endif
 
 /**
  * @brief C exception "wrapper" class for C++ try/catch
@@ -29,17 +40,16 @@
  *     one single interface to catch SE_Exception and CException
  *   GetErrorMessage : avoid using CString during exception processing
  */
-class SE_Exception
+class SE_Exception : public CException
 {
 private:
 	unsigned long nSE;
 public:
-	explicit SE_Exception(unsigned long n) : nSE(n) {}
-	~SE_Exception() = default;
+	SE_Exception(unsigned long n, BOOL bAutoDelete) : nSE(n), CException(bAutoDelete) {}
+	~SE_Exception() {};
 
 	unsigned long getSeNumber() { return nSE; }
-#ifdef _MSC_VER
-	const TCHAR *getSeMessage()
+	LPCTSTR getSeMessage()
 	{
 		// known exceptions (from WINNT.H)
 		#define EXCEPTION( x ) case EXCEPTION_##x: return _T(#x);
@@ -73,18 +83,14 @@ public:
 		// don't localize this as we do not localize the known exceptions
 		return _T("Unknown structured exception");
 	}
-	virtual bool GetErrorMessage( TCHAR *lpszError, unsigned nMaxError, unsigned *pnHelpContext = nullptr )
+	virtual BOOL GetErrorMessage( LPTSTR lpszError, UINT nMaxError, PUINT pnHelpContext = NULL )
 	{
-		StringCchPrintf(lpszError, nMaxError, _T("Exception %s (0x%.8x)"), getSeMessage(), static_cast<unsigned>(getSeNumber()));
-		return true;
+		static TCHAR message[512];
+		_stprintf(message, _T("Exception %s (0x%.8x)"), getSeMessage(), getSeNumber());
+		_tcsncpy(lpszError, message, nMaxError-1);
+		lpszError[nMaxError-1] = 0;
+		return TRUE;
 	}
-#else
-	virtual bool GetErrorMessage( TCHAR *lpszError, unsigned nMaxError, unsigned *pnHelpContext = nullptr )
-	{
-		return true;
-	}
-
-#endif
 };
 
 
@@ -96,19 +102,17 @@ public:
  * for each thread.
  */
 class SE_Handler {
-#ifdef _MSC_VER
 private:
 	_se_translator_function fnOld;
-	static void seh_trans_func(unsigned u, EXCEPTION_POINTERS* pExp) 
+	static void seh_trans_func(unsigned int u, EXCEPTION_POINTERS* pExp) 
 	{
-		unsigned dwCode = (pExp && pExp->ExceptionRecord) ? pExp->ExceptionRecord->ExceptionCode : 0;
-		throw SE_Exception((long)dwCode);
+		DWORD dwCode = (pExp && pExp->ExceptionRecord) ? pExp->ExceptionRecord->ExceptionCode : 0;
+		throw new SE_Exception((long)dwCode, TRUE);
 	}
 public:
-	SE_Handler() : fnOld{_set_se_translator(seh_trans_func)} {}
+	SE_Handler() { fnOld = _set_se_translator(seh_trans_func); }
 	~SE_Handler() { _set_se_translator(fnOld); }
-#else
-public:
-	SE_Handler() {}
-#endif
 };
+
+
+

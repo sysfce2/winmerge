@@ -1,1241 +1,1147 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+//    see Merge.cpp for license (GPLv2+) statement
+//
+/////////////////////////////////////////////////////////////////////////////
 /**
  *  @file DirActions.cpp
  *
  *  @brief Implementation of methods of CDirView that copy/move/delete files
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: DirActions.cpp,v 1.64.2.5 2006/08/06 09:22:51 kimmov Exp $
 
 // It would be nice to make this independent of the UI (CDirView)
 // but it needs access to the list of selected items.
 // One idea would be to provide an iterator over them.
 //
 
-#include "pch.h"
-#include "DirActions.h"
-#include "MergeApp.h"
-#include "UnicodeString.h"
-#include "7zCommon.h"
-#include "ShellFileOperations.h"
-#include "DiffItem.h"
-#include "FileActionScript.h"
-#include "locality.h"
-#include "FileFilterHelper.h"
-#include "DebugNew.h"
+#include "stdafx.h"
+#include "Merge.h"
+#include "DirView.h"
+#include "DirDoc.h"
+#include "MainFrm.h"
+#include "coretools.h"
+#include "OutputDlg.h"
+#include "paths.h"
+#include "CShellFileOp.h"
+#include "OptionsDef.h"
+#include "WaitStatusCursor.h"
+#include "LogFile.h"
 
-static void ThrowConfirmCopy(const CDiffContext& ctxt, int origin, int destination, int count,
-		const String& src, const String& dest, bool destIsSide);
-static void ThrowConfirmMove(const CDiffContext& ctxt, int origin, int destination, int count,
-		const String& src, const String& dest, bool destIsSide);
-static void ThrowConfirmationNeededException(const CDiffContext& ctxt, const String &caption, const String &question,
-		int origin, int destination, size_t count,
-		const String& src, const String& dest, bool destIsSide);
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
+#endif
 
-ContentsChangedException::ContentsChangedException(const String& failpath)
-	: m_msg(strutils::format_string1(
-	        _("Operation aborted!\n\nFolder contents at disks has changed, path\n%1\nwas not found.\n\nPlease refresh the compare."),
-	        failpath))
+extern CLogFile gLog;
+
+// Prompt user to confirm a multiple item copy
+static BOOL ConfirmMultipleCopy(int count, int total)
 {
+	CString s;
+	ASSERT(count>1);
+	AfxFormatString2(s, IDS_CONFIRM_COPY2DIR, NumToStr(count), NumToStr(total));
+	int rtn = AfxMessageBox(s, MB_YESNO|MB_ICONQUESTION|MB_DONT_ASK_AGAIN, IDS_CONFIRM_COPY2DIR);
+	return (rtn==IDYES);
 }
 
-FileOperationException::FileOperationException(const String& msg)
-	: m_msg(msg)
+// Prompt user to confirm a single item copy
+static BOOL ConfirmSingleCopy(LPCTSTR src, LPCTSTR dest)
 {
+	CString s;
+	AfxFormatString2(s, IDS_CONFIRM_COPY_SINGLE, src, dest);
+	int rtn = AfxMessageBox(s, MB_YESNO|MB_ICONQUESTION|MB_DONT_ASK_AGAIN, IDS_CONFIRM_COPY_SINGLE);
+	return (rtn==IDYES);
 }
 
-/**
- * @brief Ask user a confirmation for copying item(s).
- * Shows a confirmation dialog for copy operation. Depending ont item count
- * dialog shows full paths to items (single item) or base paths of compare
- * (multiple items).
- * @param [in] origin Origin side of the item(s).
- * @param [in] destination Destination side of the item(s).
- * @param [in] count Number of items.
- * @param [in] src Source path.
- * @param [in] dest Destination path.
- * @param [in] destIsSide Is destination path either of compare sides?
- * @return true if copy should proceed, false if aborted.
- */
-static void ThrowConfirmCopy(const CDiffContext& ctxt, int origin, int destination, size_t count,
-		const String& src, const String& dest, bool destIsSide)
+// Prompt user to confirm a multiple item delete
+static BOOL ConfirmMultipleDelete(int count, int total)
 {
-	String caption = _("Confirm Copy");
-	String strQuestion = count == 1 ? _("Are you sure you want to copy?") : 
-		strutils::format(_("Are you sure you want to copy %d items?").c_str(), count);
-
-	ThrowConfirmationNeededException(ctxt, caption, strQuestion, origin,
-		destination, count,	src, dest, destIsSide);
+	CString s;
+	AfxFormatString2(s, IDS_CONFIRM_DELETE_ITEMS, NumToStr(count), NumToStr(total));
+	int rtn = AfxMessageBox(s, MB_YESNO|MB_ICONQUESTION|MB_DONT_ASK_AGAIN, IDS_CONFIRM_DELETE_ITEMS);
+	return (rtn==IDYES);
 }
 
-/**
- * @brief Ask user a confirmation for moving item(s).
- * Shows a confirmation dialog for move operation. Depending ont item count
- * dialog shows full paths to items (single item) or base paths of compare
- * (multiple items).
- * @param [in] origin Origin side of the item(s).
- * @param [in] destination Destination side of the item(s).
- * @param [in] count Number of items.
- * @param [in] src Source path.
- * @param [in] dest Destination path.
- * @param [in] destIsSide Is destination path either of compare sides?
- * @return true if copy should proceed, false if aborted.
- */
-static void ThrowConfirmMove(const CDiffContext& ctxt, int origin, int destination, size_t count,
-		const String& src, const String& dest, bool destIsSide)
+// Prompt user to confirm a single item delete
+static BOOL ConfirmSingleDelete(LPCTSTR filepath)
 {
-	String caption = _("Confirm Move");
-	String strQuestion = count == 1 ? _("Are you sure you want to move?") : 
-		strutils::format(_("Are you sure you want to move %d items?").c_str(), count);
-
-	ThrowConfirmationNeededException(ctxt, caption, strQuestion, origin,
-		destination, count,	src, dest, destIsSide);
+	CString s;
+	AfxFormatString1(s, IDS_CONFIRM_DELETE_SINGLE, filepath);
+	int rtn = AfxMessageBox(s, MB_YESNO|MB_ICONQUESTION|MB_DONT_ASK_AGAIN, IDS_CONFIRM_DELETE_SINGLE);
+	return (rtn==IDYES);
 }
 
-/**
- * @brief Show a (copy/move) confirmation dialog.
- * @param [in] caption Caption of the dialog.
- * @param [in] question Guestion to ask from user.
- * @param [in] origin Origin side of the item(s).
- * @param [in] destination Destination side of the item(s).
- * @param [in] count Number of items.
- * @param [in] src Source path.
- * @param [in] dest Destination path.
- * @param [in] destIsSide Is destination path either of compare sides?
- * @return true if copy should proceed, false if aborted.
- */
-static void ThrowConfirmationNeededException(const CDiffContext& ctxt, const String &caption, const String &question,
-		int origin, int destination, size_t count,
-		const String& src, const String& dest, bool destIsSide)
+// Prompt & copy item from right to left, if legal
+void CDirView::DoCopyRightToLeft()
 {
-	ConfirmationNeededException exp;
-	String sOrig;
-	String sDest;
-	
-	exp.m_caption = caption;
-	
-	if (origin == 0)
-		sOrig = _("From left:");
-	else if (origin == ctxt.GetCompareDirs() - 1)
-		sOrig = _("From right:");
-	else
-		sOrig = _("From middle:");
+	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_COPYFILES));
 
-	if (destIsSide)
+	// First we build a list of desired actions
+	ActionList actionList(ActionList::ACT_COPY);
+	int sel=-1;
+	CString slFile, srFile;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
 	{
-		// Copy to left / right
-		if (destination == 0)
-			sDest = _("To left:");
-		else if (destination == ctxt.GetCompareDirs() - 1)
-			sDest = _("To right:");
-		else
-			sDest = _("To middle:");
-	}
-	else
-	{
-		// Copy left/right to..
-		sDest = _("To:");
+		const DIFFITEM& di = GetDiffItem(sel);
+		if (di.diffcode != 0 && IsItemCopyableToLeft(di))
+		{
+			GetItemFileNames(sel, slFile, srFile);
+			ActionList::action act;
+			act.src = srFile;
+			act.dest = slFile;
+			act.idx = sel;
+			act.code = di.diffcode;
+			act.dirflag = di.isDirectory();
+			actionList.actions.AddTail(act);
+		}
+		++actionList.selcount;
 	}
 
-	String strSrc(src);
-	if (paths::DoesPathExist(src) == paths::IS_EXISTING_DIR)
-		strSrc = paths::AddTrailingSlash(src);
-	String strDest(dest);
-	if (paths::DoesPathExist(dest) == paths::IS_EXISTING_DIR)
-		strDest = paths::AddTrailingSlash(dest);
+	// Now we prompt, and execute actions
+	ConfirmAndPerformActions(actionList);
+}
+// Prompt & copy item from left to right, if legal
+void CDirView::DoCopyLeftToRight()
+{
+	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_COPYFILES));
 
-	exp.m_question = question;
-	exp.m_fromText = std::move(sOrig);
-	exp.m_toText = std::move(sDest);
-	exp.m_fromPath = std::move(strSrc);
-	exp.m_toPath = std::move(strDest);
+	// First we build a list of desired actions
+	ActionList actionList(ActionList::ACT_COPY);
+	int sel=-1;
+	CString slFile, srFile;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
+	{
+		const DIFFITEM& di = GetDiffItem(sel);
+		if (di.diffcode != 0 && IsItemCopyableToRight(di))
+		{
+			GetItemFileNames(sel, slFile, srFile);
+			ActionList::action act;
+			act.src = slFile;
+			act.dest = srFile;
+			act.dirflag = di.isDirectory();
+			act.idx = sel;
+			act.code = di.diffcode;
+			actionList.actions.AddTail(act);
+		}
+		++actionList.selcount;
+	}
 
-	throw exp;
+	// Now we prompt, and execute actions
+	ConfirmAndPerformActions(actionList);
+}
+
+// Prompt & delete left, if legal
+void CDirView::DoDelLeft()
+{
+	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_DELETEFILES));
+
+	// First we build a list of desired actions
+	ActionList actionList(ActionList::ACT_DEL_LEFT);
+	int sel=-1;
+	CString slFile, srFile;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
+	{
+		const DIFFITEM& di = GetDiffItem(sel);
+		if (di.diffcode != 0 && IsItemDeletableOnLeft(di))
+		{
+			GetItemFileNames(sel, slFile, srFile);
+			ActionList::action act;
+			act.src = slFile;
+			act.dirflag = di.isDirectory();
+			act.idx = sel;
+			act.code = di.diffcode;
+			actionList.actions.AddTail(act);
+		}
+		++actionList.selcount;
+	}
+
+	// Now we prompt, and execute actions
+	ConfirmAndPerformActions(actionList);
+}
+// Prompt & delete right, if legal
+void CDirView::DoDelRight()
+{
+	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_DELETEFILES));
+
+	// First we build a list of desired actions
+	ActionList actionList(ActionList::ACT_DEL_RIGHT);
+	int sel=-1;
+	CString slFile, srFile;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
+	{
+		const DIFFITEM& di = GetDiffItem(sel);
+
+		if (di.diffcode != 0 && IsItemDeletableOnRight(di))
+		{
+			GetItemFileNames(sel, slFile, srFile);
+			ActionList::action act;
+			act.src = srFile;
+			act.dirflag = di.isDirectory();
+			act.idx = sel;
+			act.code = di.diffcode;
+			actionList.actions.AddTail(act);
+		}
+		++actionList.selcount;
+	}
+
+	// Now we prompt, and execute actions
+	ConfirmAndPerformActions(actionList);
+}
+
+/**
+ * @brief Prompt & delete both, if legal.
+ */
+void CDirView::DoDelBoth()
+{
+	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_DELETEFILES));
+
+	// First we build a list of desired actions
+	ActionList actionList(ActionList::ACT_DEL_BOTH);
+	int sel=-1;
+	CString slFile, srFile;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
+	{
+		const DIFFITEM& di = GetDiffItem(sel);
+
+		if (di.diffcode != 0 && IsItemDeletableOnBoth(di))
+		{
+			GetItemFileNames(sel, slFile, srFile);
+			ActionList::action act;
+			act.src = srFile;
+			act.dest = slFile;
+			act.dirflag = di.isDirectory();
+			act.idx = sel;
+			act.code = di.diffcode;
+			actionList.actions.AddTail(act);
+		}
+		++actionList.selcount;
+	}
+
+	// Now we prompt, and execute actions
+	ConfirmAndPerformActions(actionList);
+}
+
+/**
+ * @brief Delete left, right or both items.
+ */
+void CDirView::DoDelAll()
+{
+	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_DELETEFILES));
+
+	// First we build a list of desired actions
+	ActionList actionList(ActionList::ACT_DEL_BOTH);
+	int sel=-1;
+	CString slFile, srFile;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
+	{
+		const DIFFITEM& di = GetDiffItem(sel);
+
+		if (di.diffcode != 0)
+		{
+			GetItemFileNames(sel, slFile, srFile);
+			ActionList::action act;
+			if (IsItemDeletableOnBoth(di))
+			{
+				act.src = srFile;
+				act.dest = slFile;
+			}
+			else if (IsItemDeletableOnLeft(di))
+			{
+				act.src = slFile;
+			}
+			else if (IsItemDeletableOnRight(di))
+			{
+				act.src = srFile;
+			}
+			act.dirflag = di.isDirectory();
+			act.idx = sel;
+			act.code = di.diffcode;
+			actionList.actions.AddTail(act);
+		}
+		++actionList.selcount;
+	}
+
+	// Now we prompt, and execute actions
+	ConfirmAndPerformActions(actionList);
+}
+
+/**
+ * @brief Copy selected left-side files to user-specified directory
+ *
+ * When copying files from recursive compare file subdirectory is also
+ * read so directory structure is preserved.
+ * @note CShellFileOp takes care of much of error handling
+ */
+void CDirView::DoCopyLeftTo()
+{
+	CShellFileOp fileOp;
+	CString destPath;
+	CString startPath;
+	CString msg;
+
+	VERIFY(msg.LoadString(IDS_SELECT_DEST_LEFT));
+	if (!SelectFolder(destPath, startPath, msg))
+		return;
+
+	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_COPYFILES));
+
+	fileOp.SetOperationFlags(FO_COPY, this, FOF_NOCONFIRMMKDIR);
+	if (!GetDocument()->GetRecursive())
+		fileOp.AddDestFile(destPath);
+
+	int sel = -1;
+	CString slFile, srFile;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
+	{
+		const DIFFITEM& di = GetDiffItem(sel);
+
+		if (di.diffcode != 0 && IsItemCopyableToOnLeft(di))
+		{
+			if (GetDocument()->GetRecursive())
+			{
+				CString sFullDest(destPath);
+				sFullDest += _T("\\");
+				if (!di.sLeftSubdir.IsEmpty())
+					sFullDest += di.sLeftSubdir + _T("\\");
+				sFullDest += di.sLeftFilename;
+				fileOp.AddDestFile(sFullDest);
+			}
+			GetItemFileNames(sel, slFile, srFile);
+			fileOp.AddSourceFile(slFile);
+		}
+	}
+
+	BOOL bSuccess = FALSE;
+	BOOL bAPICalled = FALSE;
+	BOOL bAborted = FALSE;
+	int  nAPIReturn = 0;
+	bSuccess = fileOp.Go(&bAPICalled, &nAPIReturn, &bAborted);
+}
+
+/**
+ * @brief Copy selected righ-side files to user-specified directory
+ *
+ * When copying files from recursive compare file subdirectory is also
+ * read so directory structure is preserved.
+ * @note CShellFileOp takes care of much of error handling
+ */
+void CDirView::DoCopyRightTo()
+{
+	CShellFileOp fileOp;
+	CString destPath;
+	CString startPath;
+	CString msg;
+
+	VERIFY(msg.LoadString(IDS_SELECT_DEST_RIGHT));
+	if (!SelectFolder(destPath, startPath, msg))
+		return;
+
+	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_COPYFILES));
+
+	fileOp.SetOperationFlags(FO_COPY, this, FOF_NOCONFIRMMKDIR);
+	if (!GetDocument()->GetRecursive())
+		fileOp.AddDestFile(destPath);
+
+	int sel = -1;
+	CString slFile, srFile;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
+	{
+		const DIFFITEM& di = GetDiffItem(sel);
+
+		if (di.diffcode != 0 && IsItemCopyableToOnRight(di))
+		{
+			if (GetDocument()->GetRecursive())
+			{
+				CString sFullDest(destPath);
+				sFullDest += _T("\\");
+				if (!di.sRightSubdir.IsEmpty())
+					sFullDest += di.sRightSubdir + _T("\\");
+				sFullDest += di.sRightFilename;
+				fileOp.AddDestFile(sFullDest);
+			}
+			GetItemFileNames(sel, slFile, srFile);
+			fileOp.AddSourceFile(srFile);
+		}
+	}
+
+	BOOL bSuccess = FALSE;
+	BOOL bAPICalled = FALSE;
+	BOOL bAborted = FALSE;
+	int  nAPIReturn = 0;
+	bSuccess = fileOp.Go( &bAPICalled, &nAPIReturn, &bAborted );
+}
+
+/**
+ * @brief Move selected left-side files to user-specified directory
+ *
+ * When moving files from recursive compare file subdirectory is also
+ * read so directory structure is preserved.
+ * @note CShellFileOp takes care of much of error handling
+ */
+void CDirView::DoMoveLeftTo()
+{
+	CString destPath;
+	CString startPath;
+	CString msg;
+
+	VERIFY(msg.LoadString(IDS_SELECT_DEST_LEFT));
+	if (!SelectFolder(destPath, startPath, msg))
+		return;
+
+	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_MOVEFILES));
+
+	ActionList actionList(ActionList::ACT_MOVE_LEFT);
+
+	int sel = -1;
+	CString slFile, srFile;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
+	{
+		const DIFFITEM& di = GetDiffItem(sel);
+
+		if (di.diffcode != 0 && IsItemCopyableToOnLeft(di) && IsItemDeletableOnLeft(di))
+		{
+			ActionList::action act;
+			CString sFullDest(destPath);
+			sFullDest += _T("\\");
+			if (GetDocument()->GetRecursive())
+			{
+				if (!di.sLeftSubdir.IsEmpty())
+					sFullDest += di.sLeftSubdir + _T("\\");
+			}
+			sFullDest += di.sLeftFilename;
+			act.dest = sFullDest;
+
+			GetItemFileNames(sel, slFile, srFile);
+			act.src = slFile;
+			act.dirflag = di.isDirectory();
+			act.idx = sel;
+			act.code = di.diffcode;
+			actionList.actions.AddTail(act);
+			++actionList.selcount;
+		}
+	}
+	// Now we prompt, and execute actions
+	ConfirmAndPerformActions(actionList);
+}
+
+/**
+ * @brief Move selected right-side files to user-specified directory
+ *
+ * When moving files from recursive compare file subdirectory is also
+ * read so directory structure is preserved.
+ * @note CShellFileOp takes care of much of error handling
+ */
+void CDirView::DoMoveRightTo()
+{
+	CString destPath;
+	CString startPath;
+	CString msg;
+
+	VERIFY(msg.LoadString(IDS_SELECT_DEST_RIGHT));
+	if (!SelectFolder(destPath, startPath, msg))
+		return;
+
+	WaitStatusCursor waitstatus(LoadResString(IDS_STATUS_MOVEFILES));
+
+	ActionList actionList(ActionList::ACT_MOVE_RIGHT);
+
+	int sel = -1;
+	CString slFile, srFile;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
+	{
+		const DIFFITEM& di = GetDiffItem(sel);
+
+		if (di.diffcode != 0 && IsItemCopyableToOnRight(di) && IsItemDeletableOnRight(di))
+		{
+			ActionList::action act;
+			CString sFullDest(destPath);
+			sFullDest += _T("\\");
+			if (GetDocument()->GetRecursive())
+			{
+				if (!di.sRightSubdir.IsEmpty())
+					sFullDest += di.sRightSubdir + _T("\\");
+			}
+			sFullDest += di.sRightFilename;
+			act.dest = sFullDest;
+
+			GetItemFileNames(sel, slFile, srFile);
+			act.src = srFile;
+			act.dirflag = di.isDirectory();
+			act.idx = sel;
+			act.code = di.diffcode;
+			actionList.actions.AddTail(act);
+			++actionList.selcount;
+		}
+	}
+	// Now we prompt, and execute actions
+	ConfirmAndPerformActions(actionList);
+}
+
+// Confirm with user, then perform the action list
+void CDirView::ConfirmAndPerformActions(ActionList & actionList)
+{
+	if (!actionList.selcount) // Not sure it is possible to get right-click menu without
+		return;    // any selected items, but may as well be safe
+
+	ASSERT(actionList.actions.GetCount()>0); // Or else the update handler got it wrong
+
+	if (!ConfirmActionList(actionList))
+		return;
+
+	PerformActionList(actionList);
 }
 
 /**
  * @brief Confirm actions with user as appropriate
  * (type, whether single or multiple).
  */
-void ConfirmActionList(const CDiffContext& ctxt, const FileActionScript & actionList)
+BOOL CDirView::ConfirmActionList(const ActionList & actionList)
 {
-	// TODO: We need better confirmation for file actions.
-	// Maybe we should show a list of files with actions done..
-	FileActionItem item = actionList.GetHeadActionItem();
-
-	bool bDestIsSide = true;
-
 	// special handling for the single item case, because it is probably the most common,
 	// and we can give the user exact details easily for it
-	switch(item.atype)
+	switch(actionList.atype)
 	{
-	case FileAction::ACT_COPY:
-		if (item.UIResult == FileActionItem::UI_DONT_CARE)
-			bDestIsSide = false;
-
-		if (actionList.GetActionItemCount() == 1)
+	case ActionList::ACT_COPY:
+		if (actionList.GetCount()==1)
 		{
-			ThrowConfirmCopy(ctxt, item.UIOrigin, item.UIDestination,
-				actionList.GetActionItemCount(), item.src, item.dest,
-				bDestIsSide);
+			const ActionList::action & act = actionList.actions.GetHead();
+			if (!ConfirmSingleCopy(act.src, act.dest))
+				return FALSE;
 		}
 		else
 		{
-			String src = ctxt.GetPath(item.UIOrigin);
-			String dst;
-
-			if (bDestIsSide)
-			{
-				dst = ctxt.GetPath(item.UIDestination);
-			}
-			else
-			{
-				if (!actionList.m_destBase.empty())
-					dst = actionList.m_destBase;
-				else
-					dst = item.dest;
-			}
-
-			ThrowConfirmCopy(ctxt, item.UIOrigin, item.UIDestination,
-				actionList.GetActionItemCount(), src, dst, bDestIsSide);
+			if (!ConfirmMultipleCopy(actionList.GetCount(), actionList.selcount))
+				return FALSE;
 		}
 		break;
 		
-	case FileAction::ACT_DEL:
-		break;
-
-	case FileAction::ACT_MOVE:
-		bDestIsSide = false;
-		if (actionList.GetActionItemCount() == 1)
-		{
-			ThrowConfirmMove(ctxt, item.UIOrigin, item.UIDestination,
-				actionList.GetActionItemCount(), item.src, item.dest,
-				bDestIsSide);
-		}
-		else
-		{
-			String src = ctxt.GetPath(item.UIOrigin);;
-			String dst;
-
-			if (!actionList.m_destBase.empty())
-				dst = actionList.m_destBase;
-			else
-				dst = item.dest;
-
-			ThrowConfirmMove(ctxt, item.UIOrigin, item.UIDestination,
-				actionList.GetActionItemCount(), src, dst, bDestIsSide);
-		}
+	// Deleting does not need confirmation, CShellFileOp takes care of it
+	case ActionList::ACT_DEL_LEFT:
+	case ActionList::ACT_DEL_RIGHT:
+	case ActionList::ACT_DEL_BOTH:
+	// Moving does not need confirmation, CShellFileOp takes care of it
+	case ActionList::ACT_MOVE_LEFT:
+	case ActionList::ACT_MOVE_RIGHT:
 		break;
 
 	// Invalid operation
 	default: 
 		LogErrorString(_T("Unknown fileoperation in CDirView::ConfirmActionList()"));
-		throw "Unknown fileoperation in ConfirmActionList()";
+		_RPTF0(_CRT_ERROR, "Unknown fileoperation in CDirView::ConfirmActionList()");
 		break;
 	}
+	return TRUE;
 }
 
 /**
- * @brief Update results for FileActionItem.
- * This functions is called to update DIFFITEM after FileActionItem.
- * @param [in] act Action that was done.
- * @param [in] ctxt Compare context: contains difflist, encoding info etc.
- * @param [in,out] di Item to update the results.
+ * @brief Perform an array of actions
+ * @note There can be only COPY or DELETE actions, not both!
+ * @sa CMainFrame::SaveToVersionControl()
+ * @sa CMainFrame::SyncFilesToVCS()
  */
-UPDATEITEM_TYPE UpdateDiffAfterOperation(const FileActionItem & act, CDiffContext& ctxt, DIFFITEM &di)
+void CDirView::PerformActionList(ActionList & actionList)
 {
-	bool bUpdateSrc  = false;
-	bool bUpdateDest = false;
-	bool bRemoveItem = false;
+	CShellFileOp fileOp;
+	CString destPath;
+	CString startPath;
+	UINT operation = 0;
+	UINT operFlags = 0;
+	BOOL bUserCancelled = FALSE;
 
-	// Use FileActionItem types for simplicity for now.
-	// Better would be to use FileAction contained, since it is not
-	// UI dependent.
-	switch (act.UIResult)
+	// Reset suppressing VSS dialog for multiple files.
+	// Set in CMainFrame::SaveToVersionControl().
+	mf->m_CheckOutMulti = FALSE;
+	mf->m_bVssSuppressPathCheck = FALSE;
+
+	switch (actionList.atype)
 	{
-	case FileActionItem::UI_SYNC:
-		bUpdateSrc = true;
-		bUpdateDest = true;
-		CopyDiffSideAndProperties(di, act.UIOrigin, act.UIDestination);
-		if (ctxt.GetCompareDirs() > 2)
-			SetDiffCompare(di, DIFFCODE::NOCMP);
-		else
-			UpdateCompareFlagsAfterSync(di, ctxt.m_bRecursive);
-		SetDiffCounts(di, 0, 0);
+	case ActionList::ACT_COPY:
+		operation = FO_COPY;
+		operFlags |= FOF_NOCONFIRMMKDIR | FOF_MULTIDESTFILES | FOF_NOCONFIRMATION;
 		break;
-
-	case FileActionItem::UI_DEL:
-		if (di.diffcode.isSideOnly(act.UIOrigin))
-		{
-			bRemoveItem = true;
-		}
-		else
-		{
-			UnsetDiffSide(di, act.UIOrigin);
-			SetDiffCompare(di, DIFFCODE::NOCMP);
-			bUpdateSrc = true;
-		}
+	case ActionList::ACT_DEL_LEFT:
+		operation = FO_DELETE;
+		break;
+	case ActionList::ACT_DEL_RIGHT:
+		operation = FO_DELETE;
+		break;
+	case ActionList::ACT_DEL_BOTH:
+		operation = FO_DELETE;
+		break;
+	case ActionList::ACT_MOVE_LEFT:
+		operation = FO_MOVE;
+		break;
+	case ActionList::ACT_MOVE_RIGHT:
+		operation = FO_MOVE;
+		break;
+	default:
+		LogErrorString(_T("Unknown fileoperation in CDirView::PerformActionList()"));
+		_RPTF0(_CRT_ERROR, "Unknown fileoperation in CDirView::PerformActionList()");
 		break;
 	}
+	
+	// Check option and enable putting deleted items to Recycle Bin
+	if (mf->m_options.GetBool(OPT_USE_RECYCLE_BIN))
+		operFlags |= FOF_ALLOWUNDO;
 
-	if (bRemoveItem)
-		return UPDATEITEM_REMOVE;
-	if (bUpdateSrc | bUpdateDest)
-		return UPDATEITEM_UPDATE;
-	return UPDATEITEM_NONE;
-}
-
-/**
- * @brief Find the CDiffContext diffpos of an item from its left & right paths
- * @return POSITION to item, `nullptr` if not found.
- * @note Filenames must be same, if they differ `nullptr` is returned.
- */
-DIFFITEM *FindItemFromPaths(const CDiffContext& ctxt, const PathContext& paths)
-{
-	int nBuffer;
-	String file[3], path[3], base;
-	for (nBuffer = 0; nBuffer < paths.GetSize(); ++nBuffer)
+	fileOp.SetOperationFlags(operation, this, operFlags);
+	
+	// Add files/directories
+	BOOL bSucceed = TRUE;
+	const BOOL bMultiFile = (actionList.actions.GetCount() > 1);
+	BOOL bApplyToAll = FALSE;
+	POSITION pos = actionList.actions.GetHeadPosition();
+	POSITION curPos = pos;
+	int nItemCount = 0;
+	while (bSucceed && pos != NULL)
 	{
-		String p = paths[nBuffer];
-		file[nBuffer] = paths::FindFileName(p);
-		if (file[nBuffer].empty())
-			return 0;
-		// Path can contain (because of difftools?) '/' and '\'
-		// so for comparing purposes, convert whole path to use '\\'
-		path[nBuffer] = paths::ToWindowsPath(String(p, 0, p.length() - file[nBuffer].length())); // include trailing backslash
-		base = ctxt.GetPath(nBuffer); // include trailing backslash
-		if (path[nBuffer].compare(0, base.length(), base.c_str()) != 0)
-			return 0;
-		path[nBuffer].erase(0, base.length()); // turn into relative path
-		if (String::size_type length = path[nBuffer].length())
-			path[nBuffer].resize(length - 1); // remove trailing backslash
-	}
+		BOOL bSkip = FALSE;
+		curPos = pos; // Save current position for later use
+		const ActionList::action act = actionList.actions.GetNext(pos);
 
-	// Filenames must be identical
-	if (std::any_of(file, file + paths.GetSize(), [&](auto& it) { return strutils::compare_nocase(it, file[0]) != 0; }))
-		return 0;
-
-	DIFFITEM *pos = ctxt.GetFirstDiffPosition();
-	if (paths.GetSize() == 2)
-	{
-		while (DIFFITEM *currentPos = pos) // Save our current pos before getting next
+		// If copying files, try to sync files to VCS too
+		if (actionList.atype == ActionList::ACT_COPY && !act.dirflag)
 		{
-			const DIFFITEM &di = ctxt.GetNextDiffPosition(pos);
-			if (di.diffFileInfo[0].path == path[0] &&
-				di.diffFileInfo[1].path == path[1] &&
-				di.diffFileInfo[0].filename == file[0] &&
-				di.diffFileInfo[1].filename == file[1])
+			CString strErr;
+			int nRetVal = mf->SyncFileToVCS(act.src, act.dest, bApplyToAll, &strErr);
+			if (nRetVal == -1)
 			{
-				return currentPos;
+				bSucceed = FALSE;
+				bUserCancelled = TRUE; // So we exit without file operations done
+				AfxMessageBox(strErr, MB_OK | MB_ICONERROR);
+			}
+			else if (nRetVal == IDCANCEL)
+			{
+				bUserCancelled = TRUE;
+				bSucceed = FALSE; // User canceled, so we don't continue
+			}
+			else if (nRetVal == IDNO)
+			{
+				actionList.actions.RemoveAt(curPos);
+				if (actionList.actions.GetCount() == 0)
+					pos = NULL;
+				bSkip = TRUE;  // User wants to skip this item
 			}
 		}
+
+		if (bSucceed && !bSkip) // No error from VCS sync (propably just not called)
+		{
+			try
+			{
+				switch (actionList.atype)
+				{
+				case ActionList::ACT_COPY:
+					fileOp.AddSourceFile(act.src);
+					fileOp.AddDestFile(act.dest);
+					gLog.Write(_T("Copy file(s) from: %s\n\tto: %s"), act.src, act.dest);
+					break;
+				case ActionList::ACT_MOVE_LEFT:
+				case ActionList::ACT_MOVE_RIGHT:
+					fileOp.AddSourceFile(act.src);
+					fileOp.AddDestFile(act.dest);
+					gLog.Write(_T("Move file(s) from: %s\n\tto: %s"), act.src, act.dest);
+					break;
+				case ActionList::ACT_DEL_LEFT:
+					fileOp.AddSourceFile(act.src);
+					gLog.Write(_T("Delete file(s) from LEFT: %s"), act.src);
+					break;
+				case ActionList::ACT_DEL_RIGHT:
+					fileOp.AddSourceFile(act.src);
+					gLog.Write(_T("Delete file(s) from RIGHT: %s"), act.src);
+					break;
+				case ActionList::ACT_DEL_BOTH:
+					// When 'delete all' other side item may be missing
+					if (!act.src.IsEmpty())
+						fileOp.AddSourceFile(act.src);
+					if (!act.dest.IsEmpty())
+						fileOp.AddSourceFile(act.dest);
+					gLog.Write(_T("Delete BOTH file(s) from: %s\n\tto: %s"), act.src, act.dest);
+					break;
+				}
+			}
+			catch (CMemoryException *ex)
+			{
+				bSucceed = FALSE;
+				LogErrorString(_T("CDirView::PerformActionList(): ")
+					_T("Adding files to buffer failed!"));
+				ex->ReportError();
+				ex->Delete();
+			}
+			if (bSucceed)
+				nItemCount++;
+		}
+	} 
+
+	// Abort if no items to process
+	if (nItemCount == 0)
+	{
+		gLog.Write(_T("Fileoperation aborted, no items to process."));
+		return;
+	}
+
+	if (bUserCancelled)
+		return;
+
+	// Now process files/directories that got added to list
+	BOOL bOpStarted = FALSE;
+	BOOL bFileOpSucceed = FALSE;
+	BOOL bFatalError = FALSE;
+	int apiRetVal = 0;
+
+	bFileOpSucceed = RunFileOp(fileOp, bOpStarted, apiRetVal,
+		bUserCancelled, bFatalError);
+	// All succeeded
+	if (bFileOpSucceed && !bUserCancelled)
+	{
+		gLog.Write(_T("Fileoperation succeeded, %d item processed."), nItemCount);
+		UpdateCopiedItems(actionList);
+
+		// If there were deleted items, remove them from view
+		if (!actionList.deletedItems.IsEmpty())
+			UpdateDeletedItems(actionList);
+	}
+	else if (!bOpStarted)
+	{
+		// Invalid parameters - is this programmer error only?
+		LogErrorString(_T("Invalid usage of CShellFileOp in ")
+			_T("CDirView::PerformActionList()"));
+		_RPTF0(_CRT_ERROR, "Invalid usage of CShellFileOp in "
+			"CDirView::PerformActionList()");
+	}
+	else if (bUserCancelled)
+	{
+		// User cancelled, we have a problem as we don't know which
+		// items were processed!
+		// User could cancel operation before it was done or during operation
+		gLog.Write(LOGLEVEL::LWARNING, _T("User cancelled fileoperation!"));
 	}
 	else
 	{
-		while (DIFFITEM *currentPos = pos) // Save our current pos before getting next
+		if (bFatalError)
 		{
-			const DIFFITEM &di = ctxt.GetNextDiffPosition(pos);
-			if (di.diffFileInfo[0].path == path[0] &&
-				di.diffFileInfo[1].path == path[1] &&
-				di.diffFileInfo[2].path == path[2] &&
-				di.diffFileInfo[0].filename == file[0] &&
-				di.diffFileInfo[1].filename == file[1] &&
-				di.diffFileInfo[2].filename == file[2])
-			{
-				return currentPos;
-			}
+			ResMsgBox1(IDS_ERROR_FILE_NOT_FOUND, GetSysError(GetLastError()),
+				MB_ICONSTOP);
 		}
+		
+		// CShellFileOp shows errors to user, so just write log
+		LogErrorString(Fmt(_T("File operation failed: %s"),
+			GetSysError(GetLastError())));
 	}
-	return 0;
 }
-
-/// is it possible to copy item to left ?
-bool IsItemCopyable(const DIFFITEM &di, int index)
-{
-	// don't let them mess with error items
-	if (di.diffcode.isResultError()) return false;
-	// can't copy same items
-	if (di.diffcode.isResultSame()) return false;
-	// impossible if not existing
-	if (!di.diffcode.exists(index)) return false;
-	// everything else can be copied to other side
-	return true;
-}
-
-/// is it possible to delete item ?
-bool IsItemDeletable(const DIFFITEM &di, int index)
-{
-	// don't let them mess with error items
-	if (di.diffcode.isResultError()) return false;
-	// impossible if not existing
-	if (!di.diffcode.exists(index)) return false;
-	// everything else can be deleted
-	return true;
-}
-
-/// is it possible to delete both items ?
-bool IsItemDeletableOnBoth(const CDiffContext& ctxt, const DIFFITEM &di)
-{
-	// don't let them mess with error items
-	if (di.diffcode.isResultError()) return false;
-	// impossible if only on right or left
-	for (int i = 0; i < ctxt.GetCompareDirs(); ++i)
-		if (!di.diffcode.exists(i)) return false;
-
-	// everything else can be deleted on both
-	return true;
-}
-
-/// is it possible to compare these two items?
-bool AreItemsOpenable(const CDiffContext& ctxt, SELECTIONTYPE selectionType, const DIFFITEM &di1, const DIFFITEM &di2, bool openableForDir /*= true*/)
-{
-	String sLeftBasePath = ctxt.GetPath(0);
-	String sRightBasePath = ctxt.GetPath(1);
-
-	// Must be both directory or neither
-	if (di1.diffcode.isDirectory() != di2.diffcode.isDirectory()) return false;
-
-	if (!openableForDir && di1.diffcode.isDirectory()) return false;
-
-	switch (selectionType)
-	{
-	case SELECTIONTYPE_NORMAL:
-		// Must be on different sides, or one on one side & one on both
-		if (di1.diffcode.isSideFirstOnly() && (di2.diffcode.isSideSecondOnly() ||
-			di2.diffcode.isSideBoth()))
-			return true;
-		if (di1.diffcode.isSideSecondOnly() && (di2.diffcode.isSideFirstOnly() ||
-			di2.diffcode.isSideBoth()))
-			return true;
-		if (di1.diffcode.isSideBoth() && (di2.diffcode.isSideFirstOnly() ||
-			di2.diffcode.isSideSecondOnly()))
-			return true;
-		break;
-	case SELECTIONTYPE_LEFT1LEFT2:
-		if (di1.diffcode.exists(0) && di2.diffcode.exists(0))
-			return true;
-		break;
-	case SELECTIONTYPE_RIGHT1RIGHT2:
-		if (di1.diffcode.exists(1) && di2.diffcode.exists(1))
-			return true;
-		break;
-	case SELECTIONTYPE_LEFT1RIGHT2:
-		if (di1.diffcode.exists(0) && di2.diffcode.exists(1))
-			return true;
-		break;
-	case SELECTIONTYPE_LEFT2RIGHT1:
-		if (di1.diffcode.exists(1) && di2.diffcode.exists(0))
-			return true;
-		break;
-	}
-
-	// Allow to compare items if left & right path refer to same directory
-	// (which means there is effectively two files involved). No need to check
-	// side flags. If files weren't on both sides, we'd have no DIFFITEMs.
-	if (strutils::compare_nocase(sLeftBasePath, sRightBasePath) == 0)
-		return true;
-
-	return false;
-}
-/// is it possible to compare these three items?
-bool AreItemsOpenable(const CDiffContext& ctxt, const DIFFITEM &di1, const DIFFITEM &di2, const DIFFITEM &di3, bool openableForDir /*= true*/)
-{
-	if (ctxt.GetCompareDirs() < 3)
-		return false;
-
-	String sLeftBasePath = ctxt.GetPath(0);
-	String sMiddleBasePath = ctxt.GetPath(1);
-	String sRightBasePath = ctxt.GetPath(2);
-
-	// Must be both directory or neither
-	if (di1.diffcode.isDirectory() != di2.diffcode.isDirectory() || di1.diffcode.isDirectory() != di3.diffcode.isDirectory()) return false;
-
-	if (!openableForDir && di1.diffcode.isDirectory()) return false;
-
-	// Must be on different sides, or one on one side & one on both
-	if (di1.diffcode.isSideFirstOnly() && di2.diffcode.isSideSecondOnly() && di3.diffcode.isSideThirdOnly())
-		return true;
-	if (di1.diffcode.isSideFirstOnly() && di2.diffcode.isSideThirdOnly() && di3.diffcode.isSideSecondOnly())
-		return true;
-	if (di1.diffcode.isSideSecondOnly() && di2.diffcode.isSideFirstOnly() && di3.diffcode.isSideThirdOnly())
-		return true;
-	if (di1.diffcode.isSideSecondOnly() && di2.diffcode.isSideThirdOnly() && di3.diffcode.isSideFirstOnly())
-		return true;
-	if (di1.diffcode.isSideThirdOnly() && di2.diffcode.isSideFirstOnly() && di3.diffcode.isSideSecondOnly())
-		return true;
-	if (di1.diffcode.isSideThirdOnly() && di2.diffcode.isSideSecondOnly() && di3.diffcode.isSideFirstOnly())
-		return true;
-
-	// Allow to compare items if left & right path refer to same directory
-	// (which means there is effectively two files involved). No need to check
-	// side flags. If files weren't on both sides, we'd have no DIFFITEMs.
-	if (strutils::compare_nocase(sLeftBasePath, sMiddleBasePath) == 0 && strutils::compare_nocase(sLeftBasePath, sRightBasePath) == 0)
-		return true;
-
-	return false;
-}
-
-/// is it possible to open item ?
-bool IsItemOpenableOn(const DIFFITEM &di, int index)
-{
-	// impossible if not existing
-	if (!di.diffcode.exists(index)) return false;
-
-	// everything else can be opened on right
-	return true;
-}
-
-/// is it possible to open left ... item ?
-bool IsItemOpenableOnWith(const DIFFITEM &di, int index)
-{
-	return (!di.diffcode.isDirectory() && IsItemOpenableOn(di, index));
-}
-/// is it possible to copy to... left item?
-bool IsItemCopyableToOn(const DIFFITEM &di, int index)
-{
-	// impossible if only on right
-	if (!di.diffcode.exists(index)) return false;
-
-	// everything else can be copied to from left
-	return true;
-}
-
-// When navigating differences, do we stop at this one ?
-bool IsItemNavigableDiff(const CDiffContext& ctxt, const DIFFITEM &di)
-{
-	// Not a valid diffitem, one of special items (e.g "..")
-	if (di.diffcode.diffcode == 0)
-		return false;
-	if (di.diffcode.isResultFiltered() || di.diffcode.isResultError())
-		return false;
-	if (!di.diffcode.isResultDiff() && IsItemExistAll(ctxt, di))
-		return false;
-	return true;
-}
-
-bool IsItemExistAll(const CDiffContext& ctxt, const DIFFITEM &di)
-{
-	// Not a valid diffitem, one of special items (e.g "..")
-	if (di.diffcode.diffcode == 0)
-		return false;
-	return di.diffcode.existAll();
-}
-
 
 /**
- * @brief Determines if the user wants to see given item.
- * This function determines what items to show and what items to hide. There
- * are lots of combinations, but basically we check if menuitem is enabled or
- * disabled and show/hide matching items. For non-recursive compare we never
- * hide folders as that would disable user browsing into them. And we even
- * don't really know if folders are identical or different as we haven't
- * compared them.
- * @param [in] di Item to check.
- * @return true if item should be shown, false if not.
- * @sa CDirDoc::Redisplay()
+ * @brief Run fileactions.
+ * This is wrapper function for calling CShellFileOp::Go()
+ * inside SEH, so we can trap errors from system. This is to
+ * hopefully trap error leading Windows crash as reported in bug:
+ * #1379582 Move to right to mapped SharePoint doc lib can crash Windows
+ * https://sourceforge.net/tracker/index.php?func=detail&aid=1379582&group_id=13216&atid=113216
  */
-bool IsShowable(const CDiffContext& ctxt, const DIFFITEM &di, const DirViewFilterSettings& filter)
+BOOL CDirView::RunFileOp(CShellFileOp & fileOp, BOOL & bOpStarted,
+		int & apiRetVal, BOOL & bUserCancelled, BOOL & bFatalError)
 {
-	if (di.customFlags & ViewCustomFlags::HIDDEN)
-		return false;
-
-	if (di.diffcode.isResultFiltered())
+	BOOL bFileOpSucceed = TRUE;
+	__try
 	{
-		// Treat SKIPPED as a 'super'-flag. If item is skipped and user
-		// wants to see skipped items show item regardless of other flags
-		return filter.show_skipped;
+		bFileOpSucceed = fileOp.Go(&bOpStarted, &apiRetVal, &bUserCancelled);
 	}
-
-	if (di.diffcode.isDirectory())
+	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		// Subfolders in non-recursive compare can only be skipped or unique
-		if (!ctxt.m_bRecursive)
-		{
-			// left/right filters
-			if (di.diffcode.isSideFirstOnly() && !filter.show_unique_left)
-				return false;
-			if (ctxt.GetCompareDirs() < 3)
-			{
-				if (di.diffcode.isSideSecondOnly() && !filter.show_unique_right)
-					return false;
-			}
-			else
-			{
-				if (di.diffcode.isSideSecondOnly() && !filter.show_unique_middle)
-					return false;
-				if (di.diffcode.isSideThirdOnly() && !filter.show_unique_right)
-					return false;
-				if (di.diffcode.isMissingFirstOnly() && !filter.show_missing_left_only)
-					return false;
-				if (di.diffcode.isMissingSecondOnly() && !filter.show_missing_middle_only)
-					return false;
-				if (di.diffcode.isMissingThirdOnly() && !filter.show_missing_right_only)
-					return false;
-			}
+		bFileOpSucceed = FALSE;
+		bFatalError = TRUE;
+	}
+	return bFileOpSucceed;
+}
 
-			// result filters
-			if (di.diffcode.isResultError() && false/* !GetMainFrame()->m_bShowErrors FIXME:*/)
-				return false;
+/**
+ * @brief Update copied items after fileactions
+ */
+void CDirView::UpdateCopiedItems(ActionList & actionList)
+{
+	CDirDoc *pDoc = GetDocument();
+	while (actionList.GetCount()>0)
+	{
+		ActionList::action act = actionList.actions.RemoveHead();
+		POSITION diffpos = GetItemKey(act.idx);
+		const DIFFITEM & di = pDoc->GetDiffByKey(diffpos);
+
+		if (actionList.atype == ActionList::ACT_COPY)
+		{
+			// Copy files and folders
+			pDoc->SetDiffSide(DIFFCODE::BOTH, act.idx);
+			
+			// Folders don't have compare flag set!!
+			if (act.dirflag)
+				pDoc->SetDiffCompare(DIFFCODE::NOCMP, act.idx);
+			else
+				pDoc->SetDiffCompare(DIFFCODE::SAME, act.idx);
+
+			pDoc->SetDiffCounts(0, 0, act.idx);
+			pDoc->ReloadItemStatus(act.idx, TRUE, TRUE);
 		}
-		else // recursive mode (including tree-mode)
+		else if (actionList.atype == ActionList::ACT_MOVE_LEFT ||
+			actionList.atype == ActionList::ACT_MOVE_RIGHT)
 		{
-			// left/right filters
-			if (di.diffcode.isSideFirstOnly() && !filter.show_unique_left)
-				return false;
-			if (ctxt.GetCompareDirs() < 3)
+			// Move files and folders
+			// If unique item is moved, don't bother updating statuses,
+			// just remove from list
+			if (actionList.atype == ActionList::ACT_MOVE_LEFT)
 			{
-				if (di.diffcode.isSideSecondOnly() && !filter.show_unique_right)
-					return false;
-			}
-			else
-			{
-				if (di.diffcode.isSideSecondOnly() && !filter.show_unique_middle)
-					return false;
-				if (di.diffcode.isSideThirdOnly() && !filter.show_unique_right)
-					return false;
-				if (di.diffcode.isMissingFirstOnly() && !filter.show_missing_left_only)
-					return false;
-				if (di.diffcode.isMissingSecondOnly() && !filter.show_missing_middle_only)
-					return false;
-				if (di.diffcode.isMissingThirdOnly() && !filter.show_missing_right_only)
-					return false;
-			}
-
-			// ONLY filter folders by result (identical/different) for tree-view.
-			// In the tree-view we show subfolders with identical/different
-			// status. The flat view only shows files inside folders. So if we
-			// filter by status the files inside folder are filtered too and
-			// users see files appearing/disappearing without clear logic.		
-			if (filter.tree_mode)
-			{
-				// result filters
-				if (di.diffcode.isResultError() && false/* !GetMainFrame()->m_bShowErrors FIXME:*/)
-					return false;
-
-				// result filters
-				if (di.diffcode.isResultSame() && !filter.show_identical)
-					return false;
-				bool bShowable = true;
-				if (ctxt.GetCompareDirs() < 3)
+				if (di.isSideLeft())
+					actionList.deletedItems.AddTail(act.idx);
+				else
 				{
-					if (di.diffcode.isResultDiff() && !filter.show_different)
-						bShowable = false;
+					pDoc->SetDiffSide(DIFFCODE::RIGHT, act.idx);
+					pDoc->SetDiffCompare(DIFFCODE::NOCMP, act.idx);
+					pDoc->ReloadItemStatus(act.idx, TRUE, FALSE);
+				}
+			}
+
+			if (actionList.atype == ActionList::ACT_MOVE_RIGHT)
+			{
+				if (di.isSideRight())
+					actionList.deletedItems.AddTail(act.idx);
+				else
+				{
+					pDoc->SetDiffSide(DIFFCODE::LEFT, act.idx);
+					pDoc->SetDiffCompare(DIFFCODE::NOCMP, act.idx);
+					pDoc->ReloadItemStatus(act.idx, FALSE, TRUE);
+				}
+			}
+		}
+		else
+		{
+			// Delete files and folders
+			// If both items or unique item is deleted, don't bother updating
+			// statuses, just remove from list
+			if (actionList.atype == ActionList::ACT_DEL_LEFT)
+			{
+				if (di.isSideLeft())
+				{
+					actionList.deletedItems.AddTail(act.idx);
 				}
 				else
 				{
-					if ((di.diffcode.diffcode & DIFFCODE::COMPAREFLAGS3WAY) == DIFFCODE::DIFF1STONLY)
-					{
-						if (!filter.show_different_left_only)
-							bShowable = false;
-					}
-					else if ((di.diffcode.diffcode & DIFFCODE::COMPAREFLAGS3WAY) == DIFFCODE::DIFF2NDONLY)
-					{
-						if (!filter.show_different_middle_only)
-							bShowable = false;
-					}
-					else if ((di.diffcode.diffcode & DIFFCODE::COMPAREFLAGS3WAY) == DIFFCODE::DIFF3RDONLY)
-					{
-						if (!filter.show_different_right_only)
-							bShowable = false;
-					}
-					else if (di.diffcode.isResultDiff() && !filter.show_different)
-						bShowable = false;
-				}
-				if (!bShowable)
-				{
-					DIFFITEM *diffpos = ctxt.GetFirstChildDiffPosition(&di);
-					while (diffpos != nullptr)
-					{
-						const DIFFITEM &dic = ctxt.GetNextSiblingDiffPosition(diffpos);
-						if (IsShowable(ctxt, dic, filter))
-							return true;
-					}
-					return false;
+					pDoc->SetDiffSide(DIFFCODE::RIGHT, act.idx);
+					pDoc->SetDiffCompare(DIFFCODE::NOCMP, act.idx);
+					pDoc->ReloadItemStatus(act.idx, TRUE, FALSE);
 				}
 			}
+			
+			if (actionList.atype == ActionList::ACT_DEL_RIGHT)
+			{
+				if (di.isSideRight())
+				{
+					actionList.deletedItems.AddTail(act.idx);
+				}
+				else
+				{
+					pDoc->SetDiffSide(DIFFCODE::LEFT, act.idx);
+					pDoc->SetDiffCompare(DIFFCODE::NOCMP, act.idx);
+					pDoc->ReloadItemStatus(act.idx, FALSE, TRUE);
+				}
+			}
+
+			if (actionList.atype == ActionList::ACT_DEL_BOTH)
+			{
+				actionList.deletedItems.AddTail(act.idx);
+			}
 		}
+	}
+}
+
+/**
+ * @brief Update deleted items after fileactions
+ */
+void CDirView::UpdateDeletedItems(ActionList & actionList)
+{
+	int curSel = GetFirstSelectedInd();
+	while (!actionList.deletedItems.IsEmpty())
+	{
+		int idx = actionList.deletedItems.RemoveTail();
+		POSITION diffpos = GetItemKey(idx);
+		GetDocument()->RemoveDiffByKey(diffpos);
+		m_pList->DeleteItem(idx);
+	}
+	if (curSel < 1)
+		++curSel;
+	MoveSelection(0, curSel - 1, 0);
+}
+
+/// Get directories of first selected item
+BOOL CDirView::GetSelectedDirNames(CString& strLeft, CString& strRight) const
+{
+	BOOL bResult = GetSelectedFileNames(strLeft, strRight);
+
+	if (bResult)
+	{
+		strLeft = GetPathOnly(strLeft);
+		strRight = GetPathOnly(strRight);
+	}
+	return bResult;
+}
+
+/// is it possible to copy item to left ?
+BOOL CDirView::IsItemCopyableToLeft(const DIFFITEM & di)
+{
+	// don't let them mess with error items
+	if (di.isResultError()) return FALSE;
+	// can't copy same items
+	if (di.isResultSame()) return FALSE;
+	// impossible if only on left
+	if (di.isSideLeft()) return FALSE;
+
+	// everything else can be copied to left
+	return TRUE;
+}
+/// is it possible to copy item to right ?
+BOOL CDirView::IsItemCopyableToRight(const DIFFITEM & di)
+{
+	// don't let them mess with error items
+	if (di.isResultError()) return FALSE;
+	// can't copy same items
+	if (di.isResultSame()) return FALSE;
+	// impossible if only on right
+	if (di.isSideRight()) return FALSE;
+
+	// everything else can be copied to right
+	return TRUE;
+}
+/// is it possible to delete left item ?
+BOOL CDirView::IsItemDeletableOnLeft(const DIFFITEM & di)
+{
+	// don't let them mess with error items
+	if (di.isResultError()) return FALSE;
+	// impossible if only on right
+	if (di.isSideRight()) return FALSE;
+	// everything else can be deleted on left
+	return TRUE;
+}
+/// is it possible to delete right item ?
+BOOL CDirView::IsItemDeletableOnRight(const DIFFITEM & di)
+{
+	// don't let them mess with error items
+	if (di.isResultError()) return FALSE;
+	// impossible if only on right
+	if (di.isSideLeft()) return FALSE;
+
+	// everything else can be deleted on right
+	return TRUE;
+}
+/// is it possible to delete both items ?
+BOOL CDirView::IsItemDeletableOnBoth(const DIFFITEM & di)
+{
+	// don't let them mess with error items
+	if (di.isResultError()) return FALSE;
+	// impossible if only on right or left
+	if (di.isSideLeft() || di.isSideRight()) return FALSE;
+
+	// everything else can be deleted on both
+	return TRUE;
+}
+
+/// is it possible to open item for compare ?
+BOOL CDirView::IsItemOpenable(const DIFFITEM & di) const
+{
+	// impossible if unique or binary
+	if (di.isSideRight() || di.isSideLeft() || di.isBin()) return FALSE;
+
+	// everything else can be opened
+	return TRUE;
+}
+/// is it possible to compare these two items?
+BOOL CDirView::AreItemsOpenable(const DIFFITEM & di1, const DIFFITEM & di2) const
+{
+	CString sLeftBasePath = GetDocument()->GetLeftBasePath();
+	CString sRightBasePath = GetDocument()->GetRightBasePath();
+	// Must not be binary
+	if (di1.isBin() || di2.isBin()) return FALSE;
+
+	// Must be both directory or neither
+	if (di1.isDirectory() != di2.isDirectory()) return FALSE;
+
+	// Must be on different sides, or one on one side & one on both
+	if (di1.isSideLeft() && (di2.isSideRight() || di2.isSideBoth()))
+		return TRUE;
+	if (di1.isSideRight() && (di2.isSideLeft() || di2.isSideBoth()))
+		return TRUE;
+	if (di1.isSideBoth() && (di2.isSideLeft() || di2.isSideRight()))
+		return TRUE;
+
+	// Allow to compare items if left & right path refer to same directory
+	// (which means there is effectively two files involved). No need to check
+	// side flags. If files weren't on both sides, we'd have no DIFFITEMs.
+	if (sLeftBasePath.CompareNoCase(sRightBasePath) == 0)
+		return TRUE;
+
+	return FALSE;
+}
+/// is it possible to open left item ?
+BOOL CDirView::IsItemOpenableOnLeft(const DIFFITEM & di)
+{
+	// impossible if only on right
+	if (di.isSideRight()) return FALSE;
+
+	// everything else can be opened on right
+	return TRUE;
+}
+/// is it possible to open right item ?
+BOOL CDirView::IsItemOpenableOnRight(const DIFFITEM & di)
+{
+	// impossible if only on left
+	if (di.isSideLeft()) return FALSE;
+
+	// everything else can be opened on left
+	return TRUE;
+}
+/// is it possible to open left ... item ?
+BOOL CDirView::IsItemOpenableOnLeftWith(const DIFFITEM & di)
+{
+	return (!di.isDirectory() && IsItemOpenableOnLeft(di));
+}
+/// is it possible to open with ... right item ?
+BOOL CDirView::IsItemOpenableOnRightWith(const DIFFITEM & di)
+{
+	return (!di.isDirectory() && IsItemOpenableOnRight(di));
+}
+/// is it possible to copy to... left item?
+BOOL CDirView::IsItemCopyableToOnLeft(const DIFFITEM & di)
+{
+	// impossible if only on right
+	if (di.isSideRight()) return FALSE;
+
+	// everything else can be copied to from left
+	return TRUE;
+}
+/// is it possible to copy to... right item?
+BOOL CDirView::IsItemCopyableToOnRight(const DIFFITEM & di)
+{
+	// impossible if only on left
+	if (di.isSideLeft()) return FALSE;
+
+	// everything else can be copied to from right
+	return TRUE;
+}
+
+/// get the file names on both sides for first selected item
+BOOL CDirView::GetSelectedFileNames(CString& strLeft, CString& strRight) const
+{
+	int sel = m_pList->GetNextItem(-1, LVNI_SELECTED);
+	if (sel == -1)
+		return FALSE;
+	GetItemFileNames(sel, strLeft, strRight);
+	return TRUE;
+}
+/// get file name on specified side for first selected item
+CString CDirView::GetSelectedFileName(SIDE_TYPE stype) const
+{
+	CString left, right;
+	if (!GetSelectedFileNames(left, right)) return _T("");
+	return stype==SIDE_LEFT ? left : right;
+}
+/**
+ * @brief Get the file names on both sides for specified item.
+ * @note Return empty strings if item is special item.
+ */
+void CDirView::GetItemFileNames(int sel, CString& strLeft, CString& strRight) const
+{
+	POSITION diffpos = GetItemKey(sel);
+	if (diffpos == (POSITION)SPECIAL_ITEM_POS)
+	{
+		strLeft.Empty();
+		strRight.Empty();
 	}
 	else
 	{
-		// left/right filters
-		if (di.diffcode.isSideFirstOnly() && !filter.show_unique_left)
-			return false;
-		if (ctxt.GetCompareDirs() < 3)
-		{
-			if (di.diffcode.isSideSecondOnly() && !filter.show_unique_right)
-				return false;
-		}
-		else
-		{
-			if (di.diffcode.isSideSecondOnly() && !filter.show_unique_middle)
-				return false;
-			if (di.diffcode.isSideThirdOnly() && !filter.show_unique_right)
-				return false;
-			if (di.diffcode.isMissingFirstOnly() && !filter.show_missing_left_only)
-				return false;
-			if (di.diffcode.isMissingSecondOnly() && !filter.show_missing_middle_only)
-				return false;
-			if (di.diffcode.isMissingThirdOnly() && !filter.show_missing_right_only)
-				return false;
-		}
-
-		// file type filters
-		if (di.diffcode.isBin() && !filter.show_binaries)
-			return false;
-
-		// result filters
-		if (di.diffcode.isResultSame() && !filter.show_identical)
-			return false;
-		if (di.diffcode.isResultError() && false/* && !GetMainFrame()->m_bShowErrors FIXME:*/)
-			return false;
-		if (ctxt.GetCompareDirs() < 3)
-		{
-			if (di.diffcode.isResultDiff() && !filter.show_different)
-				return false;
-		}
-		else
-		{
-			if ((di.diffcode.diffcode & DIFFCODE::COMPAREFLAGS3WAY) == DIFFCODE::DIFF1STONLY)
-			{
-				if (!filter.show_different_left_only)
-					return false;
-			}
-			else if ((di.diffcode.diffcode & DIFFCODE::COMPAREFLAGS3WAY) == DIFFCODE::DIFF2NDONLY)
-			{
-				if (!filter.show_different_middle_only)
-					return false;
-			}
-			else if ((di.diffcode.diffcode & DIFFCODE::COMPAREFLAGS3WAY) == DIFFCODE::DIFF3RDONLY)
-			{
-				if (!filter.show_different_right_only)
-					return false;
-			}
-			else if (di.diffcode.isResultDiff() && !filter.show_different)
-				return false;
-		}
+		const DIFFITEM & di = GetDocument()->GetDiffByKey(diffpos);
+		const CString leftrelpath = paths_ConcatPath(di.sLeftSubdir, di.sLeftFilename);
+		const CString rightrelpath = paths_ConcatPath(di.sRightSubdir, di.sRightFilename);
+		const CString & leftpath = GetDocument()->GetLeftBasePath();
+		const CString & rightpath = GetDocument()->GetRightBasePath();
+		strLeft = paths_ConcatPath(leftpath, leftrelpath);
+		strRight = paths_ConcatPath(rightpath, rightrelpath);
 	}
-	return true;
-}
-
-/**
- * @brief Open one selected item.
- * @param [in] pos1 Item position.
- * @param [in,out] di1 Pointer to first diffitem.
- * @param [in,out] di2 Pointer to second diffitem.
- * @param [in,out] di3 Pointer to third diffitem.
- * @param [out] paths First/Second/Third paths.
- * @param [out] sel1 Item's selection index in listview.
- * @param [in,out] isDir Is item folder?
- * @param [in] openableForDir Are items openable if the items are directories?
- * return false if there was error or item was completely processed.
- */
-bool GetOpenOneItem(const CDiffContext& ctxt, DIFFITEM *pos1, const DIFFITEM *pdi[3],
-		PathContext & paths, int & sel1, bool & isdir, int nPane[3], FileTextEncoding encoding[3], String& errmsg, bool openableForDir /*= true*/)
-{
-	pdi[0] = &ctxt.GetDiffAt(pos1);
-	pdi[1] = pdi[0];
-	pdi[2] = pdi[0];
-
-	if (!openableForDir && pdi[0]->diffcode.isDirectory()) return false;
-
-	paths = GetItemFileNames(ctxt, *pdi[0]);
-	encoding[0] = pdi[0]->diffFileInfo[0].encoding;
-	encoding[1] = pdi[0]->diffFileInfo[1].encoding;
-	encoding[2] = pdi[0]->diffFileInfo[2].encoding;
-
-	for (int nIndex = 0; nIndex < paths.GetSize(); ++nIndex)
-		nPane[nIndex] = nIndex;
-
-	if (pdi[0]->diffcode.isDirectory())
-		isdir = true;
-
-	if (isdir && (pdi[0]->diffcode.existsFirst() && pdi[1]->diffcode.existsSecond() && pdi[2]->diffcode.existsThird()))
-	{
-		// Check both folders exist. If either folder is missing that means
-		// folder has been changed behind our back, so we just tell user to
-		// refresh the compare.
-		paths::PATH_EXISTENCE path1Exists = paths::DoesPathExist(paths[0]);
-		paths::PATH_EXISTENCE path2Exists = paths::DoesPathExist(paths[1]);
-		if (path1Exists != paths::IS_EXISTING_DIR || path2Exists != paths::IS_EXISTING_DIR)
-		{
-			String invalid = path1Exists == paths::IS_EXISTING_DIR ? paths[0] : paths[1];
-			errmsg = strutils::format_string1(
-				_("Operation aborted!\n\nFolder contents at disks has changed, path\n%1\nwas not found.\n\nPlease refresh the compare."),
-				invalid);
-			return false;
-		}
-	}
-
-	return true;
-}
-
-/**
- * @brief Open two selected items.
- * @param [in] pos1 First item position.
- * @param [in] pos2 Second item position.
- * @param [in,out] di1 Pointer to first diffitem.
- * @param [in,out] di2 Pointer to second diffitem.
- * @param [out] paths First/Second/Third paths.
- * @param [out] sel1 First item's selection index in listview.
- * @param [out] sel2 Second item's selection index in listview.
- * @param [in,out] isDir Is item folder?
- * @param [in] openableForDir Are items openable if the items are directories?
- * return false if there was error or item was completely processed.
- */
-bool GetOpenTwoItems(const CDiffContext& ctxt, SELECTIONTYPE selectionType, DIFFITEM *pos1, DIFFITEM *pos2, const DIFFITEM *pdi[3],
-		PathContext & paths, int & sel1, int & sel2, bool & isDir, int nPane[3], FileTextEncoding encoding[3], String& errmsg, bool openableForDir /*= true*/)
-{
-	// Two items selected, get their info
-	pdi[0] = &ctxt.GetDiffAt(pos1);
-	pdi[1] = &ctxt.GetDiffAt(pos2);
-	nPane[0] = 0;
-	nPane[1] = 1;
-
-	// Check for binary & side compatibility & file/dir compatibility
-	if (!AreItemsOpenable(ctxt, selectionType, *pdi[0], *pdi[1], openableForDir))
-	{
-		return false;
-	}
-
-	switch (selectionType)
-	{
-	case SELECTIONTYPE_NORMAL:
-		// Ensure that di1 is on left (swap if needed)
-		if (pdi[0]->diffcode.isSideSecondOnly() || (pdi[0]->diffcode.isSideBoth() &&
-				pdi[1]->diffcode.isSideFirstOnly()))
-		{
-			std::swap(pdi[0], pdi[1]);
-			std::swap(sel1, sel2);
-		}
-		break;
-	case SELECTIONTYPE_LEFT1LEFT2:
-		nPane[0] = nPane[1] = 0;
-		break;
-	case SELECTIONTYPE_RIGHT1RIGHT2:
-		nPane[0] = nPane[1] = 1;
-		break;
-	case SELECTIONTYPE_LEFT1RIGHT2:
-		break;
-	case SELECTIONTYPE_LEFT2RIGHT1:
-		std::swap(pdi[0], pdi[1]);
-		std::swap(sel1, sel2);
-		break;
-	}
-
-	PathContext files1, files2;
-	files1 = GetItemFileNames(ctxt, *pdi[0]);
-	files2 = GetItemFileNames(ctxt, *pdi[1]);
-	paths.SetLeft(files1[nPane[0]]);
-	paths.SetRight(files2[nPane[1]]);
-	encoding[0] = pdi[0]->diffFileInfo[nPane[0]].encoding;
-	encoding[1] = pdi[1]->diffFileInfo[nPane[1]].encoding;
-
-	if (pdi[0]->diffcode.isDirectory())
-	{
-		isDir = true;
-		if (paths::GetPairComparability(paths) != paths::IS_EXISTING_DIR)
-		{
-			errmsg = _("The selected folder is invalid.");
-			return false;
-		}
-	}
-
-	return true;
-}
-
-/**
- * @brief Open three selected items.
- * @param [in] pos1 First item position.
- * @param [in] pos2 Second item position.
- * @param [in] pos3 Third item position.
- * @param [in,out] di1 Pointer to first diffitem.
- * @param [in,out] di2 Pointer to second diffitem.
- * @param [in,out] di3 Pointer to third diffitem.
- * @param [out] paths First/Second/Third paths.
- * @param [out] sel1 First item's selection index in listview.
- * @param [out] sel2 Second item's selection index in listview.
- * @param [out] sel3 Third item's selection index in listview.
- * @param [in,out] isDir Is item folder?
- * @param [in] openableForDir Are items openable if the items are directories?
- * return false if there was error or item was completely processed.
- */
-bool GetOpenThreeItems(const CDiffContext& ctxt, DIFFITEM *pos1, DIFFITEM *pos2, DIFFITEM *pos3, const DIFFITEM *pdi[3],
-	PathContext & paths, int & sel1, int & sel2, int & sel3, bool & isDir, int nPane[3], FileTextEncoding encoding[3], String& errmsg, bool openableForDir /*= true*/)
-{
-	assert(pos1 && pos2 && pos3 && ctxt.GetCompareDirs() > 2);
-
-	String pathLeft, pathMiddle, pathRight;
-
-	for (int nIndex = 0; nIndex < 3; ++nIndex)
-		nPane[nIndex] = nIndex;
-
-	// Three items selected, get their info
-	pdi[0] = &ctxt.GetDiffAt(pos1);
-	pdi[1] = &ctxt.GetDiffAt(pos2);
-	pdi[2] = &ctxt.GetDiffAt(pos3);
-
-	// Check for binary & side compatibility & file/dir compatibility
-	if (!::AreItemsOpenable(ctxt, *pdi[0], *pdi[1], *pdi[2], openableForDir))
-	{
-		return false;
-	}
-	// Ensure that pdi[0] is on left (swap if needed)
-	if (pdi[0]->diffcode.exists(0) && pdi[1]->diffcode.exists(1) && pdi[2]->diffcode.exists(2))
-	{
-	}
-	else if (pdi[0]->diffcode.exists(0) && pdi[1]->diffcode.exists(2) && pdi[2]->diffcode.exists(1))
-	{
-		std::swap(pdi[1], pdi[2]);
-		std::swap(nPane[1], nPane[2]);
-		std::swap(sel2, sel3);
-	}
-	else if (pdi[0]->diffcode.exists(1) && pdi[1]->diffcode.exists(0) && pdi[2]->diffcode.exists(2))
-	{
-		std::swap(pdi[0], pdi[1]);
-		std::swap(nPane[0], nPane[1]);
-		std::swap(sel1, sel2);
-	}
-	else if (pdi[0]->diffcode.exists(1) && pdi[1]->diffcode.exists(2) && pdi[2]->diffcode.exists(0))
-	{
-		std::swap(pdi[0], pdi[2]);
-		std::swap(nPane[0], nPane[2]);
-		std::swap(sel1, sel3);
-		std::swap(pdi[1], pdi[2]);
-		std::swap(nPane[1], nPane[2]);
-		std::swap(sel2, sel3);
-	}
-	else if (pdi[0]->diffcode.exists(2) && pdi[1]->diffcode.exists(0) && pdi[2]->diffcode.exists(1))
-	{
-		std::swap(pdi[0], pdi[1]);
-		std::swap(nPane[0], nPane[1]);
-		std::swap(sel1, sel2);
-		std::swap(pdi[1], pdi[2]);
-		std::swap(nPane[1], nPane[2]);
-		std::swap(sel2, sel3);
-	}
-	else if (pdi[0]->diffcode.exists(2) && pdi[1]->diffcode.exists(1) && pdi[2]->diffcode.exists(0))
-	{
-		std::swap(pdi[0], pdi[2]);
-		std::swap(nPane[0], nPane[2]);
-		std::swap(sel1, sel3);
-	}
-
-	// Fill in pathLeft & & pathMiddle & pathRight
-	PathContext pathsTemp = GetItemFileNames(ctxt, *pdi[0]);
-	pathLeft = pathsTemp[0];
-	pathsTemp = GetItemFileNames(ctxt, *pdi[1]);
-	pathMiddle = pathsTemp[1];
-	pathsTemp = GetItemFileNames(ctxt, *pdi[2]);
-	pathRight = pathsTemp[2];
-
-	paths.SetLeft(pathLeft);
-	paths.SetMiddle(pathMiddle);
-	paths.SetRight(pathRight);
-
-	encoding[0] = pdi[0]->diffFileInfo[0].encoding;
-	encoding[1] = pdi[1]->diffFileInfo[1].encoding;
-	encoding[2] = pdi[2]->diffFileInfo[2].encoding;
-
-	if (pdi[0]->diffcode.isDirectory())
-	{
-		isDir = true;
-		if (paths::GetPairComparability(paths) != paths::IS_EXISTING_DIR)
-		{
-			errmsg = _("The selected folder is invalid.");
-			return false;
-		} 
-	}
-
-	return true;
 }
 
 /**
  * @brief Get the file names on both sides for specified item.
  * @note Return empty strings if item is special item.
  */
-void GetItemFileNames(const CDiffContext& ctxt, const DIFFITEM &di, String& strLeft, String& strRight)
+void CDirView::GetItemFileNames(int sel, PathContext * paths) const
 {
-	const String leftrelpath = paths::ConcatPath(di.diffFileInfo[0].path, di.diffFileInfo[0].filename);
-	const String rightrelpath = paths::ConcatPath(di.diffFileInfo[1].path, di.diffFileInfo[1].filename);
-	const String & leftpath = ctxt.GetPath(0);
-	const String & rightpath = ctxt.GetPath(1);
-	strLeft = paths::ConcatPath(leftpath, leftrelpath);
-	strRight = paths::ConcatPath(rightpath, rightrelpath);
-}
-
-String GetItemFileName(const CDiffContext& ctxt, const DIFFITEM &di, int index)
-{
-	return paths::ConcatPath(ctxt.GetPath(index), paths::ConcatPath(di.diffFileInfo[index].path, di.diffFileInfo[index].filename));
-}
-
-PathContext GetItemFileNames(const CDiffContext& ctxt, const DIFFITEM &di)
-{
-	PathContext paths;
-	for (int nIndex = 0; nIndex < ctxt.GetCompareDirs(); nIndex++)
-	{
-		const String relpath = paths::ConcatPath(di.diffFileInfo[nIndex].path, di.diffFileInfo[nIndex].filename);
-		const String & path = ctxt.GetPath(nIndex);
-		paths.SetPath(nIndex, paths::ConcatPath(path, relpath));
-	}
-	return paths;
+	CString strLeft;
+	CString strRight;
+	GetItemFileNames(sel, strLeft, strRight);
+	paths->SetLeft(strLeft);
+	paths->SetRight(strRight);
 }
 
 /**
- * @brief Return image index appropriate for this row
+ * @brief Open selected file with registered application.
+ * Uses shell file associations to open file with registered
+ * application. We first try to use "Edit" action which should
+ * open file to editor, since we are more interested editing
+ * files than running them (scripts).
+ * @param [in] stype Side of file to open.
  */
-int GetColImage(const DIFFITEM &di)
+void CDirView::DoOpen(SIDE_TYPE stype)
 {
-	// Must return an image index into image list created above in OnInitDialog
-	if (di.diffcode.isResultError())
-		return DIFFIMG_ERROR;
-	if (di.diffcode.isResultAbort())
-		return DIFFIMG_ABORT;
-	if (di.diffcode.isResultFiltered())
-		return (di.diffcode.isDirectory() ? DIFFIMG_DIRSKIP : DIFFIMG_SKIP);
-	if (di.diffcode.isSideFirstOnly())
-		return (di.diffcode.isDirectory() ? DIFFIMG_LDIRUNIQUE : DIFFIMG_LUNIQUE);
-	if (di.diffcode.isSideSecondOnly())
-		return ((di.diffcode.diffcode & DIFFCODE::THREEWAY) == 0 ? 
-			(di.diffcode.isDirectory() ? DIFFIMG_RDIRUNIQUE : DIFFIMG_RUNIQUE) :
-			(di.diffcode.isDirectory() ? DIFFIMG_MDIRUNIQUE : DIFFIMG_MUNIQUE));
-	if (di.diffcode.isSideThirdOnly())
-		return (di.diffcode.isDirectory() ? DIFFIMG_RDIRUNIQUE : DIFFIMG_RUNIQUE);
-	if ((di.diffcode.diffcode & DIFFCODE::THREEWAY) != 0)
+	int sel = GetSingleSelectedItem();
+	if (sel == -1) return;
+	CString file = GetSelectedFileName(stype);
+	if (file.IsEmpty()) return;
+	int rtn = (int)ShellExecute(::GetDesktopWindow(), _T("edit"), file, 0, 0, SW_SHOWNORMAL);
+	if (rtn==SE_ERR_NOASSOC)
+		rtn = (int)ShellExecute(::GetDesktopWindow(), _T("open"), file, 0, 0, SW_SHOWNORMAL);
+	if (rtn==SE_ERR_NOASSOC)
+		DoOpenWith(stype);
+}
+
+/// Open with dialog for file on selected side
+void CDirView::DoOpenWith(SIDE_TYPE stype)
+{
+	int sel = GetSingleSelectedItem();
+	if (sel == -1) return;
+	CString file = GetSelectedFileName(stype);
+	if (file.IsEmpty()) return;
+	CString sysdir;
+	if (!GetSystemDirectory(sysdir.GetBuffer(MAX_PATH), MAX_PATH)) return;
+	sysdir.ReleaseBuffer();
+	CString arg = (CString)_T("shell32.dll,OpenAs_RunDLL ") + file;
+	ShellExecute(::GetDesktopWindow(), 0, _T("RUNDLL32.EXE"), arg, sysdir, SW_SHOWNORMAL);
+}
+
+/// Open selected file  on specified side to external editor
+void CDirView::DoOpenWithEditor(SIDE_TYPE stype)
+{
+	int sel = GetSingleSelectedItem();
+	if (sel == -1) return;
+	CString file = GetSelectedFileName(stype);
+	if (file.IsEmpty()) return;
+
+	mf->OpenFileToExternalEditor(file);
+}
+
+/**
+ * @brief Apply specified setting for prediffing to all selected items
+ */
+void CDirView::ApplyPluginPrediffSetting(int newsetting)
+{
+	// Unlike other group actions, here we don't build an action list
+	// to execute; we just apply this change directly
+	int sel=-1;
+	CString slFile, srFile;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
 	{
-		if (!di.diffcode.exists(0))
-			return (di.diffcode.isDirectory() ? DIFFIMG_LDIRMISSING : DIFFIMG_LMISSING);
-		if (!di.diffcode.exists(1))
-			return (di.diffcode.isDirectory() ? DIFFIMG_MDIRMISSING : DIFFIMG_MMISSING);
-		if (!di.diffcode.exists(2))
-			return (di.diffcode.isDirectory() ? DIFFIMG_RDIRMISSING : DIFFIMG_RMISSING);
-	}
-	if (di.diffcode.isResultSame())
-	{
-		if (di.diffcode.isDirectory())
-			return DIFFIMG_DIRSAME;
-		else
+		const DIFFITEM& di = GetDiffItem(sel);
+		if (!di.isDirectory() && !di.isSideLeft() && !di.isSideRight())
 		{
-			if (di.diffcode.isText())
-				return DIFFIMG_TEXTSAME;
-			else if (di.diffcode.isBin())
-				return DIFFIMG_BINSAME;
-			else if (di.diffcode.isImage())
-				return DIFFIMG_IMAGESAME;
-			else
-				return DIFFIMG_SAME;
+			GetItemFileNames(sel, slFile, srFile);
+			CString filteredFilenames = slFile + (CString)_T("|") + srFile;
+			GetDocument()->SetPluginPrediffSetting(filteredFilenames, newsetting);
 		}
-	}
-	// diff
-	if (di.diffcode.isResultDiff())
-	{
-		if (di.diffcode.isDirectory())
-			return DIFFIMG_DIRDIFF;
-		else
-		{
-			if (di.diffcode.isText())
-				return DIFFIMG_TEXTDIFF;
-			else if (di.diffcode.isBin())
-				return DIFFIMG_BINDIFF;
-			else if (di.diffcode.isImage())
-				return DIFFIMG_IMAGEDIFF;
-			else
-				return DIFFIMG_DIFF;
-		}
-	}
-	return (di.diffcode.isDirectory() ? DIFFIMG_DIR : DIFFIMG_FILE );
-}
-
-/**
- * @brief Copy side status of diffitem
- * @note This does not update UI - ReloadItemStatus() does
- * @sa CDirDoc::ReloadItemStatus()
- */
-void CopyDiffSideAndProperties(DIFFITEM& di, int src, int dst)
-{
-	if (di.diffcode.exists(src))
-	{
-		di.diffcode.diffcode |= (DIFFCODE::FIRST << dst);
-		// copy file properties other than ctime 
-		di.diffFileInfo[dst].encoding = di.diffFileInfo[src].encoding;
-		di.diffFileInfo[dst].m_textStats = di.diffFileInfo[src].m_textStats;
-		di.diffFileInfo[dst].version = di.diffFileInfo[src].version;
-		di.diffFileInfo[dst].size = di.diffFileInfo[src].size;
-		di.diffFileInfo[dst].mtime = di.diffFileInfo[src].mtime;
-		di.diffFileInfo[dst].flags = di.diffFileInfo[src].flags;
-	}
-	if (di.HasChildren())
-	{
-		for (DIFFITEM* pdic = di.GetFirstChild(); pdic; pdic = pdic->GetFwdSiblingLink())
-			CopyDiffSideAndProperties(*pdic, src, dst);
-	}
-}
-
-/**
- * @brief Unset side status of diffitem
- * @note This does not update UI - ReloadItemStatus() does
- * @sa CDirDoc::ReloadItemStatus()
- */
-void UnsetDiffSide(DIFFITEM& di, int index)
-{
-	di.diffcode.diffcode &= ~(DIFFCODE::FIRST << index);
-	if (di.HasChildren())
-	{
-		for (DIFFITEM* pdic = di.GetFirstChild(); pdic; pdic = pdic->GetFwdSiblingLink())
-			UnsetDiffSide(*pdic, index);
-	}
-}
-
-/**
- * @brief Set compare status of diffitem
- * @note This does not update UI - ReloadItemStatus() does
- * @sa CDirDoc::ReloadItemStatus()
- */
-void SetDiffCompare(DIFFITEM& di, unsigned diffcode)
-{
-	SetDiffStatus(di, diffcode, DIFFCODE::COMPAREFLAGS);
-}
-
-/**
- * @brief Set status for diffitem
- * @param diffcode New code
- * @param mask Defines allowed set of flags to change
- * @param idx Item's index to list in UI
- */
-void SetDiffStatus(DIFFITEM& di, unsigned  diffcode, unsigned mask)
-{
-	// TODO: Why is the update broken into these pieces ?
-	// Someone could figure out these pieces and probably simplify this.
-
-	// Update DIFFITEM code (comparison result)
-	assert( ((~mask) & diffcode) == 0 ); // make sure they only set flags in their mask
-
-	di.diffcode.diffcode &= (~mask); // remove current data
-	di.diffcode.diffcode |= diffcode; // add new data
-	if (di.HasChildren())
-	{
-		for (DIFFITEM* pdic = di.GetFirstChild(); pdic; pdic = pdic->GetFwdSiblingLink())
-			SetDiffStatus(*pdic, diffcode, mask);
-	}
-	// update DIFFITEM time (and other disk info), and tell views
-}
-
-void UpdateStatusFromDisk(CDiffContext& ctxt, DIFFITEM& di, int index)
-{
-	ctxt.UpdateStatusFromDisk(&di, index);
-	if (di.HasChildren())
-	{
-		for (DIFFITEM* pdic = di.GetFirstChild(); pdic; pdic = pdic->GetFwdSiblingLink())
-			UpdateStatusFromDisk(ctxt, *pdic, index);
-	}
-}
-
-/**
- * @brief Update compare flags recursively after sync.
- * @param [in,out] di Item to update the compare flag.
- * @param [in] bRecursive `true` if tree mode is on
- * @return number of diff items
- */
-int UpdateCompareFlagsAfterSync(DIFFITEM& di, bool bRecursive)
-{
-	// Do not update compare flags for filtered items.
-	if (di.diffcode.isResultFiltered())
-		return 0;
-
-	int res = 0;
-	if (di.HasChildren())
-	{
-		for (DIFFITEM* pdic = di.GetFirstChild(); pdic; pdic = pdic->GetFwdSiblingLink())
-		{
-			int ndiff = UpdateCompareFlagsAfterSync(*pdic, bRecursive);
-			if (ndiff > 0)
-			{
-				res += ndiff;
-			}
-		}
-
-		// Update compare flags for items that exist on both sides.
-		// (Do not update compare flags for items that exist on only one side.)
-		if (di.diffcode.existAll())
-		{
-			di.diffcode.diffcode &= (~DIFFCODE::COMPAREFLAGS);
-			unsigned flag = (res > 0) ? DIFFCODE::DIFF : DIFFCODE::SAME;
-			di.diffcode.diffcode |= flag;
-		}
-	}
-	else {
-		// Update compare flags for files and directories in tree mode.
-		// (Do not update directory compare flags when not in tree mode.)
-		if (!di.diffcode.isDirectory() || bRecursive)
-		{
-			if (di.diffcode.existAll())
-			{
-				di.diffcode.diffcode &= (~DIFFCODE::COMPAREFLAGS);
-				di.diffcode.diffcode |= DIFFCODE::SAME;
-			}
-			else
-			{
-				res++;
-			}
-		}
-	}
-
-	return res;
-}
-
-/**
- * @brief Update the paths of the diff items recursively.
- * @param[in] nDirs Number of directories to compare.
- * @param[in,out] di@Item to update the path.
- */
-void UpdatePaths(int nDirs, DIFFITEM& di)
-{
-	assert(nDirs == 2 || nDirs == 3);
-
-	if (di.HasChildren())
-	{
-		for (DIFFITEM* pdic = di.GetFirstChild(); pdic; pdic = pdic->GetFwdSiblingLink())
-		{
-			for (int i = 0; i < nDirs; i++)
-				pdic->diffFileInfo[i].path = paths::ConcatPath(di.diffFileInfo[i].path, di.diffFileInfo[i].filename);
-			UpdatePaths(nDirs, *pdic);
-		}
-	}
-}
-
-void SetDiffCounts(DIFFITEM& di, unsigned diffs, unsigned ignored)
-{
-	di.nidiffs = ignored; // see StoreDiffResult() in DirScan.cpp
-	di.nsdiffs = diffs;
-}
-
-/**
- * @brief Set item's view-flag.
- * @param [in] key Item fow which flag is set.
- * @param [in] flag Flag value to set.
- * @param [in] mask Mask for possible flag values.
- */
-void SetItemViewFlag(DIFFITEM& di, unsigned flag, unsigned mask)
-{
-	unsigned curFlags = di.customFlags;
-	curFlags &= ~mask; // Zero bits masked
-	curFlags |= flag;
-	di.customFlags = curFlags;
-}
-
-/**
- * @brief Set all item's view-flag.
- * @param [in] flag Flag value to set.
- * @param [in] mask Mask for possible flag values.
- */
-void SetItemViewFlag(CDiffContext& ctxt, unsigned flag, unsigned mask)
-{
-	DIFFITEM *pos = ctxt.GetFirstDiffPosition();
-
-	while (pos != nullptr)
-	{
-		unsigned curFlags = ctxt.GetCustomFlags1(pos);
-		curFlags &= ~mask; // Zero bits masked
-		curFlags |= flag;
-		ctxt.SetCustomFlags1(pos, curFlags);
-		ctxt.GetNextDiffPosition(pos);
 	}
 }
 
@@ -1243,320 +1149,23 @@ void SetItemViewFlag(CDiffContext& ctxt, unsigned flag, unsigned mask)
  * @brief Mark selected items as needing for rescan.
  * @return Count of items to rescan.
  */
-void MarkForRescan(DIFFITEM &di)
+UINT CDirView::MarkSelectedForRescan()
 {
-	SetDiffStatus(di, 0, DIFFCODE::TEXTFLAGS | DIFFCODE::SIDEFLAGS | DIFFCODE::COMPAREFLAGS);
-	SetDiffStatus(di, DIFFCODE::NEEDSCAN, DIFFCODE::SCANFLAGS);
-}
-
-/**
- * @brief Return string such as "15 of 30 Files Affected" or "30 Files Affected"
- */
-String FormatFilesAffectedString(int nFilesAffected, int nFilesTotal)
-{
-	if (nFilesAffected == nFilesTotal)
-		return strutils::format_string1(_("(%1 Files Affected)"), NumToStr(nFilesTotal));
-	else
-		return strutils::format_string2(_("(%1 of %2 Files Affected)"), NumToStr(nFilesAffected), NumToStr(nFilesTotal));
-}
-
-String FormatMenuItemString(const String& fmt1, const String& fmt2, int count, int total)
-{
-	if (count == total)
-		return strutils::format_string1(fmt1, NumToStr(total));
-	else
-		return strutils::format_string2(fmt2, NumToStr(count), NumToStr(total));
-}
-
-String FormatMenuItemString(SIDE_TYPE src, SIDE_TYPE dst, int count, int total)
-{
-	String fmt1, fmt2;
-	if (src == SIDE_LEFT && dst == SIDE_RIGHT)
+	int sel = -1;
+	CString slFile, srFile;
+	int items = 0;
+	while ((sel = m_pList->GetNextItem(sel, LVNI_SELECTED)) != -1)
 	{
-		fmt1 = _("Left to Right (%1)");
-		fmt2 = _("Left to Right (%1 of %2)");
-	}
-	else if (src == SIDE_LEFT && dst == SIDE_MIDDLE)
-	{
-		fmt1 = _("Left to Middle (%1)");
-		fmt2 = _("Left to Middle (%1 of %2)");
-	}
-	else if (src == SIDE_MIDDLE && dst == SIDE_LEFT)
-	{
-		fmt1 = _("Middle to Left (%1)");
-		fmt2 = _("Middle to Left (%1 of %2)");
-	}
-	else if (src == SIDE_MIDDLE && dst == SIDE_RIGHT)
-	{
-		fmt1 = _("Middle to Right (%1)");
-		fmt2 = _("Middle to Right (%1 of %2)");
-	}
-	else if (src == SIDE_RIGHT && dst == SIDE_LEFT)
-	{
-		fmt1 = _("Right to Left (%1)");
-		fmt2 = _("Right to Left (%1 of %2)");
-	}
-	else if (src == SIDE_RIGHT && dst == SIDE_MIDDLE)
-	{
-		fmt1 = _("Right to Middle (%1)");
-		fmt2 = _("Right to Middle (%1 of %2)");
-	}
-	return FormatMenuItemString(fmt1, fmt2, count, total);
-}
+		// Don't try to rescan special items
+		if (GetItemKey(sel) == (POSITION)SPECIAL_ITEM_POS)
+			continue;
 
-String FormatMenuItemString(SIDE_TYPE src, int count, int total)
-{
-	String fmt1, fmt2;
-	if (src == SIDE_LEFT)
-	{
-		fmt1 = _("Left (%1)");
-		fmt2 = _("Left (%1 of %2)");
+		DIFFITEM di = GetDiffItem(sel);
+		GetDocument()->SetDiffStatus(0, DIFFCODE::TEXTFLAGS | DIFFCODE::SIDEFLAGS | DIFFCODE::COMPAREFLAGS, sel);		
+		GetDocument()->SetDiffStatus(DIFFCODE::NEEDSCAN, DIFFCODE::SCANFLAGS, sel);
+		++items;
 	}
-	else if (src == SIDE_MIDDLE)
-	{
-		fmt1 = _("Middle (%1)");
-		fmt2 = _("Middle (%1 of %2)");
-	}
-	else if (src == SIDE_RIGHT)
-	{
-		fmt1 = _("Right (%1)");
-		fmt2 = _("Right (%1 of %2)");
-	}
-	return FormatMenuItemString(fmt1, fmt2, count, total);
-}
-
-String FormatMenuItemStringAll(int nDirs, int count, int total)
-{
-	if (nDirs < 3)
-		return FormatMenuItemString(_("Both (%1)"), _("Both (%1 of %2)"), count, total);
-	else
-		return FormatMenuItemString(_("All (%1)"), _("All (%1 of %2)"), count, total);
-}
-
-String FormatMenuItemStringTo(SIDE_TYPE src, int count, int total)
-{
-	String fmt1, fmt2;
-	if (src == SIDE_LEFT)
-	{
-		fmt1 = _("Left to... (%1)");
-		fmt2 = _("Left to... (%1 of %2)");
-	}
-	else if (src == SIDE_MIDDLE)
-	{
-		fmt1 = _("Middle to... (%1)");
-		fmt2 = _("Middle to... (%1 of %2)");
-	}
-	else if (src == SIDE_RIGHT)
-	{
-		fmt1 = _("Right to... (%1)");
-		fmt2 = _("Right to... (%1 of %2)");
-	}
-	return FormatMenuItemString(fmt1, fmt2, count, total);
-}
-
-String FormatMenuItemStringAllTo(int nDirs, int count, int total)
-{
-	if (nDirs < 3)
-		return FormatMenuItemString(_("Both to... (%1)"), _("Both to... (%1 of %2)"), count, total);
-	else
-		return FormatMenuItemString(_("All to... (%1)"), _("All to... (%1 of %2)"), count, total);
-}
-
-String FormatMenuItemStringDifferencesTo(int count, int total)
-{
-	return FormatMenuItemString(_("Differences to... (%1)"), _("Differences to... (%1 of %2)"), count, total);
-}
-
-/**
- * @brief Rename a file without moving it to different directory.
- *
- * @param szOldFileName [in] Full path of file to rename.
- * @param szNewFileName [in] New file name (without the path).
- *
- * @return true if file was renamed successfully.
- */
-bool RenameOnSameDir(const String& szOldFileName, const String& szNewFileName)
-{
-	bool bSuccess = false;
-
-	if (paths::DOES_NOT_EXIST != paths::DoesPathExist(szOldFileName))
-	{
-		String sFullName = paths::ConcatPath(paths::GetPathOnly(szOldFileName), szNewFileName);
-
-		// No need to rename if new file already exist.
-		if ((sFullName != szOldFileName) ||
-			(paths::DOES_NOT_EXIST == paths::DoesPathExist(sFullName)))
-		{
-			ShellFileOperations fileOp;
-			fileOp.SetOperation(FO_RENAME, 0);
-			fileOp.AddSourceAndDestination(szOldFileName, sFullName);
-			bSuccess = fileOp.Run();
-		}
-		else
-		{
-			bSuccess = true;
-		}
-	}
-
-	return bSuccess;
-}
-
-/**
- * @brief Convert number to string.
- * Converts number to string, with commas between digits in
- * locale-appropriate manner.
-*/
-String NumToStr(int n)
-{
-	return locality::NumToLocaleStr(n);
-}
-
-void ExpandSubdirs(CDiffContext& ctxt, DIFFITEM& dip)
-{
-	dip.customFlags |= ViewCustomFlags::EXPANDED;
-	DIFFITEM *diffpos = ctxt.GetFirstChildDiffPosition(&dip);
-	while (diffpos != nullptr)
-	{
-		DIFFITEM &di = ctxt.GetNextDiffRefPosition(diffpos);
-		if (!di.IsAncestor(&dip))
-			break;
-		if (di.HasChildren())
-			di.customFlags |= ViewCustomFlags::EXPANDED;
-	}
-}
-
-void ExpandAllSubdirs(CDiffContext& ctxt)
-{
-	DIFFITEM *diffpos = ctxt.GetFirstDiffPosition();
-	while (diffpos != nullptr)
-	{
-		DIFFITEM &di = ctxt.GetNextDiffRefPosition(diffpos);
-		di.customFlags |= ViewCustomFlags::EXPANDED;
-	}
-}
-
-void CollapseAllSubdirs(CDiffContext& ctxt)
-{
-	DIFFITEM *diffpos = ctxt.GetFirstDiffPosition();
-	while (diffpos != nullptr)
-	{
-		DIFFITEM &di = ctxt.GetNextDiffRefPosition(diffpos);
-		di.customFlags &= ~ViewCustomFlags::EXPANDED;
-	}
-}
-
-DirViewTreeState *SaveTreeState(const CDiffContext& ctxt)
-{
-	DirViewTreeState *pTreeState = new DirViewTreeState();
-	DIFFITEM *diffpos = ctxt.GetFirstDiffPosition();
-	while (diffpos != nullptr)
-	{
-		const DIFFITEM &di = ctxt.GetNextDiffPosition(diffpos);
-		if (di.HasChildren())
-		{
-			String relpath = paths::ConcatPath(di.diffFileInfo[0].path, di.diffFileInfo[0].filename);
-			pTreeState->insert(std::pair<String, bool>(relpath, !!(di.customFlags & ViewCustomFlags::EXPANDED)));
-		}
-	}
-	return pTreeState;
-}
-
-void RestoreTreeState(CDiffContext& ctxt, DirViewTreeState *pTreeState)
-{
-	DIFFITEM *diffpos = ctxt.GetFirstDiffPosition();
-	while (diffpos != nullptr)
-	{
-		DIFFITEM &di = ctxt.GetNextDiffRefPosition(diffpos);
-		if (di.HasChildren())
-		{
-			String relpath = paths::ConcatPath(di.diffFileInfo[0].path, di.diffFileInfo[0].filename);
-			std::map<String, bool>::iterator p = pTreeState->find(relpath);
-			if (p != pTreeState->end())
-			{
-				di.customFlags &= ~ViewCustomFlags::EXPANDED;
-				di.customFlags |= (p->second ? ViewCustomFlags::EXPANDED : 0);
-			}
-		}
-	}
-}
-
-/**
- * @brief Tell if user may use ".." and move to parents directory.
- * This function checks if current compare's parent folders should
- * be allowed to open. I.e. if current compare folders are:
- * - C:\Work\Project1 and
- * - C:\Work\Project2
- * we check if C:\Work and C:\Work should be allowed to opened.
- * For regular folders we allow opening if both folders exist.
- * @param [out] leftParent Left parent folder to open.
- * @param [out] rightParent Right parent folder to open.
- * @return Info if opening parent folders should be enabled:
- * - No : upward RESTRICTED
- * - ParentIsRegularPath : upward ENABLED
- * - ParentIsTempPath : upward ENABLED
- */
-AllowUpwardDirectory::ReturnCode
-CheckAllowUpwardDirectory(const CDiffContext& ctxt, const CTempPathContext *pTempPathContext, PathContext &pathsParent)
-{
-	std::vector<String> path(ctxt.GetCompareDirs());
-	for (int i = 0; i < static_cast<int>(path.size()); ++i)
-		path[i] = ctxt.GetNormalizedPath(i);
-
-	// If we have temp context it means we are comparing archives
-	if (pTempPathContext != nullptr)
-	{
-		std::vector<String> name(path.size());
-		for (int i = 0; i < static_cast<int>(path.size()); ++i)
-			name[i] = paths::FindFileName(path[i]);
-
-		String::size_type cchLeftRoot = pTempPathContext->m_strRoot[0].length();
-		if (path[0].length() <= cchLeftRoot)
-		{
-			pathsParent.SetSize(ctxt.GetCompareDirs());
-			if (pTempPathContext->m_pParent)
-			{
-				for (int i = 0; i < static_cast<int>(path.size()); ++i)
-					pathsParent[i] = pTempPathContext->m_pParent->m_strRoot[i];
-				if (paths::GetPairComparability(pathsParent) != paths::IS_EXISTING_DIR)
-					return AllowUpwardDirectory::Never;
-				return AllowUpwardDirectory::ParentIsTempPath;
-			}
-			for (int i = 0; i < static_cast<int>(path.size()); ++i)
-				pathsParent[i] = pTempPathContext->m_strDisplayRoot[i];
-			if (pathsParent.GetSize() < 3)
-			{
-				if (!ctxt.m_piFilterGlobal->includeFile(pathsParent[0], pathsParent[1]))
-					return AllowUpwardDirectory::Never;
-			}
-			else
-			{
-				if (!ctxt.m_piFilterGlobal->includeFile(pathsParent[0], pathsParent[1], pathsParent[2]))
-					return AllowUpwardDirectory::Never;
-			}
-			if (path.size() == 2 && 
-				strutils::compare_nocase(name[0], _T("ORIGINAL")) == 0 && 
-				strutils::compare_nocase(name[1], _T("ALTERED")) == 0)
-			{
-				for (int i = 0; i < static_cast<int>(path.size()); ++i)
-					pathsParent[i] = paths::GetParentPath(pathsParent[i]);
-				for (int i = 0; i < static_cast<int>(path.size()); ++i)
-					name[i] = paths::FindFileName(pathsParent[i]);
-				if (strutils::compare_nocase(name[0], name[1]) == 0)
-				{
-					if (paths::GetPairComparability(pathsParent) != paths::IS_EXISTING_DIR)
-						return AllowUpwardDirectory::Never;
-					return AllowUpwardDirectory::ParentIsTempPath;
-				}
-			}
-			return AllowUpwardDirectory::No;
-		}
-	}
-
-	// If regular parent folders exist, allow opening them
-	pathsParent.SetSize(ctxt.GetCompareDirs());
-	for (int i = 0; i < static_cast<int>(path.size()); ++i)
-		pathsParent[i] = paths::GetParentPath(path[i]);
-	if (paths::GetPairComparability(pathsParent) != paths::IS_EXISTING_DIR)
-		return AllowUpwardDirectory::Never;
-	return AllowUpwardDirectory::ParentIsRegularPath;
+	if (items > 0)
+		GetDocument()->SetMarkedRescan();
+	return items;
 }

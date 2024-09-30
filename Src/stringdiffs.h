@@ -1,45 +1,47 @@
 /** 
  * @file  stringdiffs.h
  *
- * @brief Interface file declaring ComputeWordDiffs (q.v.)
+ * @brief Interface file declaring sd_ComputeWordDiffs (q.v.)
  *
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: stringdiffs.h,v 1.4 2005/07/24 00:19:28 elsapo Exp $
 
-#include "UnicodeString.h"
-#include <vector>
-
-namespace strdiff
-{
+#ifndef stringdiffs_h_included
+#define stringdiffs_h_included
 
 /** @brief One difference between two strings */
 struct wdiff {
-	std::array<int, 3> begin; // 0-based, eg, begin[0] is from str1
-	std::array<int, 3> end; // 0-based, eg, end[1] is from str2
-	int op;
-	wdiff(int s1=0, int e1=0, int s2=0, int e2=0, int s3=0, int e3=0)
-		: begin{s1, s2, s3}
-		, op(-1)
+	int start[2]; // 0-based, eg, start[0] is from str1
+	int end[2]; // 0-based, eg, end[1] is from str2
+	wdiff(int s1=0, int e1=0, int s2=0, int e2=0)
 	{
 		if (s1>e1) e1=s1-1;
 		if (s2>e2) e2=s2-1;
-		if (s3>e3) e3=s3-1;
+		start[0] = s1;
+		start[1] = s2;
 		end[0] = e1;
 		end[1] = e2;
-		end[2] = e3;
+	}
+	wdiff(const wdiff & src)
+	{
+		for (int i=0; i<2; ++i)
+		{
+			start[i] = src.start[i];
+			end[i] = src.end[i];
+		}
 	}
 };
+typedef CArray<wdiff, wdiff&> wdiffarray; /**< An array of differences between two strings */
 
-void Init();
-void Close();
 
-void SetBreakChars(const TCHAR *breakChars);
+void sd_ComputeWordDiffs(const CString & str1, const CString & str2,
+                   bool case_sensitive, int whitespace, int breakType,
+                   wdiffarray * pDiffs);
 
-std::vector<wdiff> ComputeWordDiffs(const String& str1, const String& str2,
-	bool case_sensitive, bool eol_sensitive, int whitespace, bool ignore_numbers, int breakType, bool byte_level);
-std::vector<wdiff> ComputeWordDiffs(int nStrings, const String *str, 
-                   bool case_sensitive, bool eol_sensitive, int whitespace, bool ignore_numbers, int breakType, bool byte_level);
-int Compare(const String& str1, const String& str2,
-	bool case_sensitive, bool eol_sensitive, int whitespace, bool ignore_numbers);
+void sd_ComputeByteDiff(CString & str1, CString & str2, 
+			bool casitive, int xwhite, 
+			int &begin1, int &begin2, int &end1, int &end2);
 
-}
+
+#endif // stringdiffs_h_included

@@ -8,17 +8,19 @@
  * WinMerge.
  */
 
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "PropertyPageHost.h"
 
-#ifdef _WIN64
-#	include <../src/mfc/occimpl.h>
-#else // _WIN64
+#if _MSC_VER > 1200
 #	include <afxocc.h>
-#endif // _WIN64
+#else
+#	include <..\src\occimpl.h>
+#endif
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
@@ -50,14 +52,14 @@ BOOL CPropertyPageHost::Create(UINT nRefCtrlID, CWnd* pParent, UINT uCtrlID)
 {
 	ASSERT_VALID(pParent);
 
-	if (pParent == nullptr || !::IsWindow(*pParent))
+	if (!pParent || !::IsWindow(*pParent))
 		return FALSE;
 
 	CWnd* pRefCtrl = pParent->GetDlgItem(nRefCtrlID);
 
 	ASSERT_VALID(pRefCtrl);
 
-	if (pRefCtrl == nullptr || !::IsWindow(*pRefCtrl))
+	if (!pRefCtrl || !::IsWindow(*pRefCtrl))
 		return FALSE;
 
 	CRect rHost;
@@ -78,13 +80,13 @@ BOOL CPropertyPageHost::Create(LPRECT lpRect, CWnd* pParent, UINT uCtrlID)
 {
 	ASSERT_VALID(pParent);
 
-	if (pParent == nullptr || !::IsWindow(*pParent))
+	if (!pParent || !::IsWindow(*pParent))
 		return FALSE;
 
 	if (!m_aPages.GetSize())
 		return FALSE;
 
-	if (!CWnd::Create(nullptr, nullptr, WS_CHILD | WS_VISIBLE, *lpRect, pParent, uCtrlID))
+	if (!CWnd::Create(NULL, NULL, WS_CHILD | WS_VISIBLE, *lpRect, pParent, uCtrlID))
 		return FALSE;
 
 	// create the first page
@@ -99,12 +101,12 @@ int CPropertyPageHost::GetActiveIndex()
 CPropertyPage* CPropertyPageHost::GetActivePage()
 {
 	if (m_nSelIndex < 0)
-		return nullptr;
+		return NULL;
 
 	CPropertyPage* pPage = m_aPages[m_nSelIndex].pPage;
 
-	if (pPage == nullptr || pPage->GetSafeHwnd() == nullptr)
-		return nullptr;
+	if (!pPage || !pPage->GetSafeHwnd())
+		return NULL;
 
 	return pPage;
 }
@@ -116,20 +118,20 @@ LRESULT CPropertyPageHost::OnGetCurrentPageHwnd(WPARAM wParam, LPARAM lParam)
 	return pActive ? (LRESULT)pActive->GetSafeHwnd() : NULL;
 }
 
-bool CPropertyPageHost::SetActivePage(int nIndex, bool bAndFocus /*= true*/)
+BOOL CPropertyPageHost::SetActivePage(int nIndex, BOOL bAndFocus)
 {
 	if (nIndex < 0 || nIndex >= m_aPages.GetSize())
-		return false;
+		return FALSE;
 
 	CPropertyPage* pPage = m_aPages[nIndex].pPage;
 
-	if (pPage == nullptr)
-		return false;
+	if (!pPage)
+		return FALSE;
 
 	CWnd* pFocus = GetFocus();
 
-	if (pPage->GetSafeHwnd() == nullptr && !pPage->Create(pPage->m_psp.pszTemplate, this))
-		return false;
+	if (!pPage->GetSafeHwnd() && !pPage->Create(pPage->m_psp.pszTemplate, this))
+		return FALSE;
 
 	// make sure we can into/out of the page
 	pPage->ModifyStyleEx(0, WS_EX_CONTROLPARENT | DS_CONTROL);
@@ -153,13 +155,13 @@ bool CPropertyPageHost::SetActivePage(int nIndex, bool bAndFocus /*= true*/)
 
 	if (m_nSelIndex != -1)
 	{
-		CPropertyPage* pPage1 = GetActivePage();
-		ASSERT (pPage1 != nullptr);
+		CPropertyPage* pPage = GetActivePage();
+		ASSERT (pPage);
 
-		if (pPage1 != nullptr)
+		if (pPage)
 		{
-			pPage1->ShowWindow(SW_HIDE);
-			pPage1->OnKillActive();
+			pPage->ShowWindow(SW_HIDE);
+			pPage->OnKillActive();
 		}
 	}
 
@@ -169,46 +171,46 @@ bool CPropertyPageHost::SetActivePage(int nIndex, bool bAndFocus /*= true*/)
 	// move the focus to the first dlg ctrl
 	if (bAndFocus)
 	{
-		CWnd* pCtrl = pPage->GetNextDlgTabItem(nullptr);
+		CWnd* pCtrl = pPage->GetNextDlgTabItem(NULL);
 
-		if (pCtrl != nullptr)
+		if (pCtrl)
 			pCtrl->SetFocus();
 	}
-	else if (pFocus)
+	else
 		pFocus->SetFocus();
 
 	m_nSelIndex = nIndex;
-	return true;
+	return TRUE;
 }
 
-bool CPropertyPageHost::SetActivePage(CPropertyPage* pPage, bool bAndFocus /*= true*/)
+BOOL CPropertyPageHost::SetActivePage(CPropertyPage* pPage, BOOL bAndFocus)
 {
 	return SetActivePage(FindPage(pPage));
 }
 
-bool CPropertyPageHost::AddPage(CPropertyPage* pPage, LPCTSTR szTitle /*= nullptr*/, DWORD dwItemData /*= 0*/)
+BOOL CPropertyPageHost::AddPage(CPropertyPage* pPage, LPCTSTR szTitle, DWORD dwItemData)
 {
-	if (pPage == nullptr || !pPage->IsKindOf(RUNTIME_CLASS(CPropertyPage)))
-		return false;
+	if (!pPage || !pPage->IsKindOf(RUNTIME_CLASS(CPropertyPage)))
+		return FALSE;
 
 	if (FindPage(pPage) == -1)
 	{
 		PAGEITEM pi(pPage, szTitle, dwItemData);
-		int nPage = (int) m_aPages.Add(pi);
+		int nPage = m_aPages.Add(pi);
 
-		if (szTitle != nullptr)
+		if (szTitle)
 		{
 			pPage->m_psp.pszTitle = m_aPages[nPage].sTitle; // the final string address
 			pPage->m_psp.dwFlags |= PSP_USETITLE;
 		}
 	}
 
-	return true;
+	return TRUE;
 }
 
 int CPropertyPageHost::FindPage(CPropertyPage* pPage)
 {
-	int nPage = (int) m_aPages.GetSize();
+	int nPage = m_aPages.GetSize();
 
 	while (nPage--)
 	{
@@ -223,7 +225,7 @@ BOOL CPropertyPageHost::PreTranslateMessage(MSG* pMsg)
 {
 	CWnd* pActive = GetActivePage();
 
-	if (pActive != nullptr)
+	if (pActive)
 	{
 		if (pActive->PreTranslateMessage(pMsg))
 			return TRUE;
@@ -240,23 +242,26 @@ BOOL CPropertyPageHost::PreTranslateMessage(MSG* pMsg)
 // it by providing a replacement to the buggy code
 BOOL COccManager::IsDialogMessage(CWnd* pWndDlg, LPMSG lpMsg)
 {
+	CWnd* pWndFocus = CWnd::GetFocus();
+	HWND hWndFocus = pWndFocus->GetSafeHwnd();
+	HWND hWndDlg = pWndDlg->GetSafeHwnd();
 	UINT uMsg = lpMsg->message;
 
 	if (((uMsg >= WM_KEYFIRST) && (uMsg <= WM_KEYLAST)) ||
 		((uMsg >= WM_MOUSEFIRST) && (uMsg <= WM_MOUSELAST)))
 	{
-		CWnd* pWndCtrl = CWnd::GetFocus();
+		CWnd* pWndCtrl = pWndFocus;
 
 		// Walk up the parent chain, until we find an OLE control.
-		while ((pWndCtrl != nullptr) && (pWndCtrl->m_pCtrlSite == nullptr) &&
+		while ((pWndCtrl != NULL) && (pWndCtrl->m_pCtrlSite == NULL) &&
 			(pWndCtrl->GetParent() != pWndDlg))
 		{
 			pWndCtrl = pWndCtrl->GetParent();
 		}
 
 		// let the control attempt to translate the message
-		if (pWndCtrl != nullptr && pWndCtrl->m_pCtrlSite != nullptr &&
-			pWndCtrl->m_pCtrlSite->m_pActiveObject != nullptr &&
+		if (pWndCtrl != NULL && pWndCtrl->m_pCtrlSite != NULL &&
+			pWndCtrl->m_pCtrlSite->m_pActiveObject != NULL &&
 			pWndCtrl->m_pCtrlSite->m_pActiveObject->TranslateAccelerator(lpMsg) == S_OK)
 		{
 			return TRUE;
@@ -264,7 +269,7 @@ BOOL COccManager::IsDialogMessage(CWnd* pWndDlg, LPMSG lpMsg)
 
 		// handle CTRLINFO_EATS_RETURN and CTRLINFO_EATS_ESCAPE flags
 		if ((uMsg == WM_KEYUP || uMsg == WM_KEYDOWN || uMsg == WM_CHAR) &&
-			pWndCtrl != nullptr && pWndCtrl->m_pCtrlSite != nullptr &&
+			pWndCtrl != NULL && pWndCtrl->m_pCtrlSite != NULL &&
 			((LOWORD(lpMsg->wParam) == VK_RETURN &&
 			 (pWndCtrl->m_pCtrlSite->m_ctlInfo.dwFlags & CTRLINFO_EATS_RETURN)) ||
 			(LOWORD(lpMsg->wParam) == VK_ESCAPE &&
@@ -287,9 +292,9 @@ void CPropertyPageHost::OnSize(UINT nType, int cx, int cy)
 	if (m_nSelIndex != -1)
 	{
 		CPropertyPage* pPage = GetActivePage();
-		ASSERT (pPage != nullptr);
+		ASSERT (pPage);
 
-		if (pPage != nullptr)
+		if (pPage)
 			pPage->MoveWindow(0, 0, cx, cy, TRUE);
 	}
 }
@@ -301,34 +306,16 @@ BOOL CPropertyPageHost::OnEraseBkgnd(CDC* pDC)
 
 void CPropertyPageHost::OnOK()
 {
-	int nPage = (int) m_aPages.GetSize();
+	int nPage = m_aPages.GetSize();
 
 	while (nPage--)
 	{
 		CPropertyPage* pPage = m_aPages[nPage].pPage;
 
-		if (pPage!= nullptr && pPage->GetSafeHwnd() != nullptr)
+		if (pPage && pPage->GetSafeHwnd())
 		{
 			pPage->UpdateData();
 			pPage->OnOK();
-		}
-	}
-}
-
-/**
- * @brief Update all PropertyPages.
- */
-void CPropertyPageHost::UpdatePagesData()
-{
-	int nPage = (int) m_aPages.GetSize();
-
-	while (nPage--)
-	{
-		CPropertyPage* pPage = m_aPages[nPage].pPage;
-
-		if (pPage!= nullptr && pPage->GetSafeHwnd()!= nullptr)
-		{
-			pPage->UpdateData();
 		}
 	}
 }
@@ -352,7 +339,7 @@ int CPropertyPageHost::OnCreate(LPCREATESTRUCT lpCreateStruct)
 CString CPropertyPageHost::GetPageTitle(int nIndex)
 {
 	if (nIndex < 0 || nIndex > m_aPages.GetSize())
-		return _T("");
+		return "";
 
 	return m_aPages[nIndex].sTitle;
 }
@@ -368,14 +355,14 @@ DWORD CPropertyPageHost::GetPageItemData(int nIndex)
 CPropertyPage* CPropertyPageHost::GetPage(int nIndex)
 {
 	if (nIndex < 0 || nIndex > m_aPages.GetSize())
-		return nullptr;
+		return NULL;
 
 	return m_aPages[nIndex].pPage;
 }
 
 CPropertyPage* CPropertyPageHost::FindPage(DWORD dwItemData)
 {
-	int nPage = (int) m_aPages.GetSize();
+	int nPage = m_aPages.GetSize();
 
 	while (nPage--)
 	{
@@ -383,5 +370,5 @@ CPropertyPage* CPropertyPageHost::FindPage(DWORD dwItemData)
 			return m_aPages[nPage].pPage;
 	}
 
-	return nullptr;
+	return NULL;
 }

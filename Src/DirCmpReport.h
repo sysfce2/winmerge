@@ -4,15 +4,15 @@
  * @brief Declaration file for DirCmpReport.
  *
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: DirCmpReport.h,v 1.1 2005/07/25 11:48:20 kimmov Exp $
 
-#include <vector>
-#include "UnicodeString.h"
+#ifndef _DIRCMPREPORT_H_
+#define _DIRCMPREPORT_H_
+
+#ifndef _PATHCONTEXT_H_
 #include "PathContext.h"
-#include "DirReportTypes.h"
-#include "IListCtrl.h"
-
-struct DiffFuncStruct;
+#endif
 
 /**
  * @brief This class creates directory compare reports.
@@ -23,62 +23,43 @@ struct DiffFuncStruct;
  * reports. Downside is we only have data that is visible in GUI.
  *
  * @todo We should read DIFFITEMs from CDirDoc and format data to better
- * fit for reporting. Duplicating formatting and sorting code should be
+ * fit for reporting. Dublicating formatting and sorting code should be
  * avoided.
  */
-
-struct IFileCmpReport
-{
-	virtual ~IFileCmpReport() {}
-	virtual bool operator()(REPORT_TYPE nReportType, IListCtrl *pList, int nIndex, const String &sDestDir, String &sLinkPath) = 0;
-};
-
 class DirCmpReport
 {
 public:
+	/**
+	 * @brief Report types in selection list.
+	 */
+	enum REPORT_TYPE
+	{
+		REPORT_COMMALIST = 0, /**< Comma-separated list */
+		REPORT_TABLIST, /**< Tab-separated list */
+		REPORT_SIMPLEHTML, /**< Simple html table */
+	};
 
-	explicit DirCmpReport(const std::vector<String>& colRegKeys);
-	void SetList(IListCtrl *pList);
+	DirCmpReport();
+	void SetList(CListCtrl *pList);
 	void SetRootPaths(const PathContext &paths);
-	void SetReportType(REPORT_TYPE nReportType) { m_nReportType = nReportType;  }
-	REPORT_TYPE GetReportType() const { return m_nReportType;  }
-	void SetReportFile(const String& sReportFile) { m_sReportFile = sReportFile; }
-	String GetReportFile() const { return m_sReportFile; }
 	void SetColumns(int columns);
-	void SetFileCmpReport(IFileCmpReport *pFileCmpReport);
-	void SetCopyToClipboard(bool bCopyToClipbard) { m_bCopyToClipboard = bCopyToClipbard;  }
-	bool GetCopyToClipboard() const { return m_bCopyToClipboard;  }
-	void SetIncludeFileCmpReport(bool bIncludeFileCmpReport) { m_bIncludeFileCmpReport = bIncludeFileCmpReport; }
-	bool GetIncludeFileCmpReport() const { return m_bIncludeFileCmpReport; }
-	void SetDiffFuncStruct(DiffFuncStruct* myStruct) { m_myStruct = myStruct; }
-	bool GenerateReport(String &errStr);
+	BOOL GenerateReport(CString &errStr);
 
 protected:
-	void GenerateReport(REPORT_TYPE nReportType);
-	void WriteString(const String&);
-	void WriteStringEntityAware(const String& sText);
 	void GenerateHeader();
 	void GenerateContent();
 	void GenerateHTMLHeader();
-	void GenerateHTMLHeaderBodyPortion();
-	void GenerateXmlHeader();
-	void GenerateXmlHtmlContent(bool xml);
+	void GenerateHTMLContent();
 	void GenerateHTMLFooter();
-	void GenerateXmlFooter();
+	BOOL SaveToFile(CString &sError);
 
 private:
-	std::unique_ptr<IListCtrl> m_pList; /**< Pointer to UI-list */
+	CListCtrl * m_pList; /**< Pointer to UI-list */
 	PathContext m_rootPaths; /**< Root paths, printed to report */
-	String m_sTitle; /**< Report title, built from root paths */
-	String m_sReportFile;
 	int m_nColumns; /**< Columns in UI */
-	String m_sSeparator; /**< Column separator for report */
-	CFile *m_pFile; /**< File to write report to */
-	std::vector<String> m_colRegKeys; /**< Key names for currently displayed columns */
-	std::unique_ptr<IFileCmpReport> m_pFileCmpReport;
-	bool m_bIncludeFileCmpReport; /**< Do we include file compare report in folder compare report? */
-	bool m_bOutputUTF8;
-	REPORT_TYPE m_nReportType; /**< Report type integer */
-	bool m_bCopyToClipboard; /**< Do we copy report to clipboard? */
-	DiffFuncStruct* m_myStruct;
+	CString m_sSeparator; /**< Column separator for report */
+	CString m_sReport; /**< Report as string */
+	CString m_sReportFile; /**< Filename for report */
 };
+
+#endif // _DIRCMPREPORT_H_

@@ -7,12 +7,12 @@ GNU DIFF is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY.  No author or distributor
 accepts responsibility to anyone for the consequences of using it
 or for whether it serves any particular purpose or works at all,
-unless he says so in writing.  Refer to the GNU General Public
+unless he says so in writing.  Refer to the GNU DIFF General Public
 License for full details.
 
 Everyone is granted permission to copy, modify and redistribute
 GNU DIFF, but only under the conditions described in the
-GNU General Public License.   A copy of this license is
+GNU DIFF General Public License.   A copy of this license is
 supposed to have been given to you along with GNU DIFF so you
 can know your rights and responsibilities.  It should be in a
 file named COPYING.  Among other things, the copyright notice
@@ -21,19 +21,26 @@ and this notice must be preserved on all copies.  */
 
 #include "diff.h"
 
-static unsigned print_half_line (char const * const *, unsigned, unsigned);
-static unsigned tab_from_to (unsigned, unsigned);
-static void print_1sdiff_line (char const * const *, int, char const * const *);
-static void print_sdiff_common_lines (int, int);
-static void print_sdiff_hunk (struct change *);
+// reduce some noise produced with the MSVC compiler
+#if defined (_AFXDLL)
+#pragma warning(disable : 4131)
+#endif
+
+
+static unsigned print_half_line PARAMS((char const HUGE * const *, unsigned, unsigned));
+static unsigned tab_from_to PARAMS((unsigned, unsigned));
+static void print_1sdiff_line PARAMS((char const HUGE * const *, int, char const HUGE * const *));
+static void print_sdiff_common_lines PARAMS((int, int));
+static void print_sdiff_hunk PARAMS((struct change *));
 
 /* Next line number to be printed in the two input files.  */
-static DECL_TLS int next0, next1;
+static int next0, next1;
 
 /* Print the edit-script SCRIPT as a sdiff style output.  */
 
 void
-print_sdiff_script (struct change *script)
+print_sdiff_script (script)
+     struct change *script;
 {
   begin_output ();
 
@@ -46,7 +53,8 @@ print_sdiff_script (struct change *script)
 /* Tab from column FROM to column TO, where FROM <= TO.  Yield TO.  */
 
 static unsigned
-tab_from_to (unsigned from, unsigned to)
+tab_from_to (from, to)
+     unsigned from, to;
 {
   FILE *out = outfile;
   unsigned tab;
@@ -68,7 +76,9 @@ tab_from_to (unsigned from, unsigned to)
  * written (not the number of chars).
  */
 static unsigned
-print_half_line (char const * const *line, unsigned indent, unsigned out_bound)
+print_half_line (line, indent, out_bound)
+     char const HUGE * const *line;
+     unsigned indent, out_bound;
 {
   FILE *out = outfile;
   register unsigned in_position = 0, out_position = 0;
@@ -161,7 +171,10 @@ print_half_line (char const * const *line, unsigned indent, unsigned out_bound)
  */
 
 static void
-print_1sdiff_line (char const HUGE * const *left, int sep, char const HUGE * const *right)
+print_1sdiff_line (left, sep, right)
+     char const HUGE * const *left;
+     int sep;
+     char const HUGE * const *right;
 {
   FILE *out = outfile;
   unsigned hw = sdiff_half_width, c2o = sdiff_column2_offset;
@@ -200,7 +213,8 @@ print_1sdiff_line (char const HUGE * const *left, int sep, char const HUGE * con
 
 /* Print lines common to both files in side-by-side format.  */
 static void
-print_sdiff_common_lines (int limit0, int limit1)
+print_sdiff_common_lines (limit0, limit1)
+     int limit0, limit1;
 {
   int i0 = next0, i1 = next1;
 
@@ -229,13 +243,14 @@ print_sdiff_common_lines (int limit0, int limit1)
    describing changes in consecutive lines.  */
 
 static void
-print_sdiff_hunk (struct change *hunk)
+print_sdiff_hunk (hunk)
+     struct change *hunk;
 {
   int first0, last0, first1, last1, deletes, inserts;
   register int i, j;
 
   /* Determine range of line numbers involved in each file.  */
-  analyze_hunk (hunk, &first0, &last0, &first1, &last1, &deletes, &inserts, files);
+  analyze_hunk (hunk, &first0, &last0, &first1, &last1, &deletes, &inserts);
   if (!deletes && !inserts)
     return;
 

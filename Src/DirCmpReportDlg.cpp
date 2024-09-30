@@ -4,124 +4,70 @@
  * @brief Implementation file for DirCmpReport dialog
  *
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: DirCmpReportDlg.cpp,v 1.2.2.1 2006/05/02 16:57:05 kimmov Exp $
+//
 
 #include "stdafx.h"
-#include "DirCmpReportDlg.h"
+#include "Merge.h"
 #include "Coretools.h"
-#include "DirReportTypes.h"
+#include "DirCmpReportDlg.h"
+#include "DirCmpReport.h"
 #include "paths.h"
-#include "FileOrFolderSelect.h"
-#include "OptionsMgr.h"
-#include "OptionsDef.h"
 
-IMPLEMENT_DYNAMIC(DirCmpReportDlg, CTrDialog)
+IMPLEMENT_DYNAMIC(DirCmpReportDlg, CDialog)
 
 /**
  * @brief Constructor.
  */
-DirCmpReportDlg::DirCmpReportDlg(CWnd* pParent /*= nullptr*/)
-	: CTrDialog(DirCmpReportDlg::IDD, pParent)
-	, m_bCopyToClipboard(false)
-	, m_bIncludeFileCmpReport(false)
-	, m_nReportType(REPORT_TYPE_COMMALIST)
+DirCmpReportDlg::DirCmpReportDlg(CWnd* pParent /*=NULL*/)
+	: CDialog(DirCmpReportDlg::IDD, pParent)
 {
 }
 
-/**
- * @brief Map dialog controls to member variables.
- * This function maps dialog controls with member variables so
- * when UpdateData() is called controls and member variables
- * get updated.
- */
+DirCmpReportDlg::~DirCmpReportDlg()
+{
+}
+
 void DirCmpReportDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CTrDialog::DoDataExchange(pDX);
+	CDialog::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_REPORT_FILE, m_ctlReportFile);
 	DDX_Control(pDX, IDC_REPORT_STYLECOMBO, m_ctlStyle);
 	DDX_Text(pDX, IDC_REPORT_FILE, m_sReportFile);
-	DDX_Check(pDX, IDC_REPORT_COPYCLIPBOARD, m_bCopyToClipboard);
-	DDX_Check(pDX, IDC_REPORT_INCLUDEFILECMPREPORT, m_bIncludeFileCmpReport);
+
 }
 
-BEGIN_MESSAGE_MAP(DirCmpReportDlg, CTrDialog)
+
+BEGIN_MESSAGE_MAP(DirCmpReportDlg, CDialog)
 	ON_BN_CLICKED(IDC_REPORT_BROWSEFILE, OnBtnClickReportBrowse)
-	ON_BN_DOUBLECLICKED(IDC_REPORT_COPYCLIPBOARD, OnBtnDblclickCopyClipboard)
-	ON_CBN_SELCHANGE(IDC_REPORT_STYLECOMBO, OnCbnSelchangeReportStylecombo)
 END_MESSAGE_MAP()
 
-/**
- * @brief Definition for structure containing report types.
- * This struct is used to form a report types list. This list
- * can be then used to initialize the GUI for reports.
- */
-struct ReportTypeInfo
-{
-	REPORT_TYPE reportType; /**< Report-type ID */
-	const char *idDisplay; /**< Resource-string ID (shown in file-selection dialog) */
-	const char *browseFilter; /**< File-extension filter (resource-string ID) */
-};
-
-/**
- * @brief List of report types.
- * This list is used to initialize the GUI.
- */
-static ReportTypeInfo f_types[] = {
-	{ REPORT_TYPE_COMMALIST,
-		"Comma-separated list",
-		"Text Files (*.csv;*.asc;*.rpt;*.txt)|*.csv;*.asc;*.rpt;*.txt|All Files (*.*)|*.*||"
-	},
-	{ REPORT_TYPE_TABLIST,
-		"Tab-separated list",
-		"Text Files (*.csv;*.asc;*.rpt;*.txt)|*.csv;*.asc;*.rpt;*.txt|All Files (*.*)|*.*||"
-	},
-	{ REPORT_TYPE_SIMPLEHTML,
-		"Simple HTML",
-		"HTML Files (*.htm,*.html)|*.htm;*.html|All Files (*.*)|*.*||"
-	},
-	{ REPORT_TYPE_SIMPLEXML,
-		"Simple XML",
-		"XML Files (*.xml)|*.xml|All Files (*.*)|*.*||"
-	},
-};
-
-void DirCmpReportDlg::LoadSettings()
-{
-	m_nReportType = static_cast<REPORT_TYPE>(GetOptionsMgr()->GetInt(OPT_REPORTFILES_REPORTTYPE));
-	m_bCopyToClipboard = GetOptionsMgr()->GetBool(OPT_REPORTFILES_COPYTOCLIPBOARD);
-	m_bIncludeFileCmpReport = GetOptionsMgr()->GetBool(OPT_REPORTFILES_INCLUDEFILECMPREPORT);
-}
 
 /**
  * @brief Dialog initializer function.
  */
 BOOL DirCmpReportDlg::OnInitDialog()
 {
-	CTrDialog::OnInitDialog();
-
-	LoadSettings();
+	CDialog::OnInitDialog();
 
 	m_ctlReportFile.LoadState(_T("ReportFiles"));
 
-	for (int i = 0; i < sizeof(f_types) / sizeof(f_types[0]); ++i)
-	{
-		const ReportTypeInfo & info = f_types[i];
-		int ind = m_ctlStyle.InsertString(i, tr(info.idDisplay).c_str());
-		m_ctlStyle.SetItemData(ind, info.reportType);
-		if (info.reportType == m_nReportType)
-			m_ctlStyle.SetCurSel(m_nReportType);
-	}
-	if (m_ctlStyle.GetCurSel() < 0)
-		m_ctlStyle.SetCurSel(0);
-
-	OnCbnSelchangeReportStylecombo();
+	CString str;
+	VERIFY(str.LoadString(IDS_REPORT_COMMALIST));
+	int ind = m_ctlStyle.InsertString(0, str);
+	m_ctlStyle.SetItemData(ind, DirCmpReport::REPORT_COMMALIST);
+	m_ctlStyle.SelectString(0, str);
+	VERIFY(str.LoadString(IDS_REPORT_TABLIST));
+	ind = m_ctlStyle.InsertString(1, str);
+	m_ctlStyle.SetItemData(ind, DirCmpReport::REPORT_TABLIST);
+	VERIFY(str.LoadString(IDS_REPORT_SIMPLEHTML));
+	ind = m_ctlStyle.InsertString(2, str);
+	m_ctlStyle.SetItemData(ind, DirCmpReport::REPORT_SIMPLEHTML);
 
 	// Set selected path to variable so file selection dialog shows
 	// correct filename and path.
-	CString cstrReportFile;
-	m_ctlReportFile.GetWindowText(cstrReportFile);
-	m_sReportFile = cstrReportFile;
-
-	UpdateData(FALSE);
+	m_ctlReportFile.GetWindowText(m_sReportFile);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
@@ -132,66 +78,49 @@ BOOL DirCmpReportDlg::OnInitDialog()
  */
 void DirCmpReportDlg::OnBtnClickReportBrowse()
 {
+	CString s;
+	CString folder;
+	CString name;
+	CString title;
+
 	UpdateData(TRUE);
-
-	String folder = m_sReportFile;
-	String filter = tr(f_types[m_ctlStyle.GetCurSel()].browseFilter);
-
-	String chosenFilepath;
-	if (SelectFile(GetSafeHwnd(), chosenFilepath, false, folder.c_str(), _T(""), filter))
+	VERIFY(title.LoadString(IDS_SAVE_AS_TITLE));
+	folder = m_sReportFile;
+	if (SelectFile(s, folder, title, NULL, FALSE))
 	{
-		m_sReportFile = chosenFilepath;
-		m_ctlReportFile.SetWindowText(chosenFilepath.c_str());
+		SplitFilename(s, &folder, &name, NULL);
+		m_sReportFile = s;
+		m_ctlReportFile.SetWindowText(s);
 	}
 }
 
 /**
- * @brief Erase report file name.
- */
-void DirCmpReportDlg::OnBtnDblclickCopyClipboard()
-{
-	m_ctlReportFile.SetWindowText(_T(""));
-}
-
-void DirCmpReportDlg::OnCbnSelchangeReportStylecombo()
-{
-	EnableDlgItem(IDC_REPORT_INCLUDEFILECMPREPORT,
-		m_ctlStyle.GetItemData(m_ctlStyle.GetCurSel()) == REPORT_TYPE_SIMPLEHTML);
-}
-
-/**
- * @brief Close dialog.
+ * @brief Close dialog and create a report.
  */
 void DirCmpReportDlg::OnOK()
 {
 	UpdateData(TRUE);
 
 	int sel = m_ctlStyle.GetCurSel();
-	m_nReportType = (REPORT_TYPE)m_ctlStyle.GetItemData(sel);
+	m_nReportType = m_ctlStyle.GetItemData(sel);
 
-	if (m_sReportFile.empty() && !m_bCopyToClipboard)
+	if (m_sReportFile.IsEmpty())
 	{
-		LangMessageBox(IDS_MUST_SPECIFY_OUTPUT, MB_ICONSTOP);
+		AfxMessageBox(IDS_MUST_SPECIFY_OUTPUT, MB_ICONSTOP);
 		m_ctlReportFile.SetFocus();
 		return;
 	}
 
-	if (!m_sReportFile.empty())
+	if (paths_DoesPathExist(m_sReportFile) == IS_EXISTING_FILE)
 	{
-		if (paths::DoesPathExist(m_sReportFile) == paths::IS_EXISTING_FILE)
-		{
-			int overWrite = LangMessageBox(IDS_REPORT_FILEOVERWRITE,
-					MB_YESNO | MB_ICONWARNING | MB_DONT_ASK_AGAIN,
-					IDS_REPORT_FILEOVERWRITE);
-			if (overWrite == IDNO)
-				return;
-		}
+		int overWrite = AfxMessageBox(IDS_REPORT_FILEOVERWRITE,
+				MB_YESNO | MB_ICONWARNING | MB_DONT_ASK_AGAIN,
+				IDS_DIFF_FILEOVERWRITE);
+		if (overWrite == IDNO)
+			return;
 	}
 
 	m_ctlReportFile.SaveState(_T("ReportFiles"));
-	GetOptionsMgr()->SaveOption(OPT_REPORTFILES_REPORTTYPE, static_cast<int>(m_nReportType));
-	GetOptionsMgr()->SaveOption(OPT_REPORTFILES_COPYTOCLIPBOARD, m_bCopyToClipboard);
-	GetOptionsMgr()->SaveOption(OPT_REPORTFILES_INCLUDEFILECMPREPORT, m_bIncludeFileCmpReport);
 
-	CTrDialog::OnOK();
+	CDialog::OnOK();
 }

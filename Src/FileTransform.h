@@ -2,25 +2,70 @@
 //    WinMerge:  an interactive diff/merge utility
 //    Copyright (C) 1997-2000  Thingamahoochie Software
 //    Author: Dean Grimm
-//    SPDX-License-Identifier: GPL-2.0-or-later
+//
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+//
 /////////////////////////////////////////////////////////////////////////////
 /**
  *  @file FileTransform.h
  *
  *  @brief Declaration of file transformations
  */ 
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: FileTransform.h,v 1.14 2004/04/02 13:03:22 laoran Exp $
 
-#include <vector>
-#include "UnicodeString.h"
+#ifndef FileTransform_h
+#define FileTransform_h
 
-class PluginInfo;
+#include "resource.h"
 
-namespace FileTransform
+class CRegExp;
+typedef CTypedPtrList<CPtrList, CRegExp*>RegList;
+
+
+
+/**
+ * @brief Modes for plugin
+ */
+enum 
 {
-extern bool AutoUnpacking;
-extern bool AutoPrediffing;
-}
+	PLUGIN_MANUAL,
+	PLUGIN_AUTO,
+};
+
+/**
+ * @brief Modes for prediffing
+ */
+enum 
+{
+	PREDIFF_MANUAL,
+	PREDIFF_AUTO,
+};
+
+extern BOOL g_bUnpackerMode;
+extern BOOL g_bPredifferMode;
+
+
+/**
+ * @brief List of transformation categories (events)
+ *
+ * @note If you add some event, you have to complete this array in FileTransform.cpp
+ */
+extern LPCWSTR TransformationCategories[];
+
+
 
 /**
  * @brief Plugin information for a given file
@@ -30,41 +75,41 @@ extern bool AutoPrediffing;
 class PluginForFile
 {
 public:
-	struct PipelineItem
+	void Initialize(BOOL bMode)
 	{
-		String name;
-		std::vector<String> args;
-		TCHAR quoteChar;
+		// init functions as a valid "do nothing" unpacker
+		bWithFile = FALSE;
+		// and init bAutomatic flag and name according to global variable
+		if (bMode == PLUGIN_MANUAL)
+		{			
+			pluginName.Empty();
+			bToBeScanned = FALSE;
+		}
+		else
+		{
+			VERIFY(pluginName.LoadString(IDS_USERCHOICE_AUTOMATIC));
+			bToBeScanned = TRUE;
+		}
+	};
+	PluginForFile(BOOL bMode) 
+	{
+		Initialize(bMode);
 	};
 
-	void Initialize(bool automatic)
+/*	operator=(PluginForFile * newInfo) 
 	{
-		// and init Plugin/Prediffer mode and Plugin name accordingly
-		m_PluginPipeline = automatic ? _T("<Automatic>") : _T("");
-	}
+		bToBeScanned = newInfo->bToBeScanned;
+		pluginName = newInfo->pluginName;
+		bWithFile = newInfo->bWithFile;
+	}*/
 
-	explicit PluginForFile(bool automatic) 
-	{
-		Initialize(automatic);
-	}
-
-	explicit PluginForFile(const String& pluginPipeline)
-	: m_PluginPipeline(pluginPipeline)
-	{
-	}
-
-	const String& GetPluginPipeline() const { return m_PluginPipeline; }
-	void SetPluginPipeline(const String& pluginPipeline) { m_PluginPipeline = pluginPipeline; }
-	void ClearPluginPipeline() { m_PluginPipeline.clear(); }
-
-	std::vector<PipelineItem> ParsePluginPipeline(String& errorMessage) const;
-	static std::vector<PipelineItem> ParsePluginPipeline(const String& pluginPipeline, String& errorMessage);
-	static String MakePluginPipeline(const std::vector<PipelineItem>& list);
-	static String MakeArguments(const std::vector<String>& args, const std::vector<StringView>& variables);
-
-protected:
+public:
+	/// TRUE if the plugin will be defined during the first use (through scan of all available plugins)
+	BOOL    bToBeScanned;
 	/// plugin name when it is defined
-	String m_PluginPipeline;
+	CString pluginName;
+	/// TRUE is the plugins exchange data through a file, FALSE is the data is passed as parameter (BSTR/ARRAY)
+	BOOL    bWithFile;
 };
 
 /**
@@ -77,58 +122,18 @@ protected:
 class PackingInfo : public PluginForFile
 {
 public:
-	explicit PackingInfo(bool automatic = FileTransform::AutoUnpacking)
-	: PluginForFile(automatic), m_bWebBrowser(false)
+	PackingInfo() : PluginForFile(g_bUnpackerMode)	{ ; };
+	PackingInfo(BOOL bForcedMode) : PluginForFile(bForcedMode)	{ ; };
+/*	operator=(PackingInfo * newInfo) 
 	{
-	}
-
-	explicit PackingInfo(const String& pluginPipeline)
-	: PluginForFile(pluginPipeline), m_bWebBrowser(false)
-	{
-	}
-
-	bool GetPackUnpackPlugin(const String& filteredFilenames, bool bUrl, bool bReverse,
-		std::vector<std::tuple<PluginInfo*, std::vector<String>, bool>>& plugins,
-		String *pPluginPipelineResolved, String *pURLHandlerResolved, String& errorMessage) const;
-
-	// Events handler
-	// WinMerge uses one of these entry points to call a plugin
-
-	// bMayOverwrite : tells if we can overwrite the source file
-	// if we don't, don't forget do delete the temp file after use
-
-	/**
-	 * @brief Prepare one file for loading, scan all available plugins (events+filename filtering) 
-	 *
-	 * @param filepath : [in, out] Most plugins change this filename
-	 *
-	 * @return Tells if WinMerge handles this file
-	 *
-	 * @note Event FILE_UNPACK
-	 * Apply only the first correct handler
-	 */
-	bool Unpacking(std::vector<int> * handlerSubcodes, String & filepath, const String& filteredText, const std::vector<StringView>& variables);
-
-	/**
-	 * @brief Prepare one file for saving, known handler
-	 *
-	 * @return Tells if we can save the file (really hope we can)
-	 *
-	 * @param filepath : [in, out] Most plugins change this filename
-	 *
-	 * @note Event FILE_PACK
-	 * Never do Unicode conversion, it was done in SaveFromFile
-	 */
-	bool pack(String & filepath, const String& dstFilepath, const std::vector<int>& handlerSubcodes, const std::vector<StringView>& variables) const;
-
-	bool Packing(const String& srcFilepath, const String& dstFilepath, const std::vector<int>& handlerSubcodes, const std::vector<StringView>& variables) const;
-
-	String GetUnpackedFileExtension(const String& filteredFilenames, int& preferredWindowType) const;
-
-	void EnableWebBrowserMode() { m_bWebBrowser = true; }
-private:
-	String m_URLHandler;
-	bool m_bWebBrowser;
+		bToBeScanned = newInfo->bToBeScanned;
+		pluginName = newInfo->pluginName;
+		subcode = newInfo->subcode;
+		bWithFile = newInfo->bWithFile;
+	}*/
+public:
+	/// keep some info from unpacking for packing
+	int subcode;
 };
 
 /**
@@ -139,76 +144,123 @@ private:
 class PrediffingInfo : public PluginForFile
 {
 public:
-	explicit PrediffingInfo(bool automatic = FileTransform::AutoPrediffing)
-	: PluginForFile(automatic)
-	{
-	}
-
-	explicit PrediffingInfo(const String& pluginPipeline)
-	: PluginForFile(pluginPipeline)
-	{
-	}
-
-	bool GetPrediffPlugin(const String& filteredFilenames, bool bReverse,
-		std::vector<std::tuple<PluginInfo*, std::vector<String>, bool>>& plugins,
-		String* pPluginPipelineResolved, String& errorMessage) const;
-
-	/**
-	 * @brief Prepare one file for diffing, scan all available plugins (events+filename filtering) 
-	 *
-	 * @param filepath : [in, out] Most plugins change this filename
-	 * @param handler : unpacking handler, to keep to pack again
-	 *
-	 * @return Tells if WinMerge handles this file
-	 *
-	 * @note Event FILE_PREDIFF BUFFER_PREDIFF
-	 * Apply only the first correct handler
-	 */
-	bool Prediffing(String & filepath, const String& filteredText, bool bMayOverwrite, const std::vector<StringView>& variables);
+	PrediffingInfo() : PluginForFile(g_bPredifferMode)	{ ; };
+	PrediffingInfo(BOOL bForcedMode) : PluginForFile(bForcedMode)	{ ; };
 };
 
+
+// Events handler
+// WinMerge uses one of these entry points to call a plugin
+
+// bMayOverwrite : tells if we can overwrite the source file
+// if we don't, don't forget do delete the temp file after use
+
 /**
- * @brief Editor script information
+ * @brief Prepare one file for loading, scan all available plugins (events+filename filtering) 
  *
- * @note Can be be passed/copied between threads
+ * @param filepath : [in, out] Most plugins change this filename
+ * @param handler : unpacking handler, to keep to pack again
+ *
+ * @return Tells if WinMerge handles this file
+ *
+ * @note Event FILE_UNPACK
+ * Apply only the first correct handler
  */
-class EditorScriptInfo : public PluginForFile
-{
-public:
-	explicit EditorScriptInfo(const String& pluginPipeline)
-	: PluginForFile(pluginPipeline)
-	{
-	}
-
-	bool GetEditorScriptPlugin(std::vector<std::tuple<PluginInfo*, std::vector<String>, int>>& plugins,
-		String& errorMessage) const;
-
-	bool TransformText(String & text, const std::vector<StringView>& variables, bool& changed);
-};
-
-namespace FileTransform
-{
+BOOL FileTransform_Unpacking(CString & filepath, CString filteredText, PackingInfo * handler, int * handlerSubcode);
 /**
- * @brief Transform all files to UTF8 aslong possible
+ * @brief Prepare one file for loading, known handler
  *
- * @param codepage : [in] codepage of source file
- * @param filepath : [in,out] path of file to be prepared. This filename is updated if bMayOverwrite is false
+ * @param filepath : [in, out] Most plugins change this filename
+ */
+BOOL FileTransform_Unpacking(CString & filepath, const PackingInfo * handler, int * handlerSubcode);
+/**
+ * @brief Prepare one file for saving, known handler
+ *
+ * @return Tells if we can save the file (really hope we can)
+ *
+ * @param filepath : [in, out] Most plugins change this filename
+ *
+ * @note Event FILE_PACK
+ * Never do Unicode conversion, it was done in SaveFromFile
+ */
+BOOL FileTransform_Packing(CString & filepath, PackingInfo handler);
+
+/**
+ * @brief Normalize Unicode files to OLECHAR
+ *
+ * @param filepath : [in,out] path of file to be prepared. This filename is updated if bMayOverwrite is FALSE
+ * @param bMayOverwrite : [in] True only if the filepath points out a temp file
+ *
+ * @return Tells if we succeed
+ *
+ * @note Ansi files are not changed
+ */
+BOOL FileTransform_NormalizeUnicode(CString & filepath, BOOL bMayOverwrite);
+
+/**
+ * @brief Prepare one file for diffing, scan all available plugins (events+filename filtering) 
+ *
+ * @param filepath : [in, out] Most plugins change this filename
+ * @param handler : unpacking handler, to keep to pack again
+ *
+ * @return Tells if WinMerge handles this file
+ *
+ * @note Event FILE_PREDIFF BUFFER_PREDIFF
+ * Apply only the first correct handler
+ */
+BOOL FileTransform_Prediffing(CString & filepath, CString filteredText, PrediffingInfo * handler, BOOL bMayOverwrite);
+/**
+ * @brief Prepare one file for diffing, known handler
+ *
+ * @param filepath : [in, out] Most plugins change this filename
+ */
+BOOL FileTransform_Prediffing(CString & filepath, PrediffingInfo handler, BOOL bMayOverwrite);
+
+
+/**
+ * @brief Transform OLECHAR files to UTF8
+ *
+ * @param filepath : [in,out] path of file to be prepared. This filename is updated if bMayOverwrite is FALSE
  * @param bMayOverwrite : [in] True only if the filepath points out a temp file
  *
  * @return Tells if we can go on with diffutils
- * convert all Ansi or unicode-files to UTF8 
- * if other file is unicode or uses a different codepage
+ *
+ * @todo Convert Ansi files to UTF8 if other file is unicode or uses a different codepage
  */
-bool AnyCodepageToUTF8(int codepage, String & filepath, bool bMayOverwrite);
+BOOL FileTransform_UCS2ToUTF8(CString & filepath, BOOL bMayOverwrite);
 
-std::pair<
-	std::vector<std::tuple<String, String, unsigned, PluginInfo *>>,
-	std::map<String, std::vector<std::tuple<String, String, unsigned, PluginInfo *>>>
->
-CreatePluginMenuInfos(const String& filteredFilenames, const std::vector<std::wstring>& events, unsigned baseId);
 
-inline const std::vector<String> UnpackerEventNames = { L"BUFFER_PACK_UNPACK", L"FILE_PACK_UNPACK", L"FILE_FOLDER_PACK_UNPACK" };
-inline const std::vector<String> PredifferEventNames = { L"BUFFER_PREDIFF", L"FILE_PREDIFF" };
-inline const std::vector<String> EditorScriptEventNames = { L"EDITOR_SCRIPT" };
 
-}
+
+/**
+ * @brief Get the list of all the free functions in all the scripts for this event :
+ * 
+ * @note the order is :
+ * 1st script file, 1st function name
+ * 1st script file, 2nd function name
+ * 1st script file, ...
+ * 1st script file, last function name
+ * 2nd script file, 1st function name
+ * 2nd script file, 2nd function name
+ * 2nd script file, ...
+ * 2nd script file, last function name
+ * ... script file
+ * last script file, 1st function name
+ * last script file, 2nd function name
+ * last script file, ...
+ * last script file, last function name
+ */
+void GetFreeFunctionsInScripts(CStringArray & sNamesArray, LPCWSTR TransformationEvent);
+
+/** 
+ * @brief : Execute one free function from one script
+ *
+ * @param iFncChosen : index of the function in the list returned by GetFreeFunctionsInScripts
+ *
+ * @return Tells if the text has been changed 
+ *
+ * @note Event EDITOR_SCRIPT, ?
+ */
+BOOL TextTransform_Interactive(CString & text, LPCWSTR TransformationEvent, int iFncChosen);
+
+#endif // FileTransform_h

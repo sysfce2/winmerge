@@ -19,41 +19,49 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
 #include "diff.h"
 
-static struct change *find_hunk (struct change *);
-static void find_function (struct file_data const *, int, char const HUGE **, size_t *);
-static void mark_ignorable (struct change *);
-static void pr_context_hunk (struct change *);
-static void pr_unidiff_hunk (struct change *);
-static void print_context_label (char const *, struct file_data *, char const *);
-static void print_context_number_range (struct file_data const *, int, int);
-static void print_unidiff_number_range (struct file_data const *, int, int);
+// reduce some noise produced with the MSVC compiler
+#if defined (_AFXDLL)
+#pragma warning(disable : 4131)
+#endif
+
+
+static struct change *find_hunk PARAMS((struct change *));
+static void find_function PARAMS((struct file_data const *, int, char const HUGE **, size_t *));
+static void mark_ignorable PARAMS((struct change *));
+static void pr_context_hunk PARAMS((struct change *));
+static void pr_unidiff_hunk PARAMS((struct change *));
+static void print_context_label PARAMS ((char const *, struct file_data *, char const *));
+static void print_context_number_range PARAMS((struct file_data const *, int, int));
+static void print_unidiff_number_range PARAMS((struct file_data const *, int, int));
 
 /* Last place find_function started searching from.  */
-static DECL_TLS int find_function_last_search;
+static int find_function_last_search;
 
 /* The value find_function returned when it started searching there.  */
-static DECL_TLS int find_function_last_match;
+static int find_function_last_match;
 
 /* Print a label for a context diff, with a file name and date or a label.  */
 
 static void
-print_context_label(char const *mark, struct file_data *inf, char const *label)
+print_context_label (mark, inf, label)
+     char const *mark;
+     struct file_data *inf;
+     char const *label;
 {
   if (label)
     fprintf (outfile, "%s %s\n", mark, label);
   else
-	{
     /* See Posix.2 section 4.17.6.1.4 for this format.  */
-	char ctimeBuffer[26];
-	ctime_s(ctimeBuffer, sizeof(ctimeBuffer), &inf->stat.st_mtime);
-    fprintf (outfile, "%s %s\t%s", mark, inf->name, ctimeBuffer);
-	}
+    fprintf (outfile, "%s %s\t%s",
+	     mark, inf->name, ctime (&inf->stat.st_mtime));
 }
 
 /* Print a header for a context diff, with the file names and dates.  */
 
 void
-print_context_header(struct file_data inf[], int unidiff_flag)
+print_context_header (inf, unidiff_flag)
+     struct file_data inf[];
+     int unidiff_flag;
 {
   if (unidiff_flag)
     {
@@ -70,14 +78,16 @@ print_context_header(struct file_data inf[], int unidiff_flag)
 /* Print an edit script in context format.  */
 
 void
-print_context_script (struct change *script, int unidiff_flag)
+print_context_script (script, unidiff_flag)
+     struct change *script;
+     int unidiff_flag;
 {
-  if (ignore_blank_lines_flag)
+  if (ignore_blank_lines_flag || ignore_regexp_list)
     mark_ignorable (script);
   else
     {
       struct change *e;
-      for (e = script; e != NULL; e = e->link)
+      for (e = script; e; e = e->link)
 	e->ignore = 0;
     }
 
@@ -97,7 +107,9 @@ print_context_script (struct change *script, int unidiff_flag)
    We print the translated (real) line numbers.  */
 
 static void
-print_context_number_range (struct file_data const *file, int a, int b)
+print_context_number_range (file, a, b)
+     struct file_data const *file;
+     int a, b;
 {
   int trans_a, trans_b;
   translate_range (file, a, b, &trans_a, &trans_b);
@@ -119,7 +131,8 @@ print_context_number_range (struct file_data const *file, int a, int b)
    line with the appropriate flag-character.  */
 
 static void
-pr_context_hunk (struct change *hunk)
+pr_context_hunk (hunk)
+     struct change *hunk;
 {
   int first0, last0, first1, last1, show_from, show_to, i;
   struct change *next;
@@ -130,7 +143,7 @@ pr_context_hunk (struct change *hunk)
 
   /* Determine range of line numbers involved in each file.  */
 
-  analyze_hunk (hunk, &first0, &last0, &first1, &last1, &show_from, &show_to, files);
+  analyze_hunk (hunk, &first0, &last0, &first1, &last1, &show_from, &show_to);
 
   if (!show_from && !show_to)
     return;
@@ -144,7 +157,9 @@ pr_context_hunk (struct change *hunk)
   last1 = min (last1 + context, files[1].valid_lines - 1);
 
   /* If desired, find the preceding function definition line in file 0.  */
-  function = NULL;
+  function = 0;
+  if (function_regexp_list)
+    find_function (&files[0], first0, &function, &function_length);
 
   begin_output ();
   out = outfile;
@@ -153,7 +168,7 @@ pr_context_hunk (struct change *hunk)
      include its name in the header of the diff section.  */
   fprintf (out, "***************");
 
-  if (function != NULL)
+  if (function)
     {
       fprintf (out, " ");
       fwrite (function, 1, min (function_length - 1, 40), out);
@@ -226,7 +241,9 @@ pr_context_hunk (struct change *hunk)
    We print the translated (real) line numbers.  */
 
 static void
-print_unidiff_number_range (struct file_data const *file, int a, int b)
+print_unidiff_number_range (file, a, b)
+     struct file_data const *file;
+     int a, b;
 {
   int trans_a, trans_b;
   translate_range (file, a, b, &trans_a, &trans_b);
@@ -248,7 +265,8 @@ print_unidiff_number_range (struct file_data const *file, int a, int b)
    line with the appropriate flag-character.  */
 
 static void
-pr_unidiff_hunk (struct change *hunk)
+pr_unidiff_hunk (hunk)
+     struct change *hunk;
 {
   int first0, last0, first1, last1, show_from, show_to, i, j, k;
   struct change *next;
@@ -258,7 +276,7 @@ pr_unidiff_hunk (struct change *hunk)
 
   /* Determine range of line numbers involved in each file.  */
 
-  analyze_hunk (hunk, &first0, &last0, &first1, &last1, &show_from, &show_to, files);
+  analyze_hunk (hunk, &first0, &last0, &first1, &last1, &show_from, &show_to);
 
   if (!show_from && !show_to)
     return;
@@ -272,7 +290,9 @@ pr_unidiff_hunk (struct change *hunk)
   last1 = min (last1 + context, files[1].valid_lines - 1);
 
   /* If desired, find the preceding function definition line in file 0.  */
-  function = NULL;
+  function = 0;
+  if (function_regexp_list)
+    find_function (&files[0], first0, &function, &function_length);
 
   begin_output ();
   out = outfile;
@@ -286,7 +306,7 @@ pr_unidiff_hunk (struct change *hunk)
   /* If we looked for and found a function this is part of,
      include its name in the header of the diff section.  */
 
-  if (function != NULL)
+  if (function)
     {
       putc (' ', out);
       fwrite (function, 1, min (function_length - 1, 40), out);
@@ -344,7 +364,8 @@ pr_unidiff_hunk (struct change *hunk)
    to the `struct change' for the last change before those lines.  */
 
 static struct change *
-find_hunk (struct change *start)
+find_hunk (start)
+     struct change *start;
 {
   struct change *prev;
   int top0, top1;
@@ -379,7 +400,8 @@ find_hunk (struct change *start)
    are ignorable lines.  */
 
 static void
-mark_ignorable (struct change *script)
+mark_ignorable (script)
+     struct change *script;
 {
   while (script)
     {
@@ -387,10 +409,10 @@ mark_ignorable (struct change *script)
       int first0, last0, first1, last1, deletes, inserts;
 
       /* Turn this change into a hunk: detach it from the others.  */
-      script->link = NULL;
+      script->link = 0;
 
       /* Determine whether this change is ignorable.  */
-      analyze_hunk (script, &first0, &last0, &first1, &last1, &deletes, &inserts, files);
+      analyze_hunk (script, &first0, &last0, &first1, &last1, &deletes, &inserts);
       /* Reconnect the chain as before.  */
       script->link = next;
 
@@ -402,3 +424,47 @@ mark_ignorable (struct change *script)
     }
 }
 
+/* Find the last function-header line in FILE prior to line number LINENUM.
+   This is a line containing a match for the regexp in `function_regexp'.
+   Store the address of the line text into LINEP and the length of the
+   line into LENP.
+   Do not store anything if no function-header is found.  */
+
+static void
+find_function (file, linenum, linep, lenp)
+     struct file_data const *file;
+     int linenum;
+     char const HUGE **linep;
+     size_t *lenp;
+{
+  int i = linenum;
+  int last = find_function_last_search;
+  find_function_last_search = i;
+
+  while (--i >= last)
+    {
+      /* See if this line is what we want.  */
+      struct regexp_list *r;
+      char const HUGE *line = file->linbuf[i];
+      size_t len = file->linbuf[i + 1] - line;
+
+      for (r = function_regexp_list; r; r = r->next)
+	if (0 <= re_search (&r->buf, line, len, 0, len, 0))
+	  {
+	    *linep = line;
+	    *lenp = len;
+	    find_function_last_match = i;
+	    return;
+	  }
+    }
+  /* If we search back to where we started searching the previous time,
+     find the line we found last time.  */
+  if (find_function_last_match >= - file->prefix_lines)
+    {
+      i = find_function_last_match;
+      *linep = file->linbuf[i];
+      *lenp = file->linbuf[i + 1] - *linep;
+      return;
+    }
+  return;
+}

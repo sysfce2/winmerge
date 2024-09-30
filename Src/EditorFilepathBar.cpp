@@ -2,151 +2,181 @@
 //    WinMerge:  an interactive diff/merge utility
 //    Copyright (C) 1997-2000  Thingamahoochie Software
 //    Author: Dean Grimm
-//    SPDX-License-Identifier: GPL-2.0-or-later
+//
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+//
 /////////////////////////////////////////////////////////////////////////////
-/** 
- * @file  EditorFilepathBar.cpp
- *
- * @brief Implementation file for CEditorFilepathBar class
- */
+// EditorFilepathBar.cpp : implementation of the CEditorFilepathBar class
+//
 
 #include "stdafx.h"
+#include "Merge.h"
 #include "EditorFilepathBar.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
 
 
-BEGIN_MESSAGE_MAP(CEditorFilePathBar, CDialogBar)
-	ON_NOTIFY_EX (TTN_NEEDTEXT, 0, OnToolTipNotify)
-	ON_CONTROL_RANGE (EN_SETFOCUS, IDC_STATIC_TITLE_PANE0, IDC_STATIC_TITLE_PANE2, OnSetFocusEdit)
-	ON_CONTROL_RANGE (EN_USER_CAPTION_CHANGED, IDC_STATIC_TITLE_PANE0, IDC_STATIC_TITLE_PANE2, OnChangeEdit)
-	ON_CONTROL_RANGE (EN_USER_FILE_SELECTED, IDC_STATIC_TITLE_PANE0, IDC_STATIC_TITLE_PANE2, OnSelectEdit)
-END_MESSAGE_MAP()
+/////////////////////////////////////////////////////////////////////////////
+// CEditorFilePathBar construction destruction
 
-
-/**
- * @brief Constructor.
- */
 CEditorFilePathBar::CEditorFilePathBar()
-: m_nPanes(2)
+: m_pFont(NULL)
 {
 }
 
-/**
- * @brief Destructor.
- */
 CEditorFilePathBar::~CEditorFilePathBar()
 {
+	delete m_pFont;
 }
 
-/**
- * @brief Create the window.
- * This function subclasses the edit controls.
- * @param [in] pParentWnd Parent window for edit controls.
- * @return TRUE if succeeded, FALSE otherwise.
- */
+
 BOOL CEditorFilePathBar::Create(CWnd* pParentWnd)
 {
-	if (! __super::Create(pParentWnd, CEditorFilePathBar::IDD, 
-			CBRS_ALIGN_TOP | CBRS_TOOLTIPS | CBRS_FLYBY, CEditorFilePathBar::IDD))
+	if (! CDialogBar::Create(pParentWnd, CEditorFilePathBar::IDD, 
+													 CBRS_TOP | CBRS_TOOLTIPS | CBRS_FLYBY, 
+													 CEditorFilePathBar::IDD))
 		return FALSE;
 
-	NONCLIENTMETRICS ncm = { sizeof NONCLIENTMETRICS };
-	if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof NONCLIENTMETRICS, &ncm, 0))
-		m_font.CreateFontIndirect(&ncm.lfStatusFont);
-
 	// subclass the two custom edit boxes
-	const int lpx = CClientDC(this).GetDeviceCaps(LOGPIXELSX);
-	auto pointToPixel = [lpx](int point) { return MulDiv(point, lpx, 72); };
-	int cx = -pointToPixel(ncm.lfStatusFont.lfHeight);
-	int m = pointToPixel(3);
-	for (int pane = 0; pane < static_cast<int>(std::size(m_Edit)); pane++)
-	{
-		m_Edit[pane].SubClassEdit(IDC_STATIC_TITLE_PANE0 + pane, this);
-		m_Edit[pane].SetFont(&m_font);
-		m_Edit[pane].SetMargins(m, m + cx);
-	}
+	m_EditLeft.SubClassEdit(IDC_STATIC_TITLE_LEFT, this);
+	m_EditRight.SubClassEdit(IDC_STATIC_TITLE_RIGHT, this);
+
 	return TRUE;
 };
 
-CSize CEditorFilePathBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Set look of headerbars similar to other window.
+ *
+ * @param [in] pWnd Pointer to window we want to imitate
+ * @return TRUE if parent must recompute layout
+ */
+BOOL CEditorFilePathBar::LookLikeThisWnd(const CWnd * pWnd)
 {
-	TEXTMETRIC tm;
-	CClientDC dc(this);
-	CFont *pOldFont = dc.SelectObject(&m_font);
-	dc.GetTextMetrics(&tm);
-	dc.SelectObject(pOldFont);
-	const int lpx = dc.GetDeviceCaps(LOGPIXELSX);
-	auto pointToPixel = [lpx](int point) { return MulDiv(point, lpx, 72); };
-	int cy = pointToPixel(4);
-	return CSize(SHRT_MAX, 1 + tm.tmHeight + cy);
+	// Update font. Note that we must delete previous font
+	// before creating a new one.
+	CFont * pFont = pWnd->GetFont();
+	if (pFont)
+	{
+		if (m_pFont != NULL)
+			delete m_pFont;
+
+		m_pFont = new CFont();
+
+		if (m_pFont != NULL)
+		{
+			LOGFONT lfFont = {0};
+			if (pFont->GetLogFont(&lfFont))
+			{
+				m_pFont->CreateFontIndirect(&lfFont);
+				m_EditLeft.SetFont(m_pFont);
+				m_EditRight.SetFont(m_pFont);
+			}
+		}
+	}
+
+	// Set same dimensions (than window we imitate)
+	CRect rectNew;
+	pWnd->GetWindowRect(rectNew);
+	CRect rectCurrent;
+	GetWindowRect(rectCurrent);
+	if (rectNew != rectCurrent)
+	{
+		SetWindowPos(NULL,0,0,rectNew.Width(), rectNew.Height(),
+			SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE);     
+		return TRUE;
+	}
+	return FALSE;
 }
 
 /** 
- * @brief Resize both controls to an equal size.
+ * @brief resize both controls to an equal size
  */
 void CEditorFilePathBar::Resize()
 {
-	if (m_hWnd == nullptr)
+	if (m_hWnd == NULL)
 		return;
 
-	WINDOWPLACEMENT infoBar = {};
+	WINDOWPLACEMENT infoBar;
 	GetWindowPlacement(&infoBar);
 
-	int widths[3] = {};
-	for (int pane = 0; pane < m_nPanes; pane++)
-		widths[pane] = (infoBar.rcNormalPosition.right / m_nPanes) - ((pane == 0) ? 7 : 5);
-	Resize(widths);
-}
+	WINDOWPLACEMENT info1;
+	m_EditLeft.GetWindowPlacement(&info1);
+	info1.rcNormalPosition.right = infoBar.rcNormalPosition.right /
+		PaneCount - 2;
+	m_EditLeft.SetWindowPlacement(&info1);
+	m_EditLeft.RefreshDisplayText();
 
+	WINDOWPLACEMENT info2;
+	m_EditRight.GetWindowPlacement(&info2);
+	info2.rcNormalPosition.left = infoBar.rcNormalPosition.right /
+		PaneCount + 2;
+	info2.rcNormalPosition.right = infoBar.rcNormalPosition.right;
+	m_EditRight.SetWindowPlacement(&info2);
+	m_EditRight.RefreshDisplayText();
+}
 /** 
- * @brief Set widths.
- * This function resizes both controls to given size. The width is usually
- * same as the splitter view width.
- * @param [in] leftWidth Left-side control width.
- * @param [in] rightWidth Right-side control width.
+ * @brief resize both controls to given sizes (the ones of the splitter views)
  */
-void CEditorFilePathBar::Resize(int widths[])
+void CEditorFilePathBar::Resize(int leftWidth, int rightWidth)
 {
-	if (m_hWnd == nullptr)
+	if (m_hWnd == NULL)
 		return;
 
+	WINDOWPLACEMENT info1;
+
 	// resize left filename
-	CRect rc;
-	int x = 0;
-	GetClientRect(&rc);
-	for (int pane = 0; pane < m_nPanes; pane++)
-	{
-		CRect rcOld;
-		m_Edit[pane].GetClientRect(&rcOld);
-		rc.left = x;
-		rc.right = x + widths[pane] + (pane == 0 ? 5 : 7);
-		x = rc.right;
-		if (rcOld.Width() != rc.Width())
-		{
-			m_Edit[pane].MoveWindow(&rc);
-			m_Edit[pane].RefreshDisplayText();
-		}
-	}
+	m_EditLeft.GetWindowPlacement(&info1);
+	info1.rcNormalPosition.right = info1.rcNormalPosition.left + leftWidth + 4;
+	m_EditLeft.SetWindowPlacement(&info1);
+	m_EditLeft.RefreshDisplayText();
+
+	// resize right filename
+	info1.rcNormalPosition.left = info1.rcNormalPosition.right + 3;
+	info1.rcNormalPosition.right = info1.rcNormalPosition.left + rightWidth + 4;
+	m_EditRight.SetWindowPlacement(&info1);
+	m_EditRight.RefreshDisplayText();
 }
 
-/**
- * @brief Called when tooltip is about to be shown.
- * In this function we set the tooltip text shown.
- */
+/////////////////////////////////////////////////////////////////////////////
+// CEditorFilePathBar message handlers
+
+BEGIN_MESSAGE_MAP(CEditorFilePathBar, CDialogBar)
+	ON_NOTIFY_EX (TTN_NEEDTEXT, 0, OnToolTipNotify)
+END_MESSAGE_MAP()
+
+
 BOOL CEditorFilePathBar::OnToolTipNotify(UINT id, NMHDR * pTTTStruct, LRESULT * pResult)
 {
-	if (m_hWnd == nullptr)
+	if (m_hWnd == NULL)
 		return FALSE;
 
 	TOOLTIPTEXT *pTTT = (TOOLTIPTEXT *)pTTTStruct;
+	UINT nID =pTTTStruct->idFrom;
 	if (pTTT->uFlags & TTF_IDISHWND)
 	{
 		// idFrom is actually the HWND of the CEdit 
-		int nID = ::GetDlgCtrlID((HWND)pTTTStruct->idFrom);
-		if(nID == IDC_STATIC_TITLE_PANE0 || nID == IDC_STATIC_TITLE_PANE1 || nID == IDC_STATIC_TITLE_PANE2)
+		nID = ::GetDlgCtrlID((HWND)nID);
+		if(nID == IDC_STATIC_TITLE_LEFT || nID == IDC_STATIC_TITLE_RIGHT)
 		{
 			// compute max width : 97% of application width or 80% or full screen width
 			CRect rect;
@@ -163,63 +193,23 @@ BOOL CEditorFilePathBar::OnToolTipNotify(UINT id, NMHDR * pTTTStruct, LRESULT * 
 			HANDLE hOldFont = ::SelectObject(tempDC.GetSafeHdc(),hFont);
 
 			// fill in the returned structure
-			CFilepathEdit * pItem = static_cast<CFilepathEdit*>(GetDlgItem(nID));
-			pTTT->lpszText = const_cast<TCHAR *>(pItem->GetUpdatedTipText(&tempDC, maxWidth).c_str());
+			CFilepathEdit * pItem = (CFilepathEdit*) GetDlgItem(nID);
+			pTTT->lpszText = (TCHAR*) pItem->GetUpdatedTipText(&tempDC, maxWidth);
 
 			// set old font back
-			if (hOldFont != nullptr)
+			if (hOldFont)
 				::SelectObject(tempDC.GetSafeHdc(),hOldFont);
 
 			// we must set TTM_SETMAXTIPWIDTH to use \n in tooltips
 			// just to do the first time, but how to access the tooltip during init ?
 			::SendMessage(pTTTStruct->hwndFrom, TTM_SETMAXTIPWIDTH, 0, 5000);
 
-			return TRUE;
+			return(TRUE);
 		}
 	}
-	return FALSE;
-}
 
-void CEditorFilePathBar::OnSetFocusEdit(UINT id)
-{
-	if (m_setFocusCallbackfunc)
-		m_setFocusCallbackfunc(id - IDC_STATIC_TITLE_PANE0);
-}
+	return(FALSE);
 
-void CEditorFilePathBar::OnChangeEdit(UINT id)
-{
-	const int pane = id - IDC_STATIC_TITLE_PANE0;
-	if (m_captionChangedCallbackfunc)
-	{
-		CString text;
-		m_Edit[pane].GetWindowText(text);
-		m_captionChangedCallbackfunc(pane, (LPCTSTR)text);
-	}
-}
-
-void CEditorFilePathBar::OnSelectEdit(UINT id)
-{
-	const int pane = id - IDC_STATIC_TITLE_PANE0;
-	(m_fileSelectedCallbackfunc ? m_fileSelectedCallbackfunc : m_folderSelectedCallbackfunc)
-		(pane, m_Edit[pane].GetSelectedPath());
-}
-
-/** 
- * @brief Get the path for one side
- *
- * @param [in] pane Index (0-based) of pane to update.
- */
-String CEditorFilePathBar::GetText(int pane) const
-{
-	ASSERT (pane >= 0 && pane < static_cast<int>(std::size(m_Edit)));
-
-	// Check for `nullptr` since window may be closing..
-	if (m_hWnd == nullptr)
-		return _T("");
-
-	CString str;
-	m_Edit[pane].GetWindowText(str);
-	return String(str);
 }
 
 /** 
@@ -228,30 +218,36 @@ String CEditorFilePathBar::GetText(int pane) const
  * @param [in] pane Index (0-based) of pane to update.
  * @param [in] lpszString New text for pane.
  */
-void CEditorFilePathBar::SetText(int pane, const String& sString)
+void CEditorFilePathBar::SetText(int pane, LPCTSTR lpszString)
 {
-	ASSERT (pane >= 0 && pane < static_cast<int>(std::size(m_Edit)));
+	ASSERT (pane >= PANE_LEFT && pane < PaneCount);
 
-	// Check for `nullptr` since window may be closing..
-	if (m_hWnd == nullptr)
+	// Check for NULL since window may be closing..
+	if (m_hWnd == NULL)
 		return;
 
-	m_Edit[pane].SetOriginalText(sString);
+	if (pane == PANE_LEFT)
+		m_EditLeft.SetWholeText(lpszString);
+	else
+		m_EditRight.SetWholeText(lpszString);
 }
 
 /** 
  * @brief Set the active status for one status (change the appearance)
  *
  * @param [in] pane Index (0-based) of pane to update.
- * @param [in] bActive If `true` activates pane, `false` deactivates.
+ * @param [in] bActive If TRUE activates pane, FALSE deactivates.
  */
-void CEditorFilePathBar::SetActive(int pane, bool bActive)
+void CEditorFilePathBar::SetActive(int pane, BOOL bActive)
 {
-	ASSERT (pane >= 0 && pane < static_cast<int>(std::size(m_Edit)));
+	ASSERT (pane >= PANE_LEFT && pane < PaneCount);
 
-	// Check for `nullptr` since window may be closing..
-	if (m_hWnd == nullptr)
+	// Check for NULL since window may be closing..
+	if (m_hWnd == NULL)
 		return;
 
-	m_Edit[pane].SetActive(bActive);
+	if (pane == PANE_LEFT)
+		m_EditLeft.SetActive(bActive);
+	else
+		m_EditRight.SetActive(bActive);
 }

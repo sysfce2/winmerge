@@ -20,13 +20,20 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
 #include "diff.h"
 
-static void print_normal_hunk (struct change *);
+// reduce some noise produced with the MSVC compiler
+#if defined (_AFXDLL)
+#pragma warning(disable : 4131)
+#endif
+
+
+static void print_normal_hunk PARAMS((struct change *));
 
 /* Print the edit-script SCRIPT as a normal diff.
    INF points to an array of descriptions of the two files.  */
 
 void
-print_normal_script (struct change *script)
+print_normal_script (script)
+     struct change *script;
 {
   print_script (script, find_change, print_normal_hunk);
 }
@@ -36,7 +43,8 @@ print_normal_script (struct change *script)
    describing changes in consecutive lines.  */
 
 static void
-print_normal_hunk (struct change *hunk)
+print_normal_hunk (hunk)
+     struct change *hunk;
 {
   int first0, last0, first1, last1, deletes, inserts;
   register int i;
@@ -44,7 +52,7 @@ print_normal_hunk (struct change *hunk)
   //int trans_c, trans_d;
 
   /* Determine range of line numbers involved in each file.  */
-  analyze_hunk (hunk, &first0, &last0, &first1, &last1, &deletes, &inserts, files);
+  analyze_hunk (hunk, &first0, &last0, &first1, &last1, &deletes, &inserts);
   if (!deletes && !inserts)
     return;
 

@@ -1,4 +1,4 @@
-/* File:	lwdisp.h - light weight dispatch API
+/* File:	lwdisp.c - light weight dispatch API
  * Author:	Jochen Tucht 2003/01/09
  *			Copyright (C) 2003 herbert dahm datensysteme GmbH
  *
@@ -22,18 +22,33 @@ DATE:		BY:					DESCRIPTION:
 ==========	==================	================================================
 2003/11/28	Laoran 				      header and RCS ID
 */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: lwdisp.h,v 1.8 2003/11/28 13:39:12 laoran Exp $
+
+#ifndef __LWDISP_H__
+#define __LWDISP_H__
 
 #ifdef __cplusplus
 extern "C"{
 #endif 
 
 #ifdef _MSC_VER
-#define UNUSED_ARG(ARG) ARG
-#elif defined(__GNUC__)
+#pragma warning(disable: 4100 4189 4512)
 #define UNUSED_ARG(ARG) ARG
 #else
 #define UNUSED_ARG(ARG)
+#endif
+
+#ifdef __MINGW_H
+#ifndef _WIN32_IE
+#define _WIN32_IE	0x0400
+#endif
+#define V_I1(X)		V_UNION(X, cVal)
+#define V_I1REF(X)	V_UNION(X, pcVal)
+#define V_UI2(X)	V_UNION(X, uiVal)
+#define V_UI2REF(X)	V_UNION(X, puiVal)
+#define V_UI4(X)	V_UNION(X, ulVal)
+#define V_UI4REF(X)	V_UNION(X, pulVal)
 #endif
 
 // macros for use with ValidateArgs()
@@ -59,9 +74,7 @@ extern "C"{
 	#define VT_BSTRA            14
 	#define VT_BSTRT            VT_BSTRA
 #endif
-#ifndef VTS_UI1
 #define VTS_UI1             "\x0F"      // a 'BYTE'
-#endif
 
 // parameter types: by reference VTs
 #define VTS_PI2             "\x42"      // a 'short*'
@@ -76,6 +89,7 @@ extern "C"{
 #define VTS_PBOOL           "\x4B"      // a 'VARIANT_BOOL*'
 #define VTS_PVARIANT        "\x4C"      // a 'VARIANT*'
 #define VTS_PUNKNOWN        "\x4D"      // an 'IUnknown**'
+#define VTS_PUI1            "\x4F"      // a 'BYTE*'
 
 // special VT_ and VTS_ values
 #define VTS_NONE            NULL        // used for members with 0 params
@@ -121,7 +135,7 @@ STDAPIV invokeA(LPDISPATCH, VARIANT *, DISPID, LPCCH, VARIANT *);
  *
  * @note Free all variants passed to it (except ByRef ones) 
  */
-STDAPIV invokeW(LPDISPATCH, VARIANT *, LPCOLESTR, LPCCH, VARIANT *);
+STDAPIV invokeW(LPDISPATCH, VARIANT *, BSTR, LPCCH, VARIANT *);
 
 // macros for use with invoke*()
 #define opFxn &((PCH)(DISPATCH_METHOD<<8))
@@ -204,7 +218,7 @@ struct LWDispatch
 
 const struct LWDispVtbl *NTAPI LWDispSubclass(struct LWDispVtbl *);
 
-IDispatch *NTAPI LWDispatch(void *target, const void *disp_map,
+IDispatch *NTAPI LWDispatch(void *target, const void *map,
 							const struct LWDispVtbl *, struct LWDispatch *);
 
 // functions to build VARIANT arguments from various data types
@@ -267,3 +281,5 @@ struct LWRet: public VARIANT
 // Sorry, no extra support for plain old C...
 
 #endif
+
+#endif //__LWDISP_H__

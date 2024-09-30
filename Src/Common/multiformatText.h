@@ -1,17 +1,21 @@
 /** 
- * @file  multiformatText.h
+ * @file  FileTransform.h
  *
  * @brief Declaration file for class storageForPlugins
  *
  * @date  Created: 2003-11-24
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: multiformatText.h,v 1.1 2003/12/11 21:11:42 laoran Exp $
 
-#include "UnicodeString.h"
-#include "unicoder.h"
-#include "FileTextEncoding.h"
-#include <windows.h>
-#include <oleauto.h>
+#ifndef __MULTIFORMATTEXT_H__
+#define __MULTIFORMATTEXT_H__
+
+// CComBSTR wraps BSTR initialize/copy
+// but function arguments/return value is BSTR as &CComBSTR is a pointer to the internal BSTR
+#include <atlbase.h>    // for CComBSTR
+
+
 
 /**
  * @brief Storage for data to be processed by plugins. May return data
@@ -25,127 +29,108 @@
 class storageForPlugins
 {
 public:
-	storageForPlugins()
-	: m_bstr(nullptr)
-	, m_bOriginalIsUnicode(false)
-	, m_bCurrentIsUnicode(false)
-	, m_bCurrentIsFile(false)
-	, m_bOverwriteSourceFile(false)
-	, m_nChangedValid(0)
-	, m_bError(false)
-	, m_codepage(0)
-	, m_nBomSize(0)
-	, m_nChanged(0)
-	{
-		VariantInit(&m_array);
-	}
-
 	~storageForPlugins()
 	{
-		if (!m_tempFilenameDst.empty()) // "!m_tempFilenameDst" means "never"
-			::DeleteFile(m_tempFilenameDst.c_str());
-		if (m_bstr != nullptr)
-			SysFreeString(m_bstr);
-		VariantClear(&m_array);
+		if (!tempFilenameDst)
+			::DeleteFile(tempFilenameDst);
+		bstr.Empty();
+		array.Clear();
 	}
 
 	/// Get data as unicode buffer (BSTR)
 	BSTR * GetDataBufferUnicode();
 	/// Get data as ansi buffer (safearray of unsigned char)
-	VARIANT * GetDataBufferAnsi();
+	COleSafeArray * GetDataBufferAnsi();
 	/// Get data as file (saved as UCS-2 with BOM)
-	const TCHAR *GetDataFileUnicode();
+	LPCTSTR GetDataFileUnicode();
 	/// Get data as file (saved as Ansi)
-	const TCHAR *GetDataFileAnsi();
+	LPCTSTR GetDataFileAnsi();
 	/// Get a temporary filename, to be used to save the transformed data 
-	const TCHAR *GetDestFileName();
+	LPCTSTR GetDestFileName();
 	/// validation for data retrieved by GetDataFileAnsi/GetDataFileUnicode
 	void ValidateNewFile();
 	/// validation for data retrieved by GetDataBufferAnsi/GetDataBufferUnicode
 	void ValidateNewBuffer();
 
 	/// Initial load
-	void SetDataFileUnknown(const String& filename, bool bOverwrite = false);
+	void SetDataFileUnknown(LPCTSTR filename, BOOL bOverwrite = FALSE);
 	/// Set codepage to use for ANSI<->UNICODE conversions
-	void SetCodepage(int code) { m_codepage = code; };
+	void SetCodepage(int code) { codepage = code; };
 	/// Initial load
-	void SetDataFileAnsi(const String& filename, bool bOverwrite = false);
+	void SetDataFileAnsi(LPCTSTR filename, BOOL bOverwrite = FALSE);
 	/// Initial load
-	void SetDataFileEncoding(const String& filename, FileTextEncoding encoding, bool bOverwrite = false);
+	void SetDataFileUnicode(LPCTSTR filename, BOOL bOverwrite = FALSE);
 	/// Final save, same format as the original file
-	bool SaveAsFile(String & filename)
+	BOOL SaveAsFile(CString & filename)
 	{
-		const TCHAR *newFilename;
-		if (m_bOriginalIsUnicode)
+		LPCTSTR newFilename;
+		if (bOriginalIsUnicode)
 			newFilename = GetDataFileUnicode();
 		else
 			newFilename = GetDataFileAnsi();
-		if (newFilename == nullptr)
+		if (newFilename == NULL)
 		{
 			GetLastValidFile(filename);
-			return false;
+			return FALSE;
 		}
 		filename = newFilename;
-		return true;
+		return TRUE;
 	}
 	/// Get the last valid file after an error
 	/// Warning : the format may be different from the original one
-	void GetLastValidFile(String & filename)
+	void GetLastValidFile(CString & filename)
 	{
-		if (!m_tempFilenameDst.empty())
-			::DeleteFile(m_tempFilenameDst.c_str());
-		m_tempFilenameDst.erase();
-		filename = this->m_filename;
+		if (!tempFilenameDst)
+			::DeleteFile(tempFilenameDst);
+		tempFilenameDst.Empty();
+		filename = this->filename;
 	}
 
 	/// return number of transformation until now
-	int & GetNChanged() { return m_nChanged; };
+	int & GetNChanged() { return nChanged; };
 	/// return number of valid transformation until now
-	int & GetNChangedValid() { return m_nChangedValid; }
+	int & GetNChangedValid() { return nChangedValid; };
 	/// return format of original data
-	bool GetOriginalMode() const { return m_bOriginalIsUnicode; }
-	const String GetDestFileExtension() const { return m_tempFileExtensionDst; }
-	void SetDestFileExtension(const String& ext) { if (!ext.empty() && ext.back() != '/') m_tempFileExtensionDst = ext; }
+	int GetOriginalMode() { return bOriginalIsUnicode; };
 
 private:
 	void Initialize();
-	void ValidateInternal(bool bNewIsFile, bool bNewIsUnicode);
+	void ValidateInternal(BOOL bNewIsFile, BOOL bNewIsUnicode);
 
-// Implementation data
-private:
 	// original data mode ANSI/UNICODE
-	bool m_bOriginalIsUnicode;
+	int bOriginalIsUnicode;
 
 	// current format of data : BUFFER/FILE, ANSI/UNICODE
-	bool m_bCurrentIsUnicode;
-	bool m_bCurrentIsFile;
+	int m_bCurrentIsUnicode;
+	int m_bCurrentIsFile;
 	// can we overwrite the current file (different from original file when nChangedValid>=1)
-	bool m_bOverwriteSourceFile;	
+	BOOL bOverwriteSourceFile;	
 	// number of valid transformation since load
-	int m_nChangedValid;
+	int nChangedValid;
 	// data storage when mode is BUFFER UNICODE
-	BSTR m_bstr;
+	CComBSTR bstr;
 	// data storage when mode is BUFFER ANSI
-	VARIANT m_array;
+	COleSafeArray array;
 	// data storage when mode is FILE
-	String m_filename;
+	CString filename;
 	// error during conversion ?
-	bool m_bError;
+	BOOL bError;
 	// codepage for ANSI mode
-	int m_codepage;
-	// BOM size
-	int m_nBomSize;
+	int codepage;
 
 	// temporary number of transformations, transformed by caller
-	int m_nChanged;
+	int nChanged;
 	// temporary destination filename
-	String m_tempFilenameDst;
-	// temporary destination file extension
-	String m_tempFileExtensionDst;
+	CString tempFilenameDst;
 };
 
 
 // other conversion functions
 
-/// Convert file to UTF-8 (for diffutils)
-bool AnyCodepageToUTF8(int codepage, const String& filepath, const String& filepathDst, int & nFileChanged, bool bWriteBOM);
+/// Convert any unicode file to UCS-2LE
+BOOL UnicodeFileToOlechar(CString & filepath, LPCTSTR filepathDst, int & nFileChanged);
+/// Convert UCS-2LE file to UTF-8 (for diffutils)
+BOOL OlecharToUTF8(CString & filepath, LPCTSTR filepathDst, int & nFileChanged, BOOL bWriteBOM);
+
+
+#endif //__MULTIFORMATTEXT_H__

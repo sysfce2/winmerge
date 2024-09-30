@@ -1,28 +1,41 @@
 /////////////////////////////////////////////////////////////////////////////
 //    WinMerge:  an interactive diff/merge utility
 //    Copyright (C) 1997  Dean P. Grimm
-//    SPDX-License-Identifier: GPL-2.0-or-later
+//
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+//
 /////////////////////////////////////////////////////////////////////////////
 /**
  *  @file DirView.h
  *
  *  @brief Declaration of class CDirView
- */
-#pragma once
+ */ 
+//
+// RCS ID line follows -- this is updated by CVS
+// $Id: DirView.h,v 1.88.2.3 2006/08/06 09:22:51 kimmov Exp $
+
+#if !defined(AFX_DirView_H__16E7C721_351C_11D1_95CD_444553540000__INCLUDED_)
+#define AFX_DirView_H__16E7C721_351C_11D1_95CD_444553540000__INCLUDED_
 
 /////////////////////////////////////////////////////////////////////////////
 // CDirView view
 #include <afxcview.h>
-#include <memory>
-#include <optional>
-#include "OptionsDirColors.h"
 #include "SortHeaderCtrl.h"
-#include "UnicodeString.h"
-#include "DirItemIterator.h"
-#include "DirActions.h"
-#include "IListCtrlImpl.h"
 
-class FileActionScript;
+
+struct DIFFITEM;
 
 typedef enum { eMain, eContext } eMenuType;
 
@@ -31,23 +44,31 @@ class CDirFrame;
 
 class PackingInfo;
 class PathContext;
-class DirCompProgressBar;
-class CompareStats;
-struct DirColInfo;
-class CLoadSaveCodepageDlg;
-class CShellContextMenu;
-class CDiffContext;
-class DirViewColItems;
-class DirItemEnumerator;
-struct IListCtrl;
+class CShellFileOp;
+
+struct ViewCustomFlags
+{
+	enum
+	{
+		// We use extra bits so that no valid values are 0
+		// and each set of flags is in a different hex digit
+		// to make debugging easier
+		// These can always be packed down in the future
+		INVALID_CODE=0,
+		VISIBILITY=0x3, VISIBLE=0x1, HIDDEN=0x2,
+	};
+};
+
+
+namespace varprop { struct VariantValue; }
 
 /**
  * @brief Position value for special items (..) in directory compare view.
  */
-const uintptr_t SPECIAL_ITEM_POS = (uintptr_t)(reinterpret_cast<DIFFITEM *>( - 1L));
+const int SPECIAL_ITEM_POS = -1;
 
 /** Default column width in directory compare */
-const UINT DefColumnWidth = 111;
+const UINT DefColumnWidth = 150;
 
 /**
  * @brief Directory compare results view.
@@ -62,7 +83,7 @@ const UINT DefColumnWidth = 111;
  */
 class CDirView : public CListView
 {
-	friend struct FileCmpReport;
+	class DirItemEnumerator;
 	friend DirItemEnumerator;
 protected:
 	CDirView();           // protected constructor used by dynamic creation
@@ -71,78 +92,106 @@ protected:
 // Attributes
 public:
 	CDirDoc* GetDocument(); // non-debug version is inline
+
 	// const version, for const methods to be able to call
 	const CDirDoc * GetDocument() const { return const_cast<CDirView *>(this)->GetDocument(); }
-	const CDiffContext& GetDiffContext() const;
-	CDiffContext& GetDiffContext();
-	const DirViewColItems* GetDirViewColItems() const { return m_pColItems.get(); };
 
 // Operations
 public:
 	CDirFrame * GetParentFrame();
 
-	void StartCompare(CompareStats *pCompareStats);
 	void Redisplay();
-	void RedisplayChildren(DIFFITEM *diffpos, int level, UINT &index, int &alldiffs);
 	void UpdateResources();
 	void LoadColumnHeaderItems();
-	DIFFITEM *GetItemKey(int idx) const;
-	int GetItemIndex(DIFFITEM *key);
-	bool IsDiffItemSpecial(const DIFFITEM* diffpos) const { return diffpos == reinterpret_cast<DIFFITEM*>(SPECIAL_ITEM_POS); };
+	POSITION GetItemKey(int idx) const;
+	int GetItemIndex(DWORD key);
 	// for populating list
-	void DeleteItem(int sel, bool removeDIFFITEM = false);
 	void DeleteAllDisplayItems();
-	void SetFont(const LOGFONT & lf);
+	void SetColumnWidths();
 
 	void SortColumnsAppropriately();
 
 	UINT GetSelectedCount() const;
 	int GetFirstSelectedInd();
-	void AddParentFolderItem(bool bEnable);
+	//DIFFITEM GetNextSelectedInd(int &ind);
+	DIFFITEM GetItemAt(int ind);
+	int AddSpecialItems();
+	void AddParentFolderItem(BOOL bEnable);
 	void RefreshOptions();
-
-	bool HasNextDiff();
-	bool HasPrevDiff();
-	void MoveToNextDiff();
-	void MoveToPrevDiff();
-	void OpenNextDiff();
-	void OpenPrevDiff();
-	void OpenFirstFile();
-	void OpenLastFile();
-	void OpenNextFile();
-	void OpenPrevFile();
-	bool IsFirstFile();
-	bool IsLastFile();
-
-	void SetActivePane(int pane);
 
 // Implementation types
 private:
+	/** 
+	 * @brief An ActionList is a multifile copy or delete operation
+	 * When the user selects one or many files in the dirview, and then
+	 * invokes, eg, right-click Copy Left, an ActionList is built
+	 **/
+	struct ActionList
+	{
+		// types used in the ActionList
+		typedef enum { ACT_COPY = 1, ACT_DEL_LEFT, ACT_DEL_RIGHT, ACT_DEL_BOTH,
+			ACT_MOVE_LEFT, ACT_MOVE_RIGHT } ACT_TYPE;
+		struct action { CString src; CString dest; BOOL dirflag; int idx; int code;}; /**< One file action */
+		typedef CList<int, int> DeletedItemList; // indices into display list control
+		// Data members of the ActionList
+		int selcount; // #items in full selection (not all may be affected)
+		ACT_TYPE atype;
+		CList<action, action&> actions;
+		CStringList errors;
+		DeletedItemList deletedItems;
+		ActionList(ACT_TYPE at) : selcount(0), atype(at) { }
+		int GetCount() const { return actions.GetCount(); }
+	};
+	typedef enum { SIDE_LEFT=1, SIDE_RIGHT } SIDE_TYPE;
 
 // Implementation in DirActions.cpp
 private:
-	void GetItemFileNames(int sel, String& strLeft, String& strRight) const;
+	BOOL GetSelectedDirNames(CString& strLeft, CString& strRight) const;
+	BOOL GetSelectedFileNames(CString& strLeft, CString& strRight) const;
+	CString GetSelectedFileName(SIDE_TYPE stype) const;
+	void GetItemFileNames(int sel, CString& strLeft, CString& strRight) const;
 	void GetItemFileNames(int sel, PathContext * paths) const;
-	void FormatEncodingDialogDisplays(CLoadSaveCodepageDlg * dlg);
-	DirActions MakeDirActions(DirActions::method_type func) const;
-	DirActions MakeDirActions(DirActions::method_type2 func) const;
-	Counts Count(DirActions::method_type2 func) const;
-	void DoDirAction(DirActions::method_type func, const String& status_message);
-	void DoDirActionTo(SIDE_TYPE stype, DirActions::method_type func, const String& status_message);
+	BOOL IsItemLeftOnly(int code);
+	BOOL IsItemRightOnly(int code);
+	BOOL IsItemCopyableToLeft(const DIFFITEM & di);
+	BOOL IsItemCopyableToRight(const DIFFITEM & di);
+	BOOL IsItemDeletableOnLeft(const DIFFITEM & di);
+	BOOL IsItemDeletableOnRight(const DIFFITEM & di);
+	BOOL IsItemDeletableOnBoth(const DIFFITEM & di);
+	BOOL IsItemOpenable(const DIFFITEM & di) const;
+	BOOL AreItemsOpenable(const DIFFITEM & di1, const DIFFITEM & di2) const;
+	BOOL IsItemOpenableOnLeft(const DIFFITEM & di);
+	BOOL IsItemOpenableOnRight(const DIFFITEM & di);
+	BOOL IsItemOpenableOnLeftWith(const DIFFITEM & di);
+	BOOL IsItemOpenableOnRightWith(const DIFFITEM & di);
+	BOOL IsItemCopyableToOnLeft(const DIFFITEM & di);
+	BOOL IsItemCopyableToOnRight(const DIFFITEM & di);
+	void DoCopyLeftToRight();
+	void DoCopyRightToLeft();
+	void DoDelLeft();
+	void DoDelRight();
+	void DoDelBoth();
+	void DoDelAll();
+	void DoCopyLeftTo();
+	void DoCopyRightTo();
+	void DoMoveLeftTo();
+	void DoMoveRightTo();
 	void DoOpen(SIDE_TYPE stype);
 	void DoOpenWith(SIDE_TYPE stype);
 	void DoOpenWithEditor(SIDE_TYPE stype);
-	void DoOpenParentFolder(SIDE_TYPE stype);
-	void DoUpdateOpen(SELECTIONTYPE selectionType, CCmdUI* pCmdUI, bool openableForDir = true);
-	void ConfirmAndPerformActions(FileActionScript & actions);
-	void PerformActionList(FileActionScript & actions);
-	void UpdateAfterFileScript(FileActionScript & actionList);
-	void DoFileEncodingDialog();
-
+	void ApplyPluginPrediffSetting(int newsetting);
+	void ConfirmAndPerformActions(ActionList & actions);
+	BOOL ConfirmActionList(const ActionList & actions);
+	void PerformActionList(ActionList & actions);
+	BOOL RunFileOp(CShellFileOp & fileOp, BOOL & bOpStarted,
+		int & apiRetVal, BOOL & bUserCancelled, BOOL & bFatalError);
+	void UpdateCopiedItems(ActionList & actions);
+	void UpdateDeletedItems(ActionList & actions);
+	UINT MarkSelectedForRescan();
 // End DirActions.cpp
 	void ReflectGetdispinfo(NMLVDISPINFO *);
 
-// Implementation in DirViewColHandler.cpp
+// Implementation in DirViewCols.cpp
 public:
 	void UpdateColumnNames();
 	void SetColAlignments();
@@ -150,35 +199,45 @@ public:
 	class CompareState
 	{
 	private:
-		const DirViewColItems *const pColItems;
+		const CDirView *const pView;
 		const CDiffContext *const pCtxt;
 		const int sortCol;
 		const bool bSortAscending;
-		const bool bTreeMode;
 	public:
-		CompareState(const CDiffContext *pCtxt, const DirViewColItems *pColItems, int sortCol, bool bSortAscending, bool bTreeMode);
+		CompareState(const CDirView *, int sortCol, bool bSortAscending);
 		static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 	} friend;
 	void UpdateDiffItemStatus(UINT nIdx);
+	void ToDoDeleteThisValidateColumnOrdering() { ValidateColumnOrdering(); }
 private:
 	void InitiateSort();
-	void NameColumn(const DirColInfo *col, int subitem);
-	void AddNewItem(int i, DIFFITEM *diffpos, int iImage, int iIndent);
-// End DirViewCols.cpp
-
+	void NameColumn(int id, int subitem);
+	int AddNewItem(int i, POSITION diffpos, int iImage);
+	bool IsDefaultSortAscending(int col) const;
+	int ColPhysToLog(int i) const { return m_invcolorder[i]; }
+	int ColLogToPhys(int i) const { return m_colorder[i]; } /**< -1 if not displayed */
+	CString GetColDisplayName(int col) const;
+	CString GetColDescription(int col) const;
+	int GetColLogCount() const;
+	void LoadColumnOrders();
+	void ValidateColumnOrdering();
+	void ClearColumnOrders();
+	void ResetColumnOrdering();
+	void MoveColumn(int psrc, int pdest);
+	CString GetColRegValueNameBase(int col) const;
+	int GetColDefaultOrder(int col) const;
 private:
+// End DirViewCols.cpp
 
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CDirView)
-public:
+	public:
 	virtual void OnInitialUpdate();
-	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
-protected:
+	protected:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual BOOL OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult);
 	virtual BOOL OnChildNotify(UINT, WPARAM, LPARAM, LRESULT*);
-	virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 	//}}AFX_VIRTUAL
 
 // Implementation
@@ -187,86 +246,60 @@ protected:
 	int GetFocusedItem();
 	int GetFirstDifferentItem();
 	int GetLastDifferentItem();
-	int AddSpecialItems();
-	std::vector<String>	GetCurrentColRegKeys();
-	void OpenSpecialItems(CDirDoc *pDoc, DIFFITEM *pos1, DIFFITEM *pos2, DIFFITEM *pos3);
+	int GetColImage(const DIFFITEM & di) const;
+	int GetDefaultColImage() const;
 
 // Implementation data
 protected:
+	CString GenerateReport();
 	CSortHeaderCtrl m_ctlSortHeader;
 	CImageList m_imageList;
-	CImageList m_imageState;
-	CListCtrl* m_pList;
-	std::unique_ptr<IListCtrl> m_pIList;
-	int m_nEscCloses; /**< Cached value for option for ESC closing window */
-	bool m_bExpandSubdirs;
+	CListCtrl * m_pList;
+	int m_numcols;
+	int m_dispcols;
+	CArray<int, int> m_colorder; /**< colorder[logical#]=physical# */
+	CArray<int, int> m_invcolorder; /**< invcolorder[physical]=logical# */
+	BOOL m_bEscCloses; /**< Cached value for option for ESC closing window */
 	CFont m_font; /**< User-selected font */
-	bool m_bTreeMode; /**< `true` if tree mode is on*/
-	DirViewFilterSettings m_dirfilter;
-	clock_t m_compareStart; /**< Starting process time of the compare */
-	clock_t m_elapsed; /**< Elapsed time of the compare */
-	bool m_bUserCancelEdit; /**< `true` if the user cancels rename */
-	String m_lastCopyFolder; /**< Last Copy To -target folder. */
-
-	std::vector<ListViewOwnerDataItem> m_listViewItems;
-	std::optional<int> m_firstDiffItem;
-	std::optional<int> m_lastDiffItem;
-	DIRCOLORSETTINGS m_cachedColors; /**< Cached color settings */
-	bool m_bUseColors;
-
-	std::unique_ptr<CShellContextMenu> m_pShellContextMenuLeft; /**< Shell context menu for group of left files */
-	std::unique_ptr<CShellContextMenu> m_pShellContextMenuMiddle; /**< Shell context menu for group of middle files */
-	std::unique_ptr<CShellContextMenu> m_pShellContextMenuRight; /**< Shell context menu for group of right files */
-	HMENU m_hCurrentMenu; /**< Current shell context menu (either left or right) */
-	std::unique_ptr<DirViewTreeState> m_pSavedTreeState;
-	std::unique_ptr<DirViewColItems> m_pColItems;
-	int m_nActivePane;
+	UINT m_nHiddenItems; /**< Count of items we have hidden */
 
 	// Generated message map functions
 	afx_msg void OnColumnClick(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnContextMenu(CWnd*, CPoint point);
 	//{{AFX_MSG(CDirView)
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
-	afx_msg void OnDirCopy(UINT id);
-	template<SIDE_TYPE srctype, SIDE_TYPE dsttype>
-	afx_msg void OnCtxtDirCopy();
-	afx_msg void OnUpdateDirCopy(CCmdUI* pCmdUI);
-	template<SIDE_TYPE srctype, SIDE_TYPE dsttype>
-	afx_msg void OnUpdateCtxtDirCopy(CCmdUI* pCmdUI);
-	template<SIDE_TYPE stype>
-	afx_msg void OnCtxtDirDel();
-	template<SIDE_TYPE stype>
-	afx_msg void OnUpdateCtxtDirDel(CCmdUI* pCmdUI);
+	afx_msg void OnDirCopyRightToLeft();
+	afx_msg void OnCtxtDirCopyRightToLeft();
+	afx_msg void OnUpdateDirCopyRightToLeft(CCmdUI* pCmdUI);
+	afx_msg void OnDirCopyLeftToRight();
+	afx_msg void OnCtxtDirCopyLeftToRight();
+	afx_msg void OnUpdateDirCopyLeftToRight(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateCtxtDirCopyRightToLeft(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateCtxtDirCopyLeftToRight(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirDelLeft();
+	afx_msg void OnUpdateCtxtDirDelLeft(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirDelRight();
+	afx_msg void OnUpdateCtxtDirDelRight(CCmdUI* pCmdUI);
 	afx_msg void OnCtxtDirDelBoth();
 	afx_msg void OnUpdateCtxtDirDelBoth(CCmdUI* pCmdUI);
-	template<SIDE_TYPE stype>
-	afx_msg void OnCtxtDirOpen() { DoOpen(stype); }
-	template<SIDE_TYPE stype>
-	afx_msg void OnUpdateCtxtDirOpen(CCmdUI* pCmdUI);
-	template<SIDE_TYPE stype>
-	afx_msg void OnCtxtDirOpenWith() { DoOpenWith(stype); }
-	template<SIDE_TYPE stype>
-	afx_msg void OnUpdateCtxtDirOpenWith(CCmdUI* pCmdUI);
-	template<SIDE_TYPE stype>
-	afx_msg void OnCtxtDirOpenWithEditor() { DoOpenWithEditor(stype); }
-	template<SIDE_TYPE stype>
-	afx_msg void OnUpdateCtxtDirOpenWithEditor(CCmdUI* pCmdUI);
-	template<SIDE_TYPE stype>
-	afx_msg void OnCtxtDirOpenParentFolder() { DoOpenParentFolder(stype); }
-	template<SIDE_TYPE stype>
-	afx_msg void OnUpdateCtxtDirOpenParentFolder(CCmdUI* pCmdUI);
-	template<SIDE_TYPE stype>
-	afx_msg void OnCtxtDirCopyTo();
-	template<SIDE_TYPE stype>
-	afx_msg void OnUpdateCtxtDirCopyTo(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateCtxtDirCopyBothTo(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateCtxtDirCopyBothDiffsOnlyTo(CCmdUI* pCmdUI);
-	template<SIDE_TYPE stype>
-	afx_msg void OnUpdateCtxtDirCopy2(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateCtxtDirCopyBoth2(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirOpenLeft();
+	afx_msg void OnUpdateCtxtDirOpenLeft(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirOpenLeftWith();
+	afx_msg void OnUpdateCtxtDirOpenLeftWith(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirOpenRight();
+	afx_msg void OnUpdateCtxtDirOpenRight(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirOpenRightWith();
+	afx_msg void OnUpdateCtxtDirOpenRightWith(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirOpenRightWithEditor();
+	afx_msg void OnUpdateCtxtDirOpenRightWithEditor(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirOpenLeftWithEditor();
+	afx_msg void OnUpdateCtxtDirOpenLeftWithEditor(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirCopyLeftTo();
+	afx_msg void OnUpdateCtxtDirCopyLeftTo(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirCopyRightTo();
+	afx_msg void OnUpdateCtxtDirCopyRightTo(CCmdUI* pCmdUI);
 	afx_msg void OnDestroy();
 	afx_msg void OnChar(UINT nChar, UINT nRepCnt, UINT nFlags);
-	afx_msg void OnClick(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnFirstdiff();
 	afx_msg void OnUpdateFirstdiff(CCmdUI* pCmdUI);
 	afx_msg void OnLastdiff();
@@ -281,51 +314,40 @@ protected:
 	afx_msg LRESULT OnUpdateUIMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnRefresh();
 	afx_msg void OnUpdateRefresh(CCmdUI* pCmdUI);
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg void OnEditColumns();
-	template<SIDE_TYPE stype>
-	afx_msg void OnReadOnly();
-	afx_msg void OnUpdateReadOnly(CCmdUI* pCmdUI, SIDE_TYPE stype);
-	template<SIDE_TYPE stype>
-	afx_msg void OnUpdateReadOnly(CCmdUI* pCmdUI) { OnUpdateReadOnly(pCmdUI, stype); }
+	afx_msg void OnLeftReadOnly();
+	afx_msg void OnUpdateLeftReadOnly(CCmdUI* pCmdUI);
+	afx_msg void OnRightReadOnly();
+	afx_msg void OnUpdateRightReadOnly(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateStatusLeftRO(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateStatusMiddleRO(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateStatusRightRO(CCmdUI* pCmdUI);
 	afx_msg void OnCustomizeColumns();
-	afx_msg void OnOpenWithUnpacker();
+	afx_msg void OnCtxtOpenWithUnpacker();
 	afx_msg void OnUpdateCtxtOpenWithUnpacker(CCmdUI* pCmdUI);
 	afx_msg void OnToolsGenerateReport();
-	afx_msg LRESULT OnGenerateFileCmpReport(WPARAM wParam, LPARAM lParam);
-	afx_msg void OnToolsGeneratePatch();
-	afx_msg void OnCtxtDirZip(int flag);
-	template<int flag>
-	afx_msg void OnCtxtDirZip() { OnCtxtDirZip(flag); }
-	template<SIDE_TYPE stype>
-	afx_msg void OnCtxtDirShellContextMenu() { ShowShellContextMenu(stype); }
+	afx_msg void OnCtxtDirZipLeft();
+	afx_msg void OnCtxtDirZipRight();
+	afx_msg void OnCtxtDirZipBoth();
+	afx_msg void OnCtxtDirZipBothDiffsOnly();
+	afx_msg void OnUpdateCtxtDir(CCmdUI* pCmdUI);
+	afx_msg void OnDirStatePane();
+	afx_msg void OnUpdateDirStatePane(CCmdUI* pCmdUI);
 	afx_msg void OnSelectAll();
 	afx_msg void OnUpdateSelectAll(CCmdUI* pCmdUI);
-	afx_msg void OnPluginSettings(UINT nID);
-	afx_msg void OnUpdatePluginMode(CCmdUI* pCmdUI);
-	afx_msg void OnCopyPathnames(SIDE_TYPE side);
-	template<SIDE_TYPE side>
-	afx_msg void OnCopyPathnames() { OnCopyPathnames(side); }
+	afx_msg void OnPluginPredifferMode(UINT nID);
+	afx_msg void OnUpdatePluginPredifferMode(CCmdUI* pCmdUI);
+	afx_msg void OnCopyLeftPathnames();
+	afx_msg void OnCopyRightPathnames();
 	afx_msg void OnCopyBothPathnames();
 	afx_msg void OnCopyFilenames();
 	afx_msg void OnUpdateCopyFilenames(CCmdUI* pCmdUI);
-	afx_msg void OnCopyToClipboard(SIDE_TYPE side);
-	template<SIDE_TYPE side>
-	afx_msg void OnCopyToClipboard() { OnCopyToClipboard(side); }
-	afx_msg void OnCopyBothToClipboard();
-	afx_msg void OnCopyAllDisplayedColumns();
-	afx_msg void OnUpdateCopyAllDisplayedColumns(CCmdUI* pCmdUI);
-	afx_msg void OnItemRename();
-	afx_msg void OnUpdateItemRename(CCmdUI* pCmdUI);
 	afx_msg void OnHideFilenames();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
-	template<SIDE_TYPE stype>
-	afx_msg void OnCtxtDirMoveTo();
-	template<SIDE_TYPE stype>
-	afx_msg void OnUpdateCtxtDirMoveTo(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirMoveLeftTo();
+	afx_msg void OnUpdateCtxtDirMoveLeftTo(CCmdUI* pCmdUI);
+	afx_msg void OnCtxtDirMoveRightTo();
+	afx_msg void OnUpdateCtxtDirMoveRightTo(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateHideFilenames(CCmdUI* pCmdUI);
 	afx_msg void OnDelete();
 	afx_msg void OnUpdateDelete(CCmdUI* pCmdUI);
@@ -333,114 +355,63 @@ protected:
 	afx_msg void OnUpdateStatusNum(CCmdUI* pCmdUI);
 	afx_msg void OnViewShowHiddenItems();
 	afx_msg void OnUpdateViewShowHiddenItems(CCmdUI* pCmdUI);
-	afx_msg void OnViewTreeMode();
-	afx_msg void OnUpdateViewTreeMode(CCmdUI* pCmdUI);
-	afx_msg void OnViewExpandAllSubdirs();
-	afx_msg void OnUpdateViewExpandAllSubdirs(CCmdUI* pCmdUI);
-	afx_msg void OnViewCollapseAllSubdirs();
-	afx_msg void OnUpdateViewCollapseAllSubdirs(CCmdUI* pCmdUI);
-	afx_msg void OnViewSwapPanes(int pane1, int pane2);
-	template <int pane1, int pane2>
-	afx_msg void OnViewSwapPanes() { OnViewSwapPanes(pane1, pane2); }
-	afx_msg void OnUpdateViewSwapPanes(CCmdUI* pCmdUI, int pane1, int pane2);
-	template <int pane1, int pane2>
-	afx_msg void OnUpdateViewSwapPanes(CCmdUI* pCmdUI) { OnUpdateViewSwapPanes(pCmdUI, pane1, pane2); }
-	afx_msg void OnOptionsShowDifferent();
-	afx_msg void OnOptionsShowIdentical();
-	afx_msg void OnOptionsShowUniqueLeft();
-	afx_msg void OnOptionsShowUniqueMiddle();
-	afx_msg void OnOptionsShowUniqueRight();
-	afx_msg void OnOptionsShowBinaries();
-	afx_msg void OnOptionsShowSkipped();
-	afx_msg void OnOptionsShowDifferentLeftOnly();
-	afx_msg void OnOptionsShowDifferentMiddleOnly();
-	afx_msg void OnOptionsShowDifferentRightOnly();
-	afx_msg void OnOptionsShowMissingLeftOnly();
-	afx_msg void OnOptionsShowMissingMiddleOnly();
-	afx_msg void OnOptionsShowMissingRightOnly();
-	afx_msg void OnUpdateOptionsShowdifferent(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowidentical(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowuniqueleft(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowuniquemiddle(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowuniqueright(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowBinaries(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowSkipped(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowDifferentLeftOnly(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowDifferentMiddleOnly(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowDifferentRightOnly(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowMissingLeftOnly(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowMissingMiddleOnly(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateOptionsShowMissingRightOnly(CCmdUI* pCmdUI);
-	afx_msg void OnMergeCompare(UINT nID);
-	template<SELECTIONTYPE seltype>
-	afx_msg void OnMergeCompare2() { OpenSelection(seltype); }
-	afx_msg void OnMergeCompareNonHorizontally();
-	afx_msg void OnMergeCompareAs(UINT nID);
+	afx_msg void OnMergeCompare();
 	afx_msg void OnUpdateMergeCompare(CCmdUI *pCmdUI);
-	template<SELECTIONTYPE seltype>
-	afx_msg void OnUpdateMergeCompare2(CCmdUI* pCmdUI) { DoUpdateOpen(seltype, pCmdUI); }
-	afx_msg void OnUpdateNoUnpacker(CCmdUI* pCmdUI);
-	afx_msg void OnViewCompareStatistics();
-	afx_msg void OnFileEncoding();
-	afx_msg void OnHelp();
-	afx_msg void OnEditCopy();
-	afx_msg void OnEditCut();
-	afx_msg void OnEditPaste();
-	afx_msg void OnEditUndo();
-	afx_msg void OnUpdateEditUndo(CCmdUI* pCmdUI);
-	afx_msg void OnItemChanged(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnBeginLabelEdit(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnEndLabelEdit(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnODFindItem(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnSearch();
-	afx_msg void OnBeginDrag(NMHDR* pNMHDR, LRESULT* pResult);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
-	bool OnHeaderBeginDrag(LPNMHEADER hdr, LRESULT* pResult);
-	bool OnHeaderEndDrag(LPNMHEADER hdr, LRESULT* pResult);
-	void HideItems(const std::vector<String>& ItemsToHide);
-	bool IsItemToHide(const String& currentItem, const std::vector<String>& ItemsToHide) const;
+	BOOL OnHeaderBeginDrag(LPNMHEADER hdr, LRESULT* pResult);
+	BOOL OnHeaderEndDrag(LPNMHEADER hdr, LRESULT* pResult);
+	afx_msg void OnItemChanged(NMHDR* pNMHDR, LRESULT* pResult);
 
 private:
-	void Open(CDirDoc *pDoc, const PathContext& paths, DWORD dwFlags[3], FileTextEncoding encoding[3], PackingInfo * infoUnpacker = nullptr);
-	void OpenSelection(CDirDoc *pDoc, SELECTIONTYPE selectionType = SELECTIONTYPE_NORMAL, PackingInfo * infoUnpacker = nullptr, bool openableForDir = true);
-	void OpenSelection(SELECTIONTYPE selectionType = SELECTIONTYPE_NORMAL, PackingInfo * infoUnpacker = nullptr, bool openableForDir = true);
-	void OpenSelectionAs(UINT id);
-	bool GetSelectedItems(int * sel1, int * sel2, int * sel3);
-	void OpenParentDirectory(CDirDoc *pDocOpen);
-	template<SIDE_TYPE srctype, SIDE_TYPE dsttype>
-	void DoUpdateDirCopy(CCmdUI* pCmdUI, eMenuType menuType);
-	const DIFFITEM &GetDiffItem(int sel) const;
-	DIFFITEM &GetDiffItem(int sel);
+	void OpenSelection(PackingInfo * infoUnpacker = NULL);
+	bool GetSelectedItems(int * sel1, int * sel2);
+	void OpenParentDirectory();
+	void DoUpdateDirCopyRightToLeft(CCmdUI* pCmdUI, eMenuType menuType);
+	void DoUpdateDirCopyLeftToRight(CCmdUI* pCmdUI, eMenuType menuType);
+	void ModifyPopup(CMenu * pPopup, int nStringResource, int nMenuId, LPCTSTR szPath);
+	void DoUpdateCtxtDirDelLeft(CCmdUI* pCmdUI);
+	void DoUpdateCtxtDirDelRight(CCmdUI* pCmdUI);
+	void DoUpdateCtxtDirDelBoth(CCmdUI* pCmdUI);
+	void DoUpdateOpen(CCmdUI* pCmdUI);
+	void DoUpdateOpenLeft(CCmdUI* pCmdUI);
+	void DoUpdateOpenRight(CCmdUI* pCmdUI);
+	void DoUpdateOpenLeftWith(CCmdUI* pCmdUI);
+	void DoUpdateOpenRightWith(CCmdUI* pCmdUI);
+	void DoUpdateDelete(CCmdUI* pCmdUI);
+	void DoUpdateCopyFilenames(CCmdUI* pCmdUI);
+	void DoUpdateCtxtDirCopyLeftTo(CCmdUI* pCmdUI);
+	void DoUpdateCtxtDirCopyRightTo(CCmdUI* pCmdUI);
+	void DoUpdateCtxtDirMoveLeftTo(CCmdUI* pCmdUI);
+	void DoUpdateCtxtDirMoveRightTo(CCmdUI* pCmdUI);
+	POSITION GetItemKeyFromData(DWORD dw) const;
+	DIFFITEM GetDiffItem(int sel);
 	int GetSingleSelectedItem() const;
-	void MoveFocus(int currentInd, int i, int selCount);
-
+	bool IsItemNavigableDiff(const DIFFITEM & di) const;
+	void MoveSelection(int currentInd, int i, int selCount);
+	void SaveColumnWidths();
+	void SaveColumnOrders();
 	void FixReordering();
 	void HeaderContextMenu(CPoint point, int i);
 	void ListContextMenu(CPoint point, int i);
-	bool ListShellContextMenu(SIDE_TYPE side);
-	void ShowShellContextMenu(SIDE_TYPE side);
-	CShellContextMenu* GetCorrespondingShellContextMenu(HMENU hMenu) const;
 	void ReloadColumns();
-	bool IsLabelEdit() const;
-	void CollapseSubdir(int sel);
-	void ExpandSubdir(int sel, bool bRecursive = false);
-	void GetColors(int nRow, int nCol, COLORREF& clrBk, COLORREF& clrText) const;
-	int GetDefColumnWidth() const { return MulDiv(DefColumnWidth, CClientDC(const_cast<CDirView *>(this)).GetDeviceCaps(LOGPIXELSX), 72); };
-
-public:
-	DirItemIterator Begin() const { return DirItemIterator(m_pIList.get()); }
-	DirItemIterator End() const { return DirItemIterator(); }
-	DirItemIterator RevBegin() const { return DirItemIterator(m_pIList.get(), -1, false, true); }
-	DirItemIterator RevEnd() const { return DirItemIterator(); }
-	DirItemIterator SelBegin() const { return DirItemIterator(m_pIList.get(), -1, true); }
-	DirItemIterator SelEnd() const { return DirItemIterator(); }
-	DirItemIterator SelRevBegin() const { return DirItemIterator(m_pIList.get(), -1, true, true); }
-	DirItemIterator SelRevEnd() const { return DirItemIterator(); }
+	void ResetColumnWidths();
 };
+
 
 #ifndef _DEBUG  // debug version in DirView.cpp
 inline CDirDoc* CDirView::GetDocument()
-{ return reinterpret_cast<CDirDoc*>(m_pDocument); }
+   { return (CDirDoc*)m_pDocument; }
 #endif
+
+
+CString NumToStr(int n);
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Developer Studio will insert additional declarations immediately before the previous line.
+
+#endif // !defined(AFX_DirView_H__16E7C721_351C_11D1_95CD_444553540000__INCLUDED_)
+

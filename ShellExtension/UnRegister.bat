@@ -1,1 +1,1 @@
-%0\..\Register.bat /u
+Register.bat /u

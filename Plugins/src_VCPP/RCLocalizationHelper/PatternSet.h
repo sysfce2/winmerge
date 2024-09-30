@@ -8,6 +8,8 @@
  *
  * This uses the CRegExp class from WinMerge Src\Common.
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: PatternSet.h,v 1.2.2.2 2006/08/08 14:01:20 galh Exp $
 
 #ifndef PatternSet_h_included
 #define PatternSet_h_included

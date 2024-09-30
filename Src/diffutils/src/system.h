@@ -17,11 +17,9 @@ You should have received a copy of the GNU General Public License
 along with GNU DIFF; see the file COPYING.  If not, write to
 the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
-#pragma once
-
 /* We must define `volatile' and `const' first (the latter inside config.h),
    so that they're used consistently in all system includes.  */
-#if !defined(__STDC__) && !defined(_MSC_VER)
+#if !__STDC__
 #ifndef volatile
 #define volatile
 #endif
@@ -30,6 +28,14 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#if __STDC__ || defined(__MSDOS__) || defined(__NT__) || defined(WIN32)
+#define PARAMS(args) args
+#define VOID void
+#else
+#define PARAMS(args) ()
+#define VOID char
+#endif
 
 #if STAT_MACROS_BROKEN
 #undef S_ISBLK
@@ -134,6 +140,24 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 #define STAT_BLOCKSIZE(s) (8 * 1024)
 #endif
 
+#if DIRENT || defined (_POSIX_VERSION)
+#include <dirent.h>
+#else /* ! (DIRENT || defined (_POSIX_VERSION)) */
+#if SYSNDIR
+#include <sys/ndir.h>
+#else
+#if SYSDIR
+#include <sys/dir.h>
+#else
+#include <ndir.h>
+#endif
+#endif
+#ifdef dirent
+#undef dirent
+#endif
+#define dirent direct
+#endif /* ! (DIRENT || defined (_POSIX_VERSION)) */
+
 #if HAVE_VFORK_H
 #include <vfork.h>
 #endif
@@ -141,8 +165,8 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 #if HAVE_STDLIB_H
 #include <stdlib.h>
 #else
-void *malloc ();
-void *realloc ();
+VOID *malloc ();
+VOID *realloc ();
 #endif
 //#ifndef getenv
 //extern char *getenv ();
@@ -206,10 +230,8 @@ int pclose(FILE *);
 #define FSIZE size_t
 #endif
 
-#if defined(__NT__) || defined(WIN32)
-#ifndef _PID_T_
+#ifdef __NT__
 typedef int pid_t;
-#endif
 #define popen	_popen
 #define pclose	_pclose
 #endif

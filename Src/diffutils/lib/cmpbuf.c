@@ -18,10 +18,17 @@
 #include "system.h"
 #include "cmpbuf.h"
 
+// reduce some noise produced with the MSVC compiler
+#if defined (_AFXDLL)
+#pragma warning(disable : 4131)
+#endif
+
+
 /* Least common multiple of two buffer sizes A and B.  */
 
 size_t
-buffer_lcm (size_t a, size_t b)
+buffer_lcm (a, b)
+     size_t a, b;
 {
   size_t m, n, r;
 

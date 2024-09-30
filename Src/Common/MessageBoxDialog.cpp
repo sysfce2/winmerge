@@ -39,15 +39,13 @@
  *  concerned AfxMessageBox
  */
 
-#include "StdAfx.h"
+#include "stdafx.h"
 
 #include "MessageBoxDialog.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
-
-using std::vector;
 
 IMPLEMENT_DYNAMIC(CMessageBoxDialog, CDialog)
 
@@ -59,8 +57,8 @@ IMPLEMENT_DYNAMIC(CMessageBoxDialog, CDialog)
 
 #define CX_CHECKBOX_ADDON			14		// Additional width of the checkbox.
 
-#define CX_BUTTON					51		// Standard width of a button.
-#define CY_BUTTON					15		// Standard height of a button.
+#define CX_BUTTON					40		// Standard width of a button.
+#define CY_BUTTON					14		// Standard height of a button.
 #define CX_BUTTON_BORDER			4		// Standard border for a button.
 #define CY_BUTTON_BORDER			1		// Standard border for a button.
 #define CX_BUTTON_SPACE				4		// Standard space for a button.
@@ -84,47 +82,33 @@ IMPLEMENT_DYNAMIC(CMessageBoxDialog, CDialog)
  *	given, the application name will be used as the title of the dialog.
  */
  CMessageBoxDialog::CMessageBoxDialog ( CWnd* pParent, CString strMessage, 
-	CString strTitle, UINT nStyle, UINT nHelp, const CString& strRegistryKey ) 
+	CString strTitle, UINT nStyle, UINT nHelp ) 
 	: CDialog ( CMessageBoxDialog::IDD, pParent )
-	, m_strMessage(strMessage)
-	, m_strTitle(strTitle.IsEmpty() ? AfxGetAppName() : strTitle)
-	, m_nStyle(nStyle)
-	, m_nHelp(nHelp)
-	, m_hIcon(nullptr)
-	, m_nTimeoutSeconds(0)
-	, m_bTimeoutDisabled(false)
-	, m_nTimeoutTimer(0)
-	, m_strRegistryKey(strRegistryKey)
-	, m_nDefaultButton(IDC_STATIC)
-	, m_nEscapeButton(IDC_STATIC)
-	, m_sDialogUnit(CSize(0, 0))
-	, m_sIcon(CSize(0, 0))
-	, m_sMessage(CSize(0, 0))
-	, m_sCheckbox(CSize(0, 0))
-	, m_sButton(CSize(0, 0))
 {
 	// Enable the active accessibility.
 	ASSERT(!strMessage.IsEmpty());
 
-	m_aButtons.clear();
+	// Save the information about the message box.
+	m_strMessage		= strMessage;
+	m_strTitle			= strTitle.IsEmpty() ? AfxGetAppName() : strTitle;
+	m_nStyle			= nStyle;
+	m_nHelp				= nHelp;
 
-	NONCLIENTMETRICS ncm = { sizeof NONCLIENTMETRICS };
-	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof NONCLIENTMETRICS, &ncm, 0);
-	m_font.CreateFontIndirect(&ncm.lfMessageFont);
+	// Do the default initialization.
+	m_hIcon				= NULL;
+	m_nTimeoutSeconds	= 0;
+	m_bTimeoutDisabled	= FALSE;
+	m_nTimeoutTimer		= 0;
+	m_strRegistryKey	= _T("");
+	m_nDefaultButton	= IDC_STATIC;
+	m_nEscapeButton		= IDC_STATIC;
+	m_sDialogUnit		= CSize(0, 0);
+	m_sIcon				= CSize(0, 0);
+	m_sMessage			= CSize(0, 0);
+	m_sCheckbox			= CSize(0, 0);
+	m_sButton			= CSize(0, 0);
 
-	LOGFONT lf = { 0 };
-	HTHEME hTheme = OpenThemeData(nullptr, _T("TEXTSTYLE"));
-	if (hTheme != nullptr && SUCCEEDED(GetThemeFont(hTheme, nullptr, TEXT_MAININSTRUCTION, 0, TMT_FONT, &lf)))
-	{
-		m_fontMainInstruction.CreateFontIndirect(&lf);
-		GetThemeColor(hTheme, TEXT_MAININSTRUCTION, 0, TMT_TEXTCOLOR, &m_clrMainInstructionFont);
-		CloseThemeData(hTheme);
-	}
-	else
-	{
-		m_fontMainInstruction.CreateFontIndirect(&ncm.lfMessageFont);
-		m_clrMainInstructionFont = GetSysColor(COLOR_WINDOWTEXT);
-	}
+	m_aButtons.RemoveAll();
 }
 
 /*
@@ -135,12 +119,41 @@ IMPLEMENT_DYNAMIC(CMessageBoxDialog, CDialog)
  *	application name will be used as the title of the dialog.
  */
 CMessageBoxDialog::CMessageBoxDialog ( CWnd* pParent, UINT nMessageID,
-	UINT nTitleID, UINT nStyle, UINT nHelp, const CString& strRegistryKey ) 
-	: CMessageBoxDialog(pParent, 
-		LoadResString(nMessageID).c_str(), 
-		nTitleID == 0 ? AfxGetAppName() : LoadResString(nTitleID).c_str(), 
-		nStyle, nHelp, strRegistryKey )
+	UINT nTitleID, UINT nStyle, UINT nHelp ) 
+	: CDialog ( CMessageBoxDialog::IDD, pParent )
 {
+	// Check whether a title was given.
+	if ( nTitleID == 0 )
+	{
+		// Use the application name.
+		m_strTitle = AfxGetAppName();
+	}
+	else
+	{
+		// Try to load the title from the resources.
+		VERIFY(m_strTitle.LoadString(nTitleID));
+	}
+
+	// Save the information about the message box.
+	VERIFY(m_strMessage.LoadString(nMessageID));
+	m_nStyle			= nStyle;
+	m_nHelp				= nHelp;
+
+	// Do the default initialization.
+	m_hIcon				= NULL;
+	m_nTimeoutSeconds	= 0;
+	m_bTimeoutDisabled	= FALSE;
+	m_nTimeoutTimer		= 0;
+	m_strRegistryKey	= _T("");
+	m_nDefaultButton	= IDC_STATIC;
+	m_nEscapeButton		= IDC_STATIC;
+	m_sDialogUnit		= CSize(0, 0);
+	m_sIcon				= CSize(0, 0);
+	m_sMessage			= CSize(0, 0);
+	m_sCheckbox			= CSize(0, 0);
+	m_sButton			= CSize(0, 0);
+
+	m_aButtons.RemoveAll();
 }
 
 /*
@@ -148,6 +161,15 @@ CMessageBoxDialog::CMessageBoxDialog ( CWnd* pParent, UINT nMessageID,
  */
 CMessageBoxDialog::~CMessageBoxDialog ( )
 {
+	// Check whether an icon was loaded.
+	if ( m_hIcon != NULL )
+	{
+		// Free the icon.
+		DestroyIcon(m_hIcon);
+
+		// Reset the icon handle.
+		m_hIcon = NULL;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -174,9 +196,9 @@ inline UINT CMessageBoxDialog::GetStyle ( )
 /*
  *	Method for setting the message to be displayed in the message box.
  */
-inline void CMessageBoxDialog::SetMessage ( LPCTSTR strMessage )
+inline void CMessageBoxDialog::SetMessage ( CString strMessage )
 {
-	ASSERT(*strMessage != '\0');
+	ASSERT(!strMessage.IsEmpty());
 
 	// Save the message text.
 	m_strMessage = strMessage;
@@ -187,15 +209,22 @@ inline void CMessageBoxDialog::SetMessage ( LPCTSTR strMessage )
  */
 inline void CMessageBoxDialog::SetMessage ( UINT nMessageID )
 {
+	// Create a string for storing the message.
+	CString strMessage = _T("");
+
 	// Load the message from the resources.
-	m_strMessage = LoadResString(nMessageID);
-	ASSERT(!m_strMessage.empty());
+	VERIFY(strMessage.LoadString(nMessageID));
+
+	ASSERT(!strMessage.IsEmpty());
+
+	// Save the message text.
+	m_strMessage = strMessage;
 }
 
 /*
  *	Method for retrieving the message to be displayed in the message box.
  */
-inline const String &CMessageBoxDialog::GetMessage ( )
+inline CString CMessageBoxDialog::GetMessage ( )
 {
 	// Return the message text.
 	return m_strMessage;
@@ -204,10 +233,10 @@ inline const String &CMessageBoxDialog::GetMessage ( )
 /*
  *	Method for setting the title to be displayed in the message box.
  */
-inline void CMessageBoxDialog::SetTitle ( LPCTSTR strTitle )
+inline void CMessageBoxDialog::SetTitle ( CString strTitle )
 {
 	// Check whether a title was given.
-	if ( *strTitle == '\0' )
+	if ( strTitle.IsEmpty() )
 	{
 		// Use the application name as the title.
 		strTitle = AfxGetAppName();
@@ -222,24 +251,31 @@ inline void CMessageBoxDialog::SetTitle ( LPCTSTR strTitle )
  */
 inline void CMessageBoxDialog::SetTitle ( UINT nTitleID )
 {
+	// Create a string for storing the title.
+	CString strTitle = _T("");
+
 	// Check whether an ID was given.
 	if ( nTitleID == 0 )
 	{
 		// Use the application name as the title.
-		m_strTitle = AfxGetAppName();
+		strTitle = AfxGetAppName();
 	}
 	else
 	{
 		// Try to load the string from the resources.
-		m_strTitle = LoadResString(nTitleID);
-		ASSERT(!m_strTitle.empty());
+		VERIFY(strTitle.LoadString(nTitleID));
+
+		ASSERT(!strTitle.IsEmpty());
 	}
+
+	// Save the title.
+	m_strTitle = strTitle;
 }
 
 /*
  *	Method for retrieving the title to be displayed in the message box.
  */
-inline const String &CMessageBoxDialog::GetTitle ( )
+inline CString CMessageBoxDialog::GetTitle ( )
 {
 	// Return the title of the message box.
 	return m_strTitle;
@@ -250,7 +286,7 @@ inline const String &CMessageBoxDialog::GetTitle ( )
  */
 inline void CMessageBoxDialog::SetMessageIcon ( HICON hIcon )
 {
-	ASSERT(hIcon != nullptr);
+	ASSERT(hIcon != NULL);
 
 	// Save the icon.
 	m_hIcon = hIcon;
@@ -264,7 +300,7 @@ inline void CMessageBoxDialog::SetMessageIcon ( UINT nIconID )
 	// Try to load the given icon.
 	m_hIcon = AfxGetApp()->LoadIcon(nIconID);
 
-	ASSERT(m_hIcon != nullptr);
+	ASSERT(m_hIcon != NULL);
 }
 
 /*
@@ -287,7 +323,7 @@ inline HICON CMessageBoxDialog::GetMessageIcon ( )
  *	screen. All buttons will be disabled, until the countdown is finished.
  *	After that, the user can click any button.
  */
-void CMessageBoxDialog::SetTimeout ( UINT nSeconds, bool bDisabled /*= false*/)
+void CMessageBoxDialog::SetTimeout ( UINT nSeconds, BOOL bDisabled )
 {
 	// Save the settings for the timeout.
 	m_nTimeoutSeconds	= nSeconds;
@@ -306,7 +342,7 @@ inline UINT CMessageBoxDialog::GetTimeoutSeconds ( )
 /*
  *	Method for retrieving whether a timeout is disabled.
  */
-inline bool CMessageBoxDialog::GetTimeoutDisabled ( )
+inline BOOL CMessageBoxDialog::GetTimeoutDisabled ( )
 {
 	// Return the flag whether the timeout is disabled.
 	return m_bTimeoutDisabled;
@@ -328,83 +364,26 @@ void CMessageBoxDialog::ResetMessageBoxes ( )
 	// Try to retrieve a handle to the application object.
 	CWinApp* pApplication = AfxGetApp();
 
-	ASSERT(pApplication != nullptr);
+	ASSERT(pApplication);
 
 	// Check whether a handle was retrieved.
-	if ( pApplication != nullptr )
+	if ( pApplication != NULL )
 	{
-		// Delete the message box results stored in the registry.
-		pApplication->WriteProfileString(REGISTRY_SECTION_MESSAGEBOX, nullptr, nullptr);
-	}
-}
+		// Create the registry key for this application.
+		CString strKey = _T("Software\\");
+		strKey += pApplication->m_pszRegistryKey;
+		strKey += _T("\\");
+		strKey += pApplication->m_pszProfileName;
+		strKey += _T("\\");
+		strKey += REGISTRY_SECTION_MESSAGEBOX;
 
-CString CMessageBoxDialog::GenerateRegistryKey(UINT nMessageID, UINT nHelpID)
-{
-	CMessageBoxDialog dlg{ nullptr, nMessageID, 0, 0, nHelpID };
-	return dlg.GenerateRegistryKey();
+		// Delete the message box results stored in the registry.
+		pApplication->DelRegTree(HKEY_CURRENT_USER, strKey);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // Methods for handling common window functions.
-
-/*
- *	Parameters for passing to ModelessMessageBoxThread.
- */
-struct ModelessMesssageBoxParam
-{
-	CString strMessage;
-	UINT nType;
-};
-
-/*
- *	Thread for displaying the message boxes asyncronously.
- */
-static UINT ModelessMesssageBoxThread(LPVOID lpParam)
-{
-	struct ModelessMesssageBoxParam *p = (struct ModelessMesssageBoxParam *)lpParam;
-	
-	// Create the message box dialog.
-	CMessageBoxDialog dlgMessage(nullptr, p->strMessage, _T(""), p->nType);
-	
-	delete p;
-
-	// Display the message box dialog
-	dlgMessage.Create(CMessageBoxDialog::IDD);
-	dlgMessage.ShowWindow(SW_SHOW);
-	dlgMessage.RunModalLoop();
-	dlgMessage.DestroyWindow();
-
-	return 0;
-}
-
-/*
- * Method for retrieving the former result of the message box from the registry.
- */
-int CMessageBoxDialog::GetFormerResult()
-{
-	// Check whether the registry key was already generated.
-	if (m_strRegistryKey.IsEmpty())
-	{
-		// Create the registry key for this dialog.
-		m_strRegistryKey = GenerateRegistryKey();
-	}
-
-	// Try to read the former result of the message box from the registry.
-	return AfxGetApp()->GetProfileInt(
-		REGISTRY_SECTION_MESSAGEBOX, m_strRegistryKey, (-1));
-}
-
-/*
- * Method for storing the former result of the message box to the registry.
- */
-int CMessageBoxDialog::SetFormerResult(int nResult)
-{
-	int nOldResult = GetFormerResult();
-	// Try to write the former result of the message box to the registry.
-	AfxGetApp()->WriteProfileInt(
-		REGISTRY_SECTION_MESSAGEBOX, m_strRegistryKey, nResult);
-	return nOldResult;
-}
 
 /*
  *	Method for displaying the dialog.
@@ -415,14 +394,22 @@ int CMessageBoxDialog::SetFormerResult(int nResult)
  *	displaying the dialog. Otherwise the message box will be displayed in
  *	the normal way.
  */
-INT_PTR CMessageBoxDialog::DoModal ( )
+int CMessageBoxDialog::DoModal ( )
 {
 	// Check whether the result may be retrieved from the registry.
 	if ( ( m_nStyle & MB_DONT_DISPLAY_AGAIN ) ||
 		( m_nStyle & MB_DONT_ASK_AGAIN ) )
 	{
+		// Check whether the registry key was already generated.
+		if ( m_strRegistryKey.IsEmpty() )
+		{
+			// Create the registry key for this dialog.
+			m_strRegistryKey = GenerateRegistryKey();
+		}
+
 		// Try to read the former result of the message box from the registry.
-		int nFormerResult = GetFormerResult();
+		int nFormerResult = AfxGetApp()->GetProfileInt(
+			REGISTRY_SECTION_MESSAGEBOX, m_strRegistryKey, (-1));
 
 		// Check whether a result was retrieved.
 		if ( nFormerResult != (-1) )
@@ -432,17 +419,8 @@ INT_PTR CMessageBoxDialog::DoModal ( )
 		}
 	}
 
-	if (m_nStyle & MB_MODELESS) {
-		// Show the messsage box dialog asyncronously.
-		ModelessMesssageBoxParam *pParam = new ModelessMesssageBoxParam();
-		pParam->strMessage = m_strMessage.c_str();
-		pParam->nType      = m_nStyle & ~MB_MODELESS;
-		AfxBeginThread(ModelessMesssageBoxThread, pParam);
-		return IDOK;
-	}
-
 	// Call the parent method.
-	return __super::DoModal();
+	return CDialog::DoModal();
 }
 
 /*
@@ -456,13 +434,13 @@ INT_PTR CMessageBoxDialog::DoModal ( )
 void CMessageBoxDialog::EndDialog ( int nResult )
 {
 	// Create a variable for storing the state of the checkbox.
-	bool bDontDisplayAgain = false;
+	BOOL bDontDisplayAgain = FALSE;
 
 	// Try to access the checkbox control.
 	CWnd* pCheckboxWnd = GetDlgItem(IDCHECKBOX);
 
 	// Check whether the control can be accessed.
-	if ( pCheckboxWnd != nullptr )
+	if ( pCheckboxWnd != NULL )
 	{
 		// Check whether the checkbox is checked.
 		bDontDisplayAgain = 
@@ -473,11 +451,20 @@ void CMessageBoxDialog::EndDialog ( int nResult )
 	if ( ( ( m_nStyle & MB_DONT_DISPLAY_AGAIN ) && bDontDisplayAgain ) ||
 		( ( m_nStyle & MB_DONT_ASK_AGAIN ) && bDontDisplayAgain ) )
 	{
-		SetFormerResult(nResult);
+		// Check whether the registry key was already generated.
+		if ( m_strRegistryKey.IsEmpty() )
+		{
+			// Create the registry key for this dialog.
+			m_strRegistryKey = GenerateRegistryKey();
+		}
+		
+		// Store the result of the dialog in the registry.
+		AfxGetApp()->WriteProfileInt(REGISTRY_SECTION_MESSAGEBOX, 
+			m_strRegistryKey, nResult);
 	}
 	
 	// Call the parent method.
-	__super::EndDialog(nResult);
+	CDialog::EndDialog(nResult);
 }
 
 /*
@@ -490,14 +477,14 @@ void CMessageBoxDialog::EndDialog ( int nResult )
 BOOL CMessageBoxDialog::OnInitDialog ( )
 {
 	// Call the parent method.
-	if ( !__super::OnInitDialog() )
+	if ( !CDialog::OnInitDialog() )
 	{
 		// Return with an error.
 		return FALSE;
 	}
 
 	// Set the title of the dialog.
-	SetWindowText(m_strTitle.c_str());
+	SetWindowText(m_strTitle);
 
 	// Set the help ID of the dialog.
 	SetHelpID(m_nHelp);
@@ -506,7 +493,6 @@ BOOL CMessageBoxDialog::OnInitDialog ( )
 	ParseStyle();
 
 	// Create the elements of the dialog.
-	m_tooltips.Create(this);
 	CreateIconControl();
 	CreateMessageControl();
 	CreateCheckboxControl();
@@ -557,15 +543,15 @@ BOOL CMessageBoxDialog::OnInitDialog ( )
 		if ( m_bTimeoutDisabled )
 		{
 			// Run through all created buttons.
-            for (vector<MSGBOXBTN>::iterator iter = m_aButtons.begin(); iter != m_aButtons.end(); ++iter)
+			for ( int i = 0; i < m_aButtons.GetSize(); i++ )
 			{
 				// Try to retrieve a handle for the button.
-                CWnd* pButtonWnd = GetDlgItem(iter->nID);
+				CWnd* pButtonWnd = GetDlgItem(m_aButtons.GetAt(i).nID);
 
-				ASSERT(pButtonWnd != nullptr);
+				ASSERT(pButtonWnd);
 
 				// Check whether the handle was retrieved.
-				if ( pButtonWnd != nullptr )
+				if ( pButtonWnd != NULL )
 				{
 					// Disable the button.
 					pButtonWnd->EnableWindow(FALSE);
@@ -576,7 +562,7 @@ BOOL CMessageBoxDialog::OnInitDialog ( )
 			CWnd* pCheckboxWnd = GetDlgItem(IDCHECKBOX);
 
 			// Check whether the checkbox handle was retrieved.
-			if ( pCheckboxWnd != nullptr )
+			if ( pCheckboxWnd != NULL )
 			{
 				// Disable the checkbox.
 				pCheckboxWnd->EnableWindow(FALSE);
@@ -584,7 +570,7 @@ BOOL CMessageBoxDialog::OnInitDialog ( )
 		}
 
 		// Install a timer.
-		m_nTimeoutTimer = SetTimer(MESSAGE_BOX_TIMER, 1000, nullptr);
+		m_nTimeoutTimer = SetTimer(MESSAGE_BOX_TIMER, 1000, NULL);
 	}
 
 	// Check whether a default button was defined.
@@ -635,7 +621,7 @@ BOOL CMessageBoxDialog::OnCmdMsg ( UINT nID, int nCode, void* pExtra,
 	}
 
 	// Call the parent method.
-	return __super::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
+	return CDialog::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
 }
 
 /*
@@ -646,13 +632,6 @@ BOOL CMessageBoxDialog::OnCmdMsg ( UINT nID, int nCode, void* pExtra,
  */
 BOOL CMessageBoxDialog::PreTranslateMessage ( MSG* pMsg )
 {
-	if (pMsg->message == WM_LBUTTONDOWN ||
-		pMsg->message == WM_LBUTTONUP ||
-		pMsg->message == WM_MOUSEMOVE)
-	{
-		m_tooltips.RelayEvent(pMsg);
-	}
-
 	// Check whether it's a key message and whether it's not a disable timeout.
 	if ( pMsg->message == WM_KEYDOWN )
 	{
@@ -670,16 +649,16 @@ BOOL CMessageBoxDialog::PreTranslateMessage ( MSG* pMsg )
 			CWnd* pFocusWnd = GetFocus();
 
 			// Check whether a handle was retrieved.
-			if ( pFocusWnd != nullptr )
+			if ( pFocusWnd != NULL )
 			{
 				// Try to determine the ID of the element.
 				int nID = pFocusWnd->GetDlgCtrlID();
 
 				// Run through the list of defined buttons.
-				for (vector<MSGBOXBTN>::iterator iter = m_aButtons.begin(); iter != m_aButtons.end(); ++iter)
+				for ( int i = 0; i < m_aButtons.GetSize(); i++ )
 				{
 					// Check whether the ID is a button.
-					if ( iter->nID == static_cast<UINT>(nID) )
+					if ( m_aButtons.GetAt(i).nID == nID )
 					{
 						// Save this ID as the default ID.
 						m_nDefaultButton = nID;
@@ -713,7 +692,7 @@ BOOL CMessageBoxDialog::PreTranslateMessage ( MSG* pMsg )
 	}
 
 	// Call the parent method.
-	return __super::PreTranslateMessage(pMsg);
+	return CDialog::PreTranslateMessage(pMsg);
 }
 
 /*
@@ -722,7 +701,7 @@ BOOL CMessageBoxDialog::PreTranslateMessage ( MSG* pMsg )
  *	When a timeout for the message box is set, this method will perform the
  *	update of the dialog controls every second.
  */
-void CMessageBoxDialog::OnTimer ( UINT_PTR nIDEvent )
+void CMessageBoxDialog::OnTimer ( UINT nIDEvent )
 {
 	// Check whether the event is interesting for us.
 	if ( nIDEvent == MESSAGE_BOX_TIMER )
@@ -740,15 +719,15 @@ void CMessageBoxDialog::OnTimer ( UINT_PTR nIDEvent )
 			if ( m_bTimeoutDisabled )
 			{
 				// Run through all defined buttons.
-				for (vector<MSGBOXBTN>::iterator iter = m_aButtons.begin(); iter != m_aButtons.end(); ++iter)
+				for ( int i = 0; i < m_aButtons.GetSize(); i++ )
 				{
 					// Try to retrieve a handle to access the button.
-					CWnd* pButtonWnd = GetDlgItem(iter->nID);
+					CWnd* pButtonWnd = GetDlgItem(m_aButtons.GetAt(i).nID);
 
-					ASSERT(pButtonWnd != nullptr);
+					ASSERT(pButtonWnd);
 
 					// Check whether a handle was retrieved.
-					if ( pButtonWnd != nullptr )
+					if ( pButtonWnd != NULL )
 					{
 						// Enable the button again.
 						pButtonWnd->EnableWindow(TRUE);
@@ -759,7 +738,7 @@ void CMessageBoxDialog::OnTimer ( UINT_PTR nIDEvent )
 				CWnd* pCheckboxWnd = GetDlgItem(IDCHECKBOX);
 
 				// Check whether the checkbox was found.
-				if ( pCheckboxWnd != nullptr )
+				if ( pCheckboxWnd != NULL )
 				{
 					// Enable the checkbox.
 					pCheckboxWnd->EnableWindow(TRUE);
@@ -773,52 +752,48 @@ void CMessageBoxDialog::OnTimer ( UINT_PTR nIDEvent )
 		}
 
 		// Run through the list of defined buttons.
-		for (vector<MSGBOXBTN>::iterator iter = m_aButtons.begin(); iter != m_aButtons.end(); ++iter)
+		for ( int i = 0; i < m_aButtons.GetSize(); i++ )
 		{
 			// Check whether this button is the default button.
-			if ( iter->nID == static_cast<UINT>(m_nDefaultButton) )
+			if ( m_aButtons.GetAt(i).nID == m_nDefaultButton )
 			{
+				// Create two strings for the button text.
+				CString strButtonText	= _T("");
+				CString strFullText		= _T("");
+
 				// Try to load the text for the button.
-				String strButtonText = LoadResString(iter->nTitle);
+				VERIFY(strButtonText.LoadString(m_aButtons.GetAt(i).nTitle));
+				
+				// Use the button text as the full text.
+				strFullText = strButtonText;
+
 				// Check whether the timeout is finished.
 				if ( m_nTimeoutSeconds > 0 )
 				{
 					// Add the remaining seconds to the text of the button.
-					TCHAR szTimeoutSeconds[40];
-					wsprintf(szTimeoutSeconds, _T(" = %u"), m_nTimeoutSeconds);
-					strButtonText += szTimeoutSeconds;
+					strFullText.Format(_T("%s = %d"), strButtonText, 
+						m_nTimeoutSeconds);
 				}
-				// Set the text of the button.
-				SetDlgItemText(iter->nID, strButtonText.c_str());
+
+				// Try to retrieve a handle for the button.
+				CWnd* pButtonWnd = GetDlgItem(m_aButtons.GetAt(i).nID);
+
+				ASSERT(pButtonWnd);
+
+				// Check whether the handle was retrieved successfully.
+				if ( pButtonWnd != NULL )
+				{
+					// Set the text of the button.
+					pButtonWnd->SetWindowText(strFullText);
+				}
 			}
 		}
 	}
 
 	// Call the parent method.
-	__super::OnTimer(nIDEvent);
+	CDialog::OnTimer(nIDEvent);
 }
 
-BOOL CMessageBoxDialog::OnEraseBkgnd(CDC* pDC)
-{
-	CRect rect;
-	GetClientRect(&rect);
-	pDC->FillSolidRect(&rect, ::GetSysColor(COLOR_BTNFACE));
-	rect.bottom = rect.bottom - YDialogUnitToPixel(CY_BUTTON + CY_BORDER * 2);
-	pDC->FillSolidRect(&rect, ::GetSysColor(COLOR_WINDOW));
-	return TRUE;
-}
-
-HBRUSH CMessageBoxDialog::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
-{
-	if (nCtlColor == CTLCOLOR_STATIC)
-	{
-		pDC->SetBkMode(OPAQUE);
-		pDC->SetBkColor(::GetSysColor(COLOR_WINDOW));
-		pDC->SetTextColor(m_clrMainInstructionFont);
-		return static_cast<HBRUSH>(GetSysColorBrush(COLOR_WINDOW));
-	}
-	return __super::OnCtlColor(pDC, pWnd, nCtlColor);
-}
 
 //////////////////////////////////////////////////////////////////////////////
 // Other dialog handling methods.
@@ -851,13 +826,11 @@ BOOL CMessageBoxDialog::OnWndMsg ( UINT message, WPARAM wParam, LPARAM lParam,
 	}
 
 	// Call the parent method.
-	return __super::OnWndMsg(message, wParam, lParam, pResult);
+	return CDialog::OnWndMsg(message, wParam, lParam, pResult);
 }
 
 BEGIN_MESSAGE_MAP(CMessageBoxDialog, CDialog)
 	ON_WM_TIMER()
-	ON_WM_ERASEBKGND()
-	ON_WM_CTLCOLOR()
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////////////
@@ -879,7 +852,7 @@ CString CMessageBoxDialog::GenerateRegistryKey ( )
 	if ( m_nHelp != 0 )
 	{
 		// Simply use the help ID, because we assume, it's unique.
-		strRegistryKey.Format(_T("%u"), m_nHelp);
+		strRegistryKey.Format(_T("%d"), m_nHelp);
 	}
 	else
 	{
@@ -891,10 +864,10 @@ CString CMessageBoxDialog::GenerateRegistryKey ( )
 		int nChecksum = 0;
 
 		// Run through the message string.
-        for ( String::size_type i = 0; i < m_strMessage.length(); i++ )
+		for ( int i = 0; i < m_strMessage.GetLength(); i++ )
 		{
 			// Get the char at the given position and add it to the checksum.
-			nChecksum += static_cast<int>(static_cast<int>(m_strMessage[i]) * i);
+			nChecksum += ((int)m_strMessage.GetAt(i)) * i;
 		}
 
 		// Convert the checksum to a string.
@@ -911,14 +884,14 @@ CString CMessageBoxDialog::GenerateRegistryKey ( )
  *	This method adds a button to the list of buttons, which will be created in
  *	the dialog, but it will not create the button control itself.
  */
-void CMessageBoxDialog::AddButton ( UINT nID, UINT nTitle, bool bIsDefault /*= false*/,
-	bool bIsEscape /*= false*/ )
+void CMessageBoxDialog::AddButton ( UINT nID, UINT nTitle, BOOL bIsDefault,
+	BOOL bIsEscape )
 {
 	// Create a new structure to store the button information.
 	MSGBOXBTN bButton = { nID, nTitle };
 
 	// Add the button to the list of buttons.
-    m_aButtons.push_back(bButton);
+	m_aButtons.Add(bButton);
 
 	// Check whether this button is the default button.
 	if ( bIsDefault )
@@ -995,15 +968,15 @@ void CMessageBoxDialog::ParseStyle ( )
 		case MB_OKCANCEL:
 
 			// Add two buttons: "Ok" and "Cancel".
-			AddButton(IDOK, IDS_MESSAGEBOX_OK, true);
-			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, false, true);
+			AddButton(IDOK, IDS_MESSAGEBOX_OK, TRUE);
+			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, FALSE, TRUE);
 
 			break;
 
 		case MB_ABORTRETRYIGNORE:
 
 			// Add three buttons: "Abort", "Retry" and "Ignore".
-			AddButton(IDABORT, IDS_MESSAGEBOX_ABORT, true);
+			AddButton(IDABORT, IDS_MESSAGEBOX_ABORT, TRUE);
 			AddButton(IDRETRY, IDS_MESSAGEBOX_RETRY);
 			AddButton(IDIGNORE, IDS_MESSAGEBOX_IGNORE);
 
@@ -1012,7 +985,7 @@ void CMessageBoxDialog::ParseStyle ( )
 		case MB_YESNOCANCEL:
 
 			// Add three buttons: "Yes", "No" and "Cancel".
-			AddButton(IDYES, IDS_MESSAGEBOX_YES, true);
+			AddButton(IDYES, IDS_MESSAGEBOX_YES, TRUE);
 
 			// Check whether to add a "Yes to all" button.
 			if ( m_nStyle & MB_YES_TO_ALL )
@@ -1030,14 +1003,14 @@ void CMessageBoxDialog::ParseStyle ( )
 				AddButton(IDNOTOALL, IDS_MESSAGEBOX_NO_TO_ALL);
 			}
 
-			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, false, true);
+			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, FALSE, TRUE);
 
 			break;
 
 		case MB_YESNO:
 			
 			// Add two buttons: "Yes" and "No".
-			AddButton(IDYES, IDS_MESSAGEBOX_YES, true);
+			AddButton(IDYES, IDS_MESSAGEBOX_YES, TRUE);
 
 			// Check whether to add a "Yes to all" button.
 			if ( m_nStyle & MB_YES_TO_ALL )
@@ -1060,15 +1033,15 @@ void CMessageBoxDialog::ParseStyle ( )
 		case MB_RETRYCANCEL:
 
 			// Add two buttons: "Retry" and "Cancel".
-			AddButton(IDRETRY, IDS_MESSAGEBOX_RETRY, true);
-			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, false, true);
+			AddButton(IDRETRY, IDS_MESSAGEBOX_RETRY, TRUE);
+			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, FALSE, TRUE);
 
 			break;
 
 		case MB_CANCELTRYCONTINUE:
 
 			// Add three buttons: "Cancel", "Try again" and "Continue".
-			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, true, true);
+			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, TRUE, TRUE);
 			AddButton(IDTRYAGAIN, IDS_MESSAGEBOX_RETRY);
 			AddButton(IDCONTINUE, IDS_MESSAGEBOX_CONTINUE);
 
@@ -1077,7 +1050,7 @@ void CMessageBoxDialog::ParseStyle ( )
 		case MB_CONTINUEABORT:
 
 			// Add two buttons: "Continue" and "Abort".
-			AddButton(IDCONTINUE, IDS_MESSAGEBOX_CONTINUE, true);
+			AddButton(IDCONTINUE, IDS_MESSAGEBOX_CONTINUE, TRUE);
 			AddButton(IDABORT, IDS_MESSAGEBOX_ABORT);
 
 			break;
@@ -1085,18 +1058,18 @@ void CMessageBoxDialog::ParseStyle ( )
 		case MB_SKIPSKIPALLCANCEL:
 
 			// Add three buttons: "Skip", "Skip all" and "Cancel".
-			AddButton(IDSKIP, IDS_MESSAGEBOX_SKIP, true);
+			AddButton(IDSKIP, IDS_MESSAGEBOX_SKIP, TRUE);
 			AddButton(IDSKIPALL, IDS_MESSAGEBOX_SKIPALL);
-			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, false, true);
+			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, FALSE, TRUE);
 
 			break;
 
 		case MB_IGNOREIGNOREALLCANCEL:
 
 			// Add three buttons: "Ignore", "Ignore all" and "Cancel".
-			AddButton(IDIGNORE, IDS_MESSAGEBOX_IGNORE, true);
+			AddButton(IDIGNORE, IDS_MESSAGEBOX_IGNORE, TRUE);
 			AddButton(IDIGNOREALL, IDS_MESSAGEBOX_IGNOREALL);
-			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, false, true);
+			AddButton(IDCANCEL, IDS_MESSAGEBOX_CANCEL, FALSE, TRUE);
 
 			break;
 
@@ -1104,7 +1077,7 @@ void CMessageBoxDialog::ParseStyle ( )
 		case MB_OK:
 
 			// Add just one button: "Ok".
-			AddButton(IDOK, IDS_MESSAGEBOX_OK, true, true);
+			AddButton(IDOK, IDS_MESSAGEBOX_OK, TRUE, TRUE);
 
 			break;
 
@@ -1121,7 +1094,7 @@ void CMessageBoxDialog::ParseStyle ( )
 	if ( m_nStyle & MB_DEFMASK )
 	{
 		// Create a variable to store the index of the default button.
-        vector<MSGBOXBTN>::size_type nDefaultIndex = 0;
+		int nDefaultIndex = 0;
 
 		// Switch the default button.
 		switch ( m_nStyle & MB_DEFMASK )
@@ -1172,15 +1145,15 @@ void CMessageBoxDialog::ParseStyle ( )
 		}
 
 		// Check whether enough buttons are available.
-		if ( m_aButtons.size() >= ( nDefaultIndex + 1 ) )
+		if ( m_aButtons.GetSize() >= ( nDefaultIndex + 1 ) )
 		{
 			// Set the new default button.
-			m_nDefaultButton = m_aButtons[nDefaultIndex].nID;
+			m_nDefaultButton = m_aButtons.GetAt(nDefaultIndex).nID;
 		}
 	}
 
 	// Check whether an icon was specified.
-	if ( ( m_nStyle & MB_ICONMASK ) && ( m_hIcon == nullptr ) )
+	if ( ( m_nStyle & MB_ICONMASK ) && ( m_hIcon == NULL ) )
 	{
 		// Switch the icon.
 		switch ( m_nStyle & MB_ICONMASK )
@@ -1189,28 +1162,32 @@ void CMessageBoxDialog::ParseStyle ( )
 			case MB_ICONEXCLAMATION:
 
 				// Load the icon with the exclamation mark.
-				m_hIcon = AfxGetApp()->LoadStandardIcon(IDI_EXCLAMATION);
+				m_hIcon = AfxGetApp()->LoadStandardIcon(
+					MAKEINTRESOURCE(IDI_EXCLAMATION));
 
 				break;
 
 			case MB_ICONHAND:
 
 				// Load the icon with the error symbol.
-				m_hIcon = AfxGetApp()->LoadStandardIcon(IDI_HAND);
+				m_hIcon = AfxGetApp()->LoadStandardIcon(
+					MAKEINTRESOURCE(IDI_HAND));
 
 				break;
 
 			case MB_ICONQUESTION:
 
 				// Load the icon with the question mark.
-				m_hIcon = AfxGetApp()->LoadStandardIcon(IDI_QUESTION);
+				m_hIcon = AfxGetApp()->LoadStandardIcon(
+					MAKEINTRESOURCE(IDI_QUESTION));
 
 				break;
 
 			case MB_ICONASTERISK:
 
 				// Load the icon with the information symbol.
-				m_hIcon = AfxGetApp()->LoadStandardIcon(IDI_ASTERISK);
+				m_hIcon = AfxGetApp()->LoadStandardIcon(
+					MAKEINTRESOURCE(IDI_ASTERISK));
 
 				break;
 
@@ -1227,7 +1204,7 @@ void CMessageBoxDialog::ParseStyle ( )
 void CMessageBoxDialog::CreateIconControl ( )
 {
 	// Check whether an icon was defined.
-	if ( m_hIcon != nullptr )
+	if ( m_hIcon != NULL )
 	{
 		// Create a structure to read information about the icon.
 		ICONINFO iiIconInfo;
@@ -1251,7 +1228,7 @@ void CMessageBoxDialog::CreateIconControl ( )
 		CRect rcDummy;
 
 		// Create the control for the icon.
-		m_stcIcon.Create(nullptr, WS_CHILD | WS_VISIBLE | WS_DISABLED | SS_ICON,
+		m_stcIcon.Create(NULL, WS_CHILD | WS_VISIBLE | WS_DISABLED | SS_ICON,
 			rcDummy, this, (UINT)IDC_STATIC);
 
 		// Set the icon of the control.
@@ -1268,20 +1245,20 @@ void CMessageBoxDialog::CreateIconControl ( )
  */
 void CMessageBoxDialog::CreateMessageControl ( )
 {
-	ASSERT(!m_strMessage.empty());
+	ASSERT(!m_strMessage.IsEmpty());
 
 	// Create a DC for accessing the display driver.
 	CDC dcDisplay;
-	dcDisplay.CreateDC(_T("DISPLAY"), nullptr, nullptr, nullptr);
+	dcDisplay.CreateDC(_T("DISPLAY"), NULL, NULL, NULL);
 
 	// Select the new font and store the old one.
-	CFont* pOldFont = dcDisplay.SelectObject(&m_fontMainInstruction);
+	CFont* pOldFont = dcDisplay.SelectObject(GetFont());
 
 	// Define the maximum width of the message.
 	int nMaxWidth = ( GetSystemMetrics(SM_CXSCREEN) / 2 ) + 100;
 
 	// Check whether an icon is displayed.
-	if ( m_hIcon != nullptr )
+	if ( m_hIcon != NULL )
 	{
 		// Decrease the maximum width.
 		nMaxWidth -= m_sIcon.cx + 2 * XDialogUnitToPixel(CX_BORDER);
@@ -1291,8 +1268,8 @@ void CMessageBoxDialog::CreateMessageControl ( )
 	CRect rcMessage(0, 0, nMaxWidth, nMaxWidth);
 
 	// Draw the text and retrieve the size of the text.
-	dcDisplay.DrawText(m_strMessage.c_str(), rcMessage, DT_LEFT | DT_NOPREFIX | 
-		DT_WORDBREAK | DT_EXPANDTABS | DT_CALCRECT);
+	dcDisplay.DrawText(m_strMessage, rcMessage, DT_LEFT | DT_NOPREFIX | 
+		DT_WORDBREAK | DT_CALCRECT);
 
 	// Save the size required for the message.
 	m_sMessage = rcMessage.Size();
@@ -1319,9 +1296,7 @@ void CMessageBoxDialog::CreateMessageControl ( )
 	}
 
 	// Create the static control for the message.
-	String strMessage = m_strMessage;
-	strutils::replace(strMessage, _T("&"), _T("&&"));
-	m_stcMessage.Create(strMessage.c_str(), dwStyle, rcDummy, this,
+	m_stcMessage.Create(m_strMessage,  dwStyle, rcDummy, this, 
 		(UINT)IDC_STATIC);
 
 	// Check whether the text will be read from right to left.
@@ -1332,7 +1307,7 @@ void CMessageBoxDialog::CreateMessageControl ( )
 	}
 
 	// Set the font of the dialog.
-	m_stcMessage.SetFont(&m_fontMainInstruction);
+	m_stcMessage.SetFont(GetFont());
 }
 
 /*
@@ -1349,13 +1324,14 @@ void CMessageBoxDialog::CreateCheckboxControl ( )
 		( m_nStyle & MB_DONT_ASK_AGAIN ) )
 	{
 		// Create a variable for storing the title of the checkbox.
-		String strCheckboxTitle;
+		CString	strCheckboxTitle = _T("");
 
 		// Check which style is used.
 		if ( m_nStyle & MB_DONT_DISPLAY_AGAIN )
 		{
 			// Load the string for the checkbox.
-			strCheckboxTitle = LoadResString(IDS_MESSAGEBOX_DONT_DISPLAY_AGAIN);
+			VERIFY(strCheckboxTitle.LoadString(
+				IDS_MESSAGEBOX_DONT_DISPLAY_AGAIN));
 		}
 		else
 		{
@@ -1363,21 +1339,22 @@ void CMessageBoxDialog::CreateCheckboxControl ( )
 			if ( m_nStyle & MB_DONT_ASK_AGAIN )
 			{
 				// Load the string for the checkbox.
-				strCheckboxTitle = LoadResString(IDS_MESSAGEBOX_DONT_ASK_AGAIN);
+				VERIFY(strCheckboxTitle.LoadString(
+					IDS_MESSAGEBOX_DONT_ASK_AGAIN));
 			}
 		}
 
-		ASSERT(!strCheckboxTitle.empty());
+		ASSERT(!strCheckboxTitle.IsEmpty());
 
 		// Create a handle to access the DC of the dialog.
 		CClientDC dc(this);
 
 		// Retrieve the font for this dialog and select it.
-		CFont* pWndFont = &m_font;
+		CFont* pWndFont = GetFont();
 		CFont* pOldFont = dc.SelectObject(pWndFont);
 
 		// Retrieve the size of the text.
-		m_sCheckbox = dc.GetTextExtent(strCheckboxTitle.c_str(), static_cast<int>(strCheckboxTitle.length()));
+		m_sCheckbox = dc.GetTextExtent(strCheckboxTitle);
 
 		// Add the additional value to the width of the checkbox.
 		m_sCheckbox.cx += XDialogUnitToPixel(CX_CHECKBOX_ADDON);
@@ -1392,7 +1369,7 @@ void CMessageBoxDialog::CreateCheckboxControl ( )
 		CButton btnCheckbox;
 
 		// Create the checkbox.
-		btnCheckbox.Create(strCheckboxTitle.c_str(), WS_CHILD | WS_VISIBLE | 
+		btnCheckbox.Create(strCheckboxTitle, WS_CHILD | WS_VISIBLE | 
 			WS_TABSTOP | BS_AUTOCHECKBOX, rcDummy, this, IDCHECKBOX);
 
 		// Check whether the checkbox should be marked checked at startup.
@@ -1404,9 +1381,6 @@ void CMessageBoxDialog::CreateCheckboxControl ( )
 
 		// Set the font of the control.
 		btnCheckbox.SetFont(pWndFont);
-
-		// Add a tooltip to the checkbox
-		m_tooltips.AddTool(&btnCheckbox, LoadResString(IDS_MESSAGEBOX_CHECKBOX_TOOLTIP).c_str());
 
 		// Remove the subclassing again.
 		btnCheckbox.UnsubclassWindow();
@@ -1429,28 +1403,36 @@ void CMessageBoxDialog::CreateButtonControls ( )
 	CClientDC dc(this);
 
 	// Retrieve the font for this dialog and select it.
-	CFont* pWndFont = &m_font;
+	CFont* pWndFont = GetFont();
 	CFont* pOldFont = dc.SelectObject(pWndFont);
 
 	// Create a dummy rect.
 	CRect rcDummy;
 
 	// Run through all buttons defined in the list of the buttons.
-	for (vector<MSGBOXBTN>::iterator iter = m_aButtons.begin(); iter != m_aButtons.end(); ++iter)
+	for ( int i = 0; i < m_aButtons.GetSize(); i++ )
 	{
 		// Create a string and load the title of the button.
-		String strButtonText = LoadResString(iter->nTitle);
+		CString strButtonTitle;
+		VERIFY(strButtonTitle.LoadString(m_aButtons.GetAt(i).nTitle));
+
+		// Create a string with the text used to determine the length.
+		CString strLengthTest = strButtonTitle;
+
 		// Check whether there's a timeout set.
 		if ( m_nTimeoutSeconds > 0 )
 		{
-			// Add the remaining seconds to the text of the button.
-			TCHAR szTimeoutSeconds[40];
-			wsprintf(szTimeoutSeconds, _T(" = %u"), m_nTimeoutSeconds);
-			strButtonText += szTimeoutSeconds;
+			// Create a string with the longest timeout text.
+			CString strTimeoutText = _T("");
+			strTimeoutText.Format(_T("%s = %d"), strLengthTest, 
+				m_nTimeoutSeconds);
+
+			// Use this text to determine the length of the string.
+			strLengthTest = strTimeoutText;
 		}
 
 		// Retrieve the size of the text.
-		CSize sButtonText = dc.GetTextExtent(strButtonText.c_str(), static_cast<int>(strButtonText.length()));
+		CSize sButtonText = dc.GetTextExtent(strLengthTest);
 
 		// Resize the button.
 		m_sButton.cx = max(m_sButton.cx, sButtonText.cx);
@@ -1460,8 +1442,8 @@ void CMessageBoxDialog::CreateButtonControls ( )
 		CButton btnControl;
 
 		// Create the button.
-		btnControl.Create(strButtonText.c_str(), WS_CHILD | WS_VISIBLE | WS_TABSTOP,
-			rcDummy, this, iter->nID);
+		btnControl.Create(strButtonTitle, WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+			rcDummy, this, m_aButtons.GetAt(i).nID);
 
 		// Set the font of the control.
 		btnControl.SetFont(pWndFont);
@@ -1487,19 +1469,19 @@ void CMessageBoxDialog::CreateButtonControls ( )
 void CMessageBoxDialog::DefineLayout ( )
 {
 	// Create a variable for storing the size of the dialog.
-	CSize sClient = CSize(4 * XDialogUnitToPixel(CX_BORDER),
-		3 * YDialogUnitToPixel(CY_BORDER));
+	CSize sClient = CSize(2 * XDialogUnitToPixel(CX_BORDER),
+		2 * YDialogUnitToPixel(CY_BORDER));
 
 	// Create a variable to store the left position for a control element.
-	int nXPosition = XDialogUnitToPixel(CX_BORDER) * 2;
-	int nYPosition = YDialogUnitToPixel(CY_BORDER) * 2;
+	int nXPosition = XDialogUnitToPixel(CX_BORDER);
+	int nYPosition = YDialogUnitToPixel(CY_BORDER);
 
 	// Check whether an icon is defined.
-	if ( m_hIcon != nullptr )
+	if ( m_hIcon != NULL )
 	{
 		// Move the icon control.
-		m_stcIcon.MoveWindow(XDialogUnitToPixel(CX_BORDER) * 2, 
-			YDialogUnitToPixel(CY_BORDER) * 2, m_sIcon.cx, m_sIcon.cy);
+		m_stcIcon.MoveWindow(XDialogUnitToPixel(CX_BORDER), 
+			YDialogUnitToPixel(CY_BORDER), m_sIcon.cx, m_sIcon.cy);
 
 		// Add the size of the icon to the size of the dialog.
 		sClient.cx += m_sIcon.cx + XDialogUnitToPixel(CX_BORDER);
@@ -1515,8 +1497,6 @@ void CMessageBoxDialog::DefineLayout ( )
 		YDialogUnitToPixel(CY_BORDER) + YDialogUnitToPixel(CY_BORDER / 2));
 
 	// Set the position of the message text.
-	if (m_sMessage.cy < m_sIcon.cy)
-		nYPosition += (m_sIcon.cy - m_sMessage.cy) / 2;
 	m_stcMessage.MoveWindow(nXPosition, nYPosition, m_sMessage.cx,
 		m_sMessage.cy);
 
@@ -1531,10 +1511,10 @@ void CMessageBoxDialog::DefineLayout ( )
 		// Try to determine the control element for the checkbox.
 		CWnd* pCheckboxWnd = GetDlgItem(IDCHECKBOX);
 
-		ASSERT(pCheckboxWnd != nullptr);
+		ASSERT(pCheckboxWnd);
 
 		// Check whether the control was retrieved.
-		if ( pCheckboxWnd != nullptr )
+		if ( pCheckboxWnd != NULL )
 		{
 			// Move the checkbox window.
 			pCheckboxWnd->MoveWindow(nXPosition, nYPosition, m_sCheckbox.cx,
@@ -1545,18 +1525,21 @@ void CMessageBoxDialog::DefineLayout ( )
 				XDialogUnitToPixel(CX_BORDER));
 			sClient.cy = max(sClient.cy, nYPosition + m_sCheckbox.cy +
 				YDialogUnitToPixel(CY_BORDER));
+
+			// Define the y positions.
+			nYPosition += m_sCheckbox.cy + YDialogUnitToPixel(CY_BORDER);
 		}
 	}
 
 	// Calculate the width of the buttons.
-	int cxButtons = static_cast<int>(
-		( m_aButtons.size() - 1 ) * XDialogUnitToPixel(CX_BUTTON_SPACE) +
-		m_aButtons.size() * m_sButton.cx);
+	int cxButtons =
+		( m_aButtons.GetSize() - 1 ) * XDialogUnitToPixel(CX_BUTTON_SPACE) +
+		m_aButtons.GetSize() * m_sButton.cx;
 	int cyButtons = m_sButton.cy;
 
 	// Add the size of the buttons to the dialog.
 	sClient.cx = max(sClient.cx, 2 * XDialogUnitToPixel(CX_BORDER) + cxButtons);
-	sClient.cy += cyButtons + YDialogUnitToPixel(CY_BORDER) * 2;
+	sClient.cy += cyButtons + YDialogUnitToPixel(CY_BORDER);
 
 	// Calculate the start y position for the buttons.
 	int nXButtonPosition = ( sClient.cx - cxButtons ) / 2;
@@ -1572,15 +1555,15 @@ void CMessageBoxDialog::DefineLayout ( )
 	}
 
 	// Run through all buttons.
-	for (vector<MSGBOXBTN>::iterator iter = m_aButtons.begin(); iter != m_aButtons.end(); ++iter)
+	for ( int i = 0; i < m_aButtons.GetSize(); i++ )
 	{
 		// Try to retrieve the handle to access the button.
-		CWnd* pButton = GetDlgItem(iter->nID);
+		CWnd* pButton = GetDlgItem(m_aButtons.GetAt(i).nID);
 
-		ASSERT(pButton != nullptr);
+		ASSERT(pButton);
 
 		// Check whether the handle was retrieved successfully.
-		if ( pButton != nullptr )
+		if ( pButton != NULL )
 		{
 			// Move the button.
 			pButton->MoveWindow(nXButtonPosition, nYButtonPosition, 

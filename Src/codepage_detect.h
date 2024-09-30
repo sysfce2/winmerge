@@ -1,18 +1,9 @@
-/** 
- * @file  codepage_detect.h
- *
- * @brief Declaration file for codepage detection routines.
- */
-#pragma once
+#ifndef codepage_detect_h_included
+#define codepage_detect_h_included
 
-#include "UnicodeString.h"
-#include "FileTextEncoding.h"
+void GuessCodepageEncoding(LPCTSTR filepath, int * unicoding, int * codepage, 
+                           BOOL bGuessEncoding);
 
-namespace codepage_detect
-{
-/** @brief Buffer size used in this file. */
-constexpr int BufSize = 65536;
+bool GuessEncoding_from_bytes(LPCTSTR ext, const char **data, int count, int *codepage);
 
-FileTextEncoding Guess(const String& filepath, int guessEncodingType, ptrdiff_t mapmaxlen = BufSize);
-FileTextEncoding Guess(const String& ext, const void* src, size_t len, int guessEncodingType);
-}
+#endif // codepage_detect_h_included

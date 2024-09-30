@@ -3,31 +3,44 @@
  *
  * @brief Implementation of CompareStats class.
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: CompareStats.cpp,v 1.4 2005/07/26 07:49:14 kimmov Exp $
 
-#include "pch.h"
-#include "CompareStats.h"
-#include <cassert>
-#include <cstring>
-#include <atomic>
+#include "stdafx.h"
 #include "DiffItem.h"
+#include "CompareStats.h"
 
 /** 
  * @brief Constructor, initializes critical section.
  */
-CompareStats::CompareStats(int nDirs)
+CompareStats::CompareStats()
 : m_nTotalItems(0)
 , m_nComparedItems(0)
 , m_state(STATE_IDLE)
-, m_bCompareDone(false)
-, m_nDirs(nDirs)
-, m_counts()
+, m_bCompareDone(FALSE)
 {
+	InitializeCriticalSection(&m_csProtect);
+	ZeroMemory(&m_counts[0], sizeof(m_counts));
 }
 
 /** 
  * @brief Destructor, deletes critical section.
  */
-CompareStats::~CompareStats() = default;
+CompareStats::~CompareStats()
+{
+	DeleteCriticalSection(&m_csProtect);
+}
+
+/** 
+ * @brief Increase found items (dirs and files) count.
+ * @param [in] count Amount of items to add.
+ */
+void CompareStats::IncreaseTotalItems(int count /*= 1*/)
+{
+	EnterCriticalSection(&m_csProtect);
+	m_nTotalItems += count;
+	LeaveCriticalSection(&m_csProtect);
+}
 
 /** 
  * @brief Add compared item.
@@ -35,39 +48,36 @@ CompareStats::~CompareStats() = default;
  */
 void CompareStats::AddItem(int code)
 {
-	if (code != -1)
-	{
-		RESULT res = GetResultFromCode(code);
-		int index = static_cast<int>(res);
-		m_counts[index]++;
-	}
+	EnterCriticalSection(&m_csProtect);
+	RESULT res = GetResultFromCode(code);
+	int index = static_cast<int>(res);
+	m_counts[index] += 1;
 	++m_nComparedItems;
-	assert(m_nComparedItems <= m_nTotalItems);
+	ASSERT(m_nComparedItems <= m_nTotalItems);
+	LeaveCriticalSection(&m_csProtect);
 }
 
-/**
-* @brief Return item taking most time among current items.
-*/
-const DIFFITEM *CompareStats::GetCurDiffItem()
+/** 
+ * @brief Return count by resultcode.
+ * @param [in] result Resultcode to return.
+ * @return Count of items for given resultcode.
+ */
+int CompareStats::GetCount(CompareStats::RESULT result)
 {
-	int nHitCountMax = 0;
-	const DIFFITEM *cdi = m_rgThreadState.front().m_pDiffItem;
-	std::vector<ThreadState>::iterator it = m_rgThreadState.begin();
-	while (it != m_rgThreadState.end())
-	{
-		const DIFFITEM *di = it->m_pDiffItem;
-		if (di != nullptr && (di->diffcode.diffcode & DIFFCODE::COMPAREFLAGS) == DIFFCODE::NOCMP)
-		{
-			int nHitCount = it->m_nHitCount++;
-			if (nHitCountMax < nHitCount)
-			{
-				nHitCountMax = nHitCount;
-				cdi = di;
-			}
-		}
-		++it;
-	}
-	return cdi;
+	int currentValue = 0;
+	EnterCriticalSection(&m_csProtect);
+	int resInd = static_cast<int>(result);
+	currentValue = m_counts[resInd];
+	LeaveCriticalSection(&m_csProtect);
+	return currentValue;
+}
+
+/** 
+ * @brief Return total count of items (so far) found.
+ */
+int CompareStats::GetTotalItems() const
+{
+	return m_nTotalItems;
 }
 
 /** 
@@ -76,11 +86,11 @@ const DIFFITEM *CompareStats::GetCurDiffItem()
  */
 void CompareStats::Reset()
 {
-	std::fill(std::begin(m_counts), std::end(m_counts), 0);
+	ZeroMemory(&m_counts[0], sizeof(m_counts));
 	SetCompareState(STATE_IDLE);
 	m_nTotalItems = 0;
 	m_nComparedItems = 0;
-	m_bCompareDone = false;
+	m_bCompareDone = FALSE;
 }
 
 /** 
@@ -89,14 +99,27 @@ void CompareStats::Reset()
  */
 void CompareStats::SetCompareState(CompareStats::CMP_STATE state)
 {
+#ifdef _DEBUG
+	if (state == STATE_COLLECT && m_state != STATE_IDLE)
+		_RPTF2(_CRT_ERROR, "Invalid state change from %d to %d", m_state, state);
+#endif //_DEBUG
+
 	// New compare starting so reset ready status
-	if (state == STATE_START)
-		m_bCompareDone = false;
+	if (state == STATE_COLLECT)
+		m_bCompareDone = FALSE;
 	// Compare ready
 	if (state == STATE_IDLE && m_state == STATE_COMPARE)
-		m_bCompareDone = true;
+		m_bCompareDone = TRUE;
 
 	m_state = state;
+}
+
+/** 
+ * @brief Return current comparestate.
+ */
+CompareStats::CMP_STATE CompareStats::GetCompareState() const
+{
+	return m_state;
 }
 
 /** 
@@ -104,45 +127,48 @@ void CompareStats::SetCompareState(CompareStats::CMP_STATE state)
  * @param [in] diffcode DIFFITEM.diffcode to convert.
  * @return Compare result.
  */
-CompareStats::RESULT CompareStats::GetResultFromCode(unsigned diffcode) const
+CompareStats::RESULT CompareStats::GetResultFromCode(UINT diffcode)
 {
-	DIFFCODE di(diffcode);
+	DIFFCODE di = diffcode;
 	
-	bool is_dir = di.isDirectory();
 	// Test first for skipped so we pick all skipped items as such 
 	if (di.isResultFiltered())
 	{
 		// skipped
-		return is_dir ? RESULT_DIRSKIP : RESULT_SKIP;
-	}
-	else if (di.isSideFirstOnly())
-	{
-		// left-only
-		return is_dir ? RESULT_LDIRUNIQUE : RESULT_LUNIQUE;
-	}
-	else if (di.isSideSecondOnly())
-	{
-		// right-only
-		if (is_dir)
-			return (m_nDirs < 3) ? RESULT_RDIRUNIQUE : RESULT_MDIRUNIQUE;
-		else
-			return (m_nDirs < 3) ? RESULT_RUNIQUE : RESULT_MUNIQUE;
-	}
-	else if (di.isSideThirdOnly())
-	{
-		// right-only
-		return is_dir ? RESULT_RDIRUNIQUE : RESULT_RUNIQUE;
-	}
-	else if (m_nDirs > 2)
-	{
-		switch (diffcode & DIFFCODE::ALL)
+		if (di.isDirectory())
 		{
-		case (DIFFCODE::SECOND | DIFFCODE::THIRD) : return is_dir ? RESULT_LDIRMISSING : RESULT_LMISSING;
-		case (DIFFCODE::FIRST  | DIFFCODE::THIRD) : return is_dir ? RESULT_MDIRMISSING : RESULT_MMISSING;
-		case (DIFFCODE::FIRST  | DIFFCODE::SECOND): return is_dir ? RESULT_RDIRMISSING : RESULT_RMISSING;
+			return RESULT_DIRSKIP;
+		}
+		else
+		{
+			return RESULT_SKIP;
 		}
 	}
-	if (di.isResultError())
+	else if (di.isSideLeft())
+	{
+		// left-only
+		if (di.isDirectory())
+		{
+			return RESULT_LDIRUNIQUE;
+		}
+		else
+		{
+			return RESULT_LUNIQUE;
+		}
+	}
+	else if (di.isSideRight())
+	{
+		// right-only
+		if (di.isDirectory())
+		{
+			return RESULT_RDIRUNIQUE;
+		}
+		else
+		{
+			return RESULT_RUNIQUE;
+		}
+	}
+	else if (di.isResultError())
 	{
 		// could be directory error ?
 		return RESULT_ERROR;
@@ -151,34 +177,32 @@ CompareStats::RESULT CompareStats::GetResultFromCode(unsigned diffcode) const
 	else if (di.isResultSame())
 	{
 		// same
-		if (is_dir)
+		if (di.isBin())
 		{
-			return RESULT_DIRSAME;
+			return RESULT_BINSAME;
 		}
 		else
 		{
-			return di.isBin() ? RESULT_BINSAME : RESULT_SAME;
+			return RESULT_SAME;
 		}
 	}
 	else
 	{
-		if (is_dir)
+		// presumably it is diff
+		if (di.isDirectory())
 		{
-			return RESULT_DIRDIFF;
+			return RESULT_DIR;
 		}
 		else
 		{
-			// presumably it is different
-			return di.isBin() ? RESULT_BINDIFF : RESULT_DIFF;
+			if (di.isBin())
+			{
+				return RESULT_BINDIFF;
+			}
+			else
+			{
+				return RESULT_DIFF;
+			}
 		}
 	}
-}
-
-void CompareStats::Swap(int idx1, int idx2)
-{
-	idx2 = m_nDirs < 3 ? idx2 + 1 : idx2;
-	m_counts[RESULT_LUNIQUE     + idx2] = m_counts[RESULT_LUNIQUE     + idx1].exchange(m_counts[RESULT_LUNIQUE     + idx2]);
-	m_counts[RESULT_LMISSING    + idx2] = m_counts[RESULT_LMISSING    + idx1].exchange(m_counts[RESULT_LMISSING    + idx2]);
-	m_counts[RESULT_LDIRUNIQUE  + idx2] = m_counts[RESULT_LDIRUNIQUE  + idx1].exchange(m_counts[RESULT_LDIRUNIQUE  + idx2]);
-	m_counts[RESULT_LDIRMISSING + idx2] = m_counts[RESULT_LDIRMISSING + idx1].exchange(m_counts[RESULT_LDIRMISSING + idx2]);
 }

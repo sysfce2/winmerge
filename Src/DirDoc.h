@@ -1,7 +1,21 @@
 /////////////////////////////////////////////////////////////////////////////
 //    WinMerge:  an interactive diff/merge utility
 //    Copyright (C) 1997  Dean P. Grimm
-//    SPDX-License-Identifier: GPL-2.0-or-later
+//
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+//
 /////////////////////////////////////////////////////////////////////////////
 /** 
  * @file  DirDoc.h
@@ -9,36 +23,38 @@
  * @brief Declaration file for CDirDoc
  *
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: DirDoc.h,v 1.55 2005/08/31 18:02:16 jtuc Exp $
+
+#if !defined(AFX_DIRDOC_H__0B17B4C1_356F_11D1_95CD_444553540000__INCLUDED_)
+#define AFX_DIRDOC_H__0B17B4C1_356F_11D1_95CD_444553540000__INCLUDED_
 #pragma once
 
-#include <memory>
-#include "DiffThread.h"
+#include "diffThread.h"
+#include "DiffWrapper.h"
+
+#ifndef PluginManager_h_included
 #include "PluginManager.h"
-#include "FileFilterHelper.h"
-#include "DirCmpReport.h"
-#include "DirCompProgressBar.h"
-#include "IMDITab.h"
+#endif
+
+#ifndef REGEXP_H
+#include "RegExp.h"
+#endif
 
 class CDirView;
-struct IMergeDoc;
-typedef CTypedPtrList<CPtrList, IMergeDoc *> MergeDocPtrList;
+class CMergeDoc;
+typedef CTypedPtrList<CPtrList, CMergeDoc *> MergeDocPtrList;
 class DirDocFilterGlobal;
 class DirDocFilterByExtension;
+class CustomStatusCursor;
 class CTempPathContext;
-struct FileActionItem;
-struct FileLocation;
-
 /////////////////////////////////////////////////////////////////////////////
 // CDirDoc document
 
 /**
- * @brief Class for folder compare data.
- * This class is "document" class for folder compare. It has compare context,
- * which in turn has a list of differences and other compare result data.
- * This class also has compare statistics which are updated during compare.
- * GUI calls this class to operate with results.
+ * @brief Documentclass for directory compare
  */
-class CDirDoc : public CDocument, public IMDITab
+class CDirDoc : public CDocument
 {
 protected:
 	CDirDoc();           // protected constructor used by dynamic creation
@@ -47,13 +63,13 @@ protected:
 // Attributes
 public:
 	CTempPathContext *m_pTempPathContext;
-	int m_nDirs;
-	static int m_nDirsTemp;
-
 // Operations
 public:
-	bool CloseMergeDocs();
-	CDirView * GetMainView() const;
+	BOOL CloseMergeDocs();
+	CDirView * GetMainView();
+	CMergeDoc * GetMergeDocForDiff(BOOL * pNew);
+	BOOL ReusingDirDoc();
+	bool CanFrameClose();
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -61,7 +77,6 @@ public:
 	public:
 	virtual void Serialize(CArchive& ar);   // overridden for document i/o
 	virtual void SetTitle(LPCTSTR lpszTitle);
-	CString GetTooltipString() const;
 	protected:
 	virtual BOOL OnNewDocument();
 	virtual BOOL SaveModified();
@@ -69,116 +84,91 @@ public:
 
 // Implementation
 public:
-	void InitCompare(const PathContext & paths, bool bRecursive, CTempPathContext *);
-	void DiffThreadCallback(int& state);
+	void InitCompare(const PathContext & paths, BOOL bRecursive, CTempPathContext *);
 	void Rescan();
-	String GetDescription(int nIndex) const { return m_strDesc[nIndex]; };
-	bool GetReadOnly(int nIndex) const;
-	const bool *GetReadOnly(void) const;
-	void SetReadOnly(int nIndex, bool bReadOnly);
-	String GetReportFile() const { return m_sReportFile; }
-	void SetReportFile(const String& sReportFile) { m_sReportFile = sReportFile; }
-	const std::vector<String>& GetHiddenItems() const { return m_pCtxt->m_vCurrentlyHiddenItems; }
-	void SetHiddenItems(const std::vector<String>& hiddenItems) { m_pCtxt->m_vCurrentlyHiddenItems = hiddenItems; }
-	bool GetGeneratingReport() const { return m_bGeneratingReport; }
-	void SetGeneratingReport(bool bGeneratingReport) { m_bGeneratingReport = bGeneratingReport; }
-	void SetReport(DirCmpReport* pReport) { m_pReport.reset(pReport);  }
-	bool HasDirView() const { return m_pDirView != nullptr; }
+	BOOL GetRecursive() { return m_bRecursive; }
+	BOOL GetReadOnly(BOOL bLeft) const;
+	void SetReadOnly(BOOL bLeft, BOOL bReadOnly);
+	BOOL HasDirView() { return m_pDirView != NULL; }
 	void RefreshOptions();
 	void CompareReady();
-	void UpdateChangedItem(const PathContext & paths,
-		UINT nDiffs, UINT nTrivialDiffs, bool bIdentical);
+	void UpdateChangedItem(PathContext & paths,
+		UINT nDiffs, UINT nTrivialDiffs, BOOL bIdentical);
+	POSITION FindItemFromPaths(LPCTSTR pathLeft, LPCTSTR pathRight);
+	void SetDiffSide(UINT diffcode, int idx);
+	void SetDiffCompare(UINT diffcode, int idx);
 	void UpdateResources();
 	void InitStatusStrings();
-	void ReloadItemStatus(DIFFITEM *diffPos, int idx);
+	void ReloadItemStatus(UINT nIdx, BOOL bLeft, BOOL bRight);
 	void Redisplay();
 	virtual ~CDirDoc();
 	void SetDirView( CDirView *newView ); // TODO Perry
-	void AddMergeDoc(IMergeDoc * pMergeDoc);
-	void MergeDocClosing(IMergeDoc * pMergeDoc);
+	void AddMergeDoc(CMergeDoc * pMergeDoc);
+	void MergeDocClosing(CMergeDoc * pMergeDoc);
 	CDiffThread m_diffThread;
-	void UpdateHeaderPath(int nIndex);
+	void SetDiffStatus(UINT diffcode, UINT mask, int idx);
+	void SetDiffCounts(UINT diffs, UINT ignored, int idx);
+	void UpdateHeaderPath(BOOL bLeft);
 	void AbortCurrentScan();
-	void PauseCurrentScan();
-	void ContinueCurrentScan();
 	bool IsCurrentScanAbortable() const;
-	void SetDescriptions(const String strDesc[]);
-	void ApplyDisplayRoot(int nIndex, String &);
+	void SetDescriptions(const CString &strLeftDesc, const CString &strRightDesc);
+	void ApplyLeftDisplayRoot(CString &);
+	void ApplyRightDisplayRoot(CString &);
 
-	bool HasDiffs() const { return m_pCtxt != nullptr; }
+	void SetPluginPrediffSetting(const CString & filteredFilenames, int newsetting);
+	void FetchPluginInfos(const CString& filteredFilenames, 
+	                      PackingInfo ** infoUnpacker, PrediffingInfo ** infoPrediffer);
+	BOOL IsShowable(const DIFFITEM & di);
+
+	BOOL HasDiffs() const { return m_pCtxt != NULL; }
 	const CDiffContext & GetDiffContext() const { return *m_pCtxt; }
-	CDiffContext& GetDiffContext() { return *m_pCtxt.get(); }
-	void SetMarkedRescan() {m_bMarkedRescan = true; }
-	const CompareStats * GetCompareStats() const { return m_pCompareStats.get(); };
-	bool IsArchiveFolders() const;
-	PluginManager& GetPluginManager() { return m_pluginman; };
-	void Swap(int idx1, int idx2);
-	bool MoveableToNextDiff();
-	bool MoveableToPrevDiff();
-	void MoveToNextDiff(IMergeDoc *pMergeDoc);
-	void MoveToPrevDiff(IMergeDoc *pMergeDoc);
-	void MoveToFirstFile(IMergeDoc* pMergeDoc);
-	void MoveToLastFile(IMergeDoc* pMergeDoc);
-	void MoveToNextFile(IMergeDoc* pMergeDoc);
-	void MoveToPrevFile(IMergeDoc* pMergeDoc);
-	bool IsFirstFile();
-	bool IsLastFile();
-
-	bool CompareFilesIfFilesAreLarge(int nFiles, const FileLocation ifileloc[]);
+	DIFFITEM GetDiffByKey(POSITION key) const { return m_pCtxt->GetDiffAt(key); }
+	DIFFITEM & GetDiffRefByKey(POSITION key) { return m_pCtxt->GetDiffRefAt(key); }
+	CString GetLeftBasePath() const { return m_pCtxt->GetNormalizedLeft(); }
+	CString GetRightBasePath() const { return m_pCtxt->GetNormalizedRight(); }
+	void RemoveDiffByKey(POSITION key) { m_pCtxt->RemoveDiff(key); }
+	void SetMarkedRescan() {m_bMarkedRescan = TRUE; }
+	struct AllowUpwardDirectory
+	{
+		enum ReturnCode
+		{
+			Never,
+			No,
+			ParentIsRegularPath,
+			ParentIsTempPath
+		};
+	};
+	AllowUpwardDirectory::ReturnCode AllowUpwardDirectory(CString &leftParent, CString &rightParent);
+	void SetItemViewFlag(POSITION key, UINT flag, UINT mask);
+	void SetItemViewFlag(UINT flag, UINT mask);
 
 protected:
-	void InitDiffContext(CDiffContext *pCtxt);
-	void LoadLineFilterList(CDiffContext *pCtxt);
-	void LoadSubstitutionFiltersList(CDiffContext* pCtxt);
+	CDiffWrapper m_diffWrapper;
 
 	// Generated message map functions
 	//{{AFX_MSG(CDirDoc)
 		// NOTE - the ClassWizard will add and remove member functions here.
-	afx_msg void OnBnClickedComparisonStop();
-	afx_msg void OnBnClickedComparisonPause();
-	afx_msg void OnBnClickedComparisonContinue();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
 	// Implementation data
 private:
-	std::unique_ptr<CDiffContext> m_pCtxt; /**< Pointer to diff-data */
-	CDirView *m_pDirView; /**< Pointer to GUI */
-	std::unique_ptr<CompareStats> m_pCompareStats; /**< Compare statistics */
-	MergeDocPtrList m_MergeDocs; /**< List of file compares opened from this compare */
-	bool m_bRO[3]; /**< Is left/middle/right side read-only */
-	String m_strDesc[3]; /**< Left/middle/right side desription text */
-	String m_sReportFile;
+	CDiffContext *m_pCtxt; /**< Pointer to diff-data */
+	CDirView *m_pDirView;
+	CompareStats *m_pCompareStats;
+	MergeDocPtrList m_MergeDocs;
+	BOOL m_bROLeft; /**< Is left side read-only */
+	BOOL m_bRORight; /**< Is right side read-only */
+	BOOL m_bRecursive; /**< Is current compare recursive? */
+	CustomStatusCursor * m_statusCursor;
+	CString m_strLeftDesc; /**< Left side desription text */
+	CString m_strRightDesc; /**< Left side desription text */
 	PluginManager m_pluginman;
-	FileFilterHelper m_imgfileFilter;
-	bool m_bMarkedRescan; /**< If `true` next rescan scans only marked items */
-	bool m_bGeneratingReport;
-	std::unique_ptr<DirCmpReport> m_pReport;
-	FileFilterHelper m_fileHelper; /**< File filter helper */
-	std::unique_ptr<DirCompProgressBar> m_pCmpProgressBar;
+	BOOL m_bReuseCloses; /**< Are we closing because of reuse? */
+	BOOL m_bMarkedRescan; /**< If TRUE next rescan scans only marked items */
 };
 
-/**
- * @brief Set left/middle/right side readonly-status
- * @param nIndex Select side to set 
- * @param bReadOnly New status of selected side
- */
-inline void CDirDoc::SetReadOnly(int nIndex, bool bReadOnly)
-{
-	m_bRO[nIndex] = bReadOnly;
-}
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Developer Studio will insert additional declarations immediately before the previous line.
 
-/**
- * @brief Return left/middle/right side readonly-status
- * @param nIndex Select side to ask
- */
-inline bool CDirDoc::GetReadOnly(int nIndex) const
-{
-	return m_bRO[nIndex];
-}
-
-inline const bool *CDirDoc::GetReadOnly(void) const
-{
-	return m_bRO;
-}
-
+#endif // !defined(AFX_DIRDOC_H__0B17B4C1_356F_11D1_95CD_444553540000__INCLUDED_)

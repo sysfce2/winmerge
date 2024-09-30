@@ -1,9 +1,6 @@
-/**
- *  @file SortHeaderCtrl.h
- *
- *  @brief Declaration of CSortHeaderCtrl
- */ 
-#pragma once
+#ifndef __SORTHEADERCTRL_H__
+#define __SORTHEADERCTRL_H__
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CSortHeaderCtrl
@@ -19,7 +16,7 @@ public:
 // Attributes
 protected:
 	int 	m_nSortCol;
-	bool	m_bSortAsc;
+	BOOL	m_bSortAsc;
 
 // Operations
 public:
@@ -29,7 +26,8 @@ public:
 	//{{AFX_VIRTUAL(CSortHeaderCtrl)
 	//}}AFX_VIRTUAL
 
-	virtual int 	SetSortImage(int nCol, bool bAsc);
+	virtual void	DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
+	virtual int 	SetSortImage(int nCol, BOOL bAsc);
 
 // Implementation
 public:
@@ -42,3 +40,6 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 };
+
+#endif
+// __SORTHEADERCTRL_H__

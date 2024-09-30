@@ -4,22 +4,45 @@
  * @brief Implementation file for PathInfo and PathContext
  *
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: PathContext.cpp,v 1.7 2005/08/28 19:01:13 kimmov Exp $
 
-#include "pch.h"
+#include "stdafx.h"
 #include "PathContext.h"
-#include <cassert>
 #include "paths.h"
 
 /**
- * @brief Get path.
- * @param [in] sbNormalized true if path is wanted in normalized format.
+ * @brief Copy constructor.
  */
-String PathInfo::GetPath(bool bNormalized /*= true*/) const
+PathInfo::PathInfo(const PathInfo &pi)
+{
+	m_sPath = pi.m_sPath;
+}
+
+/**
+ * @brief Get path.
+ * @param [in] sbNormalized TRUE if path is wanted in normalized format.
+ */
+CString PathInfo::GetPath(BOOL bNormalized /*= TRUE*/) const
 { 
 	if (!bNormalized)
-		return paths::AddTrailingSlash(m_sPath);
+	{
+		if (!paths_EndsWithSlash(m_sPath))
+			return m_sPath + _T("\\");
+		else
+			return m_sPath;
+	}
 	else
 		return m_sPath;
+}
+
+/**
+ * @brief Set path.
+ * @param [in] sPath New path for item.
+ */
+void PathInfo::SetPath(CString sPath)
+{
+	m_sPath = sPath;
 }
 
 /**
@@ -27,177 +50,178 @@ String PathInfo::GetPath(bool bNormalized /*= true*/) const
  */
 void PathInfo::NormalizePath()
 {
-	paths::normalize(m_sPath);
+	paths_normalize(m_sPath);
 }
 
 PathContext::PathContext()
 {
-	m_nFiles = 0;
+
 }
 
-PathContext::PathContext(const String& sLeft)
+PathContext::PathContext(CString sLeft, CString sRight)
 {
-	m_nFiles = 1;
-	m_path[0].SetPath(sLeft);
-}
-
-PathContext::PathContext(const String& sLeft, const String& sRight)
-{
-	m_nFiles = 2;
-	m_path[0].SetPath(sLeft);
-	m_path[1].SetPath(sRight);
-}
-
-PathContext::PathContext(const String& sLeft, const String& sMiddle, const String& sRight)
-{
-	m_nFiles = 3;
-	m_path[0].SetPath(sLeft);
-	m_path[1].SetPath(sMiddle);
-	m_path[2].SetPath(sRight);
-}
-
-PathContext::PathContext(const std::vector<String> &paths)
-{
-	m_nFiles = static_cast<int>(paths.size());
-	for (size_t i = 0; i < paths.size(); i++)
-		m_path[i].SetPath(paths[i]);
-}
-
-String PathContext::GetAt(int nIndex) const
-{
-	assert(nIndex < m_nFiles);
-	return m_path[nIndex].GetPath();
-}
-
-String& PathContext::GetElement(int nIndex)
-{
-	assert(nIndex < m_nFiles);
-	return m_path[nIndex].GetRef();
-}
-
-void PathContext::SetAt(int nIndex, const String& newElement)
-{
-	assert(nIndex < m_nFiles);
-	m_path[nIndex].SetPath(newElement);
-}
-
-/**
- * @brief Empty m_path array
- */
-void PathContext::RemoveAll()
-{
-	m_nFiles = 0;
-	m_path[0].SetPath(_T(""));
-	m_path[1].SetPath(_T(""));
-	m_path[2].SetPath(_T(""));
+	m_pathLeft.SetPath(sLeft);
+	m_pathRight.SetPath(sRight);
 }
 
 /**
  * @brief Return left path.
- * @param [in] sNormalized If true normalized path is returned.
+ * @param [in] sNormalized If TRUE normalized path is returned.
  */
-String PathContext::GetLeft(bool bNormalized) const
+CString PathContext::GetLeft(BOOL bNormalized) const
 {
-	if (m_nFiles == 0)
-		return _T("");
-	return m_path[0].GetPath(bNormalized);
+	return m_pathLeft.GetPath(bNormalized);
 }
 
 /**
  * @brief Return right path.
- * @param [in] sNormalized If true normalized path is returned.
+ * @param [in] sNormalized If TRUE normalized path is returned.
  */
-String PathContext::GetRight(bool bNormalized) const
+CString PathContext::GetRight(BOOL bNormalized) const
 {
-	if (m_nFiles < 2)
-		return _T("");
-	return m_path[m_nFiles - 1].GetPath(bNormalized);
-}
-
-/**
- * @brief Return middle path.
- * @param [in] sNormalized If true normalized path is returned.
- */
-String PathContext::GetMiddle(bool bNormalized) const
-{
-	if (m_nFiles < 3)
-		return _T("");
-	return m_path[1].GetPath(bNormalized);
-}
-
-/**
- * @brief Return path
- * @param [in] index index of path to return
- * @param [in] sNormalized If true normalized path is returned.
- */
-String PathContext::GetPath(int index, bool bNormalized) const
-{
-	return m_path[index].GetPath(bNormalized);
+	return m_pathRight.GetPath(bNormalized);
 }
 
 /**
  * @brief Set left path.
  * @param [in] path New path for item.
  */
-void PathContext::SetLeft(const String& path, bool bNormalized)
+void PathContext::SetLeft(LPCTSTR path)
 {
-	if (m_nFiles == 0)
-		m_nFiles = 1;
-	m_path[0].SetPath(path);
-	if (bNormalized)
-		m_path[0].NormalizePath();
+	m_pathLeft.SetPath(path);
+	m_pathLeft.NormalizePath();
 }
 
 /**
  * @brief Set right path.
  * @param [in] path New path for item.
  */
-void PathContext::SetRight(const String& path, bool bNormalized)
+void PathContext::SetRight(LPCTSTR path)
 {
-	if (m_nFiles < 2)
-		m_nFiles = 2;
-	m_path[m_nFiles - 1].SetPath(path);
-	if (bNormalized)
-		m_path[m_nFiles - 1].NormalizePath();
+	m_pathRight.SetPath(path);
+	m_pathRight.NormalizePath();
 }
 
 /**
- * @brief Set middle path.
- * @param [in] path New path for item.
+ * @brief Destructor, deletes existing temp files.
  */
-void PathContext::SetMiddle(const String& path, bool bNormalized)
+TempFileContext::~TempFileContext()
 {
-	if (m_nFiles < 3)
+	if (FilesExist())
+		DeleteFiles();
+}
+
+/**
+ * @brief Create temp files.
+ *
+ * Creates new temp files. Temp files are named based on
+ * PathContext paths given as parameter.
+ *
+ * @param [in] paths PathContext whose paths are used as basis.
+ */
+BOOL TempFileContext::CreateFiles(const PathContext &paths)
+{
+	TCHAR strTempPath[MAX_PATH] = {0};
+
+	if (!::GetTempPath(MAX_PATH, strTempPath))
 	{
-		m_nFiles = 3;
-		m_path[2] = m_path[1];
+		LogErrorString(Fmt(_T("GetTempPath() failed: %s"),
+			GetSysError(GetLastError())));
+		return FALSE;
 	}
-	m_path[1].SetPath(path);
-	if (bNormalized)
-		m_path[1].NormalizePath();
+
+	m_sTempPath = strTempPath;
+
+	if (GetLeft().IsEmpty())
+	{
+		int nerr=0;
+		CString sTempPath = paths_GetTempFileName(strTempPath, _T("_LT"), &nerr);
+		if (sTempPath.IsEmpty())
+		{
+			LogErrorString(Fmt(_T("GetTempFileName() for left-side failed: %s"),
+				GetSysError(nerr)));
+			return FALSE;
+		}
+		SetLeft(sTempPath);
+
+		if (!paths.GetLeft().IsEmpty())
+		{
+			if (!::CopyFile(paths.GetLeft(), GetLeft(), FALSE))
+			{
+				LogErrorString(Fmt(_T("CopyFile() (copy left-side temp file) failed: %s"),
+					GetSysError(GetLastError())));
+				return FALSE;
+			}
+		}
+		::SetFileAttributes(GetLeft(), FILE_ATTRIBUTE_NORMAL);
+	}
+	
+	if (GetRight().IsEmpty())
+	{
+		TCHAR name[MAX_PATH];
+		if (!::GetTempFileName(strTempPath, _T("_RT"), 0, name))
+		{
+			LogErrorString(Fmt(_T("GetTempFileName() for right-side failed: %s"),
+				strTempPath, GetSysError(GetLastError())));
+			return FALSE;
+		}
+		SetRight(name);
+
+		if (!paths.GetRight().IsEmpty())
+		{
+			if (!::CopyFile(paths.GetRight(), GetRight(), FALSE))
+			{
+				LogErrorString(Fmt(_T("CopyFile() (copy right-side temp file) failed: %s"),
+					GetSysError(GetLastError())));
+				return FALSE;
+			}
+		}
+		::SetFileAttributes(GetRight(), FILE_ATTRIBUTE_NORMAL);
+	}
+	return TRUE;
 }
 
 /**
- * @brief Set path
- * @param [in] index index of path to set
- * @param [in] path New path for item.
+ * @brief Check if temp files exist.
+ * @return TRUE if one of temp files exist.
  */
-void PathContext::SetPath(int index, const String& path, bool bNormalized)
+BOOL TempFileContext::FilesExist()
 {
-	if (index >= sizeof(m_path)/sizeof(m_path[0]))
-		return;
-	if (index >= m_nFiles)
-		m_nFiles = index + 1;
-	m_path[index].SetPath(path);
-	if (bNormalized)
-		m_path[index].NormalizePath();
+	CFileStatus s1,s2;
+	BOOL bLeftExists = FALSE;
+	BOOL bRightExists = FALSE;
+
+	if (!GetLeft().IsEmpty())
+		bLeftExists = CFile::GetStatus(GetLeft(), s1);
+	if (!GetRight().IsEmpty())
+		bRightExists = CFile::GetStatus(GetRight(), s2);
+	
+	return bLeftExists || bRightExists;
+
 }
 
 /**
- * @brief Swap paths.
+ * @brief Delete temp files.
  */
-void PathContext::Swap(int nFromIndex, int nToIndex)
+void TempFileContext::DeleteFiles()
 {
-	if ((nFromIndex >= 0 && nFromIndex < m_nFiles) && (nToIndex >= 0 && nToIndex < m_nFiles))
-		m_path[nFromIndex].m_sPath.swap(m_path[nToIndex].m_sPath);
+	if (!GetLeft().IsEmpty())
+	{
+		if (!::DeleteFile(GetLeft()))
+		{
+			LogErrorString(Fmt(_T("DeleteFile(%s) (deleting left-side temp file) failed: %s"),
+				GetLeft(), GetSysError(GetLastError())));
+		}
+		SetLeft(_T(""));
+
+	}
+	if (!GetRight().IsEmpty())
+	{
+		if (!::DeleteFile(GetRight()))
+		{
+			LogErrorString(Fmt(_T("DeleteFile(%s) (deleting right-side temp file) failed: %s"),
+				GetRight(), GetSysError(GetLastError())));
+		}
+		SetRight(_T(""));
+	}
 }

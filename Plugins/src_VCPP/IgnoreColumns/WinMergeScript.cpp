@@ -2,11 +2,10 @@
 #include "stdafx.h"
 #include "IgnoreColumns.h"
 #include "WinMergeScript.h"
-#include "resource.h"
-#include <atlstr.h>
 
 /////////////////////////////////////////////////////////////////////////////
 // CWinMergeScript
+
 
 /** 
  * @brief Get the name of the current dll
@@ -17,52 +16,26 @@ LPTSTR GetDllFilename(LPTSTR name, int len)
 	name[len] = 0;
 	GetModuleFileName(_Module.GetModuleInstance(), name, len-1);
 	// find last backslash
-	TCHAR * lastslash = _tcsrchr(name, '/');
+	TCHAR * lastslash = _tcsrchr(name, _T('//'));
 	if (lastslash == 0)		
 		lastslash = name;
 	else
 		lastslash ++;
-	TCHAR * lastslash2 = _tcsrchr(lastslash, '\\');
+	TCHAR * lastslash2 = _tcsrchr(lastslash, _T('\\'));
 	if (lastslash2 == 0)		
 		lastslash2 = name;
 	else
 		lastslash2 ++;
 	if (lastslash2 != name)
-		lstrcpy(name, lastslash2);
+		strcpy(name, lastslash2);
 	return name;
 }
 
-CString KeyName()
+
+int CreateArrayFromFilename(int (* value)[2])
 {
-	TCHAR szKeyName[256];
 	TCHAR name[256+1];
 	GetDllFilename(name, 256);
-	lstrcpy(szKeyName, _T("Software\\Thingamahoochie\\WinMerge\\Plugins\\"));
-	lstrcat(szKeyName, name);
-	return szKeyName;
-}
-
-CString RegReadString(const CString& key, const CString& valuename, const CString& defaultValue)
-{
-	CRegKey reg;
-	if (reg.Open(HKEY_CURRENT_USER, key, KEY_READ) == ERROR_SUCCESS)
-	{
-		TCHAR value[512] = {0};
-		DWORD dwSize = sizeof(value) / sizeof(value[0]);
-		reg.QueryStringValue(valuename, value, &dwSize);
-		return value;
-	}
-	return defaultValue;
-}
-
-int CreateArrayFromRangeString(const TCHAR *rangestr, int (* value)[2])
-{
-	TCHAR name[256];
-
-	lstrcpy(name, rangestr);
-
-	if (name[0] == 0)
-		return 0;
 
 	// first pass : prepare the chunks
 	int nValue = 0;
@@ -74,11 +47,17 @@ int CreateArrayFromRangeString(const TCHAR *rangestr, int (* value)[2])
 		token = _tcstok( NULL, _T(",_") );
 	}
 
+	// pass first chunk 
+	nValue --;
+
 	if (value == 0)
 		// just return the number of values
 		return nValue;
 
-	token = name;
+	if (nValue == 0)
+		return nValue;
+
+	token = name + _tcslen(name) + 1;	// pass first chunk 
 	int i;
 	for (i = 0 ; i < nValue ; i++)
 	{
@@ -99,58 +78,6 @@ int CreateArrayFromRangeString(const TCHAR *rangestr, int (* value)[2])
 	return nValue;
 }
 
-CString CreateRangeStringFromArray(int nExcludedRanges, const int aExcludedRanges[][2])
-{
-	CString rangestr = _T("");
-	for (int i = 0; i < nExcludedRanges; ++i)
-	{
-		TCHAR value[256];
-		if (aExcludedRanges[i][0] > 0 && aExcludedRanges[i][1] > 0)
-		{
-			if (aExcludedRanges[i][0] == aExcludedRanges[i][1])
-			{
-				wsprintf(value, _T("%d"), aExcludedRanges[i][0]);
-				rangestr += value;
-			}
-			else
-			{
-				wsprintf(value, _T("%d-%d"), aExcludedRanges[i][0], aExcludedRanges[i][1]);
-				rangestr += value;
-			}
-			rangestr += _T(",");
-		}
-	}
-	if (!rangestr.IsEmpty())
-		rangestr.Delete(rangestr.GetLength() - 1);
-
-	return rangestr;
-}
-
-CString GetColumnRangeString()
-{
-	TCHAR name[256+1];
-	GetDllFilename(name, 256);
-	CString rangestr;
-	TCHAR * token = _tcspbrk(name, _T(",_"));
-	if (!token)
-		rangestr = RegReadString(KeyName(), _T("ColumnRanges"), _T(""));
-	else
-		rangestr = token + 1;
-	
-	int nExcludedRanges = CreateArrayFromRangeString(rangestr, NULL);
-	int (* aExcludedRanges)[2] = new int[nExcludedRanges][2];
-	if (aExcludedRanges == NULL)
-		nExcludedRanges = 0;
-	else
-		nExcludedRanges = CreateArrayFromRangeString(rangestr, aExcludedRanges);
-
-	rangestr = CreateRangeStringFromArray(nExcludedRanges, aExcludedRanges);
-
-	delete[] aExcludedRanges;
-
-	return rangestr;
-}
-
 
 STDMETHODIMP CWinMergeScript::get_PluginEvent(BSTR *pVal)
 {
@@ -160,37 +87,21 @@ STDMETHODIMP CWinMergeScript::get_PluginEvent(BSTR *pVal)
 
 STDMETHODIMP CWinMergeScript::get_PluginDescription(BSTR *pVal)
 {
-	*pVal = SysAllocString(L"Ignore some columns - ignored columns list from the plugin name or the plugin argument");
+	*pVal = SysAllocString(L"Ignore some columns - ignored columns list from the plugin name");
 	return S_OK;
 }
 
+// not used yet
 STDMETHODIMP CWinMergeScript::get_PluginFileFilters(BSTR *pVal)
 {
 	*pVal = SysAllocString(L"\\.txt$");
 	return S_OK;
 }
 
+// not used yet
 STDMETHODIMP CWinMergeScript::get_PluginIsAutomatic(VARIANT_BOOL *pVal)
 {
 	*pVal = VARIANT_TRUE;
-	return S_OK;
-}
-
-STDMETHODIMP CWinMergeScript::get_PluginArguments(BSTR *pVal)
-{
-	*pVal = m_bstrArguments.Copy();
-	return S_OK;
-}
-
-STDMETHODIMP CWinMergeScript::put_PluginArguments(BSTR val)
-{
-	m_bstrArguments = val;
-	return S_OK;
-}
-
-STDMETHODIMP CWinMergeScript::get_PluginExtendedProperties(BSTR *pVal)
-{
-	*pVal = SysAllocString(L"MenuCaption=Ignore Columns");
 	return S_OK;
 }
 
@@ -200,18 +111,13 @@ STDMETHODIMP CWinMergeScript::PrediffBufferW(BSTR *pText, INT *pSize, VARIANT_BO
 	long nSize = *pSize;
 	WCHAR * pEndText = pBeginText + nSize;
 
-	int argc = 0;
-	wchar_t **argv = CommandLineToArgvW(m_bstrArguments.m_str, &argc);
-	CString rangestr = (m_bstrArguments.Length() > 0 && argc > 0) ? argv[0] : GetColumnRangeString();
-	if (argv)
-		LocalFree(argv);
 
-	int nExcludedRanges = CreateArrayFromRangeString(rangestr, NULL);
+	int nExcludedRanges = CreateArrayFromFilename(NULL);
 	int (* aExcludedRanges)[2] = new int[nExcludedRanges][2];
 	if (aExcludedRanges == NULL)
 		nExcludedRanges = 0;
 	else
-		nExcludedRanges = CreateArrayFromRangeString(rangestr, aExcludedRanges);
+		nExcludedRanges = CreateArrayFromFilename(aExcludedRanges);
 
 	if (nExcludedRanges == 0)
 	{
@@ -319,42 +225,5 @@ STDMETHODIMP CWinMergeScript::PrediffBufferW(BSTR *pText, INT *pSize, VARIANT_BO
 		*pbChanged = VARIANT_TRUE;
 
 	*pbHandled = VARIANT_TRUE;
-	return S_OK;
-}
-
-INT_PTR CALLBACK DlgProc(HWND hWnd, UINT uiMsg, WPARAM wParam, LPARAM lParam)
-{
-	switch(uiMsg) {
-	case WM_INITDIALOG:
-		SetDlgItemText(hWnd, IDC_EDIT1, GetColumnRangeString());
-		return TRUE;
-
-	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK)
-		{
-			CRegKey	reg;
-			if (reg.Create(HKEY_CURRENT_USER, KeyName(), REG_NONE, REG_OPTION_NON_VOLATILE, KEY_WRITE) != ERROR_SUCCESS)
-				return FALSE;
-			TCHAR value[512] = {0};
-			GetDlgItemText(hWnd, IDC_EDIT1, value, sizeof(value)/sizeof(TCHAR));
-			reg.SetStringValue(_T("ColumnRanges"), value);
-			EndDialog(hWnd, IDOK);
-		}
-		else if (LOWORD(wParam) == IDCANCEL)
-		{
-			EndDialog(hWnd, IDCANCEL);
-		}
-		return TRUE;
-		break;
-
-	default:
-		break;
-	}
-	return FALSE;
-}
-
-STDMETHODIMP CWinMergeScript::ShowSettingsDialog(VARIANT_BOOL *pbHandled)
-{
-	*pbHandled = (DialogBox(_Module.GetModuleInstance(), MAKEINTRESOURCE(IDD_DIALOG1), NULL, DlgProc) == IDOK);
 	return S_OK;
 }

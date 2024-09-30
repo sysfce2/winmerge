@@ -3,20 +3,23 @@
  *
  *  @brief Declaration of DirScan module (see DirScan function)
  */ 
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: DirScan.h,v 1.9 2005/08/25 22:48:26 elsapo Exp $
 
-#include "UnicodeString.h"
+#ifndef DirScan_h_included
+#define DirScan_h_included
 
 class CDiffContext;
 class DiffItemList;
 class PathContext;
 class IAbortable;
-class DIFFITEM;
-struct DiffFuncStruct;
 
-int DirScan_GetItems(const PathContext &paths, const String subdir[], DiffFuncStruct *myStruct,
-		bool casesensitive, int depth, DIFFITEM *parent, bool bUniques);
-int DirScan_UpdateMarkedItems(DiffFuncStruct *myStruct, DIFFITEM *parentdiffpos);
+int DirScan_GetItems(const PathContext &paths, const CString & leftsubdir, const CString & rightsubdir, DiffItemList * pLst,
+		bool casesensitive, int depth, CDiffContext * pCtxt);
 
-int DirScan_CompareItems(DiffFuncStruct *, DIFFITEM *parentdiffpos);
-int DirScan_CompareRequestedItems(DiffFuncStruct *, DIFFITEM *parentdiffpos);
+int DirScan_CompareItems(DiffItemList & list, CDiffContext * pCtxt);
+int DirScan_CompareItems(CDiffContext * pCtxt);
+
+void DirScan_InitializeDefaultCodepage();
+
+#endif // DirScan_h_included

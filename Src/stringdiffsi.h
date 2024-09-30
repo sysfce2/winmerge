@@ -4,56 +4,23 @@
  * @brief Declaration file for class stringdiffs
  *
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: stringdiffsi.h,v 1.4 2005/07/24 00:19:28 elsapo Exp $
 
-#include <vector>
-#include "utils/icu.hpp"
-
-// Uncomment this to see stringdiff log messages
-// We don't use _DEBUG since stringdiff logging is verbose and slows down WinMerge
-//#define STRINGDIFF_LOGGING
-
-namespace strdiff
-{
+#ifndef stringdiffsi_h_included
+#define stringdiffsi_h_included
 
 /**
- * @brief kind of diff blocks.
- */
-enum
-{
-	dlword = 0,
-	dlspace,
-	dlbreak, 
-	dlinsert,
-	dlnumber,
-};
-/**
- * @brief kind of synchronaction
- */
-enum
-{
-	synbegin1 = 0, 
-	synbegin2,
-	synend1, 
-	synend2 
-};
-
-struct wdiff;
-
-/**
- * @brief Class to hold together data needed to implement strdiff::ComputeWordDiffs
+ * @brief Class to hold together data needed to implement sd_ComputeWordDiffs
  */
 class stringdiffs
 {
 public:
-	stringdiffs(const String & str1, const String & str2,
-		bool case_sensitive, bool eol_sensitive, int whitespace, bool ignore_numbers, int breakType,
-		std::vector<wdiff> * pDiffs);
-
-	~stringdiffs();
+	stringdiffs(const CString & str1, const CString & str2,
+		bool case_sensitive, int whitespace, int breakType,
+		wdiffarray * pDiffs);
 
 	void BuildWordDiffList();
-	void wordLevelToByteLevel();
 	void PopulateDiffs();
 
 // Implementation types
@@ -62,71 +29,36 @@ private:
 		int start; // index of first character of word in original string
 		int end;   // index of last character of word in original string
 		int hash;
-		int bBreak; // Is it a isWordBreak 0 = word -1= whitespace -2 = empty 1 = breakWord
-		word(int s = 0, int e = 0, int b = 0, int h = 0) : start(s), end(e), bBreak(b),hash(h) { }
-		inline int length() const { return end+1-start; }
+		word(int s=0, int e=0, int h=0) : start(s), end(e), hash(h) { }
+		int length() const { return end+1-start; }
 	};
+	typedef CArray<word, word&> wordarray;
+
 
 // Implementation methods
 private:
 
-	void ComputeByteDiff(const String& str1, const String& str2,
-			bool casitive, int xwhite, 
-			int begin[2], int end[2], bool equal);
-	std::vector<word> BuildWordsArray(const String & str) const;
-	unsigned Hash(const String & str, int begin, int end, unsigned h ) const;
+	void BuildWordsArray(const CString & str, wordarray * words);
+	bool findSync(int *w1, int *w2) const;
+	int FindNextMatchInWords2(const word & needword1, int bw2) const;
+	int FindNextMatchInWords1(const word & needword2, int bw1) const;
+
+	int hash(const CString & str, int begin, int end) const;
 	bool AreWordsSame(const word & word1, const word & word2) const;
-	bool IsWord(const word & word1) const;
-	/**
-	 * @brief Is this block an space or whitespace one?
-	 */
-	inline bool IsSpace(const word & word1) const
-	{
-		return (word1.bBreak == dlspace);
-	}
-	/**
-	 * @brief Is this block a number one?
-	 */
-	inline bool IsNumber(const word& word1) const
-	{
-		return (word1.bBreak == dlnumber);
-	}
-	/**
-	 * @brief Is this block a break?
-	 */
-	inline bool IsBreak(const word & word1) const
-	{
-		return (word1.bBreak == dlbreak || word1.bBreak == dlspace);
-	}
-	/**
-	 * @brief Is this block an empty (insert) one?
-	 */
-	inline bool IsInsert(const word & word1) const
-	{
-		return (word1.bBreak == dlinsert);
-	}
-	bool BuildWordDiffList_DP();
-	int dp(std::vector<char> & edscript);
-	int onp(std::vector<char> & edscript);
-	int snake(int k, int y, int M, int N, bool exchanged) const;
-#ifdef STRINGDIFF_LOGGING
-	void debugoutput();
-#endif
+	bool caseMatch(TCHAR ch1, TCHAR ch2) const;
 
 // Implementation data
 private:
-	const String & m_str1;
-	const String & m_str2;
+	const CString & m_str1;
+	const CString & m_str2;
+	bool m_case_sensitive;
 	int m_whitespace;
 	int m_breakType;
-	bool m_case_sensitive;
-	bool m_eol_sensitive;
-	bool m_ignore_numbers = false;
-	bool m_matchblock;
-	std::vector<wdiff> * m_pDiffs;
-	std::vector<word> m_words1;
-	std::vector<word> m_words2;
-	std::vector<wdiff> m_wdiffs;
+	wdiffarray * m_pDiffs;
+	wordarray m_words1;
+	wordarray m_words2;
+	wdiffarray m_wdiffs;
 };
 
-}
+
+#endif // stringdiffsi_h_included

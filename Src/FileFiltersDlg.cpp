@@ -1,50 +1,58 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+//    License (GPLv2+):
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or (at
+//    your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful, but
+//    WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/////////////////////////////////////////////////////////////////////////////
 /**
  * @file  FileFiltersDlg.cpp
  *
  * @brief Implementation of FileFilters -dialog
  */
+// RCS ID line follows -- this is updated by CVS
+// $Id: FileFiltersDlg.cpp,v 1.10.2.2 2006/05/14 21:00:51 kimmov Exp $
 
 #include "stdafx.h"
+#include "merge.h"
 #include "FileFiltersDlg.h"
-#include <vector>
-#include "UnicodeString.h"
-#include "Merge.h"
-#include "OptionsMgr.h"
-#include "OptionsDef.h"
+#include "coretools.h"
+#include "dllver.h"
 #include "FileFilterMgr.h"
-#include "FileFilterHelper.h"
 #include "paths.h"
 #include "SharedFilterDlg.h"
-#include "TestFilterDlg.h"
-#include "FileOrFolderSelect.h"
-#include "UniFile.h"
-#include "Constants.h"
-
-using std::vector;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
 #endif
 
-/** @brief Template file used when creating new filefilter. */
+/**
+ * @brief Template file used when creating new filefilter.
+ */
 static const TCHAR FILE_FILTER_TEMPLATE[] = _T("FileFilter.tmpl");
 
 /////////////////////////////////////////////////////////////////////////////
 // CFiltersDlg dialog
-IMPLEMENT_DYNCREATE(FileFiltersDlg, CTrPropertyPage)
+IMPLEMENT_DYNCREATE(FileFiltersDlg, CPropertyPage)
 
-/**
- * @brief Constructor.
- */
-FileFiltersDlg::FileFiltersDlg() : CTrPropertyPage(FileFiltersDlg::IDD)
+FileFiltersDlg::FileFiltersDlg() : CPropertyPage(FileFiltersDlg::IDD)
 {
-	m_strCaption = theApp.LoadDialogCaption(m_lpszTemplateName).c_str();
-	m_psp.pszTitle = m_strCaption;
-	m_psp.dwFlags |= PSP_USETITLE;
-	m_psp.hIcon = AfxGetApp()->LoadIcon(IDI_FILEFILTER);
-	m_psp.dwFlags |= PSP_USEHICON;
+	//{{AFX_DATA_INIT(FileFiltersDlg)
+		// NOTE: the ClassWizard will add member initialization here
+	//}}AFX_DATA_INIT
 }
+
 
 void FileFiltersDlg::DoDataExchange(CDataExchange* pDX)
 {
@@ -55,19 +63,16 @@ void FileFiltersDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(FileFiltersDlg, CTrPropertyPage)
+BEGIN_MESSAGE_MAP(FileFiltersDlg, CDialog)
 	//{{AFX_MSG_MAP(FileFiltersDlg)
 	ON_BN_CLICKED(IDC_FILTERFILE_EDITBTN, OnFiltersEditbtn)
 	ON_NOTIFY(NM_DBLCLK, IDC_FILTERFILE_LIST, OnDblclkFiltersList)
 	ON_WM_MOUSEMOVE()
-	ON_BN_CLICKED(IDC_FILTERFILE_TEST_BTN, OnBnClickedFilterfileTestButton)
 	ON_BN_CLICKED(IDC_FILTERFILE_NEWBTN, OnBnClickedFilterfileNewbutton)
 	ON_BN_CLICKED(IDC_FILTERFILE_DELETEBTN, OnBnClickedFilterfileDelete)
-	ON_COMMAND(ID_HELP, OnHelp)
 	//}}AFX_MSG_MAP
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_FILTERFILE_LIST, OnLvnItemchangedFilterfileList)
 	ON_NOTIFY(LVN_GETINFOTIP, IDC_FILTERFILE_LIST, OnInfoTip)
-	ON_BN_CLICKED(IDC_FILTERFILE_INSTALL, OnBnClickedFilterfileInstall)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -75,29 +80,26 @@ END_MESSAGE_MAP()
 
 /**
  * @brief Set array of filters.
- * @param [in] fileFilters Array of filters to show in the dialog.
  * @note Call this before actually showing the dialog.
  */
-void FileFiltersDlg::SetFilterArray(const vector<FileFilterInfo>& fileFilters)
+void FileFiltersDlg::SetFilterArray(FILEFILTER_INFOLIST * fileFilters)
 {
 	m_Filters = fileFilters;
 }
 
 /**
  * @brief Returns path (cont. filename) of selected filter
- * @return Full path to selected filter file.
  */
-String FileFiltersDlg::GetSelected()
+CString FileFiltersDlg::GetSelected()
 {
 	return m_sFileFilterPath;
 }
 
 /**
  * @brief Set path of selected filter.
- * @param [in] Path for selected filter.
  * @note Call this before actually showing the dialog.
  */
-void FileFiltersDlg::SetSelected(const String & selected)
+void FileFiltersDlg::SetSelected(CString selected)
 {
 	m_sFileFilterPath = selected;
 }
@@ -107,26 +109,29 @@ void FileFiltersDlg::SetSelected(const String & selected)
  */
 void FileFiltersDlg::InitList()
 {
+	CString title;
 	// Show selection across entire row.
-	// Also enable infotips.
-	m_listFilters.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_INFOTIP);
+	DWORD newstyle = LVS_EX_FULLROWSELECT;
+	// Also enable infotips if they have new enough version for our
+	// custom draw code
+	// LPNMLVCUSTOMDRAW->iSubItem not supported before comctl32 4.71
+	if (GetDllVersion(_T("comctl32.dll")) >= PACKVERSION(4,71))
+		newstyle |= LVS_EX_INFOTIP;
+	m_listFilters.SetExtendedStyle(m_listFilters.GetExtendedStyle() | newstyle);
 
-	const int lpx = CClientDC(this).GetDeviceCaps(LOGPIXELSX);
-	auto pointToPixel = [lpx](int point) { return MulDiv(point, lpx, 72); };
+	VERIFY(title.LoadString(IDS_FILTERFILE_NAMETITLE));
+	m_listFilters.InsertColumn(0, title,LVCFMT_LEFT, 150);
+	VERIFY(title.LoadString(IDS_FILTERFILE_DESCTITLE));
+	m_listFilters.InsertColumn(1, title, LVCFMT_LEFT, 350);
+	VERIFY(title.LoadString(IDS_FILTERFILE_PATHTITLE));
+	m_listFilters.InsertColumn(2, title,LVCFMT_LEFT, 350);
 
-	String title = _("Name");
-	m_listFilters.InsertColumn(0, title.c_str(), LVCFMT_LEFT, pointToPixel(112));
-	title = _("Description");
-	m_listFilters.InsertColumn(1, title.c_str(), LVCFMT_LEFT, pointToPixel(262));
-	title = _("Location");
-	m_listFilters.InsertColumn(2, title.c_str(), LVCFMT_LEFT, pointToPixel(262));
+	VERIFY(title.LoadString(IDS_USERCHOICE_NONE));
+	m_listFilters.InsertItem(1, title);
+	m_listFilters.SetItemText(0, 1, title);
+	m_listFilters.SetItemText(0, 2, title);
 
-	title = _("<None>");
-	m_listFilters.InsertItem(1, title.c_str());
-	m_listFilters.SetItemText(0, 1, title.c_str());
-	m_listFilters.SetItemText(0, 2, title.c_str());
-
-	const int count = (int) m_Filters.size();
+	int count = m_Filters->GetSize();
 
 	for (int i = 0; i < count; i++)
 	{
@@ -135,55 +140,31 @@ void FileFiltersDlg::InitList()
 }
 
 /**
- * @brief Select filter by index in the listview.
- * @param [in] index Index of filter to select.
- */
-void FileFiltersDlg::SelectFilterByIndex(int index)
-{
-	m_listFilters.SetItemState(index, LVIS_SELECTED, LVIS_SELECTED);
-	bool bPartialOk = false;
-	m_listFilters.EnsureVisible(index, bPartialOk);
-}
-
-/**
- * @brief Select filter by file path in the listview.
- * @param [in] path file path
- */
-void FileFiltersDlg::SelectFilterByFilePath(const String& path)
-{
-	for (size_t i = 0; i < m_Filters.size(); ++i)
-	{
-		if (m_Filters[i].fullpath == path)
-		{
-			SelectFilterByIndex(static_cast<int>(i + 1));
-			break;
-		}
-	}
-}
-
-/**
  * @brief Called before dialog is shown.
- * @return Always TRUE.
  */
 BOOL FileFiltersDlg::OnInitDialog()
 {
-	CTrPropertyPage::OnInitDialog();
+	CDialog::OnInitDialog();
 
 	InitList();
 
-	if (m_sFileFilterPath.empty())
+	CString desc;
+	if (m_sFileFilterPath.IsEmpty())
 	{
-		SelectFilterByIndex(0);
+		m_listFilters.SetItemState(0, LVIS_SELECTED, LVIS_SELECTED);
+		m_listFilters.EnsureVisible(0, FALSE);
 		return TRUE;
 	}
 
 	int count = m_listFilters.GetItemCount();
 	for (int i = 0; i < count; i++)
 	{
-		String desc = m_listFilters.GetItemText(i, 2);
-		if (strutils::compare_nocase(desc, m_sFileFilterPath) == 0)
+		m_listFilters.GetItemText(i, 2, desc.GetBuffer(MAX_PATH), MAX_PATH);
+		desc.ReleaseBuffer();
+		if (desc.CompareNoCase(m_sFileFilterPath) == 0)
 		{
-			SelectFilterByIndex(i);
+			m_listFilters.SetItemState(i, LVIS_SELECTED, LVIS_SELECTED);
+			m_listFilters.EnsureVisible(i, FALSE);
 		}
 	}
 
@@ -192,17 +173,16 @@ BOOL FileFiltersDlg::OnInitDialog()
 }
 
 /**
- * @brief Add filter from filter-list index to dialog.
- * @param [in] filterIndex Index of filter to add.
+ * @brief Add filter from filter-list index to dialog
  */
 void FileFiltersDlg::AddToGrid(int filterIndex)
 {
-	const FileFilterInfo & filterinfo = m_Filters.at(filterIndex);
-	const int item = filterIndex + 1;
-
-	m_listFilters.InsertItem(item, filterinfo.name.c_str());
-	m_listFilters.SetItemText(item, 1, filterinfo.description.c_str());
-	m_listFilters.SetItemText(item, 2, filterinfo.fullpath.c_str());
+	m_listFilters.InsertItem(filterIndex + 1,
+		m_Filters->GetAt(filterIndex).name);
+	m_listFilters.SetItemText(filterIndex + 1, 1,
+		m_Filters->GetAt(filterIndex).description);
+	m_listFilters.SetItemText(filterIndex + 1, 2,
+		m_Filters->GetAt(filterIndex).fullpath);
 }
 
 /**
@@ -210,10 +190,13 @@ void FileFiltersDlg::AddToGrid(int filterIndex)
  */
 void FileFiltersDlg::OnOK()
 {
-	int sel = m_listFilters.GetNextItem(-1, LVNI_SELECTED);
-	m_sFileFilterPath = m_listFilters.GetItemText(sel, 2);
+	CString path;
+	int sel =- 1;
 
-	AfxGetApp()->WriteProfileInt(_T("Settings"), _T("FilterStartPage"), GetParentSheet()->GetActiveIndex());
+	sel = m_listFilters.GetNextItem(sel, LVNI_SELECTED);
+	m_listFilters.GetItemText(sel, 2, path.GetBuffer(MAX_PATH),	MAX_PATH);
+	path.ReleaseBuffer();
+	m_sFileFilterPath = path;
 
 	CDialog::OnOK();
 }
@@ -232,6 +215,7 @@ void FileFiltersDlg::OnOK()
  */
 void FileFiltersDlg::OnFiltersEditbtn()
 {
+	CString path;
 	int sel =- 1;
 
 	sel = m_listFilters.GetNextItem(sel, LVNI_SELECTED);
@@ -239,24 +223,16 @@ void FileFiltersDlg::OnFiltersEditbtn()
 	// Can't edit first "None"
 	if (sel > 0)
 	{
-		String path = m_listFilters.GetItemText(sel, 2);
-		EditFileFilter(path);
+		m_listFilters.GetItemText(sel, 2, path.GetBuffer(MAX_PATH),
+			MAX_PATH);
+		path.ReleaseBuffer();
+
+		theApp.m_globalFileFilter.EditFileFilter(path);
 	}
 }
 
 /**
- * @brief Edit file filter in external editor.
- * @param [in] path Full path to file filter to edit.
- */
-void FileFiltersDlg::EditFileFilter(const String& path)
-{
-	CMergeApp::OpenFileToExternalEditor(path);
-}
-
-/**
- * @brief Edit selected filter when its double-clicked.
- * @param [in] pNMHDR List control item data.
- * @param [out] pResult Result of the action is returned in here.
+ * @brief Edit selected filter when its double-clicked
  */
 void FileFiltersDlg::OnDblclkFiltersList(NMHDR* pNMHDR, LRESULT* pResult)
 {
@@ -267,24 +243,9 @@ void FileFiltersDlg::OnDblclkFiltersList(NMHDR* pNMHDR, LRESULT* pResult)
 }
 
 /**
- * @brief Is item in list the <None> item?
- * @param [in] item Item to test.
- * @return true if item is <None> item.
- */
-bool FileFiltersDlg::IsFilterItemNone(int item) const
-{
-	String txtNone = _("<None>");
-	String txt = m_listFilters.GetItemText(item, 0);
-
-	return (strutils::compare_nocase(txt, txtNone) == 0);
-}
-
-/**
  * @brief Called when item state is changed.
  *
  * Disable Edit-button when "None" filter is selected.
- * @param [in] pNMHDR Listview item data.
- * @param [out] pResult Result of the action is returned in here.
  */
 void FileFiltersDlg::OnLvnItemchangedFilterfileList(NMHDR *pNMHDR, LRESULT *pResult)
 {
@@ -293,28 +254,38 @@ void FileFiltersDlg::OnLvnItemchangedFilterfileList(NMHDR *pNMHDR, LRESULT *pRes
 	// If item got selected
 	if (pNMLV->uNewState & LVIS_SELECTED)
 	{
-		String txtNone = _("<None>");
-		String txt = m_listFilters.GetItemText(pNMLV->iItem, 0);
+		CString txtNone;
+		CButton *btn = (CButton *) GetDlgItem(IDC_FILTERFILE_EDITBTN);
+		CButton *btnDel = (CButton *) GetDlgItem(IDC_FILTERFILE_DELETEBTN);
+		VERIFY(txtNone.LoadString(IDS_USERCHOICE_NONE));
+		CString txt = m_listFilters.GetItemText(pNMLV->iItem, 0);
 
-		bool isNone = strutils::compare_nocase(txt, txtNone) == 0;
-
-		EnableDlgItem(IDC_FILTERFILE_TEST_BTN, !isNone);
-		EnableDlgItem(IDC_FILTERFILE_EDITBTN, !isNone);
-		EnableDlgItem(IDC_FILTERFILE_DELETEBTN, !isNone);
+		if (txt.CompareNoCase(txtNone) == 0)
+		{
+			btn->EnableWindow(FALSE);
+			btnDel->EnableWindow(FALSE);
+		}
+		else
+		{
+			btn->EnableWindow(TRUE);
+			btnDel->EnableWindow(TRUE);
+		}
 	}
 	*pResult = 0;
 }
 
-/**
- * @brief Called before infotip is shown to get infotip text.
- * @param [in] pNMHDR Listview item data.
- * @param [out] pResult Result of the action is returned in here.
- */
+/// Called before infotip is shown to get infotip text
 void FileFiltersDlg::OnInfoTip(NMHDR * pNMHDR, LRESULT * pResult)
 {
 	LVHITTESTINFO lvhti = {0};
 	NMLVGETINFOTIP * pInfoTip = reinterpret_cast<NMLVGETINFOTIP*>(pNMHDR);
-	ASSERT(pInfoTip != nullptr);
+	ASSERT(pInfoTip);
+
+	if (GetDllVersion(_T("comctl32.dll")) < PACKVERSION(4,71))
+	{
+		// LPNMLVCUSTOMDRAW->iSubItem not supported before comctl32 4.71
+		return;
+	}
 
 	// Get subitem under mouse cursor
 	lvhti.pt = m_ptLastMousePos;
@@ -326,55 +297,43 @@ void FileFiltersDlg::OnInfoTip(NMHDR * pNMHDR, LRESULT * pResult)
 		if ((lvhti.flags & LVHT_ONITEMICON) || (lvhti.flags & LVHT_ONITEMLABEL))
 		{
 			// Set item text to tooltip
-			String strText = m_listFilters.GetItemText(lvhti.iItem, lvhti.iSubItem);
-			_tcscpy_s(pInfoTip->pszText, pInfoTip->cchTextMax, strText.c_str());
+			CString strText = m_listFilters.GetItemText(lvhti.iItem, lvhti.iSubItem);
+			_tcscpy(pInfoTip->pszText, strText);
 		}
 	}
 }
 
-/**
- * @brief Track mouse position for showing tooltips.
- * @param [in] nFlags Mouse movement flags.
- * @param [in] point Current mouse position.
- */
+/// Track mouse position for showing tooltips
 void FileFiltersDlg::OnMouseMove(UINT nFlags, CPoint point) 
 {
 	m_ptLastMousePos = point;
 	CDialog::OnMouseMove(nFlags, point);
 }
 
-/**
- * @brief Called when user presses "Test" button.
- *
- * Asks filename for new filter from user (using standard
- * file picker dialog) and copies template file to that
- * name. Opens new filterfile for editing.
- * @todo (At least) Warn if user puts filter to outside
- * filter directories?
- */
-void FileFiltersDlg::OnBnClickedFilterfileTestButton()
+/// Reload selected filter from disk (in case its been modified etc)
+void FileFiltersDlg::OnBnClickedReload()
 {
-	UpdateData(TRUE);
+	FileFilterMgr *pMgr = NULL;
+	FileFilter *pFilter = NULL;
+	CString path;
+	int sel =- 1;
 
-	int sel = m_listFilters.GetNextItem(-1, LVNI_SELECTED);
-	if (sel == -1)
-		return;
-	if (IsFilterItemNone(sel))
-		return;
-	
-	m_sFileFilterPath = m_listFilters.GetItemText(sel, 2);
+	sel = m_listFilters.GetNextItem(sel, LVNI_SELECTED);
 
-	// Ensure filter is up-to-date (user probably just edited it)
-	auto* pGlobalFileFilter = theApp.GetGlobalFileFilter();
-	pGlobalFileFilter->ReloadUpdatedFilters();
+	// Can't edit first "None"
+	if (sel > 0)
+	{
+		m_listFilters.GetItemText(sel, 2, path.GetBuffer(MAX_PATH),	MAX_PATH);
+		path.ReleaseBuffer();
 
-	FileFilterMgr *pMgr = pGlobalFileFilter->GetManager();
-	FileFilter * pFileFilter = pMgr->GetFilterByPath(m_sFileFilterPath);
-	if (pFileFilter == nullptr)
-		return;
+		pMgr = theApp.m_globalFileFilter.GetManager();
+		pFilter = pMgr->GetFilterByPath(path);
 
-	CTestFilterDlg dlg(this, pFileFilter, pMgr);
-	dlg.DoModal();
+		if (pFilter)
+		{
+			pMgr->ReloadFilterFromDisk(pFilter);
+		}
+	}
 }
 
 /**
@@ -385,60 +344,47 @@ void FileFiltersDlg::OnBnClickedFilterfileTestButton()
  * name. Opens new filterfile for editing.
  * @todo (At least) Warn if user puts filter to outside
  * filter directories?
- * @todo Can global filter path be empty (I think not - Kimmo).
  */
 void FileFiltersDlg::OnBnClickedFilterfileNewbutton()
 {
-	auto* pGlobalFileFilter = theApp.GetGlobalFileFilter();
-	String globalPath = pGlobalFileFilter->GetGlobalFilterPathWithCreate();
-	String userPath = pGlobalFileFilter->GetUserFilterPathWithCreate();
+	CString title;
 
-	if (globalPath.empty() && userPath.empty())
+	VERIFY(title.LoadString(IDS_FILEFILTER_SAVENEW));
+
+	CString globalPath = theApp.m_globalFileFilter.GetGlobalFilterPathWithCreate();
+	CString userPath = theApp.m_globalFileFilter.GetUserFilterPathWithCreate();
+
+	if (globalPath.IsEmpty() && userPath.IsEmpty())
 	{
-		AfxMessageBox(
-			_("User's filter file folder is not defined!\n\nPlease select filter folder in Options/System.").c_str(), MB_ICONSTOP);
 		return;
 	}
 
-	// Format path to template file
-	String templatePath = paths::ConcatPath(globalPath, FILE_FILTER_TEMPLATE);
+	CString templatePath(globalPath);
+	if (templatePath[templatePath.GetLength()-1] != '\\')
+		templatePath += "\\";
+	templatePath += FILE_FILTER_TEMPLATE;
 
-	if (paths::DoesPathExist(templatePath) != paths::IS_EXISTING_FILE)
+	CString path = (globalPath.IsEmpty() ? userPath : globalPath);
+
+	if (!globalPath.IsEmpty() && !userPath.IsEmpty())
 	{
-		String msg = strutils::format_string2(
-			_("Cannot find file filter template file!\n\nPlease copy file %1 to WinMerge/Filters -folder:\n%2."),
-			FILE_FILTER_TEMPLATE, templatePath);
-		AfxMessageBox(msg.c_str(), MB_ICONERROR);
-		return;
+		path = CSharedFilterDlg::PromptForNewFilter(this, globalPath, userPath);
+		if (path.IsEmpty()) return;
 	}
 
-	String path = globalPath.empty() ? userPath : globalPath;
-
-	if (!globalPath.empty() && !userPath.empty())
-	{
-		CSharedFilterDlg dlg(
-			GetOptionsMgr()->GetBool(OPT_FILEFILTER_SHARED) ? 
-				CSharedFilterDlg::SHARED : CSharedFilterDlg::PRIVATE);
-		if (dlg.DoModal() != IDOK)
-			return;
-		GetOptionsMgr()->SaveOption(OPT_FILEFILTER_SHARED, (dlg.GetSelectedFilterType() == CSharedFilterDlg::SHARED));
-		path = dlg.GetSelectedFilterType() == CSharedFilterDlg::SHARED ? globalPath : userPath;
-	}
-
-	if (path.length())
-		path = paths::AddTrailingSlash(path);
+	if (path.GetLength() && path[path.GetLength()-1] != '\\')
+		path += '\\';
 	
-	String s;
-	if (SelectFile(GetSafeHwnd(), s, false, path.c_str(), _("Select filename for new filter"),
-		_("File Filters (*.flt)|*.flt|All Files (*.*)|*.*||")))
+	CString s;
+	if (SelectFile(s, path, title, IDS_FILEFILTER_FILEMASK, FALSE))
 	{
 		// Fix file extension
 		TCHAR file[_MAX_FNAME] = {0};
 		TCHAR ext[_MAX_EXT] = {0};
 		TCHAR dir[_MAX_DIR] = {0};
 		TCHAR drive[_MAX_DRIVE] = {0};
-		_tsplitpath_s(s.c_str(), drive, _MAX_DRIVE, dir, _MAX_DIR, file, _MAX_FNAME, ext, _MAX_EXT);
-		if (ext[0] == '\0')
+		_tsplitpath(s, drive, dir, file, ext);
+		if (_tcslen(ext) == 0)
 		{
 			s += FileFilterExt;
 		}
@@ -450,78 +396,54 @@ void FileFiltersDlg::OnBnClickedFilterfileNewbutton()
 			s += FileFilterExt;
 		}
 
-		// Open-dialog asks about overwriting, so we can overwrite filter file
-		// user has already allowed it.
-		UniMemFile fileIn;
-		UniStdioFile fileOut;
-		if (!fileIn.OpenReadOnly(templatePath) || !fileOut.OpenCreate(s))
-		{
-			String msg = strutils::format_string1(
-				_( "Cannot copy filter template file to filter folder:\n%1\n\nPlease make sure the folder exists and is writable."),
-				templatePath);
-			AfxMessageBox(msg.c_str(), MB_ICONERROR);
-			return;
-		}
-		String lines;
-		fileIn.ReadStringAll(lines);
-		strutils::replace(lines, _T("${name}"), file);
-		fileOut.WriteString(lines);
-		fileIn.Close();
-		fileOut.Close();
+		CopyFile(templatePath, s, TRUE);
+		theApp.m_globalFileFilter.EditFileFilter(s);
+		FileFilterMgr *pMgr = theApp.m_globalFileFilter.GetManager();
+		pMgr->AddFilter(s);
 
-		EditFileFilter(s);
-		FileFilterMgr *pMgr = pGlobalFileFilter->GetManager();
-		int retval = pMgr->AddFilter(s);
-		if (retval == FILTER_OK)
-		{
-			// Remove all from filterslist and re-add so we can update UI
-			String selected;
-			pGlobalFileFilter->LoadAllFileFilters();
-			m_Filters = pGlobalFileFilter->GetFileFilters(selected);
+		// Remove all from filterslist and re-add so we can update UI
+		CString selected;
+		m_Filters->RemoveAll();
+		theApp.m_globalFileFilter.LoadAllFileFilters();
+		theApp.m_globalFileFilter.GetFileFilters(m_Filters, selected);
 
-			UpdateFiltersList();
-			SelectFilterByFilePath(s);
-		}
+		UpdateFiltersList();
 	}
 }
 
 /**
  * @brief Delete selected filter.
+ * @todo Error message for failed file delete?
  */
 void FileFiltersDlg::OnBnClickedFilterfileDelete()
 {
-	String path;
+	CString path;
 	int sel =- 1;
 
 	sel = m_listFilters.GetNextItem(sel, LVNI_SELECTED);
 
-	// Can't delete first "None"
+	// Can't edit first "None"
 	if (sel > 0)
 	{
-		path = m_listFilters.GetItemText(sel, 2);
+		m_listFilters.GetItemText(sel, 2, path.GetBuffer(MAX_PATH),	MAX_PATH);
+		path.ReleaseBuffer();
 
-		String sConfirm = strutils::format_string1(_("Are you sure you want to delete\n\n%1 ?"), path);
-		int res = AfxMessageBox(sConfirm.c_str(), MB_ICONWARNING | MB_YESNO);
+		CString sConfirm;
+		AfxFormatString1(sConfirm, IDS_CONFIRM_DELETE_SINGLE, path);
+		int res = AfxMessageBox(sConfirm, MB_ICONQUESTION | MB_YESNO);
 		if (res == IDYES)
 		{
-			if (DeleteFile(path.c_str()))
+			if (DeleteFile(path))
 			{
-				auto* pGlobalFileFilter = theApp.GetGlobalFileFilter();
-				FileFilterMgr *pMgr = pGlobalFileFilter->GetManager();
+				FileFilterMgr *pMgr = theApp.m_globalFileFilter.GetManager();
 				pMgr->RemoveFilter(path);
 				
 				// Remove all from filterslist and re-add so we can update UI
-				String selected;
-				m_Filters = pGlobalFileFilter->GetFileFilters(selected);
+				CString selected;
+				m_Filters->RemoveAll();
+				theApp.m_globalFileFilter.GetFileFilters(m_Filters, selected);
 
 				UpdateFiltersList();
-			}
-			else
-			{
-				String msg = strutils::format_string1(
-					_("Failed to delete the filter file:\n%1\n\nMaybe the file is read-only?"),
-					path);
-				AfxMessageBox(msg.c_str(), MB_ICONSTOP);
 			}
 		}
 	}
@@ -532,80 +454,19 @@ void FileFiltersDlg::OnBnClickedFilterfileDelete()
  */
 void FileFiltersDlg::UpdateFiltersList()
 {
-	int count = (int) m_Filters.size();
+	int count = m_Filters->GetSize();
+	int listItems = m_listFilters.GetItemCount();
 
 	m_listFilters.DeleteAllItems();
 
-	String title = _("<None>");
-	m_listFilters.InsertItem(1, title.c_str());
-	m_listFilters.SetItemText(0, 1, title.c_str());
-	m_listFilters.SetItemText(0, 2, title.c_str());
+	CString title;
+	VERIFY(title.LoadString(IDS_USERCHOICE_NONE));
+	m_listFilters.InsertItem(1, title);
+	m_listFilters.SetItemText(0, 1, title);
+	m_listFilters.SetItemText(0, 2, title);
 
 	for (int i = 0; i < count; i++)
 	{
 		AddToGrid(i);
-	}
-}
-
-/**
- * @brief Open help from mainframe when user presses F1
- */
-void FileFiltersDlg::OnHelp()
-{
-	theApp.ShowHelp(FilterHelpLocation);
-}
-
-/**
- * @brief Install new filter.
- * This function is called when user selects "Install" button from GUI.
- * Function allows easy installation of new filters for user. For example
- * when user has downloaded filter file from net. First we ask user to
- * select filter to install. Then we copy selected filter to private
- * filters folder.
- */
-void FileFiltersDlg::OnBnClickedFilterfileInstall()
-{
-	auto* pGlobalFileFilter = theApp.GetGlobalFileFilter();
-	String s;
-	String path;
-
-	if (SelectFile(GetSafeHwnd(), s, true, path.c_str(),_("Locate filter file to install"),
-		_("File Filters (*.flt)|*.flt|All Files (*.*)|*.*||")))
-	{
-		String userPath = pGlobalFileFilter->GetUserFilterPathWithCreate();
-		userPath = paths::ConcatPath(userPath, paths::FindFileName(s));
-		if (!CopyFile(s.c_str(), userPath.c_str(), TRUE))
-		{
-			// If file already exists, ask from user
-			// If user wants to, overwrite existing filter
-			if (paths::DoesPathExist(userPath) == paths::IS_EXISTING_FILE)
-			{
-				int res = LangMessageBox(IDS_FILEFILTER_OVERWRITE, MB_YESNO |
-					MB_ICONWARNING);
-				if (res == IDYES)
-				{
-					if (!CopyFile(s.c_str(), userPath.c_str(), FALSE))
-					{
-						LangMessageBox(IDS_FILEFILTER_INSTALLFAIL, MB_ICONSTOP);
-					}
-				}
-			}
-			else
-			{
-				LangMessageBox(IDS_FILEFILTER_INSTALLFAIL, MB_ICONSTOP);
-			}
-		}
-		else
-		{
-			FileFilterMgr *pMgr = pGlobalFileFilter->GetManager();
-			pMgr->AddFilter(userPath);
-
-			// Remove all from filterslist and re-add so we can update UI
-			String selected;
-			m_Filters = pGlobalFileFilter->GetFileFilters(selected);
-
-			UpdateFiltersList();
-			SelectFilterByFilePath(userPath);
-		}
 	}
 }

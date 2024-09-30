@@ -1,57 +1,85 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/////////////////////////////////////////////////////////////////////////////
+//    License (GPLv2+):
+//    This program is free software; you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation; either version 2 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful, but
+//    WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program; if not, write to the Free Software
+//    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+/////////////////////////////////////////////////////////////////////////////
 /** 
  * @file  PatchDlg.h
  *
  * @brief Declaration file for patch creation dialog
  */
-#pragma once
+// RCS ID line follows -- this is updated by CVS
+// $Id: PatchDlg.h,v 1.9 2004/03/22 13:47:00 kimmov Exp $
+
+#if !defined(AFX_PATCHDLG_H__AB3CE671_1328_11D7_B088_005004D9D386__INCLUDED_)
+#define AFX_PATCHDLG_H__AB3CE671_1328_11D7_B088_005004D9D386__INCLUDED_
+
 
 #include "resource.h"
-#include "TrDialogs.h"
 #include "SuperComboBox.h"
-#include "UnicodeString.h"
-
-struct PATCHFILES;
 
 /////////////////////////////////////////////////////////////////////////////
 // PatchDlg dialog
 
 /** 
- * @brief Dialog class for Generate Patch -dialog.
- * This dialog allows user to select files from which to create a patch,
- * patch file's filename and several options related to patch.
+ * @brief Filepair to create patch
  */
-class CPatchDlg : public CTrDialog
+struct PATCHFILES
+{
+	CString lfile;
+	CString rfile;
+	time_t ltime, rtime;
+};
+
+/** 
+ * @brief Dialog class for Generate Patch -dialog
+ */
+class CPatchDlg : public CDialog
 {
 // Construction
 public:
-	explicit CPatchDlg(CWnd* pParent = nullptr);   // standard constructor
-
+	CPatchDlg(CWnd* pParent = NULL);   // standard constructor
+	
 	// Functions to add and get selected files (as PATCHFILEs)
-	void AddItem(const PATCHFILES& pf);
-	size_t GetItemCount();
-	const PATCHFILES& GetItemAt(size_t position);
+	void AddItem(PATCHFILES pf);
+	int GetItemCount();
+	POSITION GetFirstItem();
+	PATCHFILES GetNextItem(POSITION &pos);
+	void SetItemAt(POSITION pos, PATCHFILES pf);
 	void ClearItems();
 
 // Dialog Data
 	//{{AFX_DATA(CPatchDlg)
 	enum { IDD = IDD_GENERATE_PATCH };
 	CComboBox m_comboStyle;
-	CSuperComboBox m_comboContext;
+	CComboBox m_comboContext;
+	BOOL m_caseSensitive;
 	CSuperComboBox m_ctlFile1;
 	CSuperComboBox m_ctlFile2;
 	CSuperComboBox m_ctlResult;
-	String	m_file1;
-	String	m_file2;
-	String	m_fileResult;
-	bool m_copyToClipboard;
-	bool m_appendFile;
-	bool m_openToEditor;
-	bool m_includeCmdLine;
+	CString	m_file1;
+	CString	m_file2;
+	CString	m_fileResult;
+	BOOL m_ignoreBlanks;
+	int m_whitespaceCompare;
+	BOOL m_appendFile;
+	BOOL m_openToEditor;
+	BOOL m_includeCmdLine;
 	//}}AFX_DATA
 
-	enum output_style m_outputStyle; /**< Patch style (context, unified etc.) */
-	int m_contextLines; /**< How many context lines are added. */
+	enum output_style m_outputStyle;
+	int m_contextLines;
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -63,64 +91,30 @@ public:
 // Implementation
 protected:
 
-	std::vector<PATCHFILES> m_fileList; /**< Source files to create patch from */
-
-	void UpdateSettings();
+	CList<PATCHFILES, PATCHFILES> m_fileList;
+	
+	void ChangeFile(CString sFile, BOOL bLeft);
 	void LoadSettings();
 	void SaveSettings();
-	void Swap();
 
 	// Generated message map functions
 	//{{AFX_MSG(CPatchDlg)
-	virtual void OnOK() override;
-	virtual BOOL OnInitDialog() override;
+	virtual void OnOK();
+	virtual BOOL OnInitDialog();
 	afx_msg void OnDiffBrowseFile1();
 	afx_msg void OnDiffBrowseFile2();
 	afx_msg void OnDiffBrowseResult();
+	afx_msg void OnSelchangeFile1Combo();
+	afx_msg void OnSelchangeFile2Combo();
+	afx_msg void OnSelchangeResultCombo();
 	afx_msg void OnSelchangeDiffStyle();
 	afx_msg void OnDiffSwapFiles();
 	afx_msg void OnDefaultSettings();
-	afx_msg void OnSelchangeFile1();
-	afx_msg void OnSelchangeFile2();
-	afx_msg void OnEditchangeFile1();
-	afx_msg void OnEditchangeFile2();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
 
-/** 
- * @brief Add patch item to internal list.
- * @param [in] pf Patch item to add.
- */
-inline void CPatchDlg::AddItem(const PATCHFILES& pf)
-{
-	m_fileList.push_back(pf);
-}
+//{{AFX_INSERT_LOCATION}}
+// Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 
-/** 
- * @brief Returns amount of patch items in the internal list.
- * @return Count of patch items in the list.
- */
-inline size_t CPatchDlg::GetItemCount()
-{
-	return m_fileList.size();
-}
-
-/** 
- * @brief Return item in the internal list at given position
- * @param [in] position Zero-based index of item to get
- * @return PATCHFILES from given position.
- */
-inline const PATCHFILES& CPatchDlg::GetItemAt(size_t position)
-{
-	return m_fileList.at(position);
-}
-
-/** 
- * @brief Empties internal item list.
- */
-inline void CPatchDlg::ClearItems()
-{
-	m_fileList.clear();
-}
-
+#endif // !defined(AFX_PATCHDLG_H__AB3CE671_1328_11D7_B088_005004D9D386__INCLUDED_)
