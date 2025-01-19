@@ -148,8 +148,7 @@ public:
 	HMENU NewWebPageDiffViewMenu();
 	HMENU NewOpenViewMenu();
 	HMENU NewDefaultMenu(int ID = 0);
-	HMENU GetPrediffersSubmenu(HMENU mainMenu);
-	void UpdatePrediffersMenu();
+	void UpdatePrediffersMenu(CMenu* pPredifferMenu);
 
 	bool DoFileOrFolderOpen(const PathContext *pFiles = nullptr,
 		const fileopenflags_t dwFlags[] = nullptr, const String strDesc[] = nullptr,
@@ -413,6 +412,8 @@ protected:
 	afx_msg void OnUpdateDiffIgnoreCP(CCmdUI* pCmdUI);
 	afx_msg void OnDiffIgnoreComments();
 	afx_msg void OnUpdateDiffIgnoreComments(CCmdUI* pCmdUI);
+	afx_msg void OnDiffIgnoreMissingTrailingEol();
+	afx_msg void OnUpdateDiffIgnoreMissingTrailingEol(CCmdUI* pCmdUI);
 	afx_msg void OnIncludeSubfolders();
 	afx_msg void OnUpdateIncludeSubfolders(CCmdUI* pCmdUI);
 	afx_msg void OnCompareMethod(UINT nID);
@@ -435,6 +436,9 @@ protected:
 	afx_msg LRESULT OnChildFrameActivate(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnChildFrameActivated(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnUpdateMenuBarMenuItem(CCmdUI* pCmdUI);
+	afx_msg void OnViewMenuBar();
+	afx_msg void OnUpdateViewMenuBar(CCmdUI* pCmdUI);
+	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
@@ -452,6 +456,7 @@ private:
 	void LoadToolbarImages();
 	HMENU NewMenu( int view, int ID );
 	bool CompareFilesIfFilesAreLarge(IDirDoc* pDirDoc, int nFiles, const FileLocation ifileloc[]);
+	void UpdateSystemMenu();
 	std::unique_ptr<WCHAR[]> m_upszLongTextW;
 	std::unique_ptr<CHAR[]> m_upszLongTextA;
 };

@@ -8,6 +8,11 @@
 
 #include "StdAfx.h"
 #include "TitleBarHelper.h"
+#include "AccentColor.h"
+
+#if !defined(SM_CXPADDEDBORDER)
+#define SM_CXPADDEDBORDER       92
+#endif
 
 CTitleBarHelper::CTitleBarHelper()
 	: m_pWnd(nullptr)
@@ -18,7 +23,15 @@ CTitleBarHelper::CTitleBarHelper()
 	, m_bMouseTracking(false)
 	, m_nTrackingButton(-1)
 	, m_nHitTest(HTNOWHERE)
+	, m_icon(nullptr)
+	, m_icon_gray(nullptr)
 {
+}
+
+CTitleBarHelper::~CTitleBarHelper()
+{
+	if (m_icon_gray)
+		DestroyIcon(m_icon_gray);
 }
 
 void CTitleBarHelper::Init(CWnd *pWnd)
@@ -26,14 +39,17 @@ void CTitleBarHelper::Init(CWnd *pWnd)
 	m_pWnd = pWnd;
 }
 
-void CTitleBarHelper::DrawIcon(CWnd* pWnd, CDC& dc)
+int CTitleBarHelper::GetTopMargin() const
 {
-	HICON hIcon = (HICON)pWnd->SendMessage(WM_GETICON, ICON_SMALL2, 0);
-	if (hIcon == nullptr)
-		hIcon = (HICON)GetClassLongPtr(pWnd->m_hWnd, GCLP_HICONSM);
+	return 0;
+}
+
+void CTitleBarHelper::DrawIcon(CWnd* pWnd, CDC& dc, bool active)
+{
+	HICON hIcon = LazyLoadIcon(pWnd, active);
 	if (hIcon == nullptr)
 		return;
-	const int topMargin = (m_maximized ? -m_rc.top : 0);
+	const int topMargin = GetTopMargin();
 	const int height = m_size.cy - topMargin;
 	const int cx = PointToPixel(12.f);
 	const int cy = PointToPixel(12.f);
@@ -63,7 +79,7 @@ static void DrawRoundedRectangle(Gdiplus::Graphics& graphics, Gdiplus::Pen& pen,
 	graphics.DrawPath(&pen, &path);
 }
 
-void CTitleBarHelper::DrawButtons(CDC& dc)
+void CTitleBarHelper::DrawButtons(CDC& dc, COLORREF textColor, COLORREF backColor)
 {
 	Gdiplus::Graphics graphics(dc.m_hDC);
 	CRect rcIcons[3], rcButtons[3];
@@ -81,9 +97,9 @@ void CTitleBarHelper::DrawButtons(CDC& dc)
 		COLORREF colorref;
 		Gdiplus::Color color;
 		if (m_nTrackingButton == i)
-			colorref = (i == 2) ? RGB(0xE9, 0x48, 0x56) : GetIntermediateColor(GetSysColor(COLOR_3DFACE), GetSysColor(COLOR_WINDOW), 0.66f);
+			colorref = (i == 2) ? RGB(0xE9, 0x48, 0x56) : GetIntermediateColor(backColor, GetSysColor(COLOR_WINDOW), 0.66f);
 		else
-			colorref = GetSysColor(COLOR_3DFACE);
+			colorref = backColor;
 		color.SetFromCOLORREF(colorref);
 		Gdiplus::SolidBrush brush(color);
 		graphics.FillRectangle(&brush, rcButtons[i].left, rcButtons[i].top, rcButtons[i].Width(), rcButtons[i].Height());
@@ -92,7 +108,7 @@ void CTitleBarHelper::DrawButtons(CDC& dc)
 	graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
 
 	Gdiplus::Color penColor;
-	penColor.SetFromCOLORREF(GetSysColor(COLOR_WINDOWTEXT));
+	penColor.SetFromCOLORREF(textColor);
 	Gdiplus::Pen pen(penColor, PointToPixelF(0.75));
 
 	// minimize button
@@ -113,7 +129,7 @@ void CTitleBarHelper::DrawButtons(CDC& dc)
 	}
 
 	// close button
-	penColor.SetFromCOLORREF(m_nTrackingButton != 2 ? GetSysColor(COLOR_WINDOWTEXT) : RGB(255, 255, 255));
+	penColor.SetFromCOLORREF(m_nTrackingButton != 2 ? textColor : RGB(255, 255, 255));
 	Gdiplus::Pen pen2(penColor, PointToPixelF(0.75));
 	graphics.DrawLine(&pen2, Gdiplus::Point(rcIcons[2].left, rcIcons[2].top), Gdiplus::Point(rcIcons[2].right, rcIcons[2].bottom));
 	graphics.DrawLine(&pen2, Gdiplus::Point(rcIcons[2].left, rcIcons[2].bottom), Gdiplus::Point(rcIcons[2].right, rcIcons[2].top));
@@ -123,47 +139,50 @@ CRect CTitleBarHelper::GetButtonRect(int button) const
 {
 	CRect rcPart;
 	const float buttonWidth = PointToPixelF(m_rightMargin) / 3.f;
-	const int topMargin = (m_maximized ? -m_rc.top : 0);
-	rcPart.top = topMargin;
+	rcPart.top = GetTopMargin();
 	rcPart.bottom = m_size.cy;
 	rcPart.left = static_cast<int>(m_size.cx - (3 - button) * buttonWidth);
-	rcPart.right = static_cast<int>(rcPart.left + buttonWidth);
+	rcPart.right = static_cast<int>(m_size.cx - (3 - button) * buttonWidth + buttonWidth + 0.5);
 	return rcPart;
 }
 
-void CTitleBarHelper::OnSize(bool maximized, int cx, int cy)
+void CTitleBarHelper::SetSize(int cx, int cy)
 {
 	m_size = CSize(cx, cy);
-	m_maximized = maximized;
 	CClientDC dc(m_pWnd);
 	m_dpi = dc.GetDeviceCaps(LOGPIXELSX);
-	m_pWnd->GetWindowRect(&m_rc);
 }
 
 LRESULT CTitleBarHelper::OnNcHitTest(CPoint pt)
 {
 	if (!m_pWnd)
 		return HTNOWHERE;
-	CClientDC dc(m_pWnd);
 	const int leftMargin = PointToPixel(m_leftMargin);
 	const int rightMargin = PointToPixel(m_rightMargin);
 	const int borderWidth = PointToPixel(6);
 	CRect rc;
-	m_pWnd->GetWindowRect(&rc);
-	if (pt.y < rc.top + borderWidth)
+	AfxGetMainWnd()->GetWindowRect(&rc);
+	if (!m_maximized)
 	{
+		if (pt.y < rc.top + borderWidth)
+		{
+			if (pt.x < rc.left + borderWidth)
+				return HTTOPLEFT;
+			else if (rc.right - borderWidth <= pt.x)
+				return HTTOPRIGHT;
+			return HTTOP;
+		}
 		if (pt.x < rc.left + borderWidth)
-			return HTTOPLEFT;
-		else if (rc.right - borderWidth <= pt.x)
-			return HTTOPRIGHT;
-		return HTTOP;
+			return HTLEFT;
+		if (rc.right - borderWidth <= pt.x)
+			return HTRIGHT;
 	}
-	if (pt.x < rc.left + borderWidth)
-		return HTLEFT;
-	if (rc.right - borderWidth <= pt.x)
-		return HTRIGHT;
 	if (pt.x < rc.left + leftMargin)
+	{
+		if (pt.x > rc.left + leftMargin * 2 / 3)
+			return HTCAPTION;
 		return HTSYSMENU;
+	}
 	for (int i = 0; i < 3; i++)
 	{
 		static const int htbuttons[]{ HTMINBUTTON, HTMAXBUTTON, HTCLOSE };
@@ -275,4 +294,116 @@ COLORREF CTitleBarHelper::GetIntermediateColor(COLORREF a, COLORREF b, float rat
 	const uint8_t G = static_cast<int8_t>((GetGValue(a) - GetGValue(b)) * ratio) + GetGValue(b);
 	const uint8_t B = static_cast<int8_t>((GetBValue(a) - GetBValue(b)) * ratio) + GetBValue(b);
 	return RGB(R, G, B);
+}
+
+COLORREF CTitleBarHelper::GetBackColor(bool bActive)
+{
+	if (!CAccentColor::Get().GetColorPrevalence())
+	{
+		const COLORREF clr = GetSysColor(COLOR_3DFACE);
+		const COLORREF bgclr = bActive ?
+			RGB(GetRValue(clr), std::clamp(GetGValue(clr) + 8, 0, 255), std::clamp(GetBValue(clr) + 8, 0, 255))
+			: clr;
+		return bgclr;
+	}
+	const COLORREF czclr = (!bActive) ?
+		CAccentColor::Get().GetAccentColorInactive() :
+		CAccentColor::Get().GetAccentColor();
+	return czclr != CLR_NONE ? czclr : GetSysColor(COLOR_3DFACE);
+}
+
+COLORREF CTitleBarHelper::GetTextColor(bool bActive)
+{
+	if (!CAccentColor::Get().GetColorPrevalence())
+		return GetSysColor(COLOR_BTNTEXT);
+	if (!bActive)
+	{
+		const COLORREF clr = GetBackColor(false);
+		if (GetRValue(clr) < 128 && GetGValue(clr) < 128 && GetBValue(clr) < 128)
+			return RGB(191, 191, 191);
+		return RGB(64, 64, 64);
+	}
+	const COLORREF czclr = CAccentColor::Get().GetAccentColor();
+	if (czclr != CLR_NONE)
+	{
+		const BYTE r = static_cast<BYTE>(czclr >> 16);
+		const BYTE g = static_cast<BYTE>(czclr >> 8);
+		const BYTE b = static_cast<BYTE>(czclr);
+		if (r < 128 && g < 128 && b < 128)
+			return RGB(255, 255, 255);
+		return RGB(0, 0, 0);
+	}
+	return GetSysColor(COLOR_BTNTEXT);
+}
+
+void CTitleBarHelper::ReloadAccentColor()
+{
+	CAccentColor::Get().Reload();
+}
+
+HICON CTitleBarHelper::CreateGrayIcon(HICON hIcon)
+{
+	ICONINFO iconInfo;
+	GetIconInfo(hIcon, &iconInfo);
+
+	BITMAP bitmap;
+	GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bitmap);
+	const int width = bitmap.bmWidth;
+	const int height = bitmap.bmHeight;
+	const int pixsize = width * height;
+
+	BITMAPINFO bmi = {0};
+	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmi.bmiHeader.biWidth = width;
+	bmi.bmiHeader.biHeight = height;
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = 32;
+	bmi.bmiHeader.biCompression = BI_RGB;
+
+	RGBQUAD* pixels = new RGBQUAD[pixsize];
+	HDC hdc = GetDC(NULL);
+	GetDIBits(hdc, iconInfo.hbmColor, 0, height, pixels, &bmi, DIB_RGB_COLORS);
+
+	for (int i = 0; i < pixsize; i++)
+	{
+		BYTE gray = (BYTE)(0.3 * pixels[i].rgbRed + 0.59 * pixels[i].rgbGreen + 0.11 * pixels[i].rgbBlue);
+		pixels[i].rgbRed = gray;
+		pixels[i].rgbGreen = gray;
+		pixels[i].rgbBlue = gray;
+	}
+
+	HBITMAP hbmGray = CreateCompatibleBitmap(hdc, width, height);
+	SetDIBits(hdc, hbmGray, 0, height, pixels, &bmi, DIB_RGB_COLORS);
+
+	ICONINFO grayIconInfo = iconInfo;
+	grayIconInfo.hbmColor = hbmGray;
+	HICON hGrayIcon = CreateIconIndirect(&grayIconInfo);
+
+	DeleteObject(iconInfo.hbmColor);
+	DeleteObject(iconInfo.hbmMask);
+	DeleteObject(hbmGray);
+	ReleaseDC(NULL, hdc);
+	delete[] pixels;
+
+	return hGrayIcon;
+}
+
+HICON CTitleBarHelper::LazyLoadIcon(CWnd* pWnd, bool active)
+{
+	if (active)
+	{
+		if (m_icon)
+			return m_icon;
+		m_icon = (HICON)pWnd->SendMessage(WM_GETICON, ICON_SMALL2, 0);
+		if (m_icon == nullptr)
+			m_icon = (HICON)GetClassLongPtr(pWnd->m_hWnd, GCLP_HICONSM);
+		return m_icon;
+	}
+	else
+	{
+		if (m_icon_gray)
+			return m_icon_gray;
+		m_icon_gray = (m_icon == nullptr) ? nullptr : CreateGrayIcon(m_icon);
+		return m_icon_gray;
+	}
 }

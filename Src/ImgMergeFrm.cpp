@@ -755,7 +755,7 @@ bool CImgMergeFrame::DoFileSave(int pane)
 				m_filePaths[pane] = m_strSaveAsPath;
 			if (filename != m_filePaths[pane])
 			{
-				if (!m_infoUnpacker.Packing(filename, m_filePaths[pane], m_unpackerSubcodes[pane], { m_filePaths[pane] }))
+				if (!m_infoUnpacker.Packing(pane, filename, m_filePaths[pane], m_unpackerSubcodes[pane], { m_filePaths[pane] }))
 				{
 					// Restore save point
 					m_pImgMergeWindow->SetSavePoint(pane, savepoint);
@@ -815,7 +815,7 @@ RETRY:
 		}
 		if (filename != strPath)
 		{
-			if (!m_infoUnpacker.Packing(filename, strPath, m_unpackerSubcodes[pane], { strPath }))
+			if (!m_infoUnpacker.Packing(pane, filename, strPath, m_unpackerSubcodes[pane], { strPath }))
 			{
 				// Restore save point
 				m_pImgMergeWindow->SetSavePoint(pane, savepoint);
@@ -1119,9 +1119,9 @@ void CImgMergeFrame::UpdateHeaderSizes()
 				w[pane] = (rcMergeWindow.Width() - scrollbarWidth) / nPaneCount - 6;
 		}
 
-		if (!std::equal(m_nLastSplitPos, m_nLastSplitPos + nPaneCount - 1, w))
+		if (!std::equal(m_nLastSplitPos, m_nLastSplitPos + nPaneCount, w))
 		{
-			std::copy_n(w, nPaneCount - 1, m_nLastSplitPos);
+			std::copy_n(w, nPaneCount, m_nLastSplitPos);
 
 			// resize controls in header dialog bar
 			m_wndFilePathBar.Resize(w);
@@ -1176,7 +1176,7 @@ bool CImgMergeFrame::OpenImages()
 	for (int pane = 0; pane < m_filePaths.GetSize(); ++pane)
 	{
 		strTempFileName[pane] = m_filePaths[pane];
-		if (!m_infoUnpacker.Unpacking(&m_unpackerSubcodes[pane], strTempFileName[pane], filteredFilenames, { strTempFileName[pane] }))
+		if (!m_infoUnpacker.Unpacking(pane, &m_unpackerSubcodes[pane], strTempFileName[pane], filteredFilenames, { strTempFileName[pane] }))
 		{
 			//return false;
 		}

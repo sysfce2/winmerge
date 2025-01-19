@@ -61,13 +61,16 @@ msgstr ""
 msgid "Copy Selected Line(s) from Left"
 msgstr ""
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
 msgstr ""
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
 msgstr ""
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr ""
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
 msgstr ""
 
 #, c-format
@@ -414,12 +417,18 @@ msgstr "Panel &nástrojů"
 msgid "&Small"
 msgstr "&Malý"
 
+msgid "&Medium"
+msgstr ""
+
 #, c-format
 msgid "&Big"
 msgstr "&Velký"
 
 #, c-format
 msgid "&Huge"
+msgstr ""
+
+msgid "Men&u Bar"
 msgstr ""
 
 #, c-format
@@ -1311,6 +1320,9 @@ msgstr ""
 msgid "Ignore c&omment differences"
 msgstr ""
 
+msgid "Ignore &missing trailing EOL"
+msgstr ""
+
 #, c-format
 msgid "&Include subfolders"
 msgstr "Včetně pod&složek"
@@ -1751,6 +1763,86 @@ msgstr "Rozdílné slovo:"
 msgid "Selected Word Diff:"
 msgstr "Vybrané rozdílné slovo:"
 
+#, c-format
+msgid "Dialog"
+msgstr "Syntaxe"
+
+#, c-format
+msgid "Keywords:"
+msgstr "Klíčová slova:"
+
+#, c-format
+msgid "Function names:"
+msgstr "Názvy funkcí:"
+
+#, c-format
+msgid "Comments:"
+msgstr "Komentáře:"
+
+#, c-format
+msgid "Numbers:"
+msgstr "Čísla:"
+
+#, c-format
+msgid "Operators:"
+msgstr "Operátory:"
+
+#, c-format
+msgid "Strings:"
+msgstr "Řetězce:"
+
+#, c-format
+msgid "Preprocessor:"
+msgstr "Preprocesor:"
+
+#, c-format
+msgid "User 1:"
+msgstr "Uživatelská 1:"
+
+#, c-format
+msgid "User 2:"
+msgstr "Uživatelská 2:"
+
+#, c-format
+msgid "Bold"
+msgstr "Tučné"
+
+#, c-format
+msgid "&Use customized text colors"
+msgstr "Po&užít vlastní barvy textu"
+
+#, c-format
+msgid "Whitespace:"
+msgstr "Okolí textu:"
+
+#, c-format
+msgid "Regular text:"
+msgstr "Řádný text:"
+
+#, c-format
+msgid "Selection:"
+msgstr "Výběr:"
+
+#, c-format
+msgid "Margin:"
+msgstr ""
+
+#, c-format
+msgid "Search Marker:"
+msgstr ""
+
+#, c-format
+msgid "User Defined Marker1:"
+msgstr ""
+
+#, c-format
+msgid "User Defined Marker2:"
+msgstr ""
+
+#, c-format
+msgid "User Defined Marker3:"
+msgstr ""
+
 msgid "&Use folder compare colors"
 msgstr ""
 
@@ -1766,8 +1858,7 @@ msgstr ""
 msgid "Items filtered:"
 msgstr ""
 
-#, c-format
-msgid "Margin:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
 msgstr ""
 
 #, c-format
@@ -1875,7 +1966,10 @@ msgstr ""
 msgid "Select Plugin"
 msgstr ""
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
+msgstr ""
+
+msgid "&Target files:"
 msgstr ""
 
 #, c-format
@@ -1895,7 +1989,7 @@ msgstr ""
 msgid "&Open files in the same window type after unpacking"
 msgstr ""
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr ""
 
 msgid "&Alias..."
@@ -2160,66 +2254,6 @@ msgid "Export..."
 msgstr "&Uložit..."
 
 #, c-format
-msgid "Dialog"
-msgstr "Syntaxe"
-
-#, c-format
-msgid "Keywords:"
-msgstr "Klíčová slova:"
-
-#, c-format
-msgid "Function names:"
-msgstr "Názvy funkcí:"
-
-#, c-format
-msgid "Comments:"
-msgstr "Komentáře:"
-
-#, c-format
-msgid "Numbers:"
-msgstr "Čísla:"
-
-#, c-format
-msgid "Operators:"
-msgstr "Operátory:"
-
-#, c-format
-msgid "Strings:"
-msgstr "Řetězce:"
-
-#, c-format
-msgid "Preprocessor:"
-msgstr "Preprocesor:"
-
-#, c-format
-msgid "User 1:"
-msgstr "Uživatelská 1:"
-
-#, c-format
-msgid "User 2:"
-msgstr "Uživatelská 2:"
-
-#, c-format
-msgid "Bold"
-msgstr "Tučné"
-
-#, c-format
-msgid "Search Marker:"
-msgstr ""
-
-#, c-format
-msgid "User Defined Marker1:"
-msgstr ""
-
-#, c-format
-msgid "User Defined Marker2:"
-msgstr ""
-
-#, c-format
-msgid "User Defined Marker3:"
-msgstr ""
-
-#, c-format
 msgid "Folder Compare Report"
 msgstr "Protokol o porovnání složek"
 
@@ -2406,22 +2440,6 @@ msgid "&Quote character:"
 msgstr ""
 
 #, c-format
-msgid "&Use customized text colors"
-msgstr "Po&užít vlastní barvy textu"
-
-#, c-format
-msgid "Whitespace:"
-msgstr "Okolí textu:"
-
-#, c-format
-msgid "Regular text:"
-msgstr "Řádný text:"
-
-#, c-format
-msgid "Selection:"
-msgstr "Výběr:"
-
-#, c-format
 msgid "Backup Files"
 msgstr "Zálohování souborů"
 
@@ -2495,6 +2513,9 @@ msgstr "Pluginy"
 #, c-format
 msgid "&Enable plugins"
 msgstr "&Povolit pluginy"
+
+msgid "Plugin &type:"
+msgstr ""
 
 msgid "File filters:"
 msgstr ""
@@ -2642,9 +2663,6 @@ msgid "&Hex View"
 msgstr ""
 
 msgid "Edit Plugin"
-msgstr ""
-
-msgid "Plugin &type:"
 msgstr ""
 
 msgid "&Category:"
@@ -4706,6 +4724,27 @@ msgstr ""
 msgid "New plugin description"
 msgstr ""
 
+msgid "All"
+msgstr ""
+
+msgid "1st"
+msgstr ""
+
+msgid "2nd"
+msgstr ""
+
+msgid "3rd"
+msgstr ""
+
+msgid "1st and 2nd"
+msgstr ""
+
+msgid "1st and 3rd"
+msgstr ""
+
+msgid "2nd and 3rd"
+msgstr ""
+
 msgid "Filter applied"
 msgstr ""
 
@@ -4816,6 +4855,9 @@ msgid "Decompilation"
 msgstr ""
 
 msgid "URL Handling"
+msgstr ""
+
+msgid "Decoding / Encoding"
 msgstr ""
 
 msgid "Make Uppercase"
@@ -4933,6 +4975,9 @@ msgid "Disassemble Native Code"
 msgstr ""
 
 msgid "Convert Text with AI..."
+msgstr ""
+
+msgid "Unescape Java properties files"
 msgstr ""
 
 msgid "Make characters uppercase"

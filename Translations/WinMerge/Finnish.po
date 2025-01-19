@@ -61,13 +61,16 @@ msgstr "Kopioi valittu(t) rivi(t) vasemmalle"
 msgid "Copy Selected Line(s) from Left"
 msgstr "Kopioi valittu(t) rivi(t) vasemmalta"
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
 msgstr ""
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
 msgstr ""
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr ""
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
 msgstr ""
 
 msgid "Select Line &Difference\tF4"
@@ -370,11 +373,17 @@ msgstr "Työkalurivi"
 msgid "&Small"
 msgstr "Pieni"
 
+msgid "&Medium"
+msgstr ""
+
 msgid "&Big"
 msgstr "Iso"
 
 msgid "&Huge"
 msgstr "&Valtava"
+
+msgid "Men&u Bar"
+msgstr ""
 
 msgid "&Status Bar"
 msgstr "Tilarivi"
@@ -1092,6 +1101,9 @@ msgstr "Jätä nume&rot huomiotta"
 msgid "Ignore c&omment differences"
 msgstr "Jätä k&ommenttien erot huomiotta"
 
+msgid "Ignore &missing trailing EOL"
+msgstr ""
+
 msgid "&Include subfolders"
 msgstr "Sisällytä alihakemistot"
 
@@ -1456,6 +1468,66 @@ msgstr "Sanaero:"
 msgid "Selected Word Diff:"
 msgstr "Valittu sanaero:"
 
+msgid "Dialog"
+msgstr "Valintaikkuna"
+
+msgid "Keywords:"
+msgstr "Avainsanat:"
+
+msgid "Function names:"
+msgstr "Funktionimet:"
+
+msgid "Comments:"
+msgstr "Kommentit:"
+
+msgid "Numbers:"
+msgstr "Numerot:"
+
+msgid "Operators:"
+msgstr "Operaattorit:"
+
+msgid "Strings:"
+msgstr "Merkkijonot:"
+
+msgid "Preprocessor:"
+msgstr "Esikäsittelijä:"
+
+msgid "User 1:"
+msgstr "Käyttäjä 1:"
+
+msgid "User 2:"
+msgstr "Käyttäjä 2:"
+
+msgid "Bold"
+msgstr "Lihavoitu"
+
+msgid "&Use customized text colors"
+msgstr "Käytä mukautettuja tekstivärejä"
+
+msgid "Whitespace:"
+msgstr "Välilyönti:"
+
+msgid "Regular text:"
+msgstr "Normaali teksti:"
+
+msgid "Selection:"
+msgstr "Valinta:"
+
+msgid "Margin:"
+msgstr "Marginaali:"
+
+msgid "Search Marker:"
+msgstr "Hakumerkki:"
+
+msgid "User Defined Marker1:"
+msgstr "Käyttäjän määrittämä merkintä1:"
+
+msgid "User Defined Marker2:"
+msgstr "Käyttäjän määrittämä merkintä2:"
+
+msgid "User Defined Marker3:"
+msgstr "Käyttäjän määrittämä merkintä3:"
+
 msgid "&Use folder compare colors"
 msgstr "Käytä kansiovertailun värejä"
 
@@ -1471,8 +1543,8 @@ msgstr "Kaikki kohteet, joita ei ole:"
 msgid "Items filtered:"
 msgstr "Suodatetut kohteet:"
 
-msgid "Margin:"
-msgstr "Marginaali:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
+msgstr ""
 
 msgid "System"
 msgstr "Järjestelmä"
@@ -1555,8 +1627,11 @@ msgstr "Lisäominaisuudet"
 msgid "Select Plugin"
 msgstr "Valitse laajennus (Plugin)"
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
 msgstr "Laajennuksen &nimi:"
+
+msgid "&Target files:"
+msgstr ""
 
 msgid "Extensions list:"
 msgstr "Päätelista:"
@@ -1574,7 +1649,7 @@ msgid "&Open files in the same window type after unpacking"
 msgstr ""
 "Avaa tied&ostot samassa ikkunatyypissä pakkauksen purkamisen jälkeen"
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr "&Laajennusputki:"
 
 msgid "&Alias..."
@@ -1788,51 +1863,6 @@ msgstr "Tuo..."
 msgid "Export..."
 msgstr "Vie..."
 
-msgid "Dialog"
-msgstr "Valintaikkuna"
-
-msgid "Keywords:"
-msgstr "Avainsanat:"
-
-msgid "Function names:"
-msgstr "Funktionimet:"
-
-msgid "Comments:"
-msgstr "Kommentit:"
-
-msgid "Numbers:"
-msgstr "Numerot:"
-
-msgid "Operators:"
-msgstr "Operaattorit:"
-
-msgid "Strings:"
-msgstr "Merkkijonot:"
-
-msgid "Preprocessor:"
-msgstr "Esikäsittelijä:"
-
-msgid "User 1:"
-msgstr "Käyttäjä 1:"
-
-msgid "User 2:"
-msgstr "Käyttäjä 2:"
-
-msgid "Bold"
-msgstr "Lihavoitu"
-
-msgid "Search Marker:"
-msgstr "Hakumerkki:"
-
-msgid "User Defined Marker1:"
-msgstr "Käyttäjän määrittämä merkintä1:"
-
-msgid "User Defined Marker2:"
-msgstr "Käyttäjän määrittämä merkintä2:"
-
-msgid "User Defined Marker3:"
-msgstr "Käyttäjän määrittämä merkintä3:"
-
 msgid "Folder Compare Report"
 msgstr "Kansiovertailun raportti"
 
@@ -1980,18 +2010,6 @@ msgstr "&Salli uudet rivit lainauksissa"
 msgid "&Quote character:"
 msgstr "&Lainausmerkki:"
 
-msgid "&Use customized text colors"
-msgstr "Käytä mukautettuja tekstivärejä"
-
-msgid "Whitespace:"
-msgstr "Välilyönti:"
-
-msgid "Regular text:"
-msgstr "Normaali teksti:"
-
-msgid "Selection:"
-msgstr "Valinta:"
-
 msgid "Backup Files"
 msgstr "Varmuuskopiot"
 
@@ -2048,6 +2066,9 @@ msgstr "Lisäosat"
 
 msgid "&Enable plugins"
 msgstr "Ota laajennukset käyttöön"
+
+msgid "Plugin &type:"
+msgstr ""
 
 msgid "File filters:"
 msgstr "Tiedostosuodattimet:"
@@ -2184,9 +2205,6 @@ msgid "&Hex View"
 msgstr "&Hexanäkymä"
 
 msgid "Edit Plugin"
-msgstr ""
-
-msgid "Plugin &type:"
 msgstr ""
 
 msgid "&Category:"
@@ -4265,6 +4283,27 @@ msgstr ""
 msgid "New plugin description"
 msgstr ""
 
+msgid "All"
+msgstr ""
+
+msgid "1st"
+msgstr ""
+
+msgid "2nd"
+msgstr ""
+
+msgid "3rd"
+msgstr ""
+
+msgid "1st and 2nd"
+msgstr ""
+
+msgid "1st and 3rd"
+msgstr ""
+
+msgid "2nd and 3rd"
+msgstr ""
+
 msgid "Filter applied"
 msgstr "Sovellettu suodatin"
 
@@ -4383,6 +4422,9 @@ msgstr "Purkaminen"
 msgid "URL Handling"
 msgstr "URL käsittely"
 
+msgid "Decoding / Encoding"
+msgstr ""
+
 msgid "Make Uppercase"
 msgstr "Isot kirjaimet"
 
@@ -4498,6 +4540,9 @@ msgid "Disassemble Native Code"
 msgstr "Pura natiivikoodi"
 
 msgid "Convert Text with AI..."
+msgstr ""
+
+msgid "Unescape Java properties files"
 msgstr ""
 
 msgid "Make characters uppercase"

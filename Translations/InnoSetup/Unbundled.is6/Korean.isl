@@ -329,7 +329,7 @@ ErrorRegisterTypeLib=유형의 라이브러리 등록에 실패: %1
 
 ; *** Uninstall display name markings
 ; 예를 들어 '내 프로그램'으로 사용됩니다 (32비트)'
-UninstallDisplayNameMark=%1 (%2비트
+UninstallDisplayNameMark=%1 (%2)
 ; 예를 들어 '내 프로그램'으로 사용됩니다 (32비트, 모든 사용자)'
 UninstallDisplayNameMarks=%1 (%2, %3)
 UninstallDisplayNameMark32Bit=32비트

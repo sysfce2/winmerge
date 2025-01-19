@@ -27,6 +27,7 @@ inline const String OPT_SHOW_MISSING_RIGHT_ONLY {_T("Settings/ShowMissingRightOn
 inline const String OPT_TREE_MODE {_T("Settings/TreeMode"s)};
 
 // Show/hide toolbar/statusbar/tabbar
+inline const String OPT_SHOW_MENUBAR {_T("Settings/ShowMenubar"s)};
 inline const String OPT_SHOW_TOOLBAR {_T("Settings/ShowToolbar"s)};
 inline const String OPT_SHOW_STATUSBAR {_T("Settings/ShowStatusbar"s)};
 inline const String OPT_SHOW_TABBAR {_T("Settings/ShowTabbar"s)};
@@ -118,6 +119,10 @@ inline const String OPT_FILE_SIZE_THRESHOLD {_T("Settings/OPT_FILE_SIZE_THRESHOL
 inline const String OPT_AUTO_RELOAD_MODIFIED_FILES {_T("Settings/AutoReloadModifiedFiles"s)};
 
 // Color options
+// SysColor hook
+inline const String OPT_SYSCOLOR_HOOK_ENABLED {_T("Settings/SysColorHookEnabled"s)};
+inline const String OPT_SYSCOLOR_HOOK_COLORS {_T("Settings/SysColorHookColors"s)};
+
 // The difference color
 inline const String OPT_CLR_DIFF {_T("Settings/DifferenceColor"s)};
 // The selected difference color
@@ -207,6 +212,7 @@ inline const String OPT_CMP_IGNORE_CASE {_T("Settings/IgnoreCase"s)};
 inline const String OPT_CMP_IGNORE_NUMBERS {_T("Settings/IgnoreNumbers"s)};
 inline const String OPT_CMP_IGNORE_EOL {_T("Settings/IgnoreEol"s)};
 inline const String OPT_CMP_IGNORE_CODEPAGE {_T("Settings/IgnoreCodepage"s)};
+inline const String OPT_CMP_IGNORE_MISSING_TRAILING_EOL {_T("Settings/IgnoreMissingTrailingEol"s)};
 inline const String OPT_CMP_METHOD {_T("Settings/CompMethod2"s)};
 inline const String OPT_CMP_MOVED_BLOCKS {_T("Settings/MovedBlocks"s)};
 inline const String OPT_CMP_ALIGN_SIMILAR_LINES {_T("Settings/MatchSimilarLines"s)};

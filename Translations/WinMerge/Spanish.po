@@ -65,13 +65,16 @@ msgstr "Copiar línea(s) seleccionada(s) en el izquierdo"
 msgid "Copy Selected Line(s) from Left"
 msgstr "Copiar línea(s) seleccionada(s) desde el izquierdo"
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
 msgstr ""
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
 msgstr ""
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr ""
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
 msgstr ""
 
 msgid "Select Line &Difference\tF4"
@@ -373,11 +376,17 @@ msgstr "Barra de herramien&tas"
 msgid "&Small"
 msgstr "&Pequeña"
 
+msgid "&Medium"
+msgstr ""
+
 msgid "&Big"
 msgstr "&Grande"
 
 msgid "&Huge"
 msgstr "&Enorme"
+
+msgid "Men&u Bar"
+msgstr ""
 
 msgid "&Status Bar"
 msgstr "Barra de e&stado"
@@ -1095,6 +1104,9 @@ msgstr "Ignorar nú&meros"
 msgid "Ignore c&omment differences"
 msgstr "Ignorar diferencias en c&omentarios"
 
+msgid "Ignore &missing trailing EOL"
+msgstr ""
+
 msgid "&Include subfolders"
 msgstr "&Incluir subcarpetas"
 
@@ -1455,6 +1467,66 @@ msgstr "Diferencia de palabras:"
 msgid "Selected Word Diff:"
 msgstr "Diferencia de palabra seleccionada:"
 
+msgid "Dialog"
+msgstr "Diálogo"
+
+msgid "Keywords:"
+msgstr "Palabras clave:"
+
+msgid "Function names:"
+msgstr "Funciones:"
+
+msgid "Comments:"
+msgstr "Comentarios:"
+
+msgid "Numbers:"
+msgstr "Números:"
+
+msgid "Operators:"
+msgstr "Operadores:"
+
+msgid "Strings:"
+msgstr "Cadenas:"
+
+msgid "Preprocessor:"
+msgstr "Preprocesador:"
+
+msgid "User 1:"
+msgstr "Usuario 1:"
+
+msgid "User 2:"
+msgstr "Usuario 2:"
+
+msgid "Bold"
+msgstr "Negrita"
+
+msgid "&Use customized text colors"
+msgstr "&Usar colores personalizados para el texto"
+
+msgid "Whitespace:"
+msgstr "Espacio:"
+
+msgid "Regular text:"
+msgstr "Texto normal:"
+
+msgid "Selection:"
+msgstr "Selección:"
+
+msgid "Margin:"
+msgstr "Margen:"
+
+msgid "Search Marker:"
+msgstr "Marcador de búsqueda:"
+
+msgid "User Defined Marker1:"
+msgstr "Personalizado #1:"
+
+msgid "User Defined Marker2:"
+msgstr "Personalizado #2:"
+
+msgid "User Defined Marker3:"
+msgstr "Personalizado #3:"
+
 msgid "&Use folder compare colors"
 msgstr "&Usar colores para comparar carpetas"
 
@@ -1470,8 +1542,8 @@ msgstr "Elementos inexistentes:"
 msgid "Items filtered:"
 msgstr "Elementos filtrados:"
 
-msgid "Margin:"
-msgstr "Margen:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
+msgstr ""
 
 msgid "System"
 msgstr "Sistema"
@@ -1554,8 +1626,11 @@ msgstr "Propiedades adicionales"
 msgid "Select Plugin"
 msgstr "Elija complemento"
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
 msgstr "&Nombre:"
+
+msgid "&Target files:"
+msgstr ""
 
 msgid "Extensions list:"
 msgstr "Lista de extensiones:"
@@ -1572,7 +1647,7 @@ msgstr "Mostrar todos los complementos, no comprobar extensión"
 msgid "&Open files in the same window type after unpacking"
 msgstr "Abrir archiv&os en la misma ventana después de desempaquetar"
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr "Canales de com&plementos:"
 
 msgid "&Alias..."
@@ -1790,51 +1865,6 @@ msgstr "Importar..."
 msgid "Export..."
 msgstr "Exportar..."
 
-msgid "Dialog"
-msgstr "Diálogo"
-
-msgid "Keywords:"
-msgstr "Palabras clave:"
-
-msgid "Function names:"
-msgstr "Funciones:"
-
-msgid "Comments:"
-msgstr "Comentarios:"
-
-msgid "Numbers:"
-msgstr "Números:"
-
-msgid "Operators:"
-msgstr "Operadores:"
-
-msgid "Strings:"
-msgstr "Cadenas:"
-
-msgid "Preprocessor:"
-msgstr "Preprocesador:"
-
-msgid "User 1:"
-msgstr "Usuario 1:"
-
-msgid "User 2:"
-msgstr "Usuario 2:"
-
-msgid "Bold"
-msgstr "Negrita"
-
-msgid "Search Marker:"
-msgstr "Marcador de búsqueda:"
-
-msgid "User Defined Marker1:"
-msgstr "Personalizado #1:"
-
-msgid "User Defined Marker2:"
-msgstr "Personalizado #2:"
-
-msgid "User Defined Marker3:"
-msgstr "Personalizado #3:"
-
 msgid "Folder Compare Report"
 msgstr "Informe de comparación de carpetas"
 
@@ -1982,18 +2012,6 @@ msgstr "Permitir nuev&as líneas entre comillas"
 msgid "&Quote character:"
 msgstr "Ca&rácter de comilla:"
 
-msgid "&Use customized text colors"
-msgstr "&Usar colores personalizados para el texto"
-
-msgid "Whitespace:"
-msgstr "Espacio:"
-
-msgid "Regular text:"
-msgstr "Texto normal:"
-
-msgid "Selection:"
-msgstr "Selección:"
-
 msgid "Backup Files"
 msgstr "Copias de seguridad"
 
@@ -2050,6 +2068,9 @@ msgstr "Complementos"
 
 msgid "&Enable plugins"
 msgstr "Habilitar compl&ementos"
+
+msgid "Plugin &type:"
+msgstr ""
 
 msgid "File filters:"
 msgstr "Filtros de archivo:"
@@ -2180,9 +2201,6 @@ msgid "&Hex View"
 msgstr "Vista &hexadecimal"
 
 msgid "Edit Plugin"
-msgstr ""
-
-msgid "Plugin &type:"
 msgstr ""
 
 msgid "&Category:"
@@ -4236,6 +4254,27 @@ msgstr ""
 msgid "New plugin description"
 msgstr ""
 
+msgid "All"
+msgstr ""
+
+msgid "1st"
+msgstr ""
+
+msgid "2nd"
+msgstr ""
+
+msgid "3rd"
+msgstr ""
+
+msgid "1st and 2nd"
+msgstr ""
+
+msgid "1st and 3rd"
+msgstr ""
+
+msgid "2nd and 3rd"
+msgstr ""
+
 msgid "Filter applied"
 msgstr "Filtro aplicado"
 
@@ -4352,6 +4391,9 @@ msgstr "Descompilación"
 msgid "URL Handling"
 msgstr "Manejo de URL"
 
+msgid "Decoding / Encoding"
+msgstr ""
+
 msgid "Make Uppercase"
 msgstr "Convertir a mayúsculas"
 
@@ -4467,6 +4509,9 @@ msgid "Disassemble Native Code"
 msgstr "Desensamblar Native Code"
 
 msgid "Convert Text with AI..."
+msgstr ""
+
+msgid "Unescape Java properties files"
 msgstr ""
 
 msgid "Make characters uppercase"

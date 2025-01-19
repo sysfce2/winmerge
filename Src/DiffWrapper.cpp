@@ -12,6 +12,7 @@
 #include "DiffWrapper.h"
 #include <tuple>
 #include <exception>
+#include <array>
 #include <Poco/Exception.h>
 #include "coretools.h"
 #include "DiffList.h"
@@ -339,6 +340,23 @@ static void ReplaceChars(std::string & str, const char* chars, const char *rep)
 }
 
 /**
+ * @brief Get the end-of-line (EOL) characters (LF, CR, or CRLF) from the end of a string.
+ * @param [in] str - A string from which the EOL characters will be identified.
+ */
+static std::string GetEOL(const std::string& str)
+{
+	if (str.empty())
+		return "";
+	if (str.size() >= 2 && str[str.size() - 2] == '\r' && str[str.size() - 1] == '\n')
+		return "\r\n";
+	if (str.back() == '\r')
+		return "\r";
+	if (str.back() == '\n')
+		return "\n";
+	return "";
+}
+
+/**
  * @brief The main entry for post filtering.  Performs post-filtering, by setting comment blocks to trivial
  * @param [in, out]  thisob	Current change
  * @return Number of trivial diffs inserted
@@ -445,6 +463,13 @@ int CDiffWrapper::PostFilter(PostFilterContext& ctxt, change* thisob, const file
 		Replace(lineDataLeft, "\r", "\n");
 		Replace(lineDataRight, "\r\n", "\n");
 		Replace(lineDataRight, "\r", "\n");
+	}
+	if (thisob->link == nullptr && m_options.m_bIgnoreMissingTrailingEol && (file_data_ary[0].missing_newline != file_data_ary[1].missing_newline))
+	{
+		if (file_data_ary[0].missing_newline && !file_data_ary[1].missing_newline)
+			lineDataLeft += GetEOL(lineDataRight);
+		else if (!file_data_ary[0].missing_newline && file_data_ary[1].missing_newline)
+			lineDataRight += GetEOL(lineDataLeft);
 	}
 
 	// If both match after filtering, mark this diff hunk as trivial and return.
@@ -726,7 +751,7 @@ bool CDiffWrapper::RunFileDiff()
 
 			// this can only fail if the data can not be saved back (no more
 			// place on disk ???) What to do then ??
-			if (m_infoPrediffer && !m_infoPrediffer->Prediffing(strFileTemp[file], m_sToFindPrediffer, m_bPathsAreTemp, { strFileTemp[file] }))
+			if (m_infoPrediffer && !m_infoPrediffer->Prediffing(file, strFileTemp[file], m_sToFindPrediffer, m_bPathsAreTemp, { strFileTemp[file] }))
 			{
 				// display a message box
 				String sError = strutils::format_string2(
@@ -743,8 +768,9 @@ bool CDiffWrapper::RunFileDiff()
 	struct change *script = nullptr;
 	struct change *script10 = nullptr;
 	struct change *script12 = nullptr;
-	DiffFileData diffdata, diffdata10, diffdata12;
-	int bin_flag = 0, bin_flag10 = 0, bin_flag12 = 0;
+	struct change *script02 = nullptr;
+	DiffFileData diffdata, diffdata10, diffdata12, diffdata02;
+	int bin_flag = 0, bin_flag10 = 0, bin_flag12 = 0, bin_flag02 = 0;
 
 	if (aFiles.GetSize() == 2)
 	{
@@ -782,6 +808,7 @@ bool CDiffWrapper::RunFileDiff()
 	{
 		diffdata10.SetDisplayFilepaths(aFiles[1], aFiles[0]); // store true names for diff utils patch file
 		diffdata12.SetDisplayFilepaths(aFiles[1], aFiles[2]); // store true names for diff utils patch file
+		diffdata02.SetDisplayFilepaths(aFiles[0], aFiles[2]); // store true names for diff utils patch file
 
 		if (!diffdata10.OpenFiles(strFileTemp[1], strFileTemp[0]))
 		{
@@ -796,6 +823,13 @@ bool CDiffWrapper::RunFileDiff()
 		}
 
 		bRet = Diff2Files(&script12, &diffdata12, &bin_flag12, nullptr);
+
+		if (!diffdata02.OpenFiles(strFileTemp[0], strFileTemp[2]))
+		{
+			return false;
+		}
+
+		bRet = Diff2Files(&script02, &diffdata02, &bin_flag02, nullptr);
 	}
 
 	// First determine what happened during comparison
@@ -808,57 +842,17 @@ bool CDiffWrapper::RunFileDiff()
 	file_data * inf = diffdata.m_inf;
 	file_data * inf10 = diffdata10.m_inf;
 	file_data * inf12 = diffdata12.m_inf;
+	file_data * inf02 = diffdata02.m_inf;
 
 	if (aFiles.GetSize() == 2)
 	{
 		if (bin_flag != 0)
-		{
 			m_status.bBinaries = true;
-			if (bin_flag != -1)
-				m_status.Identical = IDENTLEVEL::ALL;
-			else
-				m_status.Identical = IDENTLEVEL::NONE;
-		}
-		else
-		{ // text files according to diffutils, so change script exists
-			m_status.Identical = (script == 0) ? IDENTLEVEL::ALL : IDENTLEVEL::NONE;
-			m_status.bBinaries = false;
-		}
-		m_status.bMissingNL[0] = !!inf[0].missing_newline;
-		m_status.bMissingNL[1] = !!inf[1].missing_newline;
 	}
 	else
 	{
-		m_status.Identical = IDENTLEVEL::NONE;
-		if (bin_flag10 != 0 || bin_flag12 != 0)
-		{
-			m_status.bBinaries = true;
-			if (bin_flag10 != -1 && bin_flag12 != -1)
-				m_status.Identical = IDENTLEVEL::ALL;
-			else if (bin_flag10 != -1)
-				m_status.Identical = IDENTLEVEL::EXCEPTRIGHT;
-			else if (bin_flag12 != -1)
-				m_status.Identical = IDENTLEVEL::EXCEPTLEFT;
-			else
-				m_status.Identical = IDENTLEVEL::EXCEPTMIDDLE;
-		}
-		else
-		{ // text files according to diffutils, so change script exists
-			m_status.bBinaries = false;
-			if (script10 == nullptr && script12 == nullptr)
-				m_status.Identical = IDENTLEVEL::ALL;
-			else if (script10 == nullptr)
-				m_status.Identical = IDENTLEVEL::EXCEPTRIGHT;
-			else if (script12 == nullptr)
-				m_status.Identical = IDENTLEVEL::EXCEPTLEFT;
-			else
-				m_status.Identical = IDENTLEVEL::EXCEPTMIDDLE;
-		}
-		m_status.bMissingNL[0] = !!inf10[1].missing_newline;
-		m_status.bMissingNL[1] = !!inf12[0].missing_newline;
-		m_status.bMissingNL[2] = !!inf12[1].missing_newline;
+		m_status.bBinaries = (bin_flag10 != 0 || bin_flag12 != 0);
 	}
-
 
 	// Create patch file
 	if (!m_status.bBinaries && m_bCreatePatchFile && aFiles.GetSize() == 2)
@@ -874,9 +868,55 @@ bool CDiffWrapper::RunFileDiff()
 			LoadWinMergeDiffsFromDiffUtilsScript(script, diffdata.m_inf);
 		else
 			LoadWinMergeDiffsFromDiffUtilsScript3(
-				script10, script12,
-				diffdata10.m_inf, diffdata12.m_inf);
+				script10, script12, script02,
+				diffdata10.m_inf, diffdata12.m_inf, diffdata02.m_inf);
 	}			
+
+	if (aFiles.GetSize() == 2)
+	{
+		if (bin_flag != 0)
+		{
+			if (bin_flag != -1)
+				m_status.Identical = IDENTLEVEL::ALL;
+			else
+				m_status.Identical = IDENTLEVEL::NONE;
+		}
+		else
+		{ // text files according to diffutils, so change script exists
+			m_status.Identical = (script == 0) ? IDENTLEVEL::ALL : IDENTLEVEL::NONE;
+		}
+		m_status.bMissingNL[0] = !!inf[0].missing_newline;
+		m_status.bMissingNL[1] = !!inf[1].missing_newline;
+	}
+	else
+	{
+		m_status.Identical = IDENTLEVEL::NONE;
+		if (bin_flag10 != 0 || bin_flag12 != 0)
+		{
+			if (bin_flag10 != -1 && bin_flag12 != -1)
+				m_status.Identical = IDENTLEVEL::ALL;
+			else if (bin_flag10 != -1)
+				m_status.Identical = IDENTLEVEL::EXCEPTRIGHT;
+			else if (bin_flag12 != -1)
+				m_status.Identical = IDENTLEVEL::EXCEPTLEFT;
+			else if (bin_flag12 != -1)
+				m_status.Identical = IDENTLEVEL::EXCEPTMIDDLE;
+		}
+		else
+		{ // text files according to diffutils, so change script exists
+			if (IsIdenticalOrIgnorable(script10) && IsIdenticalOrIgnorable(script12))
+				m_status.Identical = IDENTLEVEL::ALL;
+			else if (IsIdenticalOrIgnorable(script10))
+				m_status.Identical = IDENTLEVEL::EXCEPTRIGHT;
+			else if (IsIdenticalOrIgnorable(script12))
+				m_status.Identical = IDENTLEVEL::EXCEPTLEFT;
+			else if (IsIdenticalOrIgnorable(script02))
+				m_status.Identical = IDENTLEVEL::EXCEPTMIDDLE;
+		}
+		m_status.bMissingNL[0] = !!inf10[1].missing_newline;
+		m_status.bMissingNL[1] = !!inf12[0].missing_newline;
+		m_status.bMissingNL[2] = !!inf02[1].missing_newline;
+	}
 
 	// cleanup the script
 	if (aFiles.GetSize() == 2)
@@ -885,6 +925,7 @@ bool CDiffWrapper::RunFileDiff()
 	{
 		FreeDiffUtilsScript(script10);
 		FreeDiffUtilsScript(script12);
+		FreeDiffUtilsScript(script02);
 	}
 
 	// Done with diffutils filedata
@@ -896,6 +937,7 @@ bool CDiffWrapper::RunFileDiff()
 	{
 		diffdata10.Close();
 		diffdata12.Close();
+		diffdata02.Close();
 	}
 
 	if (m_bPluginsEnabled)
@@ -1122,6 +1164,19 @@ bool CDiffWrapper::Diff2Files(struct change ** diffs, DiffFileData *diffData,
 	return bRet;
 }
 
+bool CDiffWrapper::IsIdenticalOrIgnorable(struct change* script)
+{
+	bool diff = false;
+	struct change *e=nullptr, *p=nullptr;
+	for (e = script; e != nullptr; e = p)
+	{
+		if (!e->trivial)
+			diff = true;
+		p = e->link;
+	}
+	return !diff;
+}
+
 /**
  * @brief Free script (the diffutils linked list of differences)
  */
@@ -1199,6 +1254,7 @@ CDiffWrapper::LoadWinMergeDiffsFromDiffUtilsScript(struct change * script, const
 	struct change *next = script;
 
 	const bool usefilters = m_options.m_filterCommentsLines ||
+		m_options.m_bIgnoreMissingTrailingEol ||
 		(m_pFilterList && m_pFilterList->HasRegExps()) ||
 		(m_pSubstitutionList && m_pSubstitutionList->HasRegExps());
 	
@@ -1279,8 +1335,10 @@ CDiffWrapper::LoadWinMergeDiffsFromDiffUtilsScript(struct change * script, const
 						last1 = first1 + thisob->inserted - 1;
 						translate_range (&file_data_ary[0], first0, last0, &trans_a0, &trans_b0);
 						translate_range (&file_data_ary[1], first1, last1, &trans_a1, &trans_b1);
-						const int qtyLinesLeft = (trans_b0 - trans_a0) + 1; //Determine quantity of lines in this block for left side
-						const int qtyLinesRight = (trans_b1 - trans_a1) + 1;//Determine quantity of lines in this block for right side
+						const int qtyLinesLeft = (trans_b0 - trans_a0) + 1
+							- ((!thisob->link && file_data_ary[0].missing_newline) ? 1 : 0); //Determine quantity of lines in this block for left side
+						const int qtyLinesRight = (trans_b1 - trans_a1) + 1
+							- ((!thisob->link && file_data_ary[1].missing_newline) ? 1 : 0); //Determine quantity of lines in this block for right side
 
 						if (op == OP_TRIVIAL && m_options.m_bCompletelyBlankOutIgnoredDiffereneces)
 						{
@@ -1304,8 +1362,10 @@ CDiffWrapper::LoadWinMergeDiffsFromDiffUtilsScript(struct change * script, const
 				{
 					if (thisob->trivial)
 						op = OP_TRIVIAL;
-					const int qtyLinesLeft = (trans_b0 - trans_a0) + 1; //Determine quantity of lines in this block for left side
-					const int qtyLinesRight = (trans_b1 - trans_a1) + 1;//Determine quantity of lines in this block for right side
+					const int qtyLinesLeft = (trans_b0 - trans_a0) + 1
+						- ((!thisob->link && file_data_ary[0].missing_newline) ? 1 : 0); //Determine quantity of lines in this block for left side
+					const int qtyLinesRight = (trans_b1 - trans_a1) + 1
+						- ((!thisob->link && file_data_ary[1].missing_newline) ? 1 : 0); //Determine quantity of lines in this block for right side
 					if (op == OP_TRIVIAL && m_options.m_bCompletelyBlankOutIgnoredDiffereneces)
 					{
 						if (qtyLinesLeft == qtyLinesRight)
@@ -1362,18 +1422,22 @@ void
 CDiffWrapper::LoadWinMergeDiffsFromDiffUtilsScript3(
 	struct change * script10, 
 	struct change * script12,  
+	struct change * script02,  
 	const file_data * inf10, 
-	const file_data * inf12)
+	const file_data * inf12,
+	const file_data * inf02)
 {
-	DiffList diff10, diff12;
+	DiffList diff10, diff12, diff02;
 	diff10.Clear();
 	diff12.Clear();
+	diff02.Clear();
 
 	const bool usefilters = m_options.m_filterCommentsLines ||
+		m_options.m_bIgnoreMissingTrailingEol ||
 		(m_pFilterList && m_pFilterList->HasRegExps()) ||
 		(m_pSubstitutionList && m_pSubstitutionList->HasRegExps());
 	
-	for (int file = 0; file < 2; file++)
+	for (int file = 0; file < 3; file++)
 	{
 		struct change *next = nullptr;
 		int trans_a0, trans_b0, trans_a1, trans_b1;
@@ -1387,6 +1451,7 @@ CDiffWrapper::LoadWinMergeDiffsFromDiffUtilsScript3(
 		{
 		case 0: next = script10; pdiff = &diff10; pinf = inf10; break;
 		case 1: next = script12; pdiff = &diff12; pinf = inf12; break;
+		case 2: next = script02; pdiff = &diff02; pinf = inf02; break;
 		}
 
 		while (next != nullptr)
@@ -1497,6 +1562,64 @@ CDiffWrapper::LoadWinMergeDiffsFromDiffUtilsScript3(
 	Make3wayDiff(m_pDiffList->GetDiffRangeInfoVector(), diff10.GetDiffRangeInfoVector(), diff12.GetDiffRangeInfoVector(), 
 		Comp02Functor(inf10, inf12), 
 		(usefilters || m_options.m_bIgnoreBlankLines));
+
+	if (GetDetectMovedBlocks())
+		m_pDiffList->GetDiffRangeInfoVector() = InsertMovedBlocks3Way();
+}
+
+std::vector<DiffRangeInfo> CDiffWrapper::InsertMovedBlocks3Way()
+{
+	std::vector<DiffRangeInfo> result;
+	const MovedLines* pMovedLines0 = GetMovedLines(0);
+	const MovedLines* pMovedLines1 = GetMovedLines(1);
+	const MovedLines* pMovedLines2 = GetMovedLines(2);
+	const std::vector<DiffRangeInfo> diffRangeList = m_pDiffList->GetDiffRangeInfoVector();
+	for (const auto& diffInfo : diffRangeList)
+	{
+		const std::array<int, 3> elms = { diffInfo.end[0] + 1 - diffInfo.begin[0], diffInfo.end[1] + 1 - diffInfo.begin[1], diffInfo.end[2] + 1 - diffInfo.begin[2] };
+		const int maxlines = *std::max_element(elms.begin(), elms.end());
+		DiffRangeInfo diffInfo2 = diffInfo;
+		int prevMovedLineI = -1;
+		for (int i = 0; i < maxlines; ++i)
+		{
+			bool movedLine = false;
+			if (diffInfo.begin[0] + i <= diffInfo.end[0])
+				movedLine |= pMovedLines0->LineInBlock(diffInfo.begin[0] + i, MovedLines::SIDE::RIGHT) != -1;
+			if (diffInfo.begin[1] + i <= diffInfo.end[1])
+			{
+				movedLine |= pMovedLines1->LineInBlock(diffInfo.begin[1] + i, MovedLines::SIDE::LEFT) != -1;
+				movedLine |= pMovedLines1->LineInBlock(diffInfo.begin[1] + i, MovedLines::SIDE::RIGHT) != -1;
+			}
+			if (diffInfo.begin[2] + i <= diffInfo.end[2])
+				movedLine |= pMovedLines2->LineInBlock(diffInfo.begin[2] + i, MovedLines::SIDE::LEFT) != -1;
+
+			if (movedLine)
+			{
+				if (prevMovedLineI + 1 < i)
+				{
+					DiffRangeInfo diffInfoT = diffInfo2;
+					for (int pane = 0; pane < 3; ++pane)
+						diffInfoT.end[pane] = std::clamp(diffInfo.begin[pane] + i - 1, -1, diffInfo.end[pane]);
+					result.push_back(diffInfoT);
+				}
+
+				DiffRangeInfo diffInfoM = diffInfo2;
+				for (int pane = 0; pane < 3; ++pane)
+				{
+					diffInfoM.begin[pane] = std::clamp(diffInfo.begin[pane] + i, 0, diffInfo.end[pane] + 1);
+					diffInfoM.end[pane] = std::clamp(diffInfo.begin[pane] + i, -1, diffInfo.end[pane]);
+				}
+				result.push_back(diffInfoM);
+
+				for (int pane = 0; pane < 3; ++pane)
+					diffInfo2.begin[pane] = std::clamp(diffInfo.begin[pane] + i + 1, 0, diffInfo.end[pane] + 1);
+				prevMovedLineI = i;
+			}
+		}
+		if (prevMovedLineI < maxlines - 1)
+			result.push_back(diffInfo2);
+	}
+	return result;
 }
 
 void CDiffWrapper::WritePatchFileHeader(enum output_style tOutput_style, bool bAppendFiles)

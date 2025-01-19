@@ -61,6 +61,7 @@ void Init(COptionsMgr *pOptions)
 	pOptions->InitOption(OPT_SHOW_MISSING_MIDDLE_ONLY, true);
 	pOptions->InitOption(OPT_SHOW_MISSING_RIGHT_ONLY, true);
 
+	pOptions->InitOption(OPT_SHOW_MENUBAR, true);
 	pOptions->InitOption(OPT_SHOW_TOOLBAR, true);
 	pOptions->InitOption(OPT_SHOW_STATUSBAR, true);
 	pOptions->InitOption(OPT_SHOW_TABBAR, true);
@@ -243,6 +244,9 @@ void Init(COptionsMgr *pOptions)
 	pOptions->InitOption(OPT_MRU_MAX, 9, 0, 128);
 
 	pOptions->InitOption(OPT_COLOR_SCHEME, _T("Default"));
+
+	pOptions->InitOption(OPT_SYSCOLOR_HOOK_ENABLED, false);
+	pOptions->InitOption(OPT_SYSCOLOR_HOOK_COLORS, _T(""));
 
 	Options::CustomColors::Init(pOptions);
 	Options::DiffOptions::Init(pOptions);

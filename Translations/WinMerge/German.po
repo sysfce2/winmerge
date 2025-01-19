@@ -64,13 +64,16 @@ msgstr "Ausgewählte Zeile(n) nach links kopieren"
 msgid "Copy Selected Line(s) from Left"
 msgstr "Ausgewählte Zeile(n) von links kopieren"
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
 msgstr ""
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
 msgstr ""
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr ""
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
 msgstr ""
 
 #, c-format
@@ -417,6 +420,9 @@ msgstr "&Symbolleiste"
 msgid "&Small"
 msgstr "&Klein"
 
+msgid "&Medium"
+msgstr ""
+
 #, c-format
 msgid "&Big"
 msgstr "&Groß"
@@ -424,6 +430,9 @@ msgstr "&Groß"
 #, c-format
 msgid "&Huge"
 msgstr "&Riesig"
+
+msgid "Men&u Bar"
+msgstr ""
 
 #, c-format
 msgid "&Status Bar"
@@ -1315,6 +1324,9 @@ msgstr "&Nummern ignorieren"
 msgid "Ignore c&omment differences"
 msgstr "&Kommentarunterschiede ignorieren"
 
+msgid "Ignore &missing trailing EOL"
+msgstr ""
+
 #, c-format
 msgid "&Include subfolders"
 msgstr "&Unterordner einbeziehen"
@@ -1755,6 +1767,86 @@ msgstr "Wortunterschied:"
 msgid "Selected Word Diff:"
 msgstr "Markierter Wortunterschied:"
 
+#, c-format
+msgid "Dialog"
+msgstr "Dialog"
+
+#, c-format
+msgid "Keywords:"
+msgstr "Schlüsselwörter:"
+
+#, c-format
+msgid "Function names:"
+msgstr "Funktionsnamen:"
+
+#, c-format
+msgid "Comments:"
+msgstr "Kommentare:"
+
+#, c-format
+msgid "Numbers:"
+msgstr "Nummern:"
+
+#, c-format
+msgid "Operators:"
+msgstr "Operatoren:"
+
+#, c-format
+msgid "Strings:"
+msgstr "Zeichenketten:"
+
+#, c-format
+msgid "Preprocessor:"
+msgstr "Präprozessor:"
+
+#, c-format
+msgid "User 1:"
+msgstr "Benutzer 1:"
+
+#, c-format
+msgid "User 2:"
+msgstr "Benutzer 2:"
+
+#, c-format
+msgid "Bold"
+msgstr "Fett"
+
+#, c-format
+msgid "&Use customized text colors"
+msgstr "&Benutzerdefinierte Textfarben verwenden"
+
+#, c-format
+msgid "Whitespace:"
+msgstr "Leerzeichen:"
+
+#, c-format
+msgid "Regular text:"
+msgstr "Normaler Text:"
+
+#, c-format
+msgid "Selection:"
+msgstr "Auswahl:"
+
+#, c-format
+msgid "Margin:"
+msgstr "Rand:"
+
+#, c-format
+msgid "Search Marker:"
+msgstr "Suchmarkierung:"
+
+#, c-format
+msgid "User Defined Marker1:"
+msgstr "Benutzerdefiniert 1:"
+
+#, c-format
+msgid "User Defined Marker2:"
+msgstr "Benutzerdefiniert 2:"
+
+#, c-format
+msgid "User Defined Marker3:"
+msgstr "Benutzerdefiniert 3:"
+
 msgid "&Use folder compare colors"
 msgstr "&Ordnervergleichsfarben verwenden"
 
@@ -1770,9 +1862,8 @@ msgstr "Nicht existierende Objekte:"
 msgid "Items filtered:"
 msgstr "Gefilterte Objekte:"
 
-#, c-format
-msgid "Margin:"
-msgstr "Rand:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
+msgstr ""
 
 #, c-format
 msgid "System"
@@ -1879,8 +1970,11 @@ msgstr "Zusätzliche Eigenschaften"
 msgid "Select Plugin"
 msgstr "Plugin auswählen"
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
 msgstr "Plugin-Name:"
+
+msgid "&Target files:"
+msgstr ""
 
 #, c-format
 msgid "Extensions list:"
@@ -1899,7 +1993,7 @@ msgstr "Alle Plugins anzeigen, die Erweiterung nicht überprüfen"
 msgid "&Open files in the same window type after unpacking"
 msgstr "Dateien nach dem Entpacken im gleichen Fenstertyp öffnen"
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr "&Plugin-Pipeline:"
 
 msgid "&Alias..."
@@ -2162,66 +2256,6 @@ msgid "Export..."
 msgstr "Exportieren..."
 
 #, c-format
-msgid "Dialog"
-msgstr "Dialog"
-
-#, c-format
-msgid "Keywords:"
-msgstr "Schlüsselwörter:"
-
-#, c-format
-msgid "Function names:"
-msgstr "Funktionsnamen:"
-
-#, c-format
-msgid "Comments:"
-msgstr "Kommentare:"
-
-#, c-format
-msgid "Numbers:"
-msgstr "Nummern:"
-
-#, c-format
-msgid "Operators:"
-msgstr "Operatoren:"
-
-#, c-format
-msgid "Strings:"
-msgstr "Zeichenketten:"
-
-#, c-format
-msgid "Preprocessor:"
-msgstr "Präprozessor:"
-
-#, c-format
-msgid "User 1:"
-msgstr "Benutzer 1:"
-
-#, c-format
-msgid "User 2:"
-msgstr "Benutzer 2:"
-
-#, c-format
-msgid "Bold"
-msgstr "Fett"
-
-#, c-format
-msgid "Search Marker:"
-msgstr "Suchmarkierung:"
-
-#, c-format
-msgid "User Defined Marker1:"
-msgstr "Benutzerdefiniert 1:"
-
-#, c-format
-msgid "User Defined Marker2:"
-msgstr "Benutzerdefiniert 2:"
-
-#, c-format
-msgid "User Defined Marker3:"
-msgstr "Benutzerdefiniert 3:"
-
-#, c-format
 msgid "Folder Compare Report"
 msgstr "Ordnervergleichsbericht"
 
@@ -2408,22 +2442,6 @@ msgid "&Quote character:"
 msgstr "&Anführungszeichen:"
 
 #, c-format
-msgid "&Use customized text colors"
-msgstr "&Benutzerdefinierte Textfarben verwenden"
-
-#, c-format
-msgid "Whitespace:"
-msgstr "Leerzeichen:"
-
-#, c-format
-msgid "Regular text:"
-msgstr "Normaler Text:"
-
-#, c-format
-msgid "Selection:"
-msgstr "Auswahl:"
-
-#, c-format
 msgid "Backup Files"
 msgstr "Sicherungsdateien"
 
@@ -2497,6 +2515,9 @@ msgstr "Plugins"
 #, c-format
 msgid "&Enable plugins"
 msgstr "&Plugins aktivieren"
+
+msgid "Plugin &type:"
+msgstr ""
 
 msgid "File filters:"
 msgstr "Dateifilter:"
@@ -2644,9 +2665,6 @@ msgid "&Hex View"
 msgstr "&Hex-Ansicht"
 
 msgid "Edit Plugin"
-msgstr ""
-
-msgid "Plugin &type:"
 msgstr ""
 
 msgid "&Category:"
@@ -4569,6 +4587,27 @@ msgstr "Alias für Plug-in Pipeline '%1'"
 msgid "New plugin description"
 msgstr "Neue Plug-in Beschreibung"
 
+msgid "All"
+msgstr ""
+
+msgid "1st"
+msgstr ""
+
+msgid "2nd"
+msgstr ""
+
+msgid "3rd"
+msgstr ""
+
+msgid "1st and 2nd"
+msgstr ""
+
+msgid "1st and 3rd"
+msgstr ""
+
+msgid "2nd and 3rd"
+msgstr ""
+
 msgid "Filter applied"
 msgstr "Angewandter Filter"
 
@@ -4680,6 +4719,9 @@ msgstr "Dekompilierung"
 
 msgid "URL Handling"
 msgstr "URL-Handling"
+
+msgid "Decoding / Encoding"
+msgstr ""
 
 msgid "Make Uppercase"
 msgstr "Großbuchstaben erzeugen"
@@ -4797,6 +4839,9 @@ msgstr "Nativen Code disassemblieren"
 
 msgid "Convert Text with AI..."
 msgstr "Textumwandlung mit AI..."
+
+msgid "Unescape Java properties files"
+msgstr ""
 
 msgid "Make characters uppercase"
 msgstr "Großbuchstaben erzeugen"

@@ -71,6 +71,10 @@
 #include "DirWatcher.h"
 #include "Win_VersionHelper.h"
 
+#if !defined(SM_CXPADDEDBORDER)
+#define SM_CXPADDEDBORDER       92
+#endif
+
 using std::vector;
 using boost::begin;
 using boost::end;
@@ -223,6 +227,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_ACTIVATEAPP()
 	ON_WM_NCCALCSIZE()
 	ON_WM_SIZE()
+	ON_WM_SYSCOMMAND()
 	ON_UPDATE_COMMAND_UI_RANGE(CMenuBar::FIRST_MENUID, CMenuBar::FIRST_MENUID + 10, OnUpdateMenuBarMenuItem)
 	// [File] menu
 	ON_COMMAND(ID_FILE_NEW, (OnFileNew<2, ID_MERGE_COMPARE_TEXT>))
@@ -250,6 +255,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	// [View] menu
 	ON_COMMAND(ID_VIEW_SELECTFONT, OnViewSelectfont)
 	ON_COMMAND(ID_VIEW_USEDEFAULTFONT, OnViewUsedefaultfont)
+	ON_COMMAND(ID_VIEW_MENU_BAR, OnViewMenuBar)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_MENU_BAR, OnUpdateViewMenuBar)
 	ON_COMMAND(ID_VIEW_STATUS_BAR, OnViewStatusBar)
 	ON_COMMAND(ID_VIEW_TAB_BAR, OnViewTabBar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_TAB_BAR, OnUpdateViewTabBar)
@@ -310,6 +317,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_DIFF_OPTIONS_IGNORE_CODEPAGE, OnUpdateDiffIgnoreCP)
 	ON_COMMAND(ID_DIFF_OPTIONS_IGNORE_COMMENTS, OnDiffIgnoreComments)
 	ON_UPDATE_COMMAND_UI(ID_DIFF_OPTIONS_IGNORE_COMMENTS, OnUpdateDiffIgnoreComments)
+	ON_COMMAND(ID_DIFF_OPTIONS_IGNORE_MISSING_TRAILING_EOL, OnDiffIgnoreMissingTrailingEol)
+	ON_UPDATE_COMMAND_UI(ID_DIFF_OPTIONS_IGNORE_MISSING_TRAILING_EOL, OnUpdateDiffIgnoreMissingTrailingEol)
 	ON_COMMAND(ID_DIFF_OPTIONS_INCLUDE_SUBFOLDERS, OnIncludeSubfolders)
 	ON_UPDATE_COMMAND_UI(ID_DIFF_OPTIONS_INCLUDE_SUBFOLDERS, OnUpdateIncludeSubfolders)
 	ON_COMMAND_RANGE(ID_DIFF_OPTIONS_COMPMETHOD_FULL_CONTENTS, ID_DIFF_OPTIONS_COMPMETHOD_SIZE, OnCompareMethod)
@@ -462,6 +471,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_wndMDIClient.ModifyStyleEx(WS_EX_CLIENTEDGE, 0);
 
+	UpdateSystemMenu();
+
 	return 0;
 }
 
@@ -494,44 +505,6 @@ void CMainFrame::OnDestroy(void)
 {
 	if (m_pDropHandler != nullptr)
 		RevokeDragDrop(m_hWnd);
-}
-
-static HMENU GetSubmenu(HMENU menu, int nthSubmenu)
-{
-	for (int nth = 0, i = 0; i < ::GetMenuItemCount(menu); i++)
-	{
-		if (::GetSubMenu(menu, i) != nullptr)
-		{
-			if (nth == nthSubmenu)
-				return ::GetSubMenu(menu, i);
-			nth++;
-		}
-	}
-	// error, submenu not found
-	return nullptr;
-}
-
-static HMENU GetSubmenu(HMENU mainMenu, UINT nIDFirstMenuItem, int nthSubmenu)
-{
-	int i;
-	for (i = 0 ; i < ::GetMenuItemCount(mainMenu) ; i++)
-		if (::GetMenuItemID(::GetSubMenu(mainMenu, i), 0) == nIDFirstMenuItem)
-			break;
-	HMENU menu = ::GetSubMenu(mainMenu, i);
-	if (!menu)
-		return nullptr;
-	return GetSubmenu(menu, nthSubmenu);
-}
-
-/**
- * @brief Find the scripts submenu from the main menu
- * As now this is the first submenu in "Plugins" menu
- * We find the "Plugins" menu by looking for a menu 
- *  starting with ID_UNPACK_MANUAL.
- */
-HMENU CMainFrame::GetPrediffersSubmenu(HMENU mainMenu)
-{
-	return GetSubmenu(mainMenu, ID_PLUGINS_LIST, 1);
 }
 
 /**
@@ -715,7 +688,7 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 			unsigned topMenuId = pPopupMenu->GetMenuItemID(0);
 			if (topMenuId == ID_NO_PREDIFFER)
 			{
-				UpdatePrediffersMenu();
+				UpdatePrediffersMenu(pPopupMenu);
 			}
 			else if (topMenuId == ID_MERGE_COMPARE_TEXT)
 			{
@@ -809,7 +782,7 @@ bool CMainFrame::ShowAutoMergeDoc(UINT nID, IDirDoc * pDirDoc,
 		int preferredWindowType = -1;
 		PackingInfo infoUnpacker2;
 		unpackedFileExtension = (infoUnpacker ? infoUnpacker : &infoUnpacker2)
-			->GetUnpackedFileExtension(filteredFilenames, preferredWindowType);
+			->GetUnpackedFileExtension(-1, filteredFilenames, preferredWindowType);
 		if (static_cast<int>(nID) <= 0 && preferredWindowType >= 0)
 			nID = ID_MERGE_COMPARE_TEXT + preferredWindowType;
 	}
@@ -1179,6 +1152,8 @@ void CMainFrame::OnHelpGnulicense()
  */
 void CMainFrame::OnOptions() 
 {
+	const bool sysColorHookEnabled = GetOptionsMgr()->GetBool(OPT_SYSCOLOR_HOOK_ENABLED);
+	const String sysColorsSerialized = GetOptionsMgr()->GetString(OPT_SYSCOLOR_HOOK_COLORS);
 	// Using singleton shared syntax colors
 	CPreferencesDlg dlg(GetOptionsMgr(), theApp.GetMainSyntaxColors());
 	INT_PTR rv = dlg.DoModal();
@@ -1226,6 +1201,14 @@ void CMainFrame::OnOptions()
 			pHexMergeDoc->RefreshOptions();
 		for (auto pImgMergeFrame : GetAllImgMergeFrames())
 			pImgMergeFrame->RefreshOptions();
+
+		if (sysColorHookEnabled != GetOptionsMgr()->GetBool(OPT_SYSCOLOR_HOOK_ENABLED) ||
+		    sysColorsSerialized != GetOptionsMgr()->GetString(OPT_SYSCOLOR_HOOK_COLORS))
+		{
+			theApp.ReloadCustomSysColors();
+			AfxGetMainWnd()->SendMessage(WM_SYSCOLORCHANGE);
+			RedrawWindow(nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE | RDW_ALLCHILDREN);
+		}
 	}
 }
 
@@ -1990,16 +1973,12 @@ CMergeEditView * CMainFrame::GetActiveMergeEditView()
 	return pFrame->GetMergeDoc()->GetActiveMergeView();
 }
 
-void CMainFrame::UpdatePrediffersMenu()
+void CMainFrame::UpdatePrediffersMenu(CMenu* pPredifferMenu)
 {
-	CMenu* menu = GetMenu();
-	if (menu == nullptr)
-	{
+	if (pPredifferMenu == nullptr)
 		return;
-	}
 
-	HMENU hMainMenu = menu->m_hMenu;
-	HMENU prediffersSubmenu = GetPrediffersSubmenu(hMainMenu);
+	HMENU prediffersSubmenu = pPredifferMenu->m_hMenu;
 	if (prediffersSubmenu != nullptr)
 	{
 		CMergeEditView * pEditView = GetActiveMergeEditView();
@@ -2233,6 +2212,26 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 	}
 
 	return __super::PreTranslateMessage(pMsg);
+}
+
+/**
+ * @brief Show/hide menubar.
+ */
+void CMainFrame::OnViewMenuBar()
+{
+	const bool bMenuVisible = !GetOptionsMgr()->GetBool(OPT_SHOW_MENUBAR);
+	__super::ShowControlBar(&m_wndMenuBar, bMenuVisible, 0);
+	GetOptionsMgr()->SaveOption(OPT_SHOW_MENUBAR, bMenuVisible);
+	m_wndMenuBar.SetAlwaysVisible(bMenuVisible);
+	UpdateSystemMenu();
+}
+
+/**
+ * @brief Updates "Menu Bar" menuitem.
+ */
+void CMainFrame::OnUpdateViewMenuBar(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_SHOW_MENUBAR));
 }
 
 /**
@@ -2530,6 +2529,8 @@ void CMainFrame::OnActivateApp(BOOL bActive, DWORD dwThreadID)
 		if (IMergeDoc* pMergeDoc = GetActiveIMergeDoc())
 			PostMessage(WM_USER + 1);
 	}
+
+	m_wndTabBar.UpdateActive(bActive);
 }
 
 void CMainFrame::OnNcCalcSize(BOOL bCalcValidRects, NCCALCSIZE_PARAMS FAR* lpncsp)
@@ -2537,7 +2538,17 @@ void CMainFrame::OnNcCalcSize(BOOL bCalcValidRects, NCCALCSIZE_PARAMS FAR* lpncs
 	RECT rcWindow = lpncsp->rgrc[0];
 	__super::OnNcCalcSize(bCalcValidRects, lpncsp);
 	if (m_bTabsOnTitleBar.value_or(false) && m_wndTabBar.IsVisible())
-		lpncsp->rgrc[0].top = rcWindow.top + 0;
+	{
+		if (IsZoomed())
+		{
+			lpncsp->rgrc[0].top = rcWindow.top + GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+			//lpncsp->rgrc[0].left += 1;
+			//lpncsp->rgrc[0].right -= 1;
+			lpncsp->rgrc[0].bottom -= 1;
+		}
+		else
+			lpncsp->rgrc[0].top = rcWindow.top + 0;
+	}
 }
 
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
@@ -2590,7 +2601,11 @@ BOOL CMainFrame::CreateToolbar()
 		__super::ShowControlBar(&m_wndToolBar, false, 0);
 	}
 
-	__super::ShowControlBar(&m_wndMenuBar, true, 0);
+	if (!GetOptionsMgr()->GetBool(OPT_SHOW_MENUBAR))
+	{
+		__super::ShowControlBar(&m_wndMenuBar, false, 0);
+		m_wndMenuBar.SetAlwaysVisible(false);
+	}
 
 	m_wndReBar.LoadStateFromString(GetOptionsMgr()->GetString(OPT_REBAR_STATE).c_str());
 
@@ -2600,8 +2615,8 @@ BOOL CMainFrame::CreateToolbar()
 /** @brief Load toolbar images from the resource. */
 void CMainFrame::LoadToolbarImages()
 {
-	const int toolbarNewImgSize = MulDiv(16, GetSystemMetrics(SM_CXSMICON), 16) * 
-		(1 + std::clamp(GetOptionsMgr()->GetInt(OPT_TOOLBAR_SIZE), 0, ID_TOOLBAR_HUGE - ID_TOOLBAR_SMALL));
+	const int toolbarNewImgSize = MulDiv(8, GetSystemMetrics(SM_CXSMICON), 16) * 
+		(2 + std::clamp(GetOptionsMgr()->GetInt(OPT_TOOLBAR_SIZE), 0, ID_TOOLBAR_HUGE - ID_TOOLBAR_SMALL));
 	const int toolbarOrgImgSize = toolbarNewImgSize <= 20 ? 16 : 32;
 	CToolBarCtrl& BarCtrl = m_wndToolBar.GetToolBarCtrl();
 	CImageList imgEnabled, imgDisabled;
@@ -2974,7 +2989,7 @@ bool CMainFrame::DoSelfCompare(UINT nID, const String& file, const String strDes
 		CWaitCursor wait;
 		copiedFile = file;
 		PackingInfo infoUnpacker2 = infoUnpacker ? *infoUnpacker : PackingInfo{};
-		if (!infoUnpacker2.Unpacking(nullptr, copiedFile, copiedFile, { copiedFile }))
+		if (!infoUnpacker2.Unpacking(0, nullptr, copiedFile, copiedFile, { copiedFile }))
 		{
 			String sError = strutils::format_string1(_("File not unpacked: %1"), file);
 			AfxMessageBox(sError.c_str(), MB_OK | MB_ICONSTOP | MB_MODELESS);
@@ -2989,9 +3004,8 @@ bool CMainFrame::DoSelfCompare(UINT nID, const String& file, const String strDes
 		{
 			TFile(file).copyTo(copiedFile);
 		}
-		catch (Poco::FileException& e)
+		catch (Poco::Exception& e)
 		{
-			
 			LogErrorStringUTF8(e.displayText());
 		}
 	}
@@ -3160,6 +3174,18 @@ void CMainFrame::OnDiffIgnoreComments()
 void CMainFrame::OnUpdateDiffIgnoreComments(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_CMP_FILTER_COMMENTLINES));
+	pCmdUI->Enable();
+}
+
+void CMainFrame::OnDiffIgnoreMissingTrailingEol()
+{
+	GetOptionsMgr()->SaveOption(OPT_CMP_IGNORE_MISSING_TRAILING_EOL, !GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_MISSING_TRAILING_EOL));
+	ApplyDiffOptions();
+}
+
+void CMainFrame::OnUpdateDiffIgnoreMissingTrailingEol(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(GetOptionsMgr()->GetBool(OPT_CMP_IGNORE_MISSING_TRAILING_EOL));
 	pCmdUI->Enable();
 }
 
@@ -3693,4 +3719,33 @@ LRESULT CMainFrame::OnChildFrameActivated(WPARAM wParam, LPARAM lParam)
 	m_arrChild.InsertAt(0, reinterpret_cast<CMDIChildWnd*>(lParam));
 
 	return 1;
+}
+
+void CMainFrame::UpdateSystemMenu()
+{
+	CMenu* pSysMenu = GetSystemMenu(FALSE);
+	if (pSysMenu == nullptr)
+		return;
+	bool bFound = false;
+	const int cnt = pSysMenu->GetMenuItemCount();
+	for (int i = 0; i < cnt; ++i)
+		if (pSysMenu->GetMenuItemID(i) == ID_VIEW_MENU_BAR)
+			bFound = true;
+	if (!bFound)
+	{
+		pSysMenu->AppendMenu(MF_SEPARATOR);
+		pSysMenu->AppendMenu(MF_STRING, ID_VIEW_MENU_BAR, _("Men&u Bar").c_str());
+	}
+	const bool bChecked = GetOptionsMgr()->GetBool(OPT_SHOW_MENUBAR);
+	pSysMenu->CheckMenuItem(ID_VIEW_MENU_BAR, MF_BYCOMMAND | (bChecked ? MF_CHECKED : MF_UNCHECKED));
+}
+
+void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
+{
+	if (nID == ID_VIEW_MENU_BAR)
+	{
+		OnViewMenuBar();
+		return;
+	}
+	__super::OnSysCommand(nID, lParam);
 }

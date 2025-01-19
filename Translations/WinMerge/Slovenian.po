@@ -62,13 +62,16 @@ msgstr "Kopiraj izbrane vrstice na levo"
 msgid "Copy Selected Line(s) from Left"
 msgstr "Kopiraj izbrane vrstice z leve"
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
 msgstr ""
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
 msgstr ""
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr ""
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
 msgstr ""
 
 msgid "Select Line &Difference\tF4"
@@ -370,11 +373,17 @@ msgstr "&Orodna vrstica"
 msgid "&Small"
 msgstr "&Male"
 
+msgid "&Medium"
+msgstr ""
+
 msgid "&Big"
 msgstr "&Velike"
 
 msgid "&Huge"
 msgstr "O&gromne"
+
+msgid "Men&u Bar"
+msgstr ""
 
 msgid "&Status Bar"
 msgstr "&Statusna vrstica"
@@ -1092,6 +1101,9 @@ msgstr "Prezri š&tevilke"
 msgid "Ignore c&omment differences"
 msgstr "Prezri razlike v k&omentarjih"
 
+msgid "Ignore &missing trailing EOL"
+msgstr ""
+
 msgid "&Include subfolders"
 msgstr "&Vključi podmape"
 
@@ -1452,6 +1464,66 @@ msgstr "Besedne razlike:"
 msgid "Selected Word Diff:"
 msgstr "Izbrane razlike besed:"
 
+msgid "Dialog"
+msgstr "Pogovorno okno"
+
+msgid "Keywords:"
+msgstr "Ključne besede:"
+
+msgid "Function names:"
+msgstr "Imena funkcij:"
+
+msgid "Comments:"
+msgstr "Komentarji:"
+
+msgid "Numbers:"
+msgstr "Številke:"
+
+msgid "Operators:"
+msgstr "Operatorji:"
+
+msgid "Strings:"
+msgstr "Nizi:"
+
+msgid "Preprocessor:"
+msgstr "Predobdelano:"
+
+msgid "User 1:"
+msgstr "Uporabnik 1:"
+
+msgid "User 2:"
+msgstr "Uporabnik 2:"
+
+msgid "Bold"
+msgstr "Krepko"
+
+msgid "&Use customized text colors"
+msgstr "&Uporabi prilagojene barve besedila"
+
+msgid "Whitespace:"
+msgstr "Prazen znak:"
+
+msgid "Regular text:"
+msgstr "Redno besedilo:"
+
+msgid "Selection:"
+msgstr "Izbor:"
+
+msgid "Margin:"
+msgstr "Rob:"
+
+msgid "Search Marker:"
+msgstr "Iskalni označev.:"
+
+msgid "User Defined Marker1:"
+msgstr "Uporabn. določen1:"
+
+msgid "User Defined Marker2:"
+msgstr "Uporabn. določen2:"
+
+msgid "User Defined Marker3:"
+msgstr "Uporabn. določen3:"
+
 msgid "&Use folder compare colors"
 msgstr "&Uporabi barve primerjav map"
 
@@ -1467,8 +1539,8 @@ msgstr "Vseh neobstoječih vnosov:"
 msgid "Items filtered:"
 msgstr "Filtriranih vnosov:"
 
-msgid "Margin:"
-msgstr "Rob:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
+msgstr ""
 
 msgid "System"
 msgstr "Sistem"
@@ -1551,8 +1623,11 @@ msgstr "Dodatne lastnosti"
 msgid "Select Plugin"
 msgstr "Izberi vtičnik"
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
 msgstr "I&me vtičnita:"
+
+msgid "&Target files:"
+msgstr ""
 
 msgid "Extensions list:"
 msgstr "Seznam končnic:"
@@ -1569,7 +1644,7 @@ msgstr "Prikaži vse vtičnike, ne preverjaj končnico"
 msgid "&Open files in the same window type after unpacking"
 msgstr "P&o razpakiranju odpri datoteke v isti vrsti okna"
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr "Cevovo&d vtičnika:"
 
 msgid "&Alias..."
@@ -1787,51 +1862,6 @@ msgstr "Uvozi..."
 msgid "Export..."
 msgstr "Izvozi..."
 
-msgid "Dialog"
-msgstr "Pogovorno okno"
-
-msgid "Keywords:"
-msgstr "Ključne besede:"
-
-msgid "Function names:"
-msgstr "Imena funkcij:"
-
-msgid "Comments:"
-msgstr "Komentarji:"
-
-msgid "Numbers:"
-msgstr "Številke:"
-
-msgid "Operators:"
-msgstr "Operatorji:"
-
-msgid "Strings:"
-msgstr "Nizi:"
-
-msgid "Preprocessor:"
-msgstr "Predobdelano:"
-
-msgid "User 1:"
-msgstr "Uporabnik 1:"
-
-msgid "User 2:"
-msgstr "Uporabnik 2:"
-
-msgid "Bold"
-msgstr "Krepko"
-
-msgid "Search Marker:"
-msgstr "Iskalni označev.:"
-
-msgid "User Defined Marker1:"
-msgstr "Uporabn. določen1:"
-
-msgid "User Defined Marker2:"
-msgstr "Uporabn. določen2:"
-
-msgid "User Defined Marker3:"
-msgstr "Uporabn. določen3:"
-
 msgid "Folder Compare Report"
 msgstr "Poročilo primerjanja datotek"
 
@@ -1979,18 +2009,6 @@ msgstr "&Dovoli nove vrstice v narekovajih"
 msgid "&Quote character:"
 msgstr "Z&nak narekovaja:"
 
-msgid "&Use customized text colors"
-msgstr "&Uporabi prilagojene barve besedila"
-
-msgid "Whitespace:"
-msgstr "Prazen znak:"
-
-msgid "Regular text:"
-msgstr "Redno besedilo:"
-
-msgid "Selection:"
-msgstr "Izbor:"
-
 msgid "Backup Files"
 msgstr "Datoteke varnostnih kopij"
 
@@ -2047,6 +2065,9 @@ msgstr "Vtičniki"
 
 msgid "&Enable plugins"
 msgstr "&Omogoči vtičnike"
+
+msgid "Plugin &type:"
+msgstr ""
 
 msgid "File filters:"
 msgstr "Filtri datotek:"
@@ -2177,9 +2198,6 @@ msgid "&Hex View"
 msgstr "16-tiški prikaz"
 
 msgid "Edit Plugin"
-msgstr ""
-
-msgid "Plugin &type:"
 msgstr ""
 
 msgid "&Category:"
@@ -4232,6 +4250,27 @@ msgstr ""
 msgid "New plugin description"
 msgstr ""
 
+msgid "All"
+msgstr ""
+
+msgid "1st"
+msgstr ""
+
+msgid "2nd"
+msgstr ""
+
+msgid "3rd"
+msgstr ""
+
+msgid "1st and 2nd"
+msgstr ""
+
+msgid "1st and 3rd"
+msgstr ""
+
+msgid "2nd and 3rd"
+msgstr ""
+
 msgid "Filter applied"
 msgstr "Filter je uporabljen"
 
@@ -4348,6 +4387,9 @@ msgstr "Decompilation"
 msgid "URL Handling"
 msgstr "Upravljanje URL-jev"
 
+msgid "Decoding / Encoding"
+msgstr ""
+
 msgid "Make Uppercase"
 msgstr "VELIKE ČRKE"
 
@@ -4463,6 +4505,9 @@ msgid "Disassemble Native Code"
 msgstr "Razstavi naravno kodo"
 
 msgid "Convert Text with AI..."
+msgstr ""
+
+msgid "Unescape Java properties files"
 msgstr ""
 
 msgid "Make characters uppercase"

@@ -10,10 +10,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: WinMerge (Language) 28.09.2024\n"
+"Project-Id-Version: WinMerge (Language) 10.01.2025\n"
 "Report-Msgid-Bugs-To: https://bugs.winmerge.org/\n"
 "POT-Creation-Date: 2019-07-09 07:44+0000\n"
-"PO-Revision-Date: 2024-09-29 09:36+0200\n"
+"PO-Revision-Date: 2025-01-10 11:13+0100\n"
 "Last-Translator: bovirus <bovirus@gmail.comn>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -46,31 +46,34 @@ msgid "Copy &from Left\tAlt+Shift+Right"
 msgstr "Copia da &sinistra\tAlt+Maiusc+Destra"
 
 msgid "Copy Selected Line(s) to Middle"
-msgstr "Copia le righe selezionate al centro"
+msgstr "Copia righe selezionate al centro"
 
 msgid "Copy Selected Line(s) to Right"
-msgstr "Copia a destra le righe selezionate"
+msgstr "Copia righe selezionate a destra"
 
 msgid "Copy Selected Line(s) from Middle"
-msgstr "Copia le righe selezionate dal centro"
+msgstr "Copia righe selezionate dal centro"
 
 msgid "Copy Selected Line(s) from Right"
-msgstr "Copia le righe selezionate da destra"
+msgstr "Copia righe selezionate da destra"
 
 msgid "Copy Selected Line(s) to Left"
-msgstr "Copia a sinistra le righe selezionate"
+msgstr "Copia righe selezionate a sinistra"
 
 msgid "Copy Selected Line(s) from Left"
-msgstr "Copia le righe selezionate da sinistra"
+msgstr "Copia righe selezionate da sinistra"
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
-msgstr "Copia negli appunti differenze selezionate (sinistra)\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
+msgstr "Copia differenze selezionate (a sinistra) negli appunti \tCtrl+&1"
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
-msgstr "Copia negli appunti differenze selezionate (al centro)\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
+msgstr "Copia  differenze selezionate (a destra) negli appunti\tCtrl+&2"
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
-msgstr "Copia negli appunti differenze selezionate (destra)\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr "Copia differenze selezionate (al centro) negli appunti\tCtrl+&2"
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
+msgstr "Copia differenze selezionate (a destra) negli appunti\tCtrl+&3"
 
 msgid "Select Line &Difference\tF4"
 msgstr "Seleziona &differenze di riga\tF4"
@@ -79,7 +82,7 @@ msgid "Add this change to Substitution &Filters"
 msgstr "Aggiungi questa modifica a &Filtri sostituzione"
 
 msgid "Add to &Line Filters"
-msgstr "Aggiungi ai Filtri &linea"
+msgstr "Aggiungi ai filtri &linea"
 
 msgid "&Undo"
 msgstr "Annul&la"
@@ -106,7 +109,7 @@ msgid "&Go to...\tCtrl+G"
 msgstr "&Vai a...\tCtrl+G"
 
 msgid "Go to Moved Line Between Left and Middle\tCtrl+Shift+G"
-msgstr "Vai alla riga spostata tra sinistra e centro\tCtrl+Shift+G"
+msgstr "Vai alla riga spostata tra sinistra e centro\tCtrl+Maiusc+G"
 
 msgid "Go to Moved Line Between Middle and Right\tCtrl+Alt+G"
 msgstr "Vai alla riga spostata tra centro e destra\tCtrl+Alt+G"
@@ -136,7 +139,7 @@ msgid "Auto-Fit All Columns"
 msgstr "Adatta tutte le colonne"
 
 msgid "View &Differences"
-msgstr "Visializza &differenze"
+msgstr "Visualizza &differenze"
 
 msgid "Diff &Block Size"
 msgstr "Dimensione &blocco di differenze"
@@ -243,10 +246,10 @@ msgid "Co&mpare"
 msgstr "Co&nfronta"
 
 msgid "&Screenshots"
-msgstr "&Screenshot"
+msgstr "&Schermata"
 
 msgid "&Full Size Screenshots"
-msgstr "Screenshot a dimensione &intera"
+msgstr "Schermata a dimensione &intera"
 
 msgid "&HTMLs"
 msgstr "&HTML"
@@ -371,11 +374,17 @@ msgstr "Barra s&trumenti"
 msgid "&Small"
 msgstr "&Piccola"
 
+msgid "&Medium"
+msgstr "&Media"
+
 msgid "&Big"
 msgstr "&Grande"
 
 msgid "&Huge"
 msgstr "&Gigantesca"
+
+msgid "Men&u Bar"
+msgstr "Barra men&u"
 
 msgid "&Status Bar"
 msgstr "&Barra stato"
@@ -1093,6 +1102,9 @@ msgstr "Ignora i nu&meri"
 msgid "Ignore c&omment differences"
 msgstr "Ignora le differenze nei c&ommenti"
 
+msgid "Ignore &missing trailing EOL"
+msgstr "Ignora EOL finale &mancante"
+
 msgid "&Include subfolders"
 msgstr "&Includi sotto cartelle"
 
@@ -1458,6 +1470,66 @@ msgstr "Differenza di parole:"
 msgid "Selected Word Diff:"
 msgstr "Diff. parole selezionata:"
 
+msgid "Dialog"
+msgstr "Finestra di dialogo"
+
+msgid "Keywords:"
+msgstr "Parole chiave:"
+
+msgid "Function names:"
+msgstr "Nomi funzione:"
+
+msgid "Comments:"
+msgstr "Commenti:"
+
+msgid "Numbers:"
+msgstr "Numeri:"
+
+msgid "Operators:"
+msgstr "Operatori:"
+
+msgid "Strings:"
+msgstr "Stringhe:"
+
+msgid "Preprocessor:"
+msgstr "Preprocessore:"
+
+msgid "User 1:"
+msgstr "Utente 1:"
+
+msgid "User 2:"
+msgstr "Utente 2:"
+
+msgid "Bold"
+msgstr "Grassetto"
+
+msgid "&Use customized text colors"
+msgstr "Per il testo &usa colori personalizzati"
+
+msgid "Whitespace:"
+msgstr "Spazi:"
+
+msgid "Regular text:"
+msgstr "Testo normale:"
+
+msgid "Selection:"
+msgstr "Selezione:"
+
+msgid "Margin:"
+msgstr "Margine:"
+
+msgid "Search Marker:"
+msgstr "Cerca segnaposto:"
+
+msgid "User Defined Marker1:"
+msgstr "Segnaposto predefinito 1:"
+
+msgid "User Defined Marker2:"
+msgstr "Segnaposto predefinito 2:"
+
+msgid "User Defined Marker3:"
+msgstr "Segnaposto predefinito 3:"
+
 msgid "&Use folder compare colors"
 msgstr "&Usa colori confronto cartelle"
 
@@ -1473,8 +1545,10 @@ msgstr "Elementi inesistenti:"
 msgid "Items filtered:"
 msgstr "Elementi filtrati:"
 
-msgid "Margin:"
-msgstr "Margine:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
+msgstr ""
+"&Usza colori sistema personalizzati (alcuni elementi dell'interfaccia utente potrebbero non essere "
+"applicabili)"
 
 msgid "System"
 msgstr "Sistema"
@@ -1557,8 +1631,11 @@ msgstr "Proprietà aggiuntive"
 msgid "Select Plugin"
 msgstr "Seleziona plugin"
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
 msgstr "&Nome plugin:"
+
+msgid "&Target files:"
+msgstr "&File destinazione:"
 
 msgid "Extensions list:"
 msgstr "Elenco estensioni:"
@@ -1575,7 +1652,7 @@ msgstr "Visualizza tutti i plugin, senza verificare l'estensione"
 msgid "&Open files in the same window type after unpacking"
 msgstr "Dopo aver scompatto i file &aprili nello stesso tipo di finestra"
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr "Pipeline &plugin:"
 
 msgid "&Alias..."
@@ -1797,51 +1874,6 @@ msgstr "Importa..."
 msgid "Export..."
 msgstr "Esporta..."
 
-msgid "Dialog"
-msgstr "Finestra di dialogo"
-
-msgid "Keywords:"
-msgstr "Parole chiave:"
-
-msgid "Function names:"
-msgstr "Nomi funzione:"
-
-msgid "Comments:"
-msgstr "Commenti:"
-
-msgid "Numbers:"
-msgstr "Numeri:"
-
-msgid "Operators:"
-msgstr "Operatori:"
-
-msgid "Strings:"
-msgstr "Stringhe:"
-
-msgid "Preprocessor:"
-msgstr "Preprocessore:"
-
-msgid "User 1:"
-msgstr "Utente 1:"
-
-msgid "User 2:"
-msgstr "Utente 2:"
-
-msgid "Bold"
-msgstr "Grassetto"
-
-msgid "Search Marker:"
-msgstr "Cerca segnaposto:"
-
-msgid "User Defined Marker1:"
-msgstr "Segnaposto predefinito 1:"
-
-msgid "User Defined Marker2:"
-msgstr "Segnaposto predefinito 2:"
-
-msgid "User Defined Marker3:"
-msgstr "Segnaposto predefinito 3:"
-
 msgid "Folder Compare Report"
 msgstr "Rapporto confronto tra cartelle"
 
@@ -1989,18 +2021,6 @@ msgstr "&Consenti a capo tra le virgolette"
 msgid "&Quote character:"
 msgstr "Carattere &virgolette:"
 
-msgid "&Use customized text colors"
-msgstr "Per il testo &usa colori personalizzati"
-
-msgid "Whitespace:"
-msgstr "Spazi:"
-
-msgid "Regular text:"
-msgstr "Testo normale:"
-
-msgid "Selection:"
-msgstr "Selezione:"
-
 msgid "Backup Files"
 msgstr "File di backup"
 
@@ -2057,6 +2077,9 @@ msgstr "Plugin"
 
 msgid "&Enable plugins"
 msgstr "&Abilita plugin"
+
+msgid "Plugin &type:"
+msgstr "&Tipo plugin:"
 
 msgid "File filters:"
 msgstr "Filtri file:"
@@ -2188,9 +2211,6 @@ msgstr "Vista &esadecimale"
 
 msgid "Edit Plugin"
 msgstr "Modifica plugin"
-
-msgid "Plugin &type:"
-msgstr "&Tipo plugin:"
 
 msgid "&Category:"
 msgstr "&Categoria:"
@@ -2920,22 +2940,22 @@ msgid "Break at whitespace or punctuation"
 msgstr "Interrompi agli spazi o alla punteggiatura"
 
 msgid "Copy to &Middle\tAlt+Right"
-msgstr "Copia al &centro\tAlt+Right"
+msgstr "Copia al &centro\tAlt+Destra"
 
 msgid "Copy to &Middle\tAlt+Left"
-msgstr "Copia al &centro\tAlt+Left"
+msgstr "Copia al &centro\tAlt+Sinistra"
 
 msgid "Copy from Middle\tAlt+Shift+Right"
-msgstr "Copia dal centro\tAlt+Shift+Right"
+msgstr "Copia dal centro\tAlt+Maiusc+Destra"
 
 msgid "Copy from Middle\tAlt+Shift+Left"
-msgstr "Copia dal centro\tAlt+Shift+Left"
+msgstr "Copia dal centro\tAlt+Maiusc+Sinistra"
 
 msgid "Copy to Middle and Advance\tCtrl+Alt+Right"
-msgstr "Copia al centro e vai alla successiva\tCtrl+Alt+Right"
+msgstr "Copia al centro e vai alla successiva\tCtrl+Alt+Destra"
 
 msgid "Copy to Middle and Advance\tCtrl+Alt+Left"
-msgstr "Copia al centro e vai alla successiva\tCtrl+Alt+Left"
+msgstr "Copia al centro e vai alla successiva\tCtrl+Alt+Sinistra"
 
 msgid "Copy All to Middle"
 msgstr "Copia tutto al centro"
@@ -3526,7 +3546,7 @@ msgstr ""
 "%1"
 
 msgid "The report has been created successfully."
-msgstr "Craezione rapporto completata."
+msgstr "Creazione rapporto completata."
 
 msgid "Cannot add a synchronization point at this line."
 msgstr "Impossibile aggiungere un punto di sincronizzazione su questa linea."
@@ -3975,7 +3995,7 @@ msgid "G&o to Line %1"
 msgstr "Vai alla &linea %1"
 
 msgid "Go to Moved Line\tCtrl+Shift+G"
-msgstr "Vai alla riga spostata\tCtrl+Shift+G"
+msgstr "Vai alla riga spostata\tCtrl+Maiusc+G"
 
 msgid "Disabled"
 msgstr "Disattivato"
@@ -4062,7 +4082,7 @@ msgid "DirectWrite Default"
 msgstr "Predefinita DirectWrite"
 
 msgid "DirectWrite Aliased"
-msgstr "Alias ​​DirectWrite"
+msgstr "Alias DirectWrite"
 
 msgid "DirectWrite GDI Classic"
 msgstr "GDI Classica DirectWrite"
@@ -4284,7 +4304,7 @@ msgid "Alias for Unpacker"
 msgstr "Alias decompressione"
 
 msgid "Alias for Prediffer"
-msgstr "Alias pre-differrenza"
+msgstr "Alias pre-differenza"
 
 msgid "Alias for Editor script"
 msgstr "Alias per script editor"
@@ -4295,6 +4315,27 @@ msgstr "Alias pipeline plugin '%1'"
 
 msgid "New plugin description"
 msgstr "Nuova descrizione plugin"
+
+msgid "All"
+msgstr "Tutti"
+
+msgid "1st"
+msgstr "Primo"
+
+msgid "2nd"
+msgstr "Secondo"
+
+msgid "3rd"
+msgstr "terzo"
+
+msgid "1st and 2nd"
+msgstr "Primo e secondo"
+
+msgid "1st and 3rd"
+msgstr "Primo e terzo"
+
+msgid "2nd and 3rd"
+msgstr "Secondo e terzo"
 
 msgid "Filter applied"
 msgstr "Filtro applicato"
@@ -4467,6 +4508,9 @@ msgstr "Decompilazione"
 msgid "URL Handling"
 msgstr "Gestione URL"
 
+msgid "Decoding / Encoding"
+msgstr "Decodifica/codifica"
+
 msgid "Make Uppercase"
 msgstr "Rendi maiuscolo"
 
@@ -4537,7 +4581,7 @@ msgid "Apply Prediff Substitution Filters"
 msgstr "Applica filtri sostituzione prediff"
 
 msgid "Prettify HTML"
-msgstr "Abbellsici HTML"
+msgstr "Abbellisci HTML"
 
 msgid "Prettify JSON"
 msgstr "Abbellisci JSON"
@@ -4583,6 +4627,9 @@ msgstr "Disassembla codice nativo"
 
 msgid "Convert Text with AI..."
 msgstr "Converti testo con AI..."
+
+msgid "Unescape Java properties files"
+msgstr "Elimina escape dai file proprietà Java"
 
 msgid "Make characters uppercase"
 msgstr "Rendi caratteri maiuscoli"
@@ -4862,7 +4909,7 @@ msgstr ""
 "Uso: AIConvertText PROMPT"
 
 msgid "Unescape and display escaped Java properties files."
-msgstr ""
+msgstr "Annulla l'escape e visualizza i file delle proprietà Java con escape."
 
 msgid "CompareMSExcelFiles.sct WinMerge Plugin Options"
 msgstr "Opzioni plugin WinMerge CompareMSExcelFiles.sct"

@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: WinMerge\n"
 "Report-Msgid-Bugs-To: https://bugs.winmerge.org/\n"
 "POT-Creation-Date: 2020-12-05 22:07+0000\n"
-"PO-Revision-Date: 2024-09-28 15:49+0900\n"
+"PO-Revision-Date: 2024-11-20 08:45+0900\n"
 "Last-Translator: Takashi Sawanaka <sawanaka@d1.dion.ne.jp>\n"
 "Language-Team: Japanese <winmerge-translate@lists.sourceforge.net>\n"
 "Language: ja\n"
@@ -61,14 +61,17 @@ msgstr "選択した行を左側にコピー"
 msgid "Copy Selected Line(s) from Left"
 msgstr "選択した行を左側からコピー"
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
-msgstr "選択した差異(左側)をクリップボードへコピー\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
+msgstr "選択した差異(左側)をクリップボードへコピー\tCtrl+&1"
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
-msgstr "選択した差異(中央)をクリップボードへコピー\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
+msgstr "選択した差異(右側)をクリップボードへコピー\tCtrl+&2"
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
-msgstr "選択した差異(右側)をクリップボードへコピー\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr "選択した差異(中央)をクリップボードへコピー\tCtrl+&2"
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
+msgstr "選択した差異(右側)をクリップボードへコピー\tCtrl+&3"
 
 msgid "Select Line &Difference\tF4"
 msgstr "行内差異を選択(&D)\tF4"
@@ -369,11 +372,17 @@ msgstr "ツールバー(&T)"
 msgid "&Small"
 msgstr "小(&S)"
 
+msgid "&Medium"
+msgstr "中(&M)"
+
 msgid "&Big"
 msgstr "大(&B)"
 
 msgid "&Huge"
 msgstr "特大(&H)"
+
+msgid "Men&u Bar"
+msgstr "メニューバー(&U)"
 
 msgid "&Status Bar"
 msgstr "ステータス バー(&S)"
@@ -1091,6 +1100,9 @@ msgstr "数字を無視する(&B)"
 msgid "Ignore c&omment differences"
 msgstr "コメントの違いを無視する(&O)"
 
+msgid "Ignore &missing trailing EOL"
+msgstr "ファイル末尾の改行文字の有無を無視する(&E)"
+
 msgid "&Include subfolders"
 msgstr "サブフォルダーを含める(&I)"
 
@@ -1455,6 +1467,66 @@ msgstr "単語の差異:"
 msgid "Selected Word Diff:"
 msgstr "選択された単語の差異:"
 
+msgid "Dialog"
+msgstr "ダイアログ"
+
+msgid "Keywords:"
+msgstr "キーワード:"
+
+msgid "Function names:"
+msgstr "関数名:"
+
+msgid "Comments:"
+msgstr "コメント:"
+
+msgid "Numbers:"
+msgstr "数値:"
+
+msgid "Operators:"
+msgstr "オペレーター:"
+
+msgid "Strings:"
+msgstr "文字列:"
+
+msgid "Preprocessor:"
+msgstr "プリプロセッサ:"
+
+msgid "User 1:"
+msgstr "ユーザー 1:"
+
+msgid "User 2:"
+msgstr "ユーザー 2:"
+
+msgid "Bold"
+msgstr "太字"
+
+msgid "&Use customized text colors"
+msgstr "テキストの色をカスタマイズする(&U)"
+
+msgid "Whitespace:"
+msgstr "空白:"
+
+msgid "Regular text:"
+msgstr "標準テキスト:"
+
+msgid "Selection:"
+msgstr "選択:"
+
+msgid "Margin:"
+msgstr "マージン:"
+
+msgid "Search Marker:"
+msgstr "検索マーカー:"
+
+msgid "User Defined Marker1:"
+msgstr "ユーザー定義マーカー 1:"
+
+msgid "User Defined Marker2:"
+msgstr "ユーザー定義マーカー 2:"
+
+msgid "User Defined Marker3:"
+msgstr "ユーザー定義マーカー 3:"
+
 msgid "&Use folder compare colors"
 msgstr "フォルダー比較用の色を使用する(&U)"
 
@@ -1470,8 +1542,8 @@ msgstr "すべて存在しない項目:"
 msgid "Items filtered:"
 msgstr "無視された項目:"
 
-msgid "Margin:"
-msgstr "マージン:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
+msgstr "カスタムシステムカラーを使用する（一部のUI要素には適用されません）"
 
 msgid "System"
 msgstr "システム"
@@ -1554,8 +1626,11 @@ msgstr "追加プロパティ"
 msgid "Select Plugin"
 msgstr "プラグインの選択"
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
 msgstr "プラグイン名(&N):"
+
+msgid "&Target files:"
+msgstr "対象ファイル(&T)"
 
 msgid "Extensions list:"
 msgstr "拡張子一覧:"
@@ -1572,7 +1647,7 @@ msgstr "拡張子を無視してすべてのプラグインを表示する"
 msgid "&Open files in the same window type after unpacking"
 msgstr "展開プラグイン適用後、ファイルを同じウインドウ タイプで開く(&O)"
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr "プラグイン パイプライン(&P):"
 
 msgid "&Alias..."
@@ -1790,51 +1865,6 @@ msgstr "インポート..."
 msgid "Export..."
 msgstr "エクスポート..."
 
-msgid "Dialog"
-msgstr "ダイアログ"
-
-msgid "Keywords:"
-msgstr "キーワード:"
-
-msgid "Function names:"
-msgstr "関数名:"
-
-msgid "Comments:"
-msgstr "コメント:"
-
-msgid "Numbers:"
-msgstr "数値:"
-
-msgid "Operators:"
-msgstr "オペレーター:"
-
-msgid "Strings:"
-msgstr "文字列:"
-
-msgid "Preprocessor:"
-msgstr "プリプロセッサ:"
-
-msgid "User 1:"
-msgstr "ユーザー 1:"
-
-msgid "User 2:"
-msgstr "ユーザー 2:"
-
-msgid "Bold"
-msgstr "太字"
-
-msgid "Search Marker:"
-msgstr "検索マーカー:"
-
-msgid "User Defined Marker1:"
-msgstr "ユーザー定義マーカー 1:"
-
-msgid "User Defined Marker2:"
-msgstr "ユーザー定義マーカー 2:"
-
-msgid "User Defined Marker3:"
-msgstr "ユーザー定義マーカー 3:"
-
 msgid "Folder Compare Report"
 msgstr "フォルダー比較レポート"
 
@@ -1982,18 +2012,6 @@ msgstr "引用符内の改行を値として扱う(&A)"
 msgid "&Quote character:"
 msgstr "引用符文字(&Q)"
 
-msgid "&Use customized text colors"
-msgstr "テキストの色をカスタマイズする(&U)"
-
-msgid "Whitespace:"
-msgstr "空白:"
-
-msgid "Regular text:"
-msgstr "標準テキスト:"
-
-msgid "Selection:"
-msgstr "選択:"
-
 msgid "Backup Files"
 msgstr "バックアップ ファイル"
 
@@ -2050,6 +2068,9 @@ msgstr "プラグイン"
 
 msgid "&Enable plugins"
 msgstr "プラグインを有効にする(&E)"
+
+msgid "Plugin &type:"
+msgstr "プラグインの種類(&T):"
 
 msgid "File filters:"
 msgstr "ファイル フィルター:"
@@ -2181,9 +2202,6 @@ msgstr "HEX 表示(&H)"
 
 msgid "Edit Plugin"
 msgstr "プラグインの編集"
-
-msgid "Plugin &type:"
-msgstr "プラグインの種類(&T)"
 
 msgid "&Category:"
 msgstr "カテゴリー(&C)"
@@ -4235,6 +4253,27 @@ msgstr "プラグインパイプライン '%1' のエイリアス"
 msgid "New plugin description"
 msgstr "新しいプラグインの説明"
 
+msgid "All"
+msgstr "すべて"
+
+msgid "1st"
+msgstr "1番目"
+
+msgid "2nd"
+msgstr "2番目"
+
+msgid "3rd"
+msgstr "3番目"
+
+msgid "1st and 2nd"
+msgstr "1番目と2番目"
+
+msgid "1st and 3rd"
+msgstr "1番目と3番目"
+
+msgid "2nd and 3rd"
+msgstr "2番目と3番目"
+
 msgid "Filter applied"
 msgstr "フィルター適用"
 
@@ -4403,6 +4442,9 @@ msgstr "逆コンパイル"
 msgid "URL Handling"
 msgstr "URL 処理"
 
+msgid "Decoding / Encoding"
+msgstr "デコード / エンコード"
+
 msgid "Make Uppercase"
 msgstr "大文字に変換"
 
@@ -4519,6 +4561,9 @@ msgstr "ネイティブ コード逆アセンブル"
 
 msgid "Convert Text with AI..."
 msgstr "AIテキスト変換..."
+
+msgid "Unescape Java properties files"
+msgstr "Java プロパティファイルをアンエスケープ"
 
 msgid "Make characters uppercase"
 msgstr "テキストを大文字に変換します"

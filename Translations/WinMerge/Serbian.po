@@ -60,13 +60,16 @@ msgstr ""
 msgid "Copy Selected Line(s) from Left"
 msgstr ""
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
 msgstr ""
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
 msgstr ""
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr ""
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
 msgstr ""
 
 #, c-format
@@ -412,12 +415,18 @@ msgstr "&Трака алата"
 msgid "&Small"
 msgstr "&Мала"
 
+msgid "&Medium"
+msgstr ""
+
 #, c-format
 msgid "&Big"
 msgstr "&Велика"
 
 #, c-format
 msgid "&Huge"
+msgstr ""
+
+msgid "Men&u Bar"
 msgstr ""
 
 #, c-format
@@ -1308,6 +1317,9 @@ msgstr ""
 msgid "Ignore c&omment differences"
 msgstr ""
 
+msgid "Ignore &missing trailing EOL"
+msgstr ""
+
 #, c-format
 msgid "&Include subfolders"
 msgstr "Укључи и потфасцикле"
@@ -1736,6 +1748,86 @@ msgstr "Различите речи:"
 msgid "Selected Word Diff:"
 msgstr "Одабери различите речи:"
 
+#, c-format
+msgid "Dialog"
+msgstr "Разговор"
+
+#, c-format
+msgid "Keywords:"
+msgstr "Кључне речи:"
+
+#, c-format
+msgid "Function names:"
+msgstr "Имена функција:"
+
+#, c-format
+msgid "Comments:"
+msgstr "Напомене:"
+
+#, c-format
+msgid "Numbers:"
+msgstr "Бројеви:"
+
+#, c-format
+msgid "Operators:"
+msgstr "Оператери:"
+
+#, c-format
+msgid "Strings:"
+msgstr "Појмови:"
+
+#, c-format
+msgid "Preprocessor:"
+msgstr "Претпроцесор:"
+
+#, c-format
+msgid "User 1:"
+msgstr "Корисник 1:"
+
+#, c-format
+msgid "User 2:"
+msgstr "Корисник 2:"
+
+#, c-format
+msgid "Bold"
+msgstr "Подебљано"
+
+#, c-format
+msgid "&Use customized text colors"
+msgstr "Користи жељене боје текста"
+
+#, c-format
+msgid "Whitespace:"
+msgstr "Размак:"
+
+#, c-format
+msgid "Regular text:"
+msgstr "Правилан текст:"
+
+#, c-format
+msgid "Selection:"
+msgstr "Изабери:"
+
+#, c-format
+msgid "Margin:"
+msgstr ""
+
+#, c-format
+msgid "Search Marker:"
+msgstr ""
+
+#, c-format
+msgid "User Defined Marker1:"
+msgstr ""
+
+#, c-format
+msgid "User Defined Marker2:"
+msgstr ""
+
+#, c-format
+msgid "User Defined Marker3:"
+msgstr ""
+
 msgid "&Use folder compare colors"
 msgstr ""
 
@@ -1751,8 +1843,7 @@ msgstr ""
 msgid "Items filtered:"
 msgstr ""
 
-#, c-format
-msgid "Margin:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
 msgstr ""
 
 #, c-format
@@ -1860,7 +1951,10 @@ msgstr ""
 msgid "Select Plugin"
 msgstr ""
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
+msgstr ""
+
+msgid "&Target files:"
 msgstr ""
 
 #, c-format
@@ -1880,7 +1974,7 @@ msgstr ""
 msgid "&Open files in the same window type after unpacking"
 msgstr ""
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr ""
 
 msgid "&Alias..."
@@ -2143,66 +2237,6 @@ msgid "Export..."
 msgstr "Извези..."
 
 #, c-format
-msgid "Dialog"
-msgstr "Разговор"
-
-#, c-format
-msgid "Keywords:"
-msgstr "Кључне речи:"
-
-#, c-format
-msgid "Function names:"
-msgstr "Имена функција:"
-
-#, c-format
-msgid "Comments:"
-msgstr "Напомене:"
-
-#, c-format
-msgid "Numbers:"
-msgstr "Бројеви:"
-
-#, c-format
-msgid "Operators:"
-msgstr "Оператери:"
-
-#, c-format
-msgid "Strings:"
-msgstr "Појмови:"
-
-#, c-format
-msgid "Preprocessor:"
-msgstr "Претпроцесор:"
-
-#, c-format
-msgid "User 1:"
-msgstr "Корисник 1:"
-
-#, c-format
-msgid "User 2:"
-msgstr "Корисник 2:"
-
-#, c-format
-msgid "Bold"
-msgstr "Подебљано"
-
-#, c-format
-msgid "Search Marker:"
-msgstr ""
-
-#, c-format
-msgid "User Defined Marker1:"
-msgstr ""
-
-#, c-format
-msgid "User Defined Marker2:"
-msgstr ""
-
-#, c-format
-msgid "User Defined Marker3:"
-msgstr ""
-
-#, c-format
 msgid "Folder Compare Report"
 msgstr "Извештај упоређених фасцикли"
 
@@ -2389,22 +2423,6 @@ msgid "&Quote character:"
 msgstr ""
 
 #, c-format
-msgid "&Use customized text colors"
-msgstr "Користи жељене боје текста"
-
-#, c-format
-msgid "Whitespace:"
-msgstr "Размак:"
-
-#, c-format
-msgid "Regular text:"
-msgstr "Правилан текст:"
-
-#, c-format
-msgid "Selection:"
-msgstr "Изабери:"
-
-#, c-format
 msgid "Backup Files"
 msgstr "Резервне датотеке"
 
@@ -2478,6 +2496,9 @@ msgstr "Додаци"
 #, c-format
 msgid "&Enable plugins"
 msgstr "Омогући додатк&е"
+
+msgid "Plugin &type:"
+msgstr ""
 
 msgid "File filters:"
 msgstr ""
@@ -2625,9 +2646,6 @@ msgid "&Hex View"
 msgstr ""
 
 msgid "Edit Plugin"
-msgstr ""
-
-msgid "Plugin &type:"
 msgstr ""
 
 msgid "&Category:"
@@ -4745,6 +4763,27 @@ msgstr ""
 msgid "New plugin description"
 msgstr ""
 
+msgid "All"
+msgstr ""
+
+msgid "1st"
+msgstr ""
+
+msgid "2nd"
+msgstr ""
+
+msgid "3rd"
+msgstr ""
+
+msgid "1st and 2nd"
+msgstr ""
+
+msgid "1st and 3rd"
+msgstr ""
+
+msgid "2nd and 3rd"
+msgstr ""
+
 msgid "Filter applied"
 msgstr ""
 
@@ -4855,6 +4894,9 @@ msgid "Decompilation"
 msgstr ""
 
 msgid "URL Handling"
+msgstr ""
+
+msgid "Decoding / Encoding"
 msgstr ""
 
 msgid "Make Uppercase"
@@ -4972,6 +5014,9 @@ msgid "Disassemble Native Code"
 msgstr ""
 
 msgid "Convert Text with AI..."
+msgstr ""
+
+msgid "Unescape Java properties files"
 msgstr ""
 
 msgid "Make characters uppercase"

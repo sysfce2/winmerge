@@ -1,5 +1,240 @@
 # Change log
 
+## WinMerge 2.16.46 - 2025-01-27
+
+### General
+
+- BugFix: ALT-F4 opens Tools menu instead of exit from WinMerge (#2592)
+### Folder compare
+
+- BugFix: Compare - Text files different and case also different
+    - bug when delete and copy (#2599)
+
+### Plugins
+
+- Enable per-file plugin application with file number specification (PR #2598)
+
+### Manual
+
+- BugFix: Typos and minor errors in WinMerge manual (#2597)
+
+### Translations
+
+- Translation updates:
+  - Brazilian (PR #2601) 
+  - Chinese Simplified (PR #2603) 
+  - French (PR #2595,#2612)
+  - Hungarian (PR #2602)
+  - Italian (PR #2610)
+  - Japanese
+  - Korean (PR #2611)
+  - Lithuanian (PR #2604) 
+  - Russian (PR #2593,#2609)
+
+## WinMerge 2.16.45.1 - 2024-12-27
+
+### General
+
+- BugFix: IME switch not toggle menu when menu hide (PR #2572)
+- Add "Ignore missing trailing EOL" option to Compare settings
+    (PR #2573,#203,#989,#2317)
+
+### File compare
+
+- BugFix: The height of the lines connecting moving blocks in the location
+    pane may be incorrect (#2543)
+
+### Folder compare
+
+- BugFix: Looks like the View Tab Bar "folder icon" is getting a green
+    check-mark before the folder compare has even completed. (#2562)
+
+### Plugins
+
+- BugFix: WinMerge 2.16.44.0 : CompareMSWordFiles.sct Plugin : Forced Enabled
+    Confirm Conversions Pop-Up (#2566)
+
+### Archive support
+
+- Update 7-Zip to 24.09
+
+### Translations
+
+- Translation updates:
+  - Brazilian (PR #2585)
+  - Chinese Simplified (PR #2588) 
+  - Hungarian (PR #2586)
+  - Italian (PR #2587)
+  - Lithuanian (PR #2591)
+  - Japanese
+  - Korean (PR #2558,#2559)
+
+### Internals
+
+- Update POCO C++ Libraries to 1.14.0
+
+## WinMerge 2.16.45.0 - 2024-11-27
+
+### General
+
+- BugFix: Second monitor - BIG title bar v 2.16.44 (#2510,#2512,#2540,#2549)
+- BugFix: Window close button is not extending to the edge of the screen
+    when maximized (#2520)
+- BugFix: When WinMerge window is maximized, it prevents auto-hidden Windows
+    11 taskbar from appearing (#2518)
+- Foreground and background title bars are distinguishable (PR #2497)
+- Title bar background color and text color follow windows settings when not
+    customized (PR #2505)
+- Main Menu toggle Show/Hide (PR #2509)
+- Inactive title text chosen by inactive title color (PR #2544)
+- Reduce the contrast of inactive title bar text (PR #2545)
+- System Icon turn gray when app inactive (PR #2547)
+
+### File compare
+
+- BugFix: Wrong line gets copied over when selecting text (#2499)
+- BugFix: Bug Report: Display Issues When Resizing WinMerge Across Dual
+    Monitors (#2514)
+- BugFix: Diff renders incorrectly with "Cascadia Mono" variant (#2525)
+- BugFix: The height of the lines connecting moving blocks in the location
+    pane may be incorrect
+- BugFix: Crash on opening 2 files via drag & drop (#2548)
+- BugFix: A crash could occur if a single invalid file path was specified in
+    the "Select files or folders" window.
+- BugFix: "Debug Assertion Failed!" Error When Refreshing After Deleting All
+    Content in Left or Right Pane (#2556)
+- Adjust right-click deselect from down to up to preserve RB + scroll anywhere
+    (PR #2511)
+- Press 1-3 to copy current diff line to clipbd while popup menu is open
+    (PR #2532)
+- Caret (text cursor) follow windows settings (PR #2534)
+- Feature Request: Fixed-Width Font in "Find what" and "Replace with" Fields
+    (#2539)
+
+### Folder compare
+
+- BugFix: Crash on typing while search is in progress (#1814), (PR #2557)
+
+### Options dialog
+
+- Add a "Defaults" button to the "Options (Colors/System)" dialog. (PR #2506)
+- The "Clear all recent items" button in the Shell Integration category of the
+    Options dialog now clears combobox history as well as jump lists. (#2555)
+
+### Select Files or Folders dialog
+
+- BugFix: Crash on opening 2 files via drag & drop (#2548)
+
+### Plugins
+
+- Apache Tika plugin: Update Apache Tika to 3.0.0
+
+### Installer
+
+- BugFix: When uninstalling WinMerge, the Shell Extension for Windows 11 was
+    not uninstalled.
+- Installer - Run PowerShell hidden and with -NoProfile when installing
+    silently (#2515)
+
+### Translations
+
+- Translation updates:
+  - Brazilian (PR #2526)
+  - Chinese Simplified (PR #2501,#2524) 
+  - French (PR #2536)
+  - Hungarian (PR #2495,#2523)
+  - Italian (PR #2529)
+  - Japanese
+  - Korean (PR #2496,#2533)
+  - Lithuanian (PR #2503,#2537)
+  - Portuguese (PR #2507)
+  - Russian (PR #2500,#2502,#2521,#2522,#2528,#2531,#2538,#2542,frhed#17,
+      frhed#18)
+
+## WinMerge 2.16.44 - 2024-10-27
+
+### General
+
+- Added Medium size (24px) option to Toolbar icons
+
+### Webpage compare
+
+- BugFix: Differences panel for Webpage mode (winwebdiff#7)
+
+### Plugins
+
+- BugFix: Floating-point precision issue in CompareMSExcelFiles.sct plugin (#2494)
+
+### Translations
+
+- Translation updates:
+  - Brazilian (PR #2493)
+  - Corsican (PR #2490)
+
+## WinMerge 2.16.43 - 2024-10-23
+
+### General
+
+- BugFix: WinMerge incorrectly states "The selected files are identical" (#2408)
+- Implement Menu Bar as a Toolbar (PR #2400)
+- Add support for placing the tab bar on the title bar (PR #2428)
+- Add One-Hand mice wheel scroll diff and merge (PR #2435)
+- Add Support for Custom System Color Overrides (PR #2376)
+- Easy move small main window when tab on titlebar (PR #2489)
+
+### File compare
+
+- BugFix: Wrong syntax highlighting for TeX files (#2415)
+- BugFix: Text replacement result is wrong. (#2422)
+- Copy Selected Difference to Clipboard (PR #2429)
+- Added Ada parser and default file associations (#2452)
+- Added C++20 modules default file associations cppm and ixx (PR #2464)
+- Anti-aliasing has been applied to the lines that connect moved blocks in the
+    location pane.
+
+### Folder compare
+
+- BugFix: ExitCode always 2 with /enableexitcode with no apparent issues (#2450)
+
+### Webpage compare
+
+- BugFix: Location pane may not render differences (winwebdiff#6)
+
+### Options dialog
+
+- Add a "Defaults" button to the "Options (Project)" dialog. (PR #2401)
+- Add a "Defaults" button to the "Options (Backup Files)" dialog. (PR #2406)
+- Add a "Defaults" button to the "Options (Codepage)" dialog. (PR #2448)
+- Add a "Defaults" button to the "Options (General)" dialog. (PR #2453)
+
+### Plugins
+
+- Create CompareEscapedJavaPropertiesFiles.sct (PR #2455)
+
+### Manual
+
+- BugFix: 2 mistakes about default values in manual (#2456)
+- Update documentation for "Include unique subfolders contents" setting (PR #2396)
+
+### Translations
+
+- Translation updates:
+  - Brazilian (PR #2397,#2431,#2439,#2454,#2460,#2468,#2477,#2486)
+  - Chinese Simplified (PR #2394,#2461,#2469,#2485)
+  - Dutch (PR #2474)
+  - French (PR #2399,#2444)
+  - Hungarian (PR #2433,#2440,#2458,#2472,#2482)
+  - Italian (PR #2393,#2438,#2446,#2447,#2457,#2467,#2470,#2487)
+  - Japanese
+  - Korean (PR #2426,#2459,#2473)
+  - Lithuanian (PR #2436,#2443,#2462,#2471,#2483)
+  - Portuguese (PR #2410,#2441,#2480)
+  - Russian (PR #2462)
+
+### Internals
+
+- Make InsertLineNumberInPOFiles.bat and RenewPOFiles.bat work again
+
 ## WinMerge 2.16.42.1 - 2024-07-28
 
 ### General

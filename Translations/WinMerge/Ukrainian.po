@@ -63,13 +63,16 @@ msgstr "Копіювати обрані рядки ліворуч"
 msgid "Copy Selected Line(s) from Left"
 msgstr "Копіювати обрані рядки зліва"
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
 msgstr ""
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
 msgstr ""
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr ""
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
 msgstr ""
 
 #, c-format
@@ -398,6 +401,9 @@ msgstr "Пан&ель інструментів"
 msgid "&Small"
 msgstr "&Маленькі піктограми"
 
+msgid "&Medium"
+msgstr ""
+
 #, c-format
 msgid "&Big"
 msgstr "&Великі піктограми"
@@ -405,6 +411,9 @@ msgstr "&Великі піктограми"
 #, c-format
 msgid "&Huge"
 msgstr "&Величезні піктограми"
+
+msgid "Men&u Bar"
+msgstr ""
 
 #, c-format
 msgid "&Status Bar"
@@ -1295,6 +1304,9 @@ msgstr ""
 msgid "Ignore c&omment differences"
 msgstr ""
 
+msgid "Ignore &missing trailing EOL"
+msgstr ""
+
 #, c-format
 msgid "&Include subfolders"
 msgstr "&Враховуючи підтеки"
@@ -1735,6 +1747,86 @@ msgstr "Словникова відмінність:"
 msgid "Selected Word Diff:"
 msgstr "Відзначена словникова відмінність:"
 
+#, c-format
+msgid "Dialog"
+msgstr "Діалог"
+
+#, c-format
+msgid "Keywords:"
+msgstr "Ключові слова:"
+
+#, c-format
+msgid "Function names:"
+msgstr "Імена функцій:"
+
+#, c-format
+msgid "Comments:"
+msgstr "Коментарі:"
+
+#, c-format
+msgid "Numbers:"
+msgstr "Числа:"
+
+#, c-format
+msgid "Operators:"
+msgstr "Оператори:"
+
+#, c-format
+msgid "Strings:"
+msgstr "Рядки:"
+
+#, c-format
+msgid "Preprocessor:"
+msgstr "Поперед. обрах.:"
+
+#, c-format
+msgid "User 1:"
+msgstr "Користувач 1:"
+
+#, c-format
+msgid "User 2:"
+msgstr "Користувач 2:"
+
+#, c-format
+msgid "Bold"
+msgstr "Грубий"
+
+#, c-format
+msgid "&Use customized text colors"
+msgstr "Використати особливі кольори"
+
+#, c-format
+msgid "Whitespace:"
+msgstr "Пропуски:"
+
+#, c-format
+msgid "Regular text:"
+msgstr "Звичайний текст:"
+
+#, c-format
+msgid "Selection:"
+msgstr "Відзнач. текст:"
+
+#, c-format
+msgid "Margin:"
+msgstr ""
+
+#, c-format
+msgid "Search Marker:"
+msgstr ""
+
+#, c-format
+msgid "User Defined Marker1:"
+msgstr ""
+
+#, c-format
+msgid "User Defined Marker2:"
+msgstr ""
+
+#, c-format
+msgid "User Defined Marker3:"
+msgstr ""
+
 msgid "&Use folder compare colors"
 msgstr ""
 
@@ -1750,8 +1842,7 @@ msgstr ""
 msgid "Items filtered:"
 msgstr ""
 
-#, c-format
-msgid "Margin:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
 msgstr ""
 
 #, c-format
@@ -1859,7 +1950,10 @@ msgstr ""
 msgid "Select Plugin"
 msgstr ""
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
+msgstr ""
+
+msgid "&Target files:"
 msgstr ""
 
 #, c-format
@@ -1879,7 +1973,7 @@ msgstr ""
 msgid "&Open files in the same window type after unpacking"
 msgstr ""
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr ""
 
 msgid "&Alias..."
@@ -2144,66 +2238,6 @@ msgid "Export..."
 msgstr "Експорт..."
 
 #, c-format
-msgid "Dialog"
-msgstr "Діалог"
-
-#, c-format
-msgid "Keywords:"
-msgstr "Ключові слова:"
-
-#, c-format
-msgid "Function names:"
-msgstr "Імена функцій:"
-
-#, c-format
-msgid "Comments:"
-msgstr "Коментарі:"
-
-#, c-format
-msgid "Numbers:"
-msgstr "Числа:"
-
-#, c-format
-msgid "Operators:"
-msgstr "Оператори:"
-
-#, c-format
-msgid "Strings:"
-msgstr "Рядки:"
-
-#, c-format
-msgid "Preprocessor:"
-msgstr "Поперед. обрах.:"
-
-#, c-format
-msgid "User 1:"
-msgstr "Користувач 1:"
-
-#, c-format
-msgid "User 2:"
-msgstr "Користувач 2:"
-
-#, c-format
-msgid "Bold"
-msgstr "Грубий"
-
-#, c-format
-msgid "Search Marker:"
-msgstr ""
-
-#, c-format
-msgid "User Defined Marker1:"
-msgstr ""
-
-#, c-format
-msgid "User Defined Marker2:"
-msgstr ""
-
-#, c-format
-msgid "User Defined Marker3:"
-msgstr ""
-
-#, c-format
 msgid "Folder Compare Report"
 msgstr "Звіт порівняння тек"
 
@@ -2390,22 +2424,6 @@ msgid "&Quote character:"
 msgstr ""
 
 #, c-format
-msgid "&Use customized text colors"
-msgstr "Використати особливі кольори"
-
-#, c-format
-msgid "Whitespace:"
-msgstr "Пропуски:"
-
-#, c-format
-msgid "Regular text:"
-msgstr "Звичайний текст:"
-
-#, c-format
-msgid "Selection:"
-msgstr "Відзнач. текст:"
-
-#, c-format
 msgid "Backup Files"
 msgstr "Резервні копії"
 
@@ -2479,6 +2497,9 @@ msgstr "Доповнення"
 #, c-format
 msgid "&Enable plugins"
 msgstr "&Ввімкнути доповнення"
+
+msgid "Plugin &type:"
+msgstr ""
 
 msgid "File filters:"
 msgstr ""
@@ -2626,9 +2647,6 @@ msgid "&Hex View"
 msgstr ""
 
 msgid "Edit Plugin"
-msgstr ""
-
-msgid "Plugin &type:"
 msgstr ""
 
 msgid "&Category:"
@@ -4760,6 +4778,27 @@ msgstr ""
 msgid "New plugin description"
 msgstr ""
 
+msgid "All"
+msgstr ""
+
+msgid "1st"
+msgstr ""
+
+msgid "2nd"
+msgstr ""
+
+msgid "3rd"
+msgstr ""
+
+msgid "1st and 2nd"
+msgstr ""
+
+msgid "1st and 3rd"
+msgstr ""
+
+msgid "2nd and 3rd"
+msgstr ""
+
 msgid "Filter applied"
 msgstr ""
 
@@ -4870,6 +4909,9 @@ msgid "Decompilation"
 msgstr ""
 
 msgid "URL Handling"
+msgstr ""
+
+msgid "Decoding / Encoding"
 msgstr ""
 
 msgid "Make Uppercase"
@@ -4987,6 +5029,9 @@ msgid "Disassemble Native Code"
 msgstr ""
 
 msgid "Convert Text with AI..."
+msgstr ""
+
+msgid "Unescape Java properties files"
 msgstr ""
 
 msgid "Make characters uppercase"

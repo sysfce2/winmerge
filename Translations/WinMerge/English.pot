@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WinMerge\n"
 "Report-Msgid-Bugs-To: https://bugs.winmerge.org/\n"
-"POT-Creation-Date: 2024-09-30 08:07+0000\n"
+"POT-Creation-Date: 2025-01-16 08:10+0000\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: English <winmerge-translate@lists.sourceforge.net>\n"
@@ -56,13 +56,16 @@ msgstr ""
 msgid "Copy Selected Line(s) from Left"
 msgstr ""
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
 msgstr ""
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
 msgstr ""
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr ""
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
 msgstr ""
 
 msgid "Select Line &Difference\tF4"
@@ -364,10 +367,16 @@ msgstr ""
 msgid "&Small"
 msgstr ""
 
+msgid "&Medium"
+msgstr ""
+
 msgid "&Big"
 msgstr ""
 
 msgid "&Huge"
+msgstr ""
+
+msgid "Men&u Bar"
 msgstr ""
 
 msgid "&Status Bar"
@@ -1086,6 +1095,9 @@ msgstr ""
 msgid "Ignore c&omment differences"
 msgstr ""
 
+msgid "Ignore &missing trailing EOL"
+msgstr ""
+
 msgid "&Include subfolders"
 msgstr ""
 
@@ -1446,6 +1458,66 @@ msgstr ""
 msgid "Selected Word Diff:"
 msgstr ""
 
+msgid "Dialog"
+msgstr ""
+
+msgid "Keywords:"
+msgstr ""
+
+msgid "Function names:"
+msgstr ""
+
+msgid "Comments:"
+msgstr ""
+
+msgid "Numbers:"
+msgstr ""
+
+msgid "Operators:"
+msgstr ""
+
+msgid "Strings:"
+msgstr ""
+
+msgid "Preprocessor:"
+msgstr ""
+
+msgid "User 1:"
+msgstr ""
+
+msgid "User 2:"
+msgstr ""
+
+msgid "Bold"
+msgstr ""
+
+msgid "&Use customized text colors"
+msgstr ""
+
+msgid "Whitespace:"
+msgstr ""
+
+msgid "Regular text:"
+msgstr ""
+
+msgid "Selection:"
+msgstr ""
+
+msgid "Margin:"
+msgstr ""
+
+msgid "Search Marker:"
+msgstr ""
+
+msgid "User Defined Marker1:"
+msgstr ""
+
+msgid "User Defined Marker2:"
+msgstr ""
+
+msgid "User Defined Marker3:"
+msgstr ""
+
 msgid "&Use folder compare colors"
 msgstr ""
 
@@ -1461,7 +1533,7 @@ msgstr ""
 msgid "Items filtered:"
 msgstr ""
 
-msgid "Margin:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
 msgstr ""
 
 msgid "System"
@@ -1545,7 +1617,10 @@ msgstr ""
 msgid "Select Plugin"
 msgstr ""
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
+msgstr ""
+
+msgid "&Target files:"
 msgstr ""
 
 msgid "Extensions list:"
@@ -1563,7 +1638,7 @@ msgstr ""
 msgid "&Open files in the same window type after unpacking"
 msgstr ""
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr ""
 
 msgid "&Alias..."
@@ -1773,51 +1848,6 @@ msgstr ""
 msgid "Export..."
 msgstr ""
 
-msgid "Dialog"
-msgstr ""
-
-msgid "Keywords:"
-msgstr ""
-
-msgid "Function names:"
-msgstr ""
-
-msgid "Comments:"
-msgstr ""
-
-msgid "Numbers:"
-msgstr ""
-
-msgid "Operators:"
-msgstr ""
-
-msgid "Strings:"
-msgstr ""
-
-msgid "Preprocessor:"
-msgstr ""
-
-msgid "User 1:"
-msgstr ""
-
-msgid "User 2:"
-msgstr ""
-
-msgid "Bold"
-msgstr ""
-
-msgid "Search Marker:"
-msgstr ""
-
-msgid "User Defined Marker1:"
-msgstr ""
-
-msgid "User Defined Marker2:"
-msgstr ""
-
-msgid "User Defined Marker3:"
-msgstr ""
-
 msgid "Folder Compare Report"
 msgstr ""
 
@@ -1965,18 +1995,6 @@ msgstr ""
 msgid "&Quote character:"
 msgstr ""
 
-msgid "&Use customized text colors"
-msgstr ""
-
-msgid "Whitespace:"
-msgstr ""
-
-msgid "Regular text:"
-msgstr ""
-
-msgid "Selection:"
-msgstr ""
-
 msgid "Backup Files"
 msgstr ""
 
@@ -2032,6 +2050,9 @@ msgid "Plugins"
 msgstr ""
 
 msgid "&Enable plugins"
+msgstr ""
+
+msgid "Plugin &type:"
 msgstr ""
 
 msgid "File filters:"
@@ -2163,9 +2184,6 @@ msgid "&Hex View"
 msgstr ""
 
 msgid "Edit Plugin"
-msgstr ""
-
-msgid "Plugin &type:"
 msgstr ""
 
 msgid "&Category:"
@@ -3846,6 +3864,27 @@ msgstr ""
 msgid "New plugin description"
 msgstr ""
 
+msgid "All"
+msgstr ""
+
+msgid "1st"
+msgstr ""
+
+msgid "2nd"
+msgstr ""
+
+msgid "3rd"
+msgstr ""
+
+msgid "1st and 2nd"
+msgstr ""
+
+msgid "1st and 3rd"
+msgstr ""
+
+msgid "2nd and 3rd"
+msgstr ""
+
 msgid "Filter applied"
 msgstr ""
 
@@ -3956,6 +3995,9 @@ msgid "Decompilation"
 msgstr ""
 
 msgid "URL Handling"
+msgstr ""
+
+msgid "Decoding / Encoding"
 msgstr ""
 
 msgid "Make Uppercase"
@@ -4073,6 +4115,9 @@ msgid "Disassemble Native Code"
 msgstr ""
 
 msgid "Convert Text with AI..."
+msgstr ""
+
+msgid "Unescape Java properties files"
 msgstr ""
 
 msgid "Make characters uppercase"

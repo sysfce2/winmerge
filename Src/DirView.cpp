@@ -49,6 +49,7 @@
 #include "SyntaxColors.h"
 #include "Shell.h"
 #include "DirTravel.h"
+#include "MouseHook.h"
 #include <numeric>
 #include <functional>
 
@@ -100,6 +101,7 @@ CDirView::CDirView()
 		, m_pColItems(nullptr)
 		, m_nActivePane(-1)
 		, m_nExpandSubdirs(DO_NOT_EXPAND)
+		, m_bUserCancelEdit(false)
 {
 	m_dwDefaultStyle &= ~LVS_TYPEMASK;
 	// Show selection all the time, so user can see current item even when
@@ -626,7 +628,8 @@ void CDirView::Redisplay()
 	int alldiffs = 0;
 	DIFFITEM *diffpos = ctxt.GetFirstDiffPosition();
 	const int result = RedisplayChildren(diffpos, 0, cnt, alldiffs);
-	GetParentFrame()->SetLastCompareResult(result < 0 ? -1 : alldiffs);
+	const unsigned int threadState = pDoc->m_diffThread.GetThreadState();
+	GetParentFrame()->SetLastCompareResult((threadState != CDiffThread::THREAD_COMPLETED || result < 0) ? -1 : alldiffs);
 	SortColumnsAppropriately();
 	SetRedraw(TRUE);
 	m_pList->SetItemCount(static_cast<int>(m_listViewItems.size()));
@@ -638,6 +641,8 @@ void CDirView::Redisplay()
  */
 void CDirView::OnContextMenu(CWnd*, CPoint point)
 {
+	if (CMouseHook::IsRightWheelScrolling())
+		return;
 	if (GetListCtrl().GetItemCount() == 0)
 		return;
 	// Make sure window is active
@@ -3603,7 +3608,7 @@ void CDirView::OnODFindItem(NMHDR* pNMHDR, LRESULT* pResult)
 		for (size_t i = pFindItem->iStart; i < m_listViewItems.size(); ++i)
 		{
 			DIFFITEM *di = GetItemKey(static_cast<int>(i));
-			if (di)
+			if (di && !IsDiffItemSpecial(di))
 			{
 				String filename = strutils::makelower(di->diffFileInfo[0].filename);
 

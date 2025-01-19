@@ -64,13 +64,16 @@ msgstr "Kopiera valda rader till vänster"
 msgid "Copy Selected Line(s) from Left"
 msgstr "Kopiera valda rader från vänster"
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
 msgstr ""
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
 msgstr ""
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr ""
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
 msgstr ""
 
 msgid "Select Line &Difference\tF4"
@@ -372,11 +375,17 @@ msgstr "Verktygsrad"
 msgid "&Small"
 msgstr "Liten"
 
+msgid "&Medium"
+msgstr ""
+
 msgid "&Big"
 msgstr "Stor"
 
 msgid "&Huge"
 msgstr "Enorm"
+
+msgid "Men&u Bar"
+msgstr ""
 
 msgid "&Status Bar"
 msgstr "Statusfält"
@@ -1096,6 +1105,9 @@ msgstr "Ignorera nummer"
 msgid "Ignore c&omment differences"
 msgstr "Ignorera kommentarskillnader"
 
+msgid "Ignore &missing trailing EOL"
+msgstr ""
+
 msgid "&Include subfolders"
 msgstr "Inkludera undermappar"
 
@@ -1461,6 +1473,66 @@ msgstr "Ordskillnad:"
 msgid "Selected Word Diff:"
 msgstr "Vald skillnad i ord:"
 
+msgid "Dialog"
+msgstr "Dialog"
+
+msgid "Keywords:"
+msgstr "Nyckelord:"
+
+msgid "Function names:"
+msgstr "Funktionsnamn:"
+
+msgid "Comments:"
+msgstr "Kommentarer:"
+
+msgid "Numbers:"
+msgstr "Nummer:"
+
+msgid "Operators:"
+msgstr "Operatörer:"
+
+msgid "Strings:"
+msgstr "Strängar:"
+
+msgid "Preprocessor:"
+msgstr "Förbehandlare:"
+
+msgid "User 1:"
+msgstr "Användare 1:"
+
+msgid "User 2:"
+msgstr "Användare 2:"
+
+msgid "Bold"
+msgstr "Fet"
+
+msgid "&Use customized text colors"
+msgstr "Använd anpassade textfärger"
+
+msgid "Whitespace:"
+msgstr "Blankutrymme:"
+
+msgid "Regular text:"
+msgstr "Vanlig text:"
+
+msgid "Selection:"
+msgstr "Markering:"
+
+msgid "Margin:"
+msgstr "Marginal:"
+
+msgid "Search Marker:"
+msgstr "Sökmarkör:"
+
+msgid "User Defined Marker1:"
+msgstr "Användardefinierad markör 1:"
+
+msgid "User Defined Marker2:"
+msgstr "Användardefinierad markör 2:"
+
+msgid "User Defined Marker3:"
+msgstr "Användardefinierad markör 3:"
+
 msgid "&Use folder compare colors"
 msgstr "Använd färger för mappjämförelse"
 
@@ -1476,8 +1548,8 @@ msgstr "Objekt som ej finns:"
 msgid "Items filtered:"
 msgstr "Objekt filtrerade:"
 
-msgid "Margin:"
-msgstr "Marginal:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
+msgstr ""
 
 msgid "System"
 msgstr "System"
@@ -1560,8 +1632,11 @@ msgstr "Övriga egenskaper"
 msgid "Select Plugin"
 msgstr "Välj programtillägg"
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
 msgstr "Programtilläggets namn:"
+
+msgid "&Target files:"
+msgstr ""
 
 msgid "Extensions list:"
 msgstr "Filändelser:"
@@ -1578,7 +1653,7 @@ msgstr "Visa alla programtillägg, kontrollera inte filändelse"
 msgid "&Open files in the same window type after unpacking"
 msgstr "Öppna filer i samma fönstertyp efter extrahering"
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr "&Programtillägg kommandoslinga:"
 
 msgid "&Alias..."
@@ -1800,51 +1875,6 @@ msgstr "Importera..."
 msgid "Export..."
 msgstr "Exportera..."
 
-msgid "Dialog"
-msgstr "Dialog"
-
-msgid "Keywords:"
-msgstr "Nyckelord:"
-
-msgid "Function names:"
-msgstr "Funktionsnamn:"
-
-msgid "Comments:"
-msgstr "Kommentarer:"
-
-msgid "Numbers:"
-msgstr "Nummer:"
-
-msgid "Operators:"
-msgstr "Operatörer:"
-
-msgid "Strings:"
-msgstr "Strängar:"
-
-msgid "Preprocessor:"
-msgstr "Förbehandlare:"
-
-msgid "User 1:"
-msgstr "Användare 1:"
-
-msgid "User 2:"
-msgstr "Användare 2:"
-
-msgid "Bold"
-msgstr "Fet"
-
-msgid "Search Marker:"
-msgstr "Sökmarkör:"
-
-msgid "User Defined Marker1:"
-msgstr "Användardefinierad markör 1:"
-
-msgid "User Defined Marker2:"
-msgstr "Användardefinierad markör 2:"
-
-msgid "User Defined Marker3:"
-msgstr "Användardefinierad markör 3:"
-
 msgid "Folder Compare Report"
 msgstr "Rapport för katalogjämförelse"
 
@@ -1992,18 +2022,6 @@ msgstr "Tillåt nya rader i citat"
 msgid "&Quote character:"
 msgstr "Tecken för omkapsling:"
 
-msgid "&Use customized text colors"
-msgstr "Använd anpassade textfärger"
-
-msgid "Whitespace:"
-msgstr "Blankutrymme:"
-
-msgid "Regular text:"
-msgstr "Vanlig text:"
-
-msgid "Selection:"
-msgstr "Markering:"
-
 msgid "Backup Files"
 msgstr "Säkerhetskopierade filer"
 
@@ -2060,6 +2078,9 @@ msgstr "Programtillägg"
 
 msgid "&Enable plugins"
 msgstr "Aktivera programtillägg"
+
+msgid "Plugin &type:"
+msgstr ""
 
 msgid "File filters:"
 msgstr "Filfilter:"
@@ -2190,9 +2211,6 @@ msgid "&Hex View"
 msgstr "Hex visning"
 
 msgid "Edit Plugin"
-msgstr ""
-
-msgid "Plugin &type:"
 msgstr ""
 
 msgid "&Category:"
@@ -4311,6 +4329,27 @@ msgstr ""
 msgid "New plugin description"
 msgstr ""
 
+msgid "All"
+msgstr ""
+
+msgid "1st"
+msgstr ""
+
+msgid "2nd"
+msgstr ""
+
+msgid "3rd"
+msgstr ""
+
+msgid "1st and 2nd"
+msgstr ""
+
+msgid "1st and 3rd"
+msgstr ""
+
+msgid "2nd and 3rd"
+msgstr ""
+
 msgid "Filter applied"
 msgstr "Filter verkställt"
 
@@ -4430,6 +4469,9 @@ msgstr "Dekompilering"
 msgid "URL Handling"
 msgstr "URL-hantering"
 
+msgid "Decoding / Encoding"
+msgstr ""
+
 msgid "Make Uppercase"
 msgstr "Gör till VERSALER"
 
@@ -4545,6 +4587,9 @@ msgid "Disassemble Native Code"
 msgstr "Nedmontera ursprunglig kod"
 
 msgid "Convert Text with AI..."
+msgstr ""
+
+msgid "Unescape Java properties files"
 msgstr ""
 
 msgid "Make characters uppercase"

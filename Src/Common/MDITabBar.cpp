@@ -15,6 +15,7 @@
 #endif
 
 constexpr int RR_RADIUS = 3;
+constexpr int RR_PADDING = 3;
 constexpr int RR_SHADOWWIDTH = 3;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -85,6 +86,33 @@ BOOL CMyTabCtrl::PreTranslateMessage(MSG* pMsg)
 	return __super::PreTranslateMessage(pMsg);
 }
 
+void CMyTabCtrl::SetActive(bool bActive)
+{
+	CTitleBarHelper::ReloadAccentColor();
+	m_bActive = bActive;
+}
+
+static inline COLORREF getTextColor()
+{
+	return GetSysColor(COLOR_WINDOWTEXT);
+}
+
+COLORREF CMyTabCtrl::GetBackColor() const
+{
+	const COLORREF clr = GetSysColor(COLOR_3DFACE);
+	if (!m_bOnTitleBar)
+		return clr;
+	return CTitleBarHelper::GetBackColor(m_bActive);
+}
+
+static inline bool IsHighContrastEnabled()
+
+{
+	HIGHCONTRAST hc = { sizeof(HIGHCONTRAST) };
+	SystemParametersInfo(SPI_GETHIGHCONTRAST, sizeof(hc), &hc, 0);
+	return (hc.dwFlags & HCF_HIGHCONTRASTON) != 0;
+}
+
 void CMyTabCtrl::OnPaint() 
 {
 	CPaintDC dc(this);
@@ -99,7 +127,9 @@ void CMyTabCtrl::OnPaint()
 	const int nCount = GetItemCount();
 	if (nCount == 0)
 	{
-		dc.SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
+		const COLORREF winTitleTextColor = m_bOnTitleBar ?
+			CTitleBarHelper::GetTextColor(m_bActive) : getTextColor();
+		dc.SetTextColor(winTitleTextColor);
 		TCHAR szBuf[256];
 		AfxGetMainWnd()->GetWindowText(szBuf, sizeof(szBuf) / sizeof(szBuf[0]));
 		dc.DrawText(szBuf, -1, &rcClient, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
@@ -121,7 +151,7 @@ BOOL CMyTabCtrl::OnEraseBkgnd(CDC* pDC)
 {
 	CRect rClient;
 	GetClientRect(rClient);
-	pDC->FillSolidRect(rClient, GetSysColor(COLOR_3DFACE));
+	pDC->FillSolidRect(rClient, GetBackColor());
 	return TRUE;
 }
 
@@ -341,31 +371,34 @@ void CMyTabCtrl::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	const int lpx = ::GetDeviceCaps(lpDraw->hDC, LOGPIXELSX);
 	auto pointToPixel = [lpx](int point) { return MulDiv(point, lpx, 72); };
 	const int r = pointToPixel(RR_RADIUS);
+	const int pd = pointToPixel(RR_PADDING);
 	const int sw = pointToPixel(RR_SHADOWWIDTH);
 
 	CRect rc = lpDraw->rcItem;
 	if (lpDraw->itemState & ODS_SELECTED)
 	{
-		const COLORREF clrShadow = CEColor::GetIntermediateColor(GetSysColor(COLOR_3DSHADOW), GetSysColor(COLOR_3DFACE), 0.5f);
-		if (GetSysColor(COLOR_3DFACE) == GetSysColor(COLOR_WINDOW))
+		const COLORREF clrShadow = CEColor::GetIntermediateColor(GetSysColor(COLOR_3DSHADOW), GetBackColor(), 0.5f);
+		if (IsHighContrastEnabled())
 		{
-			DrawRoundedRectWithShadow(lpDraw->hDC, rc.left + sw, rc.top + sw - 1, rc.Width() - sw * 2, rc.top - sw * 2 + 2, r, sw,
-				GetSysColor(COLOR_HIGHLIGHT), clrShadow, GetSysColor(COLOR_3DFACE));
+			DrawRoundedRectWithShadow(lpDraw->hDC, rc.left + sw, rc.top + sw - 1, rc.Width() - sw * 2, rc.Height() - rc.top - sw * 2 + 2, r, sw,
+				GetSysColor(COLOR_HIGHLIGHT), clrShadow, GetBackColor());
 			SetTextColor(lpDraw->hDC, GetSysColor(COLOR_HIGHLIGHTTEXT));
 		}
 		else
 		{
 			DrawRoundedRectWithShadow(lpDraw->hDC, rc.left + sw, rc.top + sw - 1, rc.Width() - sw * 2, rc.Height() - sw * 2 + 2, r, sw,
-				GetSysColor(COLOR_WINDOW), clrShadow, GetSysColor(COLOR_3DFACE));
-			SetTextColor(lpDraw->hDC, GetSysColor(COLOR_WINDOWTEXT));
+				GetSysColor(COLOR_3DHIGHLIGHT), clrShadow, GetBackColor());
+			SetTextColor(lpDraw->hDC, getTextColor());
 		}
 	}
 	else
 	{
-		SetTextColor(lpDraw->hDC, GetSysColor(COLOR_BTNTEXT));
+		const COLORREF txtclr = m_bOnTitleBar ?
+			CTitleBarHelper::GetTextColor(m_bActive) : GetSysColor(COLOR_BTNTEXT);
+		SetTextColor(lpDraw->hDC, txtclr);
 	}
 	CSize iconsize(determineIconSize(), determineIconSize());
-	rc.left += sw * 2 + iconsize.cx;
+	rc.left += sw + pd + iconsize.cx;
 	SetBkMode(lpDraw->hDC, TRANSPARENT);
 	HWND hwndFrame = reinterpret_cast<HWND>(item.lParam);
 	if (::IsWindow(hwndFrame))
@@ -376,7 +409,8 @@ void CMyTabCtrl::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 		if (hIcon != nullptr)
 			DrawIconEx(lpDraw->hDC, rc.left - iconsize.cx, rc.top + (rc.Height() - iconsize.cy) / 2, hIcon, iconsize.cx, iconsize.cy, 0, nullptr, DI_NORMAL);
 	}
-	rc.left += sw;
+	rc.left += pd;
+	rc.right -= pd;
 	DrawText(lpDraw->hDC, szBuf, -1, &rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
 	int nItem = GetItemIndexFromPoint(m_rcCurrentCloseButtom.CenterPoint());
@@ -478,13 +512,13 @@ CRect CMyTabCtrl::GetCloseButtonRect(int nItem)
 	CClientDC dc(this);
 	const int lpx = dc.GetDeviceCaps(LOGPIXELSX);
 	auto pointToPixel = [lpx](int point) { return MulDiv(point, lpx, 72); };
-	const int r = pointToPixel(RR_RADIUS);
+	const int pd = pointToPixel(RR_PADDING);
 	const int sw = pointToPixel(RR_SHADOWWIDTH);
 	CRect rc, rcClient;
 	CSize size(determineIconSize(), determineIconSize());
 	GetClientRect(&rcClient);
 	GetItemRect(nItem, &rc);
-	rc.left = rc.right - size.cx - sw - r;
+	rc.left = rc.right - size.cx - sw - pd;
 	rc.right = rc.left + size.cx;
 	int y = (rcClient.top + rcClient.bottom) / 2;
 	rc.top = y - size.cy / 2 + 1;
@@ -597,12 +631,18 @@ void CMyTabCtrl::UpdateToolTips(int nTabItemIndex)
 BOOL CMDITabBar::Update(bool bOnTitleBar, bool bMaximized)
 {
 	m_bOnTitleBar = bOnTitleBar;
-	m_bMaximized = bMaximized;
-	CRect rc;
-	if (m_bMaximized)
-		AfxGetMainWnd()->GetWindowRect(&rc);
-	m_top = rc.top;
+	m_titleBar.SetMaximized(bMaximized);
+	m_tabCtrl.SetOnTitleBar(bOnTitleBar);
 	return true;
+}
+
+void CMDITabBar::UpdateActive(bool bActive)
+{
+	if (m_tabCtrl.GetActive() != bActive)
+	{
+		m_tabCtrl.SetActive(bActive);
+		Invalidate();
+	}
 }
 
 /** 
@@ -623,9 +663,9 @@ BOOL CMDITabBar::Create(CMDIFrameWnd* pMainFrame)
 	CClientDC dc(this);
 	const int lpx = dc.GetDeviceCaps(LOGPIXELSX);
 	auto pointToPixel = [lpx](int point) { return MulDiv(point, lpx, 72); };
-	const int r = pointToPixel(RR_RADIUS);
+	const int pd = pointToPixel(RR_PADDING);
 	const int sw = pointToPixel(RR_SHADOWWIDTH);
-	m_tabCtrl.SetPadding(CSize(sw + r * 2 + determineIconSize() / 2, sw + r));
+	m_tabCtrl.SetPadding(CSize(sw + pd * 2 + determineIconSize() / 2, sw + pd));
 
 	NONCLIENTMETRICS ncm = { sizeof NONCLIENTMETRICS };
 	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof NONCLIENTMETRICS, &ncm, 0);
@@ -651,10 +691,10 @@ CSize CMDITabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 
 	const int lpx = dc.GetDeviceCaps(LOGPIXELSX);
 	auto pointToPixel = [lpx](int point) { return MulDiv(point, lpx, 72); };
-	const int r = pointToPixel(RR_RADIUS);
+	const int pd = pointToPixel(RR_PADDING);
 	const int sw = pointToPixel(RR_SHADOWWIDTH);
-	int my = m_bOnTitleBar ? (m_bMaximized ? (-m_top + 2) : 2) : 0;
-	CSize size(SHRT_MAX, my + tm.tmHeight + (sw + r) * 2);
+	int my = m_bOnTitleBar ? (m_titleBar.GetTopMargin() + 2) : 0;
+	CSize size(SHRT_MAX, my + tm.tmHeight + (sw + pd) * 2);
 	return size;
 }
 
@@ -703,12 +743,12 @@ void CMDITabBar::OnNcRButtonUp(UINT nHitTest, CPoint point)
 void CMDITabBar::OnSize(UINT nType, int cx, int cy)
 {
 	__super::OnSize(nType, cx, cy);
-	m_titleBar.OnSize(m_bMaximized, cx, cy);
+	m_titleBar.SetSize(cx, cy);
 	if (m_tabCtrl.m_hWnd)
 	{
 		const int leftMargin = m_bOnTitleBar ? m_titleBar.GetLeftMargin() : 0;
 		const int rightMargin = m_bOnTitleBar ? m_titleBar.GetRightMargin() : 0;
-		const int topMargin = ((m_bMaximized && m_bOnTitleBar) ? -m_top : 0) + (m_bOnTitleBar ? 1 : 0);
+		const int topMargin = ((m_titleBar.GetMaximized() && m_bOnTitleBar) ? m_titleBar.GetTopMargin() : 0) + (m_bOnTitleBar ? 1 : 0);
 		const int bottomMargin = m_bOnTitleBar ? 1 : 0;
 		CSize size{ 0, cy - topMargin - bottomMargin };
 		m_tabCtrl.MoveWindow(leftMargin, topMargin, cx - leftMargin - rightMargin, cy - topMargin - bottomMargin, true);
@@ -720,7 +760,7 @@ BOOL CMDITabBar::OnEraseBkgnd(CDC* pDC)
 {
 	CRect rClient;
 	GetClientRect(rClient);
-	pDC->FillSolidRect(rClient, GetSysColor(COLOR_3DFACE));
+	pDC->FillSolidRect(rClient, m_tabCtrl.GetBackColor());
 	return TRUE;
 }
 
@@ -729,6 +769,6 @@ void CMDITabBar::OnPaint()
 	if (!m_bOnTitleBar)
 		return __super::OnPaint();
 	CPaintDC dc(this);
-	m_titleBar.DrawIcon(AfxGetMainWnd(), dc);
-	m_titleBar.DrawButtons(dc);
+	m_titleBar.DrawIcon(AfxGetMainWnd(), dc, m_tabCtrl.GetActive());
+	m_titleBar.DrawButtons(dc, CTitleBarHelper::GetTextColor(m_tabCtrl.GetActive()), m_tabCtrl.GetBackColor());
 }

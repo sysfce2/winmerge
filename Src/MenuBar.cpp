@@ -9,7 +9,6 @@
 #include "StdAfx.h"
 #include "MenuBar.h"
 
-static const UINT UWM_SHOWPOPUPMENU = WM_APP + 1;
 HHOOK CMenuBar::m_hHook = nullptr;
 CMenuBar* CMenuBar::m_pThis = nullptr;
 
@@ -21,6 +20,7 @@ IMPLEMENT_DYNAMIC(CMenuBar, CToolBar)
 
 BEGIN_MESSAGE_MAP(CMenuBar, CToolBar)
 	ON_NOTIFY_REFLECT(NM_CUSTOMDRAW, OnCustomDraw)
+	ON_WM_TIMER()
 	ON_WM_KILLFOCUS()
 	ON_WM_SETFOCUS()
 	ON_WM_MOUSEMOVE()
@@ -32,6 +32,7 @@ END_MESSAGE_MAP()
 
 CMenuBar::CMenuBar()
 	: m_hMenu(nullptr)
+	, m_bAlwaysVisible(true)
 	, m_bActive(false)
 	, m_bMouseTracking(false)
 	, m_nMDIButtonDown(-1)
@@ -43,6 +44,13 @@ CMenuBar::CMenuBar()
 	, m_bShowKeyboardCues(false)
 {
 	m_pThis = this;
+}
+
+static inline bool IsHighContrastEnabled()
+{
+	HIGHCONTRAST hc = { sizeof(HIGHCONTRAST) };
+	SystemParametersInfo(SPI_GETHIGHCONTRAST, sizeof(hc), &hc, 0);
+	return (hc.dwFlags & HCF_HIGHCONTRASTON) != 0;
 }
 
 static TBBUTTON makeTBButton(int id, const TCHAR* str)
@@ -185,13 +193,35 @@ void CMenuBar::LoseFocus()
 	m_hwndOldFocus = nullptr;
 	ShowKeyboardCues(false);
 	GetToolBarCtrl().SetHotItem(-1);
+	if (!m_bAlwaysVisible)
+		SetTimer(MENUBAR_TIMER_ID, 200, nullptr);
+}
+
+void CMenuBar::Show(bool visible)
+{
+	static_cast<CFrameWnd*>(AfxGetMainWnd())->ShowControlBar(this, visible, 0);
 }
 
 void CMenuBar::OnSetFocus(CWnd* pOldWnd)
 {
 	m_bActive = true;
 	m_hwndOldFocus = pOldWnd->m_hWnd;
+	if (!m_bAlwaysVisible)
+	{
+		KillTimer(MENUBAR_TIMER_ID);
+		Show(true);
+	}
 	__super::OnSetFocus(pOldWnd);
+}
+
+void CMenuBar::OnTimer(UINT_PTR nIDEvent)
+{
+	if (nIDEvent == MENUBAR_TIMER_ID)
+	{
+		KillTimer(MENUBAR_TIMER_ID);
+		if (!m_bAlwaysVisible)
+			Show(false);
+	}
 }
 
 void CMenuBar::OnKillFocus(CWnd* pNewWnd)
@@ -211,8 +241,8 @@ void CMenuBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 	else if (dwDrawState == CDDS_ITEMPREPAINT)
 	{
-		pNMCD->clrHighlightHotTrack = GetSysColor(COLOR_3DFACE);
-		pNMCD->clrText = GetSysColor(COLOR_MENUTEXT);
+		pNMCD->clrHighlightHotTrack = GetSysColor(IsHighContrastEnabled() ? COLOR_HIGHLIGHT : COLOR_3DFACE);
+		pNMCD->clrText = GetSysColor(COLOR_BTNTEXT);
 		*pResult = CDRF_DODEFAULT | TBCDRF_USECDCOLORS | TBCDRF_HILITEHOTTRACK;
 		return;
 	}
@@ -314,6 +344,12 @@ void CMenuBar::OnMenuBarMenuItem(UINT nID)
 		AfxGetMainWnd()->PostMessage(WM_KEYUP, VK_DOWN, 0);
 	}
 
+	if (!m_bAlwaysVisible)
+	{
+		KillTimer(MENUBAR_TIMER_ID);
+		Show(true);
+	}
+
 	m_hHook = SetWindowsHookEx(WH_MSGFILTER, MsgFilterProc, nullptr, GetCurrentThreadId());
 
 	CRect rc;
@@ -322,6 +358,10 @@ void CMenuBar::OnMenuBarMenuItem(UINT nID)
 	pPopup->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON, rc.left, rc.bottom, AfxGetMainWnd());
 
 	UnhookWindowsHookEx(m_hHook);
+	m_hHook = nullptr;
+
+	if (!m_bAlwaysVisible)
+		SetTimer(MENUBAR_TIMER_ID, 200, nullptr);
 }
 
 void CMenuBar::OnUpdateMenuBarMenuItem(CCmdUI* pCmdUI)
@@ -341,7 +381,8 @@ BOOL CMenuBar::PreTranslateMessage(MSG* pMsg)
 		return FALSE;
 	if (pMsg->message == WM_SYSKEYDOWN || pMsg->message == WM_SYSKEYUP)
 	{
-		if (pMsg->wParam == VK_F10 || pMsg->wParam == VK_MENU)
+		const BOOL bShift = ::GetAsyncKeyState(VK_SHIFT) & 0x8000;
+		if (!bShift && (pMsg->wParam == VK_F10 || pMsg->wParam == VK_MENU))
 		{
 			if (pMsg->message == WM_SYSKEYDOWN)
 			{
@@ -357,7 +398,9 @@ BOOL CMenuBar::PreTranslateMessage(MSG* pMsg)
 			return TRUE;
 		}
 		UINT uId = 0;
-		if ((pMsg->message == WM_SYSKEYDOWN) && GetToolBarCtrl().MapAccelerator(static_cast<TCHAR>(pMsg->wParam), &uId) != 0)
+		const TCHAR key = static_cast<TCHAR>(pMsg->wParam);
+		const bool alnum = (key >= '0' && key <= '9') || (key >= 'A' && key <= 'Z');
+		if ((pMsg->message == WM_SYSKEYDOWN) && alnum && GetToolBarCtrl().MapAccelerator(key, &uId) != 0)
 		{
 			ShowKeyboardCues(true);
 			OnMenuBarMenuItem(uId);

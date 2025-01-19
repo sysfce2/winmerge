@@ -22,6 +22,8 @@ public:
 		, m_nDraggingTabItemIndex(-1)
 		, m_bInSelchange(false)
 		, m_nTooltipTabItemIndex(-1)
+		, m_bOnTitleBar(false)
+		, m_bActive(false)
 	{}
 
 protected:
@@ -29,6 +31,8 @@ protected:
 	bool  m_bAutoMaxWidth;
 	bool m_bMouseTracking;
 	bool m_bCloseButtonDown;
+	bool m_bOnTitleBar;
+	bool m_bActive;
 	CRect m_rcCurrentCloseButtom;
 	int   m_nDraggingTabItemIndex;
 	int   m_nTooltipTabItemIndex;	/**< Index of the tab displaying tooltip */
@@ -40,6 +44,10 @@ public:
 	bool GetAutoMaxWidth() const { return m_bAutoMaxWidth; }
 	void SetAutoMaxWidth(bool bAutoMaxWidth) { m_bAutoMaxWidth = bAutoMaxWidth; }
 	void UpdateTabs();
+	void SetOnTitleBar(bool onTitleBar) { m_bOnTitleBar = onTitleBar; }
+	bool GetActive() const { return m_bActive; }
+	void SetActive(bool bActive);
+	COLORREF GetBackColor() const;
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -85,8 +93,6 @@ class CMDITabBar : public CControlBar
 private:
 
 	bool m_bOnTitleBar;
-	bool m_bMaximized;
-	int m_top;
 	CMyTabCtrl m_tabCtrl;
 	CFont m_font;
 	CTitleBarHelper m_titleBar;
@@ -94,11 +100,10 @@ private:
 public:
 	CMDITabBar()
 		: m_bOnTitleBar(true)
-		, m_bMaximized(false)
-		, m_top(0)
 	{}
 	virtual ~CMDITabBar() {}
 	BOOL Update(bool bOnTitleBar, bool bMaxmized);
+	void UpdateActive(bool bActive);
 	BOOL Create(CMDIFrameWnd* pParentWnd);
 	void UpdateTabs() { m_tabCtrl.UpdateTabs(); }
 	bool GetAutoMaxWidth() const { return m_tabCtrl.GetAutoMaxWidth(); }

@@ -138,7 +138,7 @@ int FolderCmp::prepAndCompareFiles(DIFFITEM &di)
 			// Invoke unpacking plugins
 			if (infoUnpacker && !paths::IsNullDeviceName(filepathUnpacked[nIndex]))
 			{
-				if (!infoUnpacker->Unpacking(nullptr, filepathUnpacked[nIndex], filteredFilenames, { tFiles[nIndex] }))
+				if (!infoUnpacker->Unpacking(nIndex, nullptr, filepathUnpacked[nIndex], filteredFilenames, { tFiles[nIndex] }))
 					goto exitPrepAndCompare;
 			}
 
@@ -156,7 +156,7 @@ int FolderCmp::prepAndCompareFiles(DIFFITEM &di)
 		for (nIndex = 0; nIndex < nDirs; nIndex++)
 		{
 		// Invoke prediff'ing plugins
-			if (infoPrediffer && !m_diffFileData.Filepath_Transform(bForceUTF8, encoding[nIndex], filepathUnpacked[nIndex], filepathTransformed[nIndex], filteredFilenames, *infoPrediffer))
+			if (infoPrediffer && !m_diffFileData.Filepath_Transform(nIndex, bForceUTF8, encoding[nIndex], filepathUnpacked[nIndex], filepathTransformed[nIndex], filteredFilenames, *infoPrediffer))
 				goto exitPrepAndCompare;
 		}
 
@@ -261,8 +261,8 @@ int FolderCmp::prepAndCompareFiles(DIFFITEM &di)
 				dw.SetFilterCommentsSourceDef(Ext);
 				dw.SetCreateDiffList(&diffList);
 				dw.LoadWinMergeDiffsFromDiffUtilsScript3(
-					script10, script12,
-					diffdata10.m_inf, diffdata12.m_inf);
+					script10, script12, script02,
+					diffdata10.m_inf, diffdata12.m_inf, diffdata02.m_inf);
 				m_ndiffs = diffList.GetSignificantDiffs(); 
 				m_ntrivialdiffs = diffList.GetSize() - m_ndiffs;
 				
@@ -279,11 +279,11 @@ int FolderCmp::prepAndCompareFiles(DIFFITEM &di)
 				{
 					if ((code & DIFFCODE::TEXTFLAGS) == DIFFCODE::TEXT)
 					{
-						if (script12 == nullptr)
+						if (CDiffWrapper::IsIdenticalOrIgnorable(script12))
 							code |= DIFFCODE::DIFF1STONLY;
-						else if (script02 == nullptr)
+						else if (CDiffWrapper::IsIdenticalOrIgnorable(script02))
 							code |= DIFFCODE::DIFF2NDONLY;
-						else if (script10 == nullptr)
+						else if (CDiffWrapper::IsIdenticalOrIgnorable(script10))
 							code |= DIFFCODE::DIFF3RDONLY;
 					}
 					else

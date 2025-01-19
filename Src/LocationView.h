@@ -16,14 +16,14 @@ class CMergeEditView;
  */
 struct MovedLine
 {
-	int apparent0;
-	int apparent1;
-	int blockHeight;
+	int apparent0 = 0;
+	int apparent1 = 0;
+	int blockHeight = 0;
 	CPoint ptLeftUpper;
 	CPoint ptLeftLower;
 	CPoint ptRightUpper;
 	CPoint ptRightLower;
-	bool currentDiff;
+	bool currentDiff = false;
 };
 
 typedef CList<MovedLine, MovedLine&> MOVEDLINE_LIST;
@@ -86,7 +86,7 @@ protected:
 	void DrawDiffMarker(CDC* pDC, int yCoord);
 	void CalculateBars();
 	void CalculateBlocks();
-	void CalculateBlocksPixel(int nBlockStart, int nBlockEnd, int nBlockLength,
+	void CalculateBlocksPixel(int nBlockStart, int nBlockEnd,
 			int &nBeginY, int &nEndY);
 	COLORREF GetBackgroundColor();
 	void DrawBackground(CDC* pDC);

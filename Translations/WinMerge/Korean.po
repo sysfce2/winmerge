@@ -14,12 +14,12 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: WinMerge 2.16.36.0\n"
+"Project-Id-Version: WinMerge\n"
 "Report-Msgid-Bugs-To: https://bugs.winmerge.org/\n"
 "POT-Creation-Date: 2022-01-22 21:51+0000\n"
-"PO-Revision-Date: 2024-09-29 21:41+0900\n"
+"PO-Revision-Date: 2025-01-11 01:45+0900\n"
 "Last-Translator: VenusGirl <https://github.com/VenusGirl>\n"
-"Language-Team: Korean <https://winmerge.org/?lang=ko>\n"
+"Language-Team: VenusGirl: https://venusgirls.tistory.com/\n"
 "Language: ko\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -70,14 +70,17 @@ msgstr "선택한 줄을 왼쪽으로 복사"
 msgid "Copy Selected Line(s) from Left"
 msgstr "왼쪽에서 선택한 줄 복사"
 
-msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+1"
-msgstr "선택한 차이점 (왼쪽)을 클립보드에 복사\tCtrl+1"
+msgid "Copy Selected Diff (Left) to Clipboard\tCtrl+&1"
+msgstr "선택한 차이점 (왼쪽)을 클립보드에 복사\tCtrl+&1"
 
-msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+2"
-msgstr "선택한 차이점 (가운데)을 클립보드로 복사\tCtrl+2"
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&2"
+msgstr "선택한 차이점 (오른쪽)을 클립보드로 복사\tCtrl+&2"
 
-msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+3"
-msgstr "선택한 차이점 (오른쪽)을 클립보드로 복사\tCtrl+3"
+msgid "Copy Selected Diff (Middle) to Clipboard\tCtrl+&2"
+msgstr "선택한 차이점 (가운데)을 클립보드로 복사\tCtrl+&2"
+
+msgid "Copy Selected Diff (Right) to Clipboard\tCtrl+&3"
+msgstr "선택한 차이점 (오른쪽)을 클립보드로 복사\tCtrl+&3"
 
 #, c-format
 msgid "Select Line &Difference\tF4"
@@ -202,7 +205,7 @@ msgstr "수평으로 뒤집기(&O)"
 
 #, c-format
 msgid "&Zoom"
-msgstr "줌(&Z)"
+msgstr "확대/축소(&Z)"
 
 #, c-format
 msgid "25%"
@@ -219,7 +222,7 @@ msgstr "축소(&O)\tCtrl+-"
 #. Zoom to normal
 #, c-format
 msgid "&Normal\tCtrl+*"
-msgstr "보통(&N)\tCtrl+*"
+msgstr "정상(&N)\tCtrl+*"
 
 #, c-format
 msgid "&Overlay"
@@ -423,6 +426,9 @@ msgstr "도구 모음(&T)"
 msgid "&Small"
 msgstr "작게(&S)"
 
+msgid "&Medium"
+msgstr "중간(&M)"
+
 #, c-format
 msgid "&Big"
 msgstr "크게(&B)"
@@ -430,6 +436,9 @@ msgstr "크게(&B)"
 #, c-format
 msgid "&Huge"
 msgstr "매우 크게(&H)"
+
+msgid "Men&u Bar"
+msgstr "메뉴 표시줄(&U)"
 
 #, c-format
 msgid "&Status Bar"
@@ -445,7 +454,7 @@ msgstr "필터(&F)..."
 
 #, c-format
 msgid "&Generate Patch..."
-msgstr "패치 만들기(&G)..."
+msgstr "패치 생성(&G)..."
 
 #, c-format
 msgid "&Plugins"
@@ -1320,6 +1329,9 @@ msgstr "숫자 무시(&B)"
 msgid "Ignore c&omment differences"
 msgstr "주석 차이 무시(&O)"
 
+msgid "Ignore &missing trailing EOL"
+msgstr "누락된 후행 EOL 무시(&M)"
+
 #, c-format
 msgid "&Include subfolders"
 msgstr "하위 폴더 포함(&I)"
@@ -1760,6 +1772,86 @@ msgstr "단어 차이점:"
 msgid "Selected Word Diff:"
 msgstr "선택된 단어 차이점:"
 
+#, c-format
+msgid "Dialog"
+msgstr "대화 상자"
+
+#, c-format
+msgid "Keywords:"
+msgstr "키워드:"
+
+#, c-format
+msgid "Function names:"
+msgstr "함수 이름:"
+
+#, c-format
+msgid "Comments:"
+msgstr "주석:"
+
+#, c-format
+msgid "Numbers:"
+msgstr "숫자:"
+
+#, c-format
+msgid "Operators:"
+msgstr "연산자:"
+
+#, c-format
+msgid "Strings:"
+msgstr "문자열:"
+
+#, c-format
+msgid "Preprocessor:"
+msgstr "전처리기:"
+
+#, c-format
+msgid "User 1:"
+msgstr "사용자 1:"
+
+#, c-format
+msgid "User 2:"
+msgstr "사용자 2:"
+
+#, c-format
+msgid "Bold"
+msgstr "굵게"
+
+#, c-format
+msgid "&Use customized text colors"
+msgstr "사용자 지정 텍스트 색상 사용(&U)"
+
+#, c-format
+msgid "Whitespace:"
+msgstr "공백 문자:"
+
+#, c-format
+msgid "Regular text:"
+msgstr "일반 텍스트:"
+
+#, c-format
+msgid "Selection:"
+msgstr "선택:"
+
+#, c-format
+msgid "Margin:"
+msgstr "여백:"
+
+#, c-format
+msgid "Search Marker:"
+msgstr "마커 검색:"
+
+#, c-format
+msgid "User Defined Marker1:"
+msgstr "사용자 정의 마커1:"
+
+#, c-format
+msgid "User Defined Marker2:"
+msgstr "사용자 정의 마커2:"
+
+#, c-format
+msgid "User Defined Marker3:"
+msgstr "사용자 정의 마커3:"
+
 msgid "&Use folder compare colors"
 msgstr "폴더 비교 색상 사용(&U)"
 
@@ -1775,9 +1867,8 @@ msgstr "존재하지 않는 항목:"
 msgid "Items filtered:"
 msgstr "필터된 항목:"
 
-#, c-format
-msgid "Margin:"
-msgstr "여백:"
+msgid "&Use custom system colors (Some UI elements may not apply)"
+msgstr "사용자 지정 시스템 색상 사용 (일부 UI 요소는 적용되지 않을 수 있습니다)"
 
 #, c-format
 msgid "System"
@@ -1884,8 +1975,11 @@ msgstr "추가 속성"
 msgid "Select Plugin"
 msgstr "플러그인 선택"
 
-msgid "Plugin &Name:"
+msgid "Plugin &name:"
 msgstr "플러그인 이름(&N):"
+
+msgid "&Target files:"
+msgstr "대상 파일(&T):"
 
 #, c-format
 msgid "Extensions list:"
@@ -1904,7 +1998,7 @@ msgstr "모든 플러그인을 표시하고, 확장을 확인하지 않음"
 msgid "&Open files in the same window type after unpacking"
 msgstr "압축을 푼 후 동일한 창 유형의 파일 열기(&O)"
 
-msgid "&Plugin Pipeline:"
+msgid "&Plugin pipeline:"
 msgstr "플러그인 파이프라인(&P):"
 
 msgid "&Alias..."
@@ -2175,66 +2269,6 @@ msgid "Export..."
 msgstr "내보내기..."
 
 #, c-format
-msgid "Dialog"
-msgstr "대화 상자"
-
-#, c-format
-msgid "Keywords:"
-msgstr "키워드:"
-
-#, c-format
-msgid "Function names:"
-msgstr "함수 이름:"
-
-#, c-format
-msgid "Comments:"
-msgstr "주석:"
-
-#, c-format
-msgid "Numbers:"
-msgstr "숫자:"
-
-#, c-format
-msgid "Operators:"
-msgstr "연산자:"
-
-#, c-format
-msgid "Strings:"
-msgstr "문자열:"
-
-#, c-format
-msgid "Preprocessor:"
-msgstr "전처리기:"
-
-#, c-format
-msgid "User 1:"
-msgstr "사용자 1:"
-
-#, c-format
-msgid "User 2:"
-msgstr "사용자 2:"
-
-#, c-format
-msgid "Bold"
-msgstr "굵게"
-
-#, c-format
-msgid "Search Marker:"
-msgstr "마커 검색:"
-
-#, c-format
-msgid "User Defined Marker1:"
-msgstr "사용자 정의 마커1:"
-
-#, c-format
-msgid "User Defined Marker2:"
-msgstr "사용자 정의 마커2:"
-
-#, c-format
-msgid "User Defined Marker3:"
-msgstr "사용자 정의 마커3:"
-
-#, c-format
 msgid "Folder Compare Report"
 msgstr "폴더 비교 보고서"
 
@@ -2421,22 +2455,6 @@ msgid "&Quote character:"
 msgstr "따옴표 기호(&Q)"
 
 #, c-format
-msgid "&Use customized text colors"
-msgstr "사용자 지정 텍스트 색상 사용(&U)"
-
-#, c-format
-msgid "Whitespace:"
-msgstr "공백 문자:"
-
-#, c-format
-msgid "Regular text:"
-msgstr "일반 텍스트:"
-
-#, c-format
-msgid "Selection:"
-msgstr "선택:"
-
-#, c-format
 msgid "Backup Files"
 msgstr "파일 백업"
 
@@ -2510,6 +2528,9 @@ msgstr "플러그인"
 #, c-format
 msgid "&Enable plugins"
 msgstr "플러그인 활성화(&E)"
+
+msgid "Plugin &type:"
+msgstr "플러그인(&T):"
 
 msgid "File filters:"
 msgstr "파일 필터:"
@@ -2658,9 +2679,6 @@ msgstr "16진수 보기(&H)"
 
 msgid "Edit Plugin"
 msgstr "편집 플러그인"
-
-msgid "Plugin &type:"
-msgstr "플러그인(&T):"
 
 msgid "&Category:"
 msgstr "범주(&C):"
@@ -4954,6 +4972,27 @@ msgstr "플러그인 파이프라인 '%1'의 별칭"
 msgid "New plugin description"
 msgstr "새 플러그인 설명"
 
+msgid "All"
+msgstr "모두"
+
+msgid "1st"
+msgstr "첫 번째"
+
+msgid "2nd"
+msgstr "두 번째"
+
+msgid "3rd"
+msgstr "세 번째"
+
+msgid "1st and 2nd"
+msgstr "첫 번째 및 두 번쩨"
+
+msgid "1st and 3rd"
+msgstr "척 번째 및 세번째"
+
+msgid "2nd and 3rd"
+msgstr "두 번째 및 세번째"
+
 msgid "Filter applied"
 msgstr "필터 적용됨"
 
@@ -5122,6 +5161,9 @@ msgstr "디컴파일"
 msgid "URL Handling"
 msgstr "URL 처리"
 
+msgid "Decoding / Encoding"
+msgstr "디코딩/인코딩"
+
 msgid "Make Uppercase"
 msgstr "대문자로 변환"
 
@@ -5238,6 +5280,9 @@ msgstr "네이티브 코드 분해"
 
 msgid "Convert Text with AI..."
 msgstr "AI로 텍스트 변환..."
+
+msgid "Unescape Java properties files"
+msgstr "Java 속성 파일 이스케이프 해제"
 
 msgid "Make characters uppercase"
 msgstr "문자를 대문자로 만들기"
@@ -5517,7 +5562,7 @@ msgstr ""
 "사용법: AIConvertText 프롬프트"
 
 msgid "Unescape and display escaped Java properties files."
-msgstr ""
+msgstr "이스케이프 처리된 Java 속성 파일을 이스케이프 해제하고 표시합니다."
 
 msgid "CompareMSExcelFiles.sct WinMerge Plugin Options"
 msgstr "CompareMSExcelFiles.sct WinMerge 플러그인 옵션"
